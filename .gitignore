@@ -1,0 +1,32 @@
+# Build directories
+Debug/
+Release/
+*exe
+*.dll
+*.rar
+oshgui_d.lib
+oshgui.lib
+GWCA_d.lib
+
+# Bloated Windows Databases
+*.sdf
+*.opensdf
+*.suo
+
+
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+
+# Precompiled Headers
+*.gch
+*.pch
+*.idb
+*.pdb
+*.ipdb
+*.iobj
+*.opendb
