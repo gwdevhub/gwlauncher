@@ -227,6 +227,11 @@ namespace GWCA
                 return true;
             }
 
+            public IntPtr AllocMem(int size)
+            {
+                return VirtualAllocEx(process.Handle, IntPtr.Zero, (IntPtr)size, 0x3000, 0x40);
+            }
+
             /// <summary>
             /// Scan memory block for byte signature matches.
             /// </summary>
