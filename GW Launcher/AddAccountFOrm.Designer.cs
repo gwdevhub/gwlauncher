@@ -40,6 +40,8 @@
             this.labelGWPath = new System.Windows.Forms.Label();
             this.textBoxPath = new System.Windows.Forms.TextBox();
             this.buttonDialogPath = new System.Windows.Forms.Button();
+            this.labelExtraArgs = new System.Windows.Forms.Label();
+            this.textBoxExArgs = new System.Windows.Forms.TextBox();
             this.SuspendLayout();
             // 
             // labelEmail
@@ -93,7 +95,7 @@
             // checkBoxDatFix
             // 
             this.checkBoxDatFix.AutoSize = true;
-            this.checkBoxDatFix.Location = new System.Drawing.Point(12, 123);
+            this.checkBoxDatFix.Location = new System.Drawing.Point(12, 147);
             this.checkBoxDatFix.Name = "checkBoxDatFix";
             this.checkBoxDatFix.Size = new System.Drawing.Size(104, 17);
             this.checkBoxDatFix.TabIndex = 6;
@@ -102,7 +104,7 @@
             // 
             // buttonDone
             // 
-            this.buttonDone.Location = new System.Drawing.Point(128, 119);
+            this.buttonDone.Location = new System.Drawing.Point(128, 144);
             this.buttonDone.Name = "buttonDone";
             this.buttonDone.Size = new System.Drawing.Size(75, 23);
             this.buttonDone.TabIndex = 7;
@@ -137,11 +139,29 @@
             this.buttonDialogPath.UseVisualStyleBackColor = true;
             this.buttonDialogPath.Click += new System.EventHandler(this.buttonDialogPath_Click);
             // 
+            // labelExtraArgs
+            // 
+            this.labelExtraArgs.AutoSize = true;
+            this.labelExtraArgs.Location = new System.Drawing.Point(2, 118);
+            this.labelExtraArgs.Name = "labelExtraArgs";
+            this.labelExtraArgs.Size = new System.Drawing.Size(46, 13);
+            this.labelExtraArgs.TabIndex = 12;
+            this.labelExtraArgs.Text = "Ex Args:";
+            // 
+            // textBoxExArgs
+            // 
+            this.textBoxExArgs.Location = new System.Drawing.Point(54, 115);
+            this.textBoxExArgs.Name = "textBoxExArgs";
+            this.textBoxExArgs.Size = new System.Drawing.Size(149, 20);
+            this.textBoxExArgs.TabIndex = 13;
+            // 
             // AddAccountForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(215, 152);
+            this.ClientSize = new System.Drawing.Size(215, 176);
+            this.Controls.Add(this.textBoxExArgs);
+            this.Controls.Add(this.labelExtraArgs);
             this.Controls.Add(this.buttonDialogPath);
             this.Controls.Add(this.textBoxPath);
             this.Controls.Add(this.labelGWPath);
@@ -177,5 +197,7 @@
         private System.Windows.Forms.Label labelGWPath;
         private System.Windows.Forms.TextBox textBoxPath;
         private System.Windows.Forms.Button buttonDialogPath;
+        private System.Windows.Forms.Label labelExtraArgs;
+        private System.Windows.Forms.TextBox textBoxExArgs;
     }
 }

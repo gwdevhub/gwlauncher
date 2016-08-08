@@ -10,7 +10,6 @@ using System.Runtime.InteropServices;
 using System.IO;
 using GWCA.Memory;
 using GWMultiLaunch;
-using Binarysharp.Assemblers.Fasm;
 using GW_Launcher;
 
 namespace GWMC_CS
@@ -119,52 +118,13 @@ namespace GWMC_CS
             if (datfix2 == IntPtr.Zero)
             {
                 // WriteFile call.
-                datfix2 = ScanForPtr(new byte[] { 0x6A, 0x00, 0x52, 0x57, 0x50, 0x51 }, -0x23);
+                datfix2 = ScanForPtr(new byte[] { 0x6A, 0x00, 0x52, 0x57, 0x50, 0x51 }, 0);
                 if (datfix2 == IntPtr.Zero) return false;
                 datfix2retn = (IntPtr)(datfix2.ToInt32() + 0x6);
             }
 
-            IntPtr writehookbuffer = AllocMem(0x100);
-            FasmNet asm = new FasmNet();
-
-            asm.AddLine("use32");
-            asm.AddLine("org {0}", writehookbuffer);
-
-            asm.AddLine("mov eax,dword[{0}]", GWMem.DATInfo);
-            asm.AddLine("cmp eax,0");
-            asm.AddLine("je Trampoline");
-            asm.AddLine("mov eax,dword[eax+0x10]");
-            asm.AddLine("cmp eax,ecx");
-            asm.AddLine("jne Trampoline");
-            asm.AddLine("ret 0x10");
-
-            asm.AddLine("Trampoline:");
-            asm.AddLine("push ebp");
-            asm.AddLine("mov ebp,esp");
-            asm.AddLine("mov eax,dword[ebp+0x0C]");
-            asm.AddLine("push {0}", datfix2retn);
-            asm.AddLine("ret");
-
-            byte[] bytecode = asm.Assemble();
-
-            WriteBytes(writehookbuffer, bytecode);
-
-            FasmNet jmp = new FasmNet();
-
-            jmp.AddLine("use32");
-            jmp.AddLine("push {0}", writehookbuffer);
-            jmp.AddLine("ret");
-
-            byte[] jmpcode = jmp.Assemble();
-
-            WriteBytes(datfix2, jmpcode);
-
             // NOP it to avoid multiple writes, causing dat corruption
-            //  WriteBytes(datfix2, new byte[] { 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90 }); 
-
-
-
-
+              WriteBytes(datfix2, new byte[] { 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90 }); 
 
             return true;
         }

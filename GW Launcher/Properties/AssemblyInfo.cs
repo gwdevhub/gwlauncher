@@ -6,9 +6,9 @@ using System.Runtime.InteropServices;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 [assembly: AssemblyTitle("GW Launcher")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyDescription("A multi-launcher application for Guild Wars.")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("")]
+[assembly: AssemblyCompany("K A O S")]
 [assembly: AssemblyProduct("GW Launcher")]
 [assembly: AssemblyCopyright("Copyright ©  2016")]
 [assembly: AssemblyTrademark("")]

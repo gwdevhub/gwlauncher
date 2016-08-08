@@ -34,8 +34,12 @@
             this.columnName = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.columnStatus = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.contextMenuStripAccounts = new System.Windows.Forms.ContextMenuStrip(this.components);
+            this.refreshAccountsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripSeparator2 = new System.Windows.Forms.ToolStripSeparator();
             this.addNewToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.editSelectedToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.removeSelectedToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
             this.launchGWInstanceToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.contextMenuStripAccounts.SuspendLayout();
             this.SuspendLayout();
@@ -69,32 +73,60 @@
             // contextMenuStripAccounts
             // 
             this.contextMenuStripAccounts.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.refreshAccountsToolStripMenuItem,
+            this.toolStripSeparator2,
             this.addNewToolStripMenuItem,
+            this.editSelectedToolStripMenuItem,
             this.removeSelectedToolStripMenuItem,
+            this.toolStripSeparator1,
             this.launchGWInstanceToolStripMenuItem});
             this.contextMenuStripAccounts.Name = "contextMenuStripAccounts";
-            this.contextMenuStripAccounts.Size = new System.Drawing.Size(198, 70);
+            this.contextMenuStripAccounts.Size = new System.Drawing.Size(208, 148);
             this.contextMenuStripAccounts.Text = "Options.";
+            // 
+            // refreshAccountsToolStripMenuItem
+            // 
+            this.refreshAccountsToolStripMenuItem.Name = "refreshAccountsToolStripMenuItem";
+            this.refreshAccountsToolStripMenuItem.Size = new System.Drawing.Size(207, 22);
+            this.refreshAccountsToolStripMenuItem.Text = "Refresh Accounts";
+            this.refreshAccountsToolStripMenuItem.Click += new System.EventHandler(this.refreshAccountsToolStripMenuItem_Click);
+            // 
+            // toolStripSeparator2
+            // 
+            this.toolStripSeparator2.Name = "toolStripSeparator2";
+            this.toolStripSeparator2.Size = new System.Drawing.Size(204, 6);
             // 
             // addNewToolStripMenuItem
             // 
             this.addNewToolStripMenuItem.Name = "addNewToolStripMenuItem";
-            this.addNewToolStripMenuItem.Size = new System.Drawing.Size(197, 22);
+            this.addNewToolStripMenuItem.Size = new System.Drawing.Size(207, 22);
             this.addNewToolStripMenuItem.Text = "Add New";
             this.addNewToolStripMenuItem.Click += new System.EventHandler(this.addNewToolStripMenuItem_Click);
+            // 
+            // editSelectedToolStripMenuItem
+            // 
+            this.editSelectedToolStripMenuItem.Name = "editSelectedToolStripMenuItem";
+            this.editSelectedToolStripMenuItem.Size = new System.Drawing.Size(207, 22);
+            this.editSelectedToolStripMenuItem.Text = "Edit Selected";
+            this.editSelectedToolStripMenuItem.Click += new System.EventHandler(this.editSelectedToolStripMenuItem_Click);
             // 
             // removeSelectedToolStripMenuItem
             // 
             this.removeSelectedToolStripMenuItem.Name = "removeSelectedToolStripMenuItem";
-            this.removeSelectedToolStripMenuItem.Size = new System.Drawing.Size(197, 22);
+            this.removeSelectedToolStripMenuItem.Size = new System.Drawing.Size(207, 22);
             this.removeSelectedToolStripMenuItem.Text = "Remove Selected";
             this.removeSelectedToolStripMenuItem.Click += new System.EventHandler(this.removeSelectedToolStripMenuItem_Click);
+            // 
+            // toolStripSeparator1
+            // 
+            this.toolStripSeparator1.Name = "toolStripSeparator1";
+            this.toolStripSeparator1.Size = new System.Drawing.Size(204, 6);
             // 
             // launchGWInstanceToolStripMenuItem
             // 
             this.launchGWInstanceToolStripMenuItem.Name = "launchGWInstanceToolStripMenuItem";
-            this.launchGWInstanceToolStripMenuItem.Size = new System.Drawing.Size(197, 22);
-            this.launchGWInstanceToolStripMenuItem.Text = "Launch No-Account GW";
+            this.launchGWInstanceToolStripMenuItem.Size = new System.Drawing.Size(207, 22);
+            this.launchGWInstanceToolStripMenuItem.Text = "Launch Default GW Client";
             this.launchGWInstanceToolStripMenuItem.Click += new System.EventHandler(this.launchGWInstanceToolStripMenuItem_Click);
             // 
             // MainForm
@@ -124,6 +156,10 @@
         private System.Windows.Forms.ToolStripMenuItem addNewToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem removeSelectedToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem launchGWInstanceToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem refreshAccountsToolStripMenuItem;
+        private System.Windows.Forms.ToolStripSeparator toolStripSeparator2;
+        private System.Windows.Forms.ToolStripMenuItem editSelectedToolStripMenuItem;
+        private System.Windows.Forms.ToolStripSeparator toolStripSeparator1;
     }
 }
 
