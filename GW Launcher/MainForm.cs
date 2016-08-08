@@ -29,6 +29,7 @@ namespace GW_Launcher
         public string character;
         public string gwpath;
         public bool datfix;
+        public string extraargs;
     }
 
 
@@ -37,6 +38,8 @@ namespace GW_Launcher
     {
         public Account[] accounts;
         public Process[] procs;
+
+        bool first = true;
 
         int heightofgui = 143;
 
@@ -55,7 +58,7 @@ namespace GW_Launcher
         {
             var acc = accounts[selectedshit[batch_index]];
             listViewAccounts.Items[selectedshit[batch_index]].SubItems[1].Text = "Loading...";
-            procs[batch_index] = MulticlientPatch.LaunchClient(acc.gwpath, " -email " + acc.email + " -password " + acc.password + " -character \"" + acc.character + "\"", acc.datfix);
+            procs[batch_index] = MulticlientPatch.LaunchClient(acc.gwpath, " -email " + acc.email + " -password " + acc.password + " -character \"" + acc.character + "\" " + acc.extraargs, acc.datfix);
             listViewAccounts.Items[selectedshit[batch_index]].SubItems[1].Text = "Active";
             batch_index++;
             if(batch_index >= listViewAccounts.SelectedIndices.Count)
@@ -124,17 +127,19 @@ namespace GW_Launcher
 
             }
 
-
-            StatusUpdater.Interval = 1000;
-            StatusUpdater.Tick += new EventHandler(TimerEventProcessor);
-            StatusUpdater.Start();
-
-            BatchLoader.Interval = 7000;
-            BatchLoader.Tick += new EventHandler(TimerBatchLoadAccounts);
-
-            if(accounts.Length > 5)
+            if (first)
             {
-                heightofgui += 17 * (accounts.Length - 5);
+                StatusUpdater.Interval = 1000;
+                StatusUpdater.Tick += new EventHandler(TimerEventProcessor);
+                StatusUpdater.Start();
+
+                BatchLoader.Interval = 7000;
+                BatchLoader.Tick += new EventHandler(TimerBatchLoadAccounts);
+            }
+
+            if(accounts.Length > 4)
+            {
+                heightofgui += 17 * (accounts.Length - 4);
                 this.SetBounds(Location.X, Location.Y, Size.Width, heightofgui);
             }
 
@@ -142,19 +147,21 @@ namespace GW_Launcher
             {
                 listViewAccounts.Items.Add(new ListViewItem(new string[] { accounts[i].character, alreadyonline[i] ? "Active" : "Inactive" }, "gw-icon"));
             }
+            first = false;
 
         }
 
         private void listViewAccounts_MouseDoubleClick(object sender, MouseEventArgs e)
         {
             var selectedshit = listViewAccounts.SelectedIndices;
+            if (selectedshit.Count == 0) return;
             var acc = accounts[selectedshit[0]];
 
             if (listViewAccounts.Items[selectedshit[0]].SubItems[1].Text == "Active") return;
 
             listViewAccounts.Items[selectedshit[0]].SubItems[1].Text = "Loading...";
 
-            procs[selectedshit[0]] = MulticlientPatch.LaunchClient(acc.gwpath, " -email " + acc.email + " -password " + acc.password + " -character \"" + acc.character + "\"" + (acc.datfix ? " -nosound" : ""), acc.datfix);
+            procs[selectedshit[0]] = MulticlientPatch.LaunchClient(acc.gwpath, " -email " + acc.email + " -password " + acc.password + " -character \"" + acc.character + "\" " + acc.extraargs, acc.datfix);
 
             new GWCAMemory(procs[selectedshit[0]]).WriteWString(GW_Launcher.GWMem.WinTitle, acc.character + '\0');
 
@@ -164,6 +171,7 @@ namespace GW_Launcher
         private void launchSelectedToolStripMenuItem_Click(object sender, EventArgs e)
         {
             selectedshit = listViewAccounts.SelectedIndices;
+            if (selectedshit.Count == 0) return;
             batch_index = 0;
             BatchLoader.Start();
             TimerBatchLoadAccounts(null, new EventArgs());
@@ -173,7 +181,7 @@ namespace GW_Launcher
         {
             AddAccountForm gui = new AddAccountForm();
             gui.ShowDialog();
-            Account acc = gui.result;
+            Account acc = gui.account;
 
             if (acc.email != null)
             {
@@ -237,6 +245,40 @@ namespace GW_Launcher
                     MessageBox.Show("pathdefault = null, gw not installed?");
             }
             MulticlientPatch.LaunchClient(pathdefault, "", true);
+        }
+
+        private void refreshAccountsToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            this.OnLoad(new EventArgs());
+        }
+
+        private void editSelectedToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            selectedshit = listViewAccounts.SelectedIndices;
+            if (selectedshit.Count == 0) return;
+            var idx = selectedshit[0];
+            var acc = accounts[idx];
+            if (acc.email == "") return;
+
+            var addaccform = new AddAccountForm();
+            addaccform.Text = "Modify Account";
+            addaccform.account = acc;
+            addaccform.ShowDialog();
+
+            if (addaccform.finished)
+            {
+                accounts[idx] = addaccform.account;
+                using (StreamWriter sw = new StreamWriter("Accounts.json"))
+                {
+                    using (JsonWriter jw = new JsonTextWriter(sw))
+                    {
+                        jw.Formatting = Formatting.Indented;
+                        JsonSerializer serializer = new JsonSerializer();
+                        serializer.Serialize(jw, accounts);
+                    }
+                }
+            }
+
         }
     }
 }

@@ -16,26 +16,35 @@ namespace GW_Launcher
 {
     public partial class AddAccountForm : Form
     {
-        public Account result;
+        public Account account;
+        public bool finished = false;
 
         public AddAccountForm()
         {
+            account = new Account();
             InitializeComponent();
         }
 
         private void buttonDone_Click(object sender, EventArgs e)
         {
-            result.email = textBoxEmail.Text;
-            result.password = textBoxPassword.Text;
-            result.character = textBoxChar.Text;
-            result.gwpath = textBoxPath.Text;
-            result.datfix = checkBoxDatFix.Checked;
-
+            account.email = textBoxEmail.Text;
+            account.password = textBoxPassword.Text;
+            account.character = textBoxChar.Text;
+            account.gwpath = textBoxPath.Text;
+            account.datfix = checkBoxDatFix.Checked;
+            account.extraargs = textBoxExArgs.Text;
+            finished = true;
             this.Close();
         }
 
         private void AddAccountForm_Load(object sender, EventArgs e)
         {
+            textBoxEmail.Text = account.email;
+            textBoxPassword.Text = account.password;
+            textBoxChar.Text = account.character;
+            textBoxPath.Text = account.gwpath;
+            checkBoxDatFix.Checked = account.datfix;
+            textBoxExArgs.Text = account.extraargs;
         }
 
         private void buttonDialogPath_Click(object sender, EventArgs e)
