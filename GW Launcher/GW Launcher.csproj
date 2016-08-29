@@ -67,7 +67,6 @@
     </Compile>
     <Compile Include="GWCAMemory.cs" />
     <Compile Include="GWMem.cs" />
-    <Compile Include="HandleManager.cs" />
     <Compile Include="MainForm.cs">
       <SubType>Form</SubType>
     </Compile>
