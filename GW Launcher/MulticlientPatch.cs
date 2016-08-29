@@ -60,7 +60,17 @@ namespace GWMC_CS
             Process proc = Process.GetProcessById((int)dwPID);
             GWCAMemory mem = new GWCAMemory(proc);
 
-            string dllpath = Path.GetDirectoryName(path) + "\\plugins";
+            string dllpath = Directory.GetCurrentDirectory() + "\\plugins";
+            if (Directory.Exists(dllpath))
+            {
+                string[] files = Directory.GetFiles(dllpath, "*.dll");
+                foreach (string file in files)
+                {
+                    mem.LoadModule(file);
+                }
+            }
+
+            dllpath = Path.GetDirectoryName(path) + "\\plugins";
             if (Directory.Exists(dllpath)) {
                 string[] files = Directory.GetFiles(dllpath, "*.dll");
                 foreach(string file in files)
