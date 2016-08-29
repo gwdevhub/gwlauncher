@@ -4,6 +4,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 14.0.24720.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GW Launcher", "GW Launcher\GW Launcher.csproj", "{35FF2DD3-C487-4402-9ACB-AE4C7318BA08}"
+	ProjectSection(ProjectDependencies) = postProject
+		{5B14128A-090A-4125-B5B2-239A5D737CCA} = {5B14128A-090A-4125-B5B2-239A5D737CCA}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Launcher-Dll", "Launcher-Dll\Launcher-Dll.vcxproj", "{5B14128A-090A-4125-B5B2-239A5D737CCA}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -27,6 +32,16 @@ Global
 		{35FF2DD3-C487-4402-9ACB-AE4C7318BA08}.Release|x64.Build.0 = Release|Any CPU
 		{35FF2DD3-C487-4402-9ACB-AE4C7318BA08}.Release|x86.ActiveCfg = Release|Any CPU
 		{35FF2DD3-C487-4402-9ACB-AE4C7318BA08}.Release|x86.Build.0 = Release|Any CPU
+		{5B14128A-090A-4125-B5B2-239A5D737CCA}.Debug|Any CPU.ActiveCfg = Debug|Win32
+		{5B14128A-090A-4125-B5B2-239A5D737CCA}.Debug|x64.ActiveCfg = Debug|x64
+		{5B14128A-090A-4125-B5B2-239A5D737CCA}.Debug|x64.Build.0 = Debug|x64
+		{5B14128A-090A-4125-B5B2-239A5D737CCA}.Debug|x86.ActiveCfg = Debug|Win32
+		{5B14128A-090A-4125-B5B2-239A5D737CCA}.Debug|x86.Build.0 = Debug|Win32
+		{5B14128A-090A-4125-B5B2-239A5D737CCA}.Release|Any CPU.ActiveCfg = Release|Win32
+		{5B14128A-090A-4125-B5B2-239A5D737CCA}.Release|x64.ActiveCfg = Release|x64
+		{5B14128A-090A-4125-B5B2-239A5D737CCA}.Release|x64.Build.0 = Release|x64
+		{5B14128A-090A-4125-B5B2-239A5D737CCA}.Release|x86.ActiveCfg = Release|Win32
+		{5B14128A-090A-4125-B5B2-239A5D737CCA}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
