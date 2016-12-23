@@ -30,7 +30,6 @@ namespace GW_Launcher
                 SetForegroundWindow(win);
                 return;
             }
-
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             Application.Run(new MainForm()); 

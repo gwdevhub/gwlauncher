@@ -4,9 +4,6 @@ Release/
 *exe
 *.dll
 *.rar
-oshgui_d.lib
-oshgui.lib
-GWCA_d.lib
 
 # Bloated Windows Databases
 *.sdf
@@ -30,7 +27,6 @@ GWCA_d.lib
 *.ipdb
 *.iobj
 *.opendb
-
 *.json
 *.vcxproj.user
 *.VC.db

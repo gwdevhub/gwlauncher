@@ -55,17 +55,11 @@ namespace GWMC_CS
 
             IntPtr hThread = IntPtr.Zero;
             uint dwPID = LaunchClient(path, args, (GWML_FLAGS)((datfix ? 2 : 3) | (nologin ? 4 : 0)), out hThread);
-
-
-
-
-
             Process proc = Process.GetProcessById((int)dwPID);
             GWCAMemory mem = new GWCAMemory(proc);
 
             if (!GWMem.scanned)
                 GWMem.FindAddresses(mem);
-
             string dllpath = Directory.GetCurrentDirectory() + "\\plugins";
             if (Directory.Exists(dllpath))
             {
