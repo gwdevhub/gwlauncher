@@ -44,7 +44,7 @@ namespace GW_Launcher
         int heightofgui = 143;
 
         public int batch_index;
-        ListView.SelectedIndexCollection selectedshit;
+        ListView.SelectedIndexCollection selectedItems;
 
         System.Windows.Forms.Timer StatusUpdater = new System.Windows.Forms.Timer();
         System.Windows.Forms.Timer BatchLoader = new System.Windows.Forms.Timer();
@@ -56,10 +56,10 @@ namespace GW_Launcher
 
         private void TimerBatchLoadAccounts(Object obj,EventArgs args)
         {
-            var acc = accounts[selectedshit[batch_index]];
-            listViewAccounts.Items[selectedshit[batch_index]].SubItems[1].Text = "Loading...";
+            var acc = accounts[selectedItems[batch_index]];
+            listViewAccounts.Items[selectedItems[batch_index]].SubItems[1].Text = "Loading...";
             procs[batch_index] = MulticlientPatch.LaunchClient(acc.gwpath, " -email " + acc.email + " -password " + acc.password + " -character \"" + acc.character + "\" " + acc.extraargs, acc.datfix);
-            listViewAccounts.Items[selectedshit[batch_index]].SubItems[1].Text = "Active";
+            listViewAccounts.Items[selectedItems[batch_index]].SubItems[1].Text = "Active";
             batch_index++;
             if(batch_index >= listViewAccounts.SelectedIndices.Count)
             {
@@ -153,25 +153,25 @@ namespace GW_Launcher
 
         private void listViewAccounts_MouseDoubleClick(object sender, MouseEventArgs e)
         {
-            var selectedshit = listViewAccounts.SelectedIndices;
-            if (selectedshit.Count == 0) return;
-            var acc = accounts[selectedshit[0]];
+            var selectedItems = listViewAccounts.SelectedIndices;
+            if (selectedItems.Count == 0) return;
+            var acc = accounts[selectedItems[0]];
 
-            if (listViewAccounts.Items[selectedshit[0]].SubItems[1].Text == "Active") return;
+            if (listViewAccounts.Items[selectedItems[0]].SubItems[1].Text == "Active") return;
 
-            listViewAccounts.Items[selectedshit[0]].SubItems[1].Text = "Loading...";
+            listViewAccounts.Items[selectedItems[0]].SubItems[1].Text = "Loading...";
 
-            procs[selectedshit[0]] = MulticlientPatch.LaunchClient(acc.gwpath, " -email " + acc.email + " -password " + acc.password + " -character \"" + acc.character + "\" " + acc.extraargs, acc.datfix);
+            procs[selectedItems[0]] = MulticlientPatch.LaunchClient(acc.gwpath, " -email " + acc.email + " -password " + acc.password + " -character \"" + acc.character + "\" " + acc.extraargs, acc.datfix);
 
-            new GWCAMemory(procs[selectedshit[0]]).WriteWString(GW_Launcher.GWMem.WinTitle, acc.character + '\0');
+            new GWCAMemory(procs[selectedItems[0]]).WriteWString(GW_Launcher.GWMem.WinTitle, acc.character + '\0');
 
-            listViewAccounts.Items[selectedshit[0]].SubItems[1].Text = "Active";
+            listViewAccounts.Items[selectedItems[0]].SubItems[1].Text = "Active";
         }
 
         private void launchSelectedToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            selectedshit = listViewAccounts.SelectedIndices;
-            if (selectedshit.Count == 0) return;
+            selectedItems = listViewAccounts.SelectedIndices;
+            if (selectedItems.Count == 0) return;
             batch_index = 0;
             BatchLoader.Start();
             TimerBatchLoadAccounts(null, new EventArgs());
@@ -244,7 +244,7 @@ namespace GW_Launcher
                 if (pathdefault == null)
                     MessageBox.Show("pathdefault = null, gw not installed?");
             }
-            MulticlientPatch.LaunchClient(pathdefault, "", true);
+            MulticlientPatch.LaunchClient(pathdefault, "", true, true);
         }
 
         private void refreshAccountsToolStripMenuItem_Click(object sender, EventArgs e)
@@ -255,9 +255,9 @@ namespace GW_Launcher
 
         private void editSelectedToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            selectedshit = listViewAccounts.SelectedIndices;
-            if (selectedshit.Count == 0) return;
-            var idx = selectedshit[0];
+            selectedItems = listViewAccounts.SelectedIndices;
+            if (selectedItems.Count == 0) return;
+            var idx = selectedItems[0];
             var acc = accounts[idx];
             if (acc.email == "") return;
 

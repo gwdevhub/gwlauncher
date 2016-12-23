@@ -30,3 +30,7 @@ GWCA_d.lib
 *.ipdb
 *.iobj
 *.opendb
+
+*.json
+*.vcxproj.user
+*.VC.db

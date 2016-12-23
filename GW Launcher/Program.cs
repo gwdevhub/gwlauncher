@@ -15,10 +15,22 @@ namespace GW_Launcher
         /// The main entry point for the application.
         /// </summary>
         /// 
+        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+        extern static IntPtr FindWindowW(string clsname, string winname);
+
+        [DllImport("user32.dll")]
+        extern static bool SetForegroundWindow(IntPtr hWNd);
 
         [STAThread]
         static void Main()
         {
+            IntPtr win = FindWindowW(null, "GW Launcher");
+            if (win != IntPtr.Zero)
+            {
+                SetForegroundWindow(win);
+                return;
+            }
+
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             Application.Run(new MainForm()); 

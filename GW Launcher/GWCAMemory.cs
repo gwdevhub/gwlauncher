@@ -283,7 +283,7 @@ namespace GWCA
             /// <summary>
             /// Deallocate memory block and scan range of scanner.
             /// </summary>
-            public void TerminateScanner()
+            public void FreeScanner()
             {
                 scan_start = IntPtr.Zero;
                 scan_size = 0;
