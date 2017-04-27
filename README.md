@@ -1,6 +1,3 @@
-<div align="center">
-
-### by KAOS
 
 ### [Releases/Download](https://github.com/GregLando113/gwlauncher/releases)
 
