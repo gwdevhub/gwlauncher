@@ -2,13 +2,12 @@
 
 ### by KAOS
 
-### [otw_shortcode_button href="https://github.com/GregLando113/gwlauncher/releases" size="medium" bgcolor="#222222" icon_position="left" shape="square" text_color="#dbdbdb" target="_blank"]DOWNLOAD[/otw_shortcode_button]
-
-</div>
+### [Releases/Download](https://github.com/GregLando113/gwlauncher/releases)
 
 ### Overview
 
 ![lnch-add-account](http://tools.fbgmguild.com/wp-content/uploads/2016/08/lnch-add-account.png)
+![lnch-1](http://tools.fbgmguild.com/wp-content/uploads/2016/08/lnch-1.png)
 
 * * *
 
@@ -22,7 +21,7 @@
 
 * * *
 
-1.  Click download below.![lnch-1](http://tools.fbgmguild.com/wp-content/uploads/2016/08/lnch-1.png)
+1.  Click download below.
 2.  Select the most recent revision executable. (Or source of you want to compile yourself)
 3.  Put the executable in its own folder! Dont be that guy who keeps everything in their downloads folder/desktop please.
 4.  Run the executable.
