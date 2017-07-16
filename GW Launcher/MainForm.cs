@@ -24,6 +24,7 @@ namespace GW_Launcher
 
     public struct Account
     {
+        public string alias;
         public string email;
         public string password;
         public string character;
@@ -57,9 +58,9 @@ namespace GW_Launcher
         private void TimerBatchLoadAccounts(Object obj,EventArgs args)
         {
             var acc = accounts[selectedItems[batch_index]];
-            listViewAccounts.Items[selectedItems[batch_index]].SubItems[1].Text = "Loading...";
+            listViewAccounts.Items[selectedItems[batch_index]].SubItems[3].Text = "Loading...";
             procs[batch_index] = MulticlientPatch.LaunchClient(acc.gwpath, " -email " + acc.email + " -password " + acc.password + " -character \"" + acc.character + "\" " + acc.extraargs, acc.datfix);
-            listViewAccounts.Items[selectedItems[batch_index]].SubItems[1].Text = "Active";
+            listViewAccounts.Items[selectedItems[batch_index]].SubItems[3].Text = "Active";
             batch_index++;
             if(batch_index >= listViewAccounts.SelectedIndices.Count)
             {
@@ -74,7 +75,7 @@ namespace GW_Launcher
             {
                 if (procs[i] != null && procs[i].HasExited)
                 {
-                    listViewAccounts.Items[i].SubItems[1].Text = "Inactive";
+                    listViewAccounts.Items[i].SubItems[3].Text = "Inactive";
                     procs[i] = null;
                 }
             }
@@ -145,7 +146,7 @@ namespace GW_Launcher
 
             for (int i = 0; i < accounts.Length; ++i)
             {
-                listViewAccounts.Items.Add(new ListViewItem(new string[] { accounts[i].character, alreadyonline[i] ? "Active" : "Inactive" }, "gw-icon"));
+                listViewAccounts.Items.Add(new ListViewItem(new string[] { null, accounts[i].alias, accounts[i].character, alreadyonline[i] ? "Active" : "Inactive" }, "gw-icon"));
             }
             first = false;
 
@@ -157,15 +158,15 @@ namespace GW_Launcher
             if (selectedItems.Count == 0) return;
             var acc = accounts[selectedItems[0]];
 
-            if (listViewAccounts.Items[selectedItems[0]].SubItems[1].Text == "Active") return;
+            if (listViewAccounts.Items[selectedItems[0]].SubItems[3].Text == "Active") return;
 
-            listViewAccounts.Items[selectedItems[0]].SubItems[1].Text = "Loading...";
+            listViewAccounts.Items[selectedItems[0]].SubItems[3].Text = "Loading...";
 
             procs[selectedItems[0]] = MulticlientPatch.LaunchClient(acc.gwpath, " -email " + acc.email + " -password " + acc.password + " -character \"" + acc.character + "\" " + acc.extraargs, acc.datfix);
 
             new GWCAMemory(procs[selectedItems[0]]).WriteWString(GW_Launcher.GWMem.WinTitle, acc.character + '\0');
 
-            listViewAccounts.Items[selectedItems[0]].SubItems[1].Text = "Active";
+            listViewAccounts.Items[selectedItems[0]].SubItems[3].Text = "Active";
         }
 
         private void launchSelectedToolStripMenuItem_Click(object sender, EventArgs e)
@@ -264,6 +265,7 @@ namespace GW_Launcher
             var addaccform = new AddAccountForm();
             addaccform.Text = "Modify Account";
             addaccform.account = acc;
+            addaccform.buttonDone.Text = "Edit";
             addaccform.ShowDialog();
 
             if (addaccform.finished)
@@ -278,6 +280,8 @@ namespace GW_Launcher
                         serializer.Serialize(jw, accounts);
                     }
                 }
+                this.listViewAccounts.Items.Clear();
+                this.OnLoad(new EventArgs());
             }
 
         }
