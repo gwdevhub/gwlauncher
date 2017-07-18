@@ -30,3 +30,6 @@ Release/
 *.json
 *.vcxproj.user
 *.VC.db
+
+# Packages
+packages/
