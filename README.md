@@ -2,7 +2,7 @@
 ### [Original Creator Releases/Downloads](https://github.com/GregLando113/gwlauncher/releases)
 ### [My Releases/Downloads](https://github.com/stheno/gwlauncher/releases)
 
-### Overview
+## Overview
 
 ![lnch-add-account](http://puu.sh/wO35w/8c1d8889b4.jpg)
 ![lnch-edit-account](https://puu.sh/wO35O/37cbf03746.jpg)
@@ -33,7 +33,7 @@
 1.  Click download below.
 2.  Select the most recent revision executable. (Or source of you want to compile yourself)
 3.  Put the executable in its own folder! Dont be that guy who keeps everything in their downloads folder/desktop please.
-3a. It seems that it is wanting to be in the visual studio build folder OR Guildwars folder now..
+*   It seems that it is wanting to be in the visual studio build folder OR Guildwars folder now..
 4.  Run the executable.
 
 ### Usage
