@@ -1,10 +1,12 @@
 
-### [Releases/Download](https://github.com/GregLando113/gwlauncher/releases)
+### [Original Creator Releases/Downloads](https://github.com/GregLando113/gwlauncher/releases)
+### [My Releases/Downloads](https://github.com/stheno/gwlauncher/releases)
 
 ### Overview
 
-![lnch-add-account](http://tools.fbgmguild.com/wp-content/uploads/2016/08/lnch-add-account.png)
-![lnch-1](http://tools.fbgmguild.com/wp-content/uploads/2016/08/lnch-1.png)
+![lnch-add-account](http://puu.sh/wO35w/8c1d8889b4.jpg)
+![lnch-edit-account](https://puu.sh/wO35O/37cbf03746.jpg)
+![lnch-1](https://puu.sh/wO2tI/2c1aeb4365.jpg)
 
 * * *
 
@@ -14,6 +16,16 @@
 *   ".dat Patch" allows you to run multiple clients off of one installation. (Side effects occur when using this, see below for details)
 *   Open source.
 
+#### New
+
+* * * *
+* Alias column to further identify which account is tied to the particular entered character name.
+* For those that do not have much hard drive space but want to run multiple accounts...
+	This now checks the path for the dat file. If it does not exist it scans other account entry paths.
+	If the entry is inactive it will move the dat file to the clicked account path and run the game.
+	If it can't find a dat to move. It will just start the game and get a fresh dat from the server.
+* * * *
+
 ### Installation
 
 * * *
@@ -21,6 +33,7 @@
 1.  Click download below.
 2.  Select the most recent revision executable. (Or source of you want to compile yourself)
 3.  Put the executable in its own folder! Dont be that guy who keeps everything in their downloads folder/desktop please.
+3a. It seems that it is wanting to be in the visual studio build folder OR Guildwars folder now..
 4.  Run the executable.
 
 ### Usage
@@ -30,6 +43,13 @@
 #### Add an Account
 
 Right click the Main Launcher Window to reveal a context menu, then select _Add New_. The Add Account window will then pop up. Fill out all the information it asks for, then hit Add. The new account will now appear in the main form list. Double click to launch.
+
+#### New
+* * * *
+#### Edit an Account
+
+Right click the Main Launcher Window to reveal a context menu, then select _Edit Selected_. The same window for add account will pop up, but with one exception. The button does indeed show EDIT. This will change any info and save it.
+* * * *
 
 #### Remove an Account
 
@@ -41,44 +61,49 @@ Right click the Main Launcher Window to reveal a context menu, then select _Edit
 
 <pre>[
   {
+    "alias": "derp1",
     "email": "derp@derperkins.derp",
     "password": "derpyderp",
     "character": "D E R P Y",
     "gwpath": "C:\\Derp\\GW\\Gw.exe",
     "datfix": true,
-    "extraargs":""
+    "extraargs": "-windowed"
   },
   {
+    "alias": "derp2",
     "email": "derp1@derperkins.derp",
     "password": "asf",
     "character": "Derpyless Derp",
     "gwpath": "C:\\Derp\\GW\\Gw.exe",
     "datfix": true,
-    "extraargs":""
+    "extraargs": "-windowed"
   },
   {
+    "alias": "derp3",
     "email": "derp2@derperkins.derp",
     "password": "poop",
     "character": "Werpy Derp",
     "gwpath": "C:\\Derp\\GW3\\Gw.exe",
     "datfix": false,
-    "extraargs":""
+    "extraargs": "-windowed"
   },
   {
+    "alias": "derp4",
     "email": "derp3@derperkins.derp",
     "password": "iamsomature",
     "character": "Derrrrrp Derp",
     "gwpath": "C:\\Derp\\GW2\\Gw.exe",
     "datfix": false,
-    "extraargs":""
+    "extraargs": "-windowed"
   },
   {
+    "alias": "derp5",
     "email": "derp4@derperkins.derp",
     "password": "I<3GWLauncher",
     "character": "So Much Derp",
     "gwpath": "C:\\Derp\\GW1\\Gw.exe",
     "datfix": false,
-    "extraargs":""
+    "extraargs": "-windowed"
   }
 ]
 </pre>
