@@ -31,7 +31,7 @@ namespace GWMC_CS
         [DllImport("Kernel32.dll", CallingConvention = CallingConvention.Winapi)]
         static extern uint CloseHandle(IntPtr handle);
 
-        static public Process LaunchClient(string path,string args,bool datfix,bool nologin = false)
+        static public GWCAMemory LaunchClient(string path,string args,bool datfix,bool nologin = false)
         {
             try
             {
@@ -82,7 +82,7 @@ namespace GWMC_CS
             ResumeThread(hThread);
             CloseHandle(hThread);
 
-            return proc;
+            return mem;
         }
     }
 }

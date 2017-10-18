@@ -6,11 +6,32 @@ using System.Windows.Forms;
 using System.Reflection;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Threading;
+using GWCA.Memory;
+using System.IO;
+using Newtonsoft.Json;
+using GWMC_CS;
 
 namespace GW_Launcher
 {
+    public struct Account
+    {
+        public string email;
+        public string password;
+        public string character;
+        public string gwpath;
+        public bool datfix;
+        public string extraargs;
+
+        [JsonIgnore]
+        public bool active;
+    }
+
     static class Program
     {
+        public static Account[] accounts;
+        public static GWCAMemory[] processes;
+        public static Thread mainthread;
         /// <summary>
         /// The main entry point for the application.
         /// </summary>
@@ -24,15 +45,77 @@ namespace GW_Launcher
         [STAThread]
         static void Main()
         {
-            IntPtr win = FindWindowW(null, "GW Launcher");
-            if (win != IntPtr.Zero)
+            Process p = Process.GetProcessesByName("GW Launcher")[0];
+            if (p.MainWindowHandle != IntPtr.Zero)
             {
-                SetForegroundWindow(win);
+                SetForegroundWindow(p.MainWindowHandle);
                 return;
             }
+
+            StreamReader file;
+            try
+            {
+                file = new StreamReader("Accounts.json");
+            }
+            catch (FileNotFoundException)
+            {
+                StreamWriter writerfile = File.CreateText("Accounts.json");
+                writerfile.Write("[]");
+                writerfile.Close();
+                file = new StreamReader("Accounts.json");
+            }
+
+            JsonTextReader reader = new JsonTextReader(file);
+            JsonSerializer serializer = new JsonSerializer();
+
+            accounts = serializer.Deserialize<Account[]>(reader);
+            for(int i = 0; i < accounts.Length; ++i)
+            {
+                accounts[i].active = false;
+            }
+            processes = new GWCAMemory[accounts.Length];
+            file.Close();
+
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new MainForm()); 
+            MainForm mf = new MainForm(accounts);
+
+            mainthread = new Thread(() =>
+            {
+                bool main_closed = false;
+                mf.FormClosed += (s, a) => { main_closed = true; };
+                while (!main_closed)
+                {
+                    int sleep = 5000;
+                    while (mf.needtolaunch.Count > 0)
+                    {
+                        int i = mf.needtolaunch.Dequeue();
+                        Account a = accounts[i];
+                        GWCAMemory m = MulticlientPatch.LaunchClient(a.gwpath, " -email \"" + a.email + "\" -password \"" + a.password + "\" -character \"" + a.character + "\" " + a.extraargs, true);
+                        processes[i] = m;
+                        m.WriteWString(GWMem.WinTitle, a.character);
+
+                        mf.SetActive(i, true);
+
+                        while (m.Read<ushort>(GWMem.CharnamePtr) == 0)
+                            Thread.Sleep(1000);
+
+                        Thread.Sleep(sleep);
+                        sleep += 5000;
+                    }
+
+                    for(int i = 0; i < processes.Length; ++i)
+                    {
+                        if (accounts[i].active && processes[i].process.HasExited)
+                        {
+                            mf.SetActive(i, false);
+                        }
+                    }
+
+                    Thread.Sleep(150);
+                }
+            });
+            Application.Run(mf);
         }
     }
 }

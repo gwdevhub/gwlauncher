@@ -146,7 +146,7 @@ namespace GWCA
             /// <returns>String found.</returns>
             public string ReadWString(IntPtr address, int maxsize)
             {
-                byte[] rawbytes = ReadBytes(address, maxsize);
+                byte[] rawbytes = ReadBytes(address, maxsize * 2);
                 string ret = Encoding.Unicode.GetString(rawbytes);
                 if (ret.Contains("\0"))
                     ret = ret.Substring(0, ret.IndexOf('\0'));

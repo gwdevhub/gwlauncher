@@ -19,27 +19,10 @@ using Microsoft.Win32;
 
 namespace GW_Launcher
 {
-
-
-
-    public struct Account
-    {
-        public string email;
-        public string password;
-        public string character;
-        public string gwpath;
-        public bool datfix;
-        public string extraargs;
-    }
-
-
-
     public partial class MainForm : Form
     {
+        public Queue<int> needtolaunch;
         public Account[] accounts;
-        public Process[] procs;
-
-        bool first = true;
 
         int heightofgui = 143;
 
@@ -49,132 +32,83 @@ namespace GW_Launcher
         System.Windows.Forms.Timer StatusUpdater = new System.Windows.Forms.Timer();
         System.Windows.Forms.Timer BatchLoader = new System.Windows.Forms.Timer();
 
-        public MainForm()
+        public MainForm(Account[] accounts)
         {
+            this.accounts = accounts;
             InitializeComponent();
         }
 
-        private void TimerBatchLoadAccounts(Object obj,EventArgs args)
+        private void RefreshUI()
         {
-            var acc = accounts[selectedItems[batch_index]];
-            listViewAccounts.Items[selectedItems[batch_index]].SubItems[1].Text = "Loading...";
-            procs[batch_index] = MulticlientPatch.LaunchClient(acc.gwpath, " -email " + acc.email + " -password " + acc.password + " -character \"" + acc.character + "\" " + acc.extraargs, acc.datfix);
-            listViewAccounts.Items[selectedItems[batch_index]].SubItems[1].Text = "Active";
-            batch_index++;
-            if(batch_index >= listViewAccounts.SelectedIndices.Count)
+            if (accounts.Length > 4)
             {
-                BatchLoader.Stop();
+                heightofgui = 143 + 17 * (accounts.Length - 4);
+                this.SetBounds(Location.X, Location.Y, Size.Width, heightofgui);
+            }
+            this.listViewAccounts.Items.Clear();
+
+            // Run through already open GW clients to see if accounts are already active.
+            foreach (Process p in Process.GetProcessesByName("Gw"))
+            {
+                GWCAMemory m = new GWCAMemory(p);
+                string str = m.ReadWString(GWMem.EmailAddPtr, 64);
+                for (int i = 0; i < accounts.Length; ++i)
+                {
+                    if (str == accounts[i].email)
+                    {
+                        accounts[i].active = true;
+                        Program.processes[i] = m;
+                        break;
+                    }
+                }
+            }
+
+            // Fill out data.
+            for (int i = 0; i < accounts.Length; ++i)
+            {
+                listViewAccounts.Items.Add(new ListViewItem(
+                    new string[] {
+                            accounts[i].character,
+                            accounts[i].active ? "Active" : "Inactive"
+                    },
+                    "gw-icon"
+                    ));
+
             }
         }
 
-        private void TimerEventProcessor(Object myObject,
-                                            EventArgs myEventArgs)
+        public void SetActive(int idx, bool active)
         {
-            for (int i = 0; i < procs.Length; ++i)
-            {
-                if (procs[i] != null && procs[i].HasExited)
-                {
-                    listViewAccounts.Items[i].SubItems[1].Text = "Inactive";
-                    procs[i] = null;
-                }
-            }
+            accounts[idx].active = active;
+            listViewAccounts.Items[idx].SubItems[1].Text = active ? "Active" : "Inactive";
         }
 
         private void MainForm_Load(object sender, EventArgs e)
         {
-            heightofgui = 143;
+            // Initialize things
             ImageList imglist = new ImageList();
-
+            needtolaunch = new Queue<int>();
             imglist.Images.Add("gw-icon", Properties.Resources.gw_icon);
-
             listViewAccounts.SmallImageList = imglist;
-
-            StreamReader file;
-            try {
-                file = new StreamReader("Accounts.json");
-            } catch(FileNotFoundException)
-            {
-                StreamWriter writerfile = File.CreateText("Accounts.json");
-                writerfile.Write("[]");
-                writerfile.Close();
-                file = new StreamReader("Accounts.json");
-            }
-
-            JsonTextReader reader = new JsonTextReader(file);
-            JsonSerializer serializer = new JsonSerializer();
-
-            accounts = serializer.Deserialize<Account[]>(reader);
-
-            file.Close();
-
-            procs = new Process[accounts.Length];
-            bool[] alreadyonline = new bool[accounts.Length];
-
-            Process[] gwprocs = Process.GetProcessesByName("Gw");
-            foreach (Process proc in gwprocs)
-            {
-                GWCAMemory mem = new GWCAMemory(proc);
-
-                string curaddr = mem.ReadWString(GWMem.EmailAddPtr, 100);
-                for (int i = 0; i < accounts.Length; ++i)
-                {
-                    if(accounts[i].email == curaddr)
-                    {
-                        procs[i] = proc;
-                        alreadyonline[i] = true;
-                    }
-                }
-
-            }
-
-            if (first)
-            {
-                StatusUpdater.Interval = 1000;
-                StatusUpdater.Tick += new EventHandler(TimerEventProcessor);
-                StatusUpdater.Start();
-
-                BatchLoader.Interval = 7000;
-                BatchLoader.Tick += new EventHandler(TimerBatchLoadAccounts);
-            }
-
-            if(accounts.Length > 4)
-            {
-                heightofgui += 17 * (accounts.Length - 4);
-                this.SetBounds(Location.X, Location.Y, Size.Width, heightofgui);
-            }
-
-            for (int i = 0; i < accounts.Length; ++i)
-            {
-                listViewAccounts.Items.Add(new ListViewItem(new string[] { accounts[i].character, alreadyonline[i] ? "Active" : "Inactive" }, "gw-icon"));
-            }
-            first = false;
-
+            RefreshUI();
+            Program.mainthread.Start();
         }
 
         private void listViewAccounts_MouseDoubleClick(object sender, MouseEventArgs e)
         {
             var selectedItems = listViewAccounts.SelectedIndices;
             if (selectedItems.Count == 0) return;
-            var acc = accounts[selectedItems[0]];
-
-            if (listViewAccounts.Items[selectedItems[0]].SubItems[1].Text == "Active") return;
-
-            listViewAccounts.Items[selectedItems[0]].SubItems[1].Text = "Loading...";
-
-            procs[selectedItems[0]] = MulticlientPatch.LaunchClient(acc.gwpath, " -email " + acc.email + " -password " + acc.password + " -character \"" + acc.character + "\" " + acc.extraargs, acc.datfix);
-
-            new GWCAMemory(procs[selectedItems[0]]).WriteWString(GW_Launcher.GWMem.WinTitle, acc.character + '\0');
-
-            listViewAccounts.Items[selectedItems[0]].SubItems[1].Text = "Active";
+            needtolaunch.Enqueue(selectedItems[0]);
         }
 
         private void launchSelectedToolStripMenuItem_Click(object sender, EventArgs e)
         {
             selectedItems = listViewAccounts.SelectedIndices;
             if (selectedItems.Count == 0) return;
-            batch_index = 0;
-            BatchLoader.Start();
-            TimerBatchLoadAccounts(null, new EventArgs());
+            foreach(int i in selectedItems)
+            {
+                needtolaunch.Enqueue(i);
+            }
         }
 
         private void addNewToolStripMenuItem_Click(object sender, EventArgs e)
@@ -200,8 +134,7 @@ namespace GW_Launcher
                     }
                 }
 
-                this.listViewAccounts.Items.Clear();
-                this.OnLoad(new EventArgs());
+                RefreshUI();
             }
         }
 
@@ -231,8 +164,7 @@ namespace GW_Launcher
                 }
             }
 
-            this.listViewAccounts.Items.Clear();
-            this.OnLoad(new EventArgs());
+            RefreshUI();
         }
 
         private void launchGWInstanceToolStripMenuItem_Click(object sender, EventArgs e)
