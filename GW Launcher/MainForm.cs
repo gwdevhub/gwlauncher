@@ -181,8 +181,7 @@ namespace GW_Launcher
 
         private void refreshAccountsToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            this.listViewAccounts.Items.Clear();
-            this.OnLoad(new EventArgs());
+            RefreshUI();
         }
 
         private void editSelectedToolStripMenuItem_Click(object sender, EventArgs e)

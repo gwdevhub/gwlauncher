@@ -91,9 +91,9 @@ namespace GW_Launcher
                     {
                         int i = mf.needtolaunch.Dequeue();
                         Account a = accounts[i];
-                        GWCAMemory m = MulticlientPatch.LaunchClient(a.gwpath, " -email \"" + a.email + "\" -password \"" + a.password + "\" -character \"" + a.character + "\" " + a.extraargs, true);
+                        GWCAMemory m = MulticlientPatch.LaunchClient(a.gwpath, " -email \"" + a.email + "\" -password \"" + a.password + "\" -character \"" + a.character + "\" " + a.extraargs, a.datfix);
                         processes[i] = m;
-                        m.WriteWString(GWMem.WinTitle, a.character);
+                        m.WriteWString(GWMem.WinTitle, a.character + '\0');
 
                         mf.SetActive(i, true);
 
