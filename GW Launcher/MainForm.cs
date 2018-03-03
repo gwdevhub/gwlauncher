@@ -35,6 +35,7 @@ namespace GW_Launcher
         public MainForm(Account[] accounts)
         {
             this.accounts = accounts;
+           // this.Visible = false;
             InitializeComponent();
         }
 
@@ -77,10 +78,20 @@ namespace GW_Launcher
             }
         }
 
+        delegate void SetActiveUICallback(int idx, bool active);
+
         public void SetActive(int idx, bool active)
         {
-            accounts[idx].active = active;
-            listViewAccounts.Items[idx].SubItems[1].Text = active ? "Active" : "Inactive";
+            if(this.listViewAccounts.InvokeRequired)
+            {
+                SetActiveUICallback cb = new SetActiveUICallback(SetActive);
+                this.Invoke(cb, new object[] { idx, active });
+            }
+            else
+            {
+                accounts[idx].active = active;
+                listViewAccounts.Items[idx].SubItems[1].Text = active ? "Active" : "Inactive";
+            }    
         }
 
         private void MainForm_Load(object sender, EventArgs e)
@@ -211,6 +222,20 @@ namespace GW_Launcher
                 }
             }
 
+        }
+
+        private void notifyIcon_MouseDoubleClick(object sender, MouseEventArgs e)
+        {
+           /* Point newloc = new Point();
+            newloc.X = e.X - (this.Width / 2);
+            newloc.Y = e.Y - 50 - this.Height;
+            this.Location = newloc;*/
+
+            this.Visible = !this.Visible;
+        }
+
+        private void listViewAccounts_ItemDrag(object sender, ItemDragEventArgs e)
+        {
         }
     }
 }

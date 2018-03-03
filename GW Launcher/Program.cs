@@ -14,18 +14,7 @@ using GWMC_CS;
 
 namespace GW_Launcher
 {
-    public struct Account
-    {
-        public string email;
-        public string password;
-        public string character;
-        public string gwpath;
-        public bool datfix;
-        public string extraargs;
 
-        [JsonIgnore]
-        public bool active;
-    }
 
     static class Program
     {
@@ -45,12 +34,12 @@ namespace GW_Launcher
         [STAThread]
         static void Main()
         {
-            Process p = Process.GetProcessesByName("GW Launcher")[0];
-            if (p.MainWindowHandle != IntPtr.Zero)
-            {
-                SetForegroundWindow(p.MainWindowHandle);
-                return;
-            }
+            Process[] p = Process.GetProcessesByName("GW Launcher");
+           // if (p.Length > 0)
+           // {
+           //     SetForegroundWindow(p[0].MainWindowHandle);
+            //    return;
+           // }
 
             StreamReader file;
             try

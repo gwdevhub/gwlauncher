@@ -39,9 +39,10 @@
             this.addNewToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.editSelectedToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.removeSelectedToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.launchSelectedToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
             this.launchGWInstanceToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.launchSelectedToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.notifyIcon = new System.Windows.Forms.NotifyIcon(this.components);
             this.contextMenuStripAccounts.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -60,6 +61,7 @@
             this.listViewAccounts.TabIndex = 0;
             this.listViewAccounts.UseCompatibleStateImageBehavior = false;
             this.listViewAccounts.View = System.Windows.Forms.View.Details;
+            this.listViewAccounts.ItemDrag += new System.Windows.Forms.ItemDragEventHandler(this.listViewAccounts_ItemDrag);
             this.listViewAccounts.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.listViewAccounts_MouseDoubleClick);
             // 
             // columnName
@@ -83,7 +85,7 @@
             this.toolStripSeparator1,
             this.launchGWInstanceToolStripMenuItem});
             this.contextMenuStripAccounts.Name = "contextMenuStripAccounts";
-            this.contextMenuStripAccounts.Size = new System.Drawing.Size(211, 170);
+            this.contextMenuStripAccounts.Size = new System.Drawing.Size(211, 148);
             this.contextMenuStripAccounts.Text = "Options.";
             // 
             // refreshAccountsToolStripMenuItem
@@ -119,6 +121,13 @@
             this.removeSelectedToolStripMenuItem.Text = "Remove Selected";
             this.removeSelectedToolStripMenuItem.Click += new System.EventHandler(this.removeSelectedToolStripMenuItem_Click);
             // 
+            // launchSelectedToolStripMenuItem
+            // 
+            this.launchSelectedToolStripMenuItem.Name = "launchSelectedToolStripMenuItem";
+            this.launchSelectedToolStripMenuItem.Size = new System.Drawing.Size(210, 22);
+            this.launchSelectedToolStripMenuItem.Text = "Launch Selected";
+            this.launchSelectedToolStripMenuItem.Click += new System.EventHandler(this.launchSelectedToolStripMenuItem_Click);
+            // 
             // toolStripSeparator1
             // 
             this.toolStripSeparator1.Name = "toolStripSeparator1";
@@ -131,12 +140,12 @@
             this.launchGWInstanceToolStripMenuItem.Text = "Launch Default GW Client";
             this.launchGWInstanceToolStripMenuItem.Click += new System.EventHandler(this.launchGWInstanceToolStripMenuItem_Click);
             // 
-            // launchSelectedToolStripMenuItem
+            // notifyIcon
             // 
-            this.launchSelectedToolStripMenuItem.Name = "launchSelectedToolStripMenuItem";
-            this.launchSelectedToolStripMenuItem.Size = new System.Drawing.Size(210, 22);
-            this.launchSelectedToolStripMenuItem.Text = "Launch Selected";
-            this.launchSelectedToolStripMenuItem.Click += new System.EventHandler(this.launchSelectedToolStripMenuItem_Click);
+            this.notifyIcon.Icon = ((System.Drawing.Icon)(resources.GetObject("notifyIcon.Icon")));
+            this.notifyIcon.Text = "GW Launcher";
+            this.notifyIcon.Visible = true;
+            this.notifyIcon.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.notifyIcon_MouseDoubleClick);
             // 
             // MainForm
             // 
@@ -144,7 +153,7 @@
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(184, 270);
             this.Controls.Add(this.listViewAccounts);
-            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
+            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.MaximizeBox = false;
             this.MinimizeBox = false;
@@ -170,6 +179,7 @@
         private System.Windows.Forms.ToolStripMenuItem editSelectedToolStripMenuItem;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator1;
         private System.Windows.Forms.ToolStripMenuItem launchSelectedToolStripMenuItem;
+        private System.Windows.Forms.NotifyIcon notifyIcon;
     }
 }
 
