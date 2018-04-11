@@ -33,8 +33,8 @@ namespace GW_Launcher
 
         public MainForm()
         {
-           // this.Visible = false;
             InitializeComponent();
+            
         }
 
         private void RefreshUI()
@@ -94,6 +94,7 @@ namespace GW_Launcher
 
         private void MainForm_Load(object sender, EventArgs e)
         {
+            this.Visible = false;
             // Initialize things
             ImageList imglist = new ImageList();
             needtolaunch = new Queue<int>();
@@ -235,12 +236,30 @@ namespace GW_Launcher
         private void notifyIcon_MouseDoubleClick(object sender, MouseEventArgs e)
         {
 
-            this.Visible = !this.Visible;
         }
 
         private void listViewAccounts_ItemDrag(object sender, ItemDragEventArgs e)
         {
             
+        }
+
+        private void MainForm_Deactivate(object sender, EventArgs e)
+        {
+            this.Visible = false;
+        }
+
+        private void notifyIcon_MouseClick(object sender, MouseEventArgs e)
+        {
+            Point loc = Cursor.Position;
+
+            loc.X -= (this.Width / 2);
+
+            loc.Y -= (25 + this.Height);
+
+            this.Location = loc;
+
+            this.Visible = !this.Visible;
+            this.Activate();
         }
     }
 }

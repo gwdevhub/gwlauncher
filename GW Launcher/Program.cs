@@ -67,6 +67,7 @@ namespace GW_Launcher
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             MainForm mf = new MainForm();
+            mf.Location = new System.Drawing.Point(-1000, -1000);
 
             mainthread = new Thread(() =>
             {
