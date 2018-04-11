@@ -56,6 +56,7 @@ namespace GW_Launcher
                     if (str == Program.accounts[i].email)
                     {
                         Program.accounts[i].active = true;
+                        Program.accounts[i].process = m;
                         break;
                     }
                 }
@@ -239,6 +240,7 @@ namespace GW_Launcher
 
         private void listViewAccounts_ItemDrag(object sender, ItemDragEventArgs e)
         {
+            
         }
     }
 }
