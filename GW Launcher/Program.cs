@@ -19,8 +19,8 @@ namespace GW_Launcher
     static class Program
     {
         public static Account[] accounts;
-        public static GWCAMemory[] processes;
         public static Thread mainthread;
+        public static Mutex mutex = new Mutex();
         /// <summary>
         /// The main entry point for the application.
         /// </summary>
@@ -62,12 +62,11 @@ namespace GW_Launcher
             {
                 accounts[i].active = false;
             }
-            processes = new GWCAMemory[accounts.Length];
             file.Close();
 
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            MainForm mf = new MainForm(accounts);
+            MainForm mf = new MainForm();
 
             mainthread = new Thread(() =>
             {
@@ -81,7 +80,7 @@ namespace GW_Launcher
                         int i = mf.needtolaunch.Dequeue();
                         Account a = accounts[i];
                         GWCAMemory m = MulticlientPatch.LaunchClient(a.gwpath, " -email \"" + a.email + "\" -password \"" + a.password + "\" -character \"" + a.character + "\" " + a.extraargs, a.datfix);
-                        processes[i] = m;
+                        a.process = m;
                         m.WriteWString(GWMem.WinTitle, a.character + '\0');
 
                         mf.SetActive(i, true);
@@ -93,13 +92,19 @@ namespace GW_Launcher
                         sleep += 5000;
                     }
 
-                    for(int i = 0; i < processes.Length; ++i)
+
+                    mutex.WaitOne();
+
+                    for(int i = 0; i < accounts.Length; ++i)
                     {
-                        if (accounts[i].active && processes[i].process.HasExited)
+                        if (accounts[i].active)
+                        if (accounts[i].process.process.HasExited)
                         {
                             mf.SetActive(i, false);
                         }
                     }
+
+                    mutex.ReleaseMutex();
 
                     Thread.Sleep(150);
                 }

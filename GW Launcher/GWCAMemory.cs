@@ -11,7 +11,7 @@ namespace GWCA
 {
     namespace Memory
     {
-        class GWCAMemory
+        public class GWCAMemory
         {
             #region Basic Members
             // GwProcess we will use

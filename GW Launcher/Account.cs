@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
+using GWCA.Memory;
 
 namespace GW_Launcher
 {
@@ -18,5 +19,8 @@ namespace GW_Launcher
 
         [JsonIgnore]
         public bool active;
+
+        [JsonIgnore]
+        public GWCAMemory process;
     }
 }

@@ -22,7 +22,6 @@ namespace GW_Launcher
     public partial class MainForm : Form
     {
         public Queue<int> needtolaunch;
-        public Account[] accounts;
 
         int heightofgui = 143;
 
@@ -32,18 +31,17 @@ namespace GW_Launcher
         System.Windows.Forms.Timer StatusUpdater = new System.Windows.Forms.Timer();
         System.Windows.Forms.Timer BatchLoader = new System.Windows.Forms.Timer();
 
-        public MainForm(Account[] accounts)
+        public MainForm()
         {
-            this.accounts = accounts;
            // this.Visible = false;
             InitializeComponent();
         }
 
         private void RefreshUI()
         {
-            if (accounts.Length > 4)
+            if (Program.accounts.Length > 4)
             {
-                heightofgui = 143 + 17 * (accounts.Length - 4);
+                heightofgui = 143 + 17 * (Program.accounts.Length - 4);
                 this.SetBounds(Location.X, Location.Y, Size.Width, heightofgui);
             }
             this.listViewAccounts.Items.Clear();
@@ -53,24 +51,23 @@ namespace GW_Launcher
             {
                 GWCAMemory m = new GWCAMemory(p);
                 string str = m.ReadWString(GWMem.EmailAddPtr, 64);
-                for (int i = 0; i < accounts.Length; ++i)
+                for (int i = 0; i < Program.accounts.Length; ++i)
                 {
-                    if (str == accounts[i].email)
+                    if (str == Program.accounts[i].email)
                     {
-                        accounts[i].active = true;
-                        Program.processes[i] = m;
+                        Program.accounts[i].active = true;
                         break;
                     }
                 }
             }
 
             // Fill out data.
-            for (int i = 0; i < accounts.Length; ++i)
+            for (int i = 0; i < Program.accounts.Length; ++i)
             {
                 listViewAccounts.Items.Add(new ListViewItem(
                     new string[] {
-                            accounts[i].character,
-                            accounts[i].active ? "Active" : "Inactive"
+                            Program.accounts[i].character,
+                            Program.accounts[i].active ? "Active" : "Inactive"
                     },
                     "gw-icon"
                     ));
@@ -89,7 +86,7 @@ namespace GW_Launcher
             }
             else
             {
-                accounts[idx].active = active;
+                Program.accounts[idx].active = active;
                 listViewAccounts.Items[idx].SubItems[1].Text = active ? "Active" : "Inactive";
             }    
         }
@@ -124,16 +121,17 @@ namespace GW_Launcher
 
         private void addNewToolStripMenuItem_Click(object sender, EventArgs e)
         {
+            Program.mutex.WaitOne();
             AddAccountForm gui = new AddAccountForm();
             gui.ShowDialog();
             Account acc = gui.account;
 
             if (acc.email != null)
             {
-                Account[] new_accs = new Account[accounts.Length + 1];
-                accounts.CopyTo(new_accs, 0);
-                new_accs[accounts.Length] = acc;
-                accounts = new_accs;
+                Account[] new_accs = new Account[Program.accounts.Length + 1];
+                Program.accounts.CopyTo(new_accs, 0);
+                new_accs[Program.accounts.Length] = acc;
+                Program.accounts = new_accs;
 
                 using (StreamWriter sw = new StreamWriter("Accounts.json"))
                 {
@@ -141,29 +139,31 @@ namespace GW_Launcher
                     {
                         jw.Formatting = Formatting.Indented;
                         JsonSerializer serializer = new JsonSerializer();
-                        serializer.Serialize(jw, accounts);
+                        serializer.Serialize(jw, Program.accounts);
                     }
                 }
 
                 RefreshUI();
             }
+            Program.mutex.ReleaseMutex();
         }
 
         private void removeSelectedToolStripMenuItem_Click(object sender, EventArgs e)
         {
+            Program.mutex.WaitOne();
             var selectedthing = listViewAccounts.SelectedIndices[0];
-            var account = accounts[selectedthing];
-            Account[] new_accs = new Account[accounts.Length - 1];
+            var account = Program.accounts[selectedthing];
+            Account[] new_accs = new Account[Program.accounts.Length - 1];
             int j = 0;
-            for(int i = 0; i < accounts.Length; ++i)
+            for(int i = 0; i < Program.accounts.Length; ++i)
             {
-                if (accounts[i].email != account.email)
+                if (Program.accounts[i].email != account.email)
                 {
-                    new_accs[j] = accounts[i];
+                    new_accs[j] = Program.accounts[i];
                     j++;
                 }
             }
-            accounts = new_accs;
+            Program.accounts = new_accs;
 
             using (StreamWriter sw = new StreamWriter("Accounts.json"))
             {
@@ -171,11 +171,12 @@ namespace GW_Launcher
                 {
                     jw.Formatting = Formatting.Indented;
                     JsonSerializer serializer = new JsonSerializer();
-                    serializer.Serialize(jw, accounts);
+                    serializer.Serialize(jw, Program.accounts);
                 }
             }
 
             RefreshUI();
+            Program.mutex.ReleaseMutex();
         }
 
         private void launchGWInstanceToolStripMenuItem_Click(object sender, EventArgs e)
@@ -192,15 +193,19 @@ namespace GW_Launcher
 
         private void refreshAccountsToolStripMenuItem_Click(object sender, EventArgs e)
         {
+            Program.mutex.WaitOne();
+            Program.accounts = JsonConvert.DeserializeObject<Account[]>(File.ReadAllText("Accounts.json"));
             RefreshUI();
+            Program.mutex.ReleaseMutex();
         }
 
         private void editSelectedToolStripMenuItem_Click(object sender, EventArgs e)
         {
+            Program.mutex.WaitOne();
             selectedItems = listViewAccounts.SelectedIndices;
             if (selectedItems.Count == 0) return;
             var idx = selectedItems[0];
-            var acc = accounts[idx];
+            var acc = Program.accounts[idx];
             if (acc.email == "") return;
 
             var addaccform = new AddAccountForm();
@@ -210,26 +215,24 @@ namespace GW_Launcher
 
             if (addaccform.finished)
             {
-                accounts[idx] = addaccform.account;
+                Program.mutex.WaitOne();
+                Program.accounts[idx] = addaccform.account;
                 using (StreamWriter sw = new StreamWriter("Accounts.json"))
                 {
                     using (JsonWriter jw = new JsonTextWriter(sw))
                     {
                         jw.Formatting = Formatting.Indented;
                         JsonSerializer serializer = new JsonSerializer();
-                        serializer.Serialize(jw, accounts);
+                        serializer.Serialize(jw, Program.accounts);
                     }
                 }
+                Program.mutex.ReleaseMutex();
             }
-
+           
         }
 
         private void notifyIcon_MouseDoubleClick(object sender, MouseEventArgs e)
         {
-           /* Point newloc = new Point();
-            newloc.X = e.X - (this.Width / 2);
-            newloc.Y = e.Y - 50 - this.Height;
-            this.Location = newloc;*/
 
             this.Visible = !this.Visible;
         }
