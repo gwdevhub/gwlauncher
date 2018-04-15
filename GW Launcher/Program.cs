@@ -81,6 +81,7 @@ namespace GW_Launcher
                         int i = mf.needtolaunch.Dequeue();
                         Account a = accounts[i];
                         GWCAMemory m = MulticlientPatch.LaunchClient(a.gwpath, " -email \"" + a.email + "\" -password \"" + a.password + "\" -character \"" + a.character + "\" " + a.extraargs, a.datfix);
+                        GWMem.FindAddressesIfNeeded(m);
                         a.process = m;
                         m.WriteWString(GWMem.WinTitle, a.character + '\0');
 
@@ -111,6 +112,8 @@ namespace GW_Launcher
                 }
             });
             Application.Run(mf);
+
+            mainthread.Abort();
         }
     }
 }

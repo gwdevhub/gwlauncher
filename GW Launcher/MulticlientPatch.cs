@@ -58,8 +58,6 @@ namespace GWMC_CS
             Process proc = Process.GetProcessById((int)dwPID);
             GWCAMemory mem = new GWCAMemory(proc);
 
-            if (!GWMem.scanned)
-                GWMem.FindAddresses(mem);
             string dllpath = Directory.GetCurrentDirectory() + "\\plugins";
             if (Directory.Exists(dllpath))
             {

@@ -31,6 +31,8 @@ namespace GW_Launcher
         System.Windows.Forms.Timer StatusUpdater = new System.Windows.Forms.Timer();
         System.Windows.Forms.Timer BatchLoader = new System.Windows.Forms.Timer();
 
+        Point detachedPosition = new Point(400,400);
+
         public MainForm()
         {
             InitializeComponent();
@@ -50,6 +52,7 @@ namespace GW_Launcher
             foreach (Process p in Process.GetProcessesByName("Gw"))
             {
                 GWCAMemory m = new GWCAMemory(p);
+                GWMem.FindAddressesIfNeeded(m);
                 string str = m.ReadWString(GWMem.EmailAddPtr, 64);
                 for (int i = 0; i < Program.accounts.Length; ++i)
                 {
@@ -231,11 +234,6 @@ namespace GW_Launcher
                 Program.mutex.ReleaseMutex();
             }
            
-        }
-
-        private void notifyIcon_MouseDoubleClick(object sender, MouseEventArgs e)
-        {
-
         }
 
         private void listViewAccounts_ItemDrag(object sender, ItemDragEventArgs e)

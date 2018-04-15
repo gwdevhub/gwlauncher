@@ -69,5 +69,13 @@ namespace GW_Launcher
             }
 
         }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            if (textBoxPassword.PasswordChar == '\0')
+                textBoxPassword.PasswordChar = '*';
+            else
+                textBoxPassword.PasswordChar = '\0';
+        }
     }
 }

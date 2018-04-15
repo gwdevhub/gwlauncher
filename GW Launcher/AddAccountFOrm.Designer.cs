@@ -42,6 +42,7 @@
             this.buttonDialogPath = new System.Windows.Forms.Button();
             this.labelExtraArgs = new System.Windows.Forms.Label();
             this.textBoxExArgs = new System.Windows.Forms.TextBox();
+            this.button1 = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
             // labelEmail
@@ -65,7 +66,7 @@
             this.textBoxPassword.Location = new System.Drawing.Point(54, 38);
             this.textBoxPassword.Name = "textBoxPassword";
             this.textBoxPassword.PasswordChar = '*';
-            this.textBoxPassword.Size = new System.Drawing.Size(149, 20);
+            this.textBoxPassword.Size = new System.Drawing.Size(123, 20);
             this.textBoxPassword.TabIndex = 2;
             // 
             // labelPw
@@ -156,11 +157,22 @@
             this.textBoxExArgs.Size = new System.Drawing.Size(149, 20);
             this.textBoxExArgs.TabIndex = 13;
             // 
+            // button1
+            // 
+            this.button1.Location = new System.Drawing.Point(183, 38);
+            this.button1.Name = "button1";
+            this.button1.Size = new System.Drawing.Size(20, 20);
+            this.button1.TabIndex = 14;
+            this.button1.Text = "*";
+            this.button1.UseVisualStyleBackColor = true;
+            this.button1.Click += new System.EventHandler(this.button1_Click);
+            // 
             // AddAccountForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(215, 176);
+            this.Controls.Add(this.button1);
             this.Controls.Add(this.textBoxExArgs);
             this.Controls.Add(this.labelExtraArgs);
             this.Controls.Add(this.buttonDialogPath);
@@ -200,5 +212,6 @@
         private System.Windows.Forms.Button buttonDialogPath;
         private System.Windows.Forms.Label labelExtraArgs;
         private System.Windows.Forms.TextBox textBoxExArgs;
+        private System.Windows.Forms.Button button1;
     }
 }
