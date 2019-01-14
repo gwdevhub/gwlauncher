@@ -128,19 +128,34 @@ __declspec(dllexport) BOOL DATFix(HANDLE hProcess)
 		}	
 	}
 	
-	ASSERT(datfix);
-	
 	printf("datfix = %X\n",datfix);
 	void* asmbuffer = VirtualAllocEx(hProcess,NULL,
-									(uintptr_t)stubend_patchdat - (uintptr_t)stub_patchdat,
+									(uintptr_t)stubend_patchdat - (uintptr_t)stub_patchdat + 0x20,
 									MEM_COMMIT | MEM_RESERVE, 
 									PAGE_EXECUTE_READWRITE);
+
+
 									
 	DWORD oldprot;
 	ASSERT(VirtualProtect(stub_patchdat,(uintptr_t)stubend_patchdat - (uintptr_t)stub_patchdat,PAGE_EXECUTE_READWRITE,&oldprot));	
-	ASSERT(WriteProcessMemory(hProcess, asmbuffer, (void*)stub_patchdat, (uintptr_t)stubend_patchdat - (uintptr_t)stub_patchdat + 5, NULL));
-	*(DWORD*)(jmpencoding + 1) = ENCODE_REL((uintptr_t)asmbuffer + ((uintptr_t)stubend_patchdat - (uintptr_t)stub_patchdat),(uintptr_t)datfix + 9);
-	ASSERT(WriteProcessMemory(hProcess, (void*)((uintptr_t)asmbuffer + ((uintptr_t)stubend_patchdat - (uintptr_t)stub_patchdat)), jmpencoding, sizeof(jmpencoding), NULL));
+
+	// dump detour into internal mem
+	ASSERT(WriteProcessMemory(hProcess, asmbuffer, (void*)stub_patchdat, (uintptr_t)stubend_patchdat - (uintptr_t)stub_patchdat, NULL));
+
+	// write return to ofunc
+	BYTE* asmend = (BYTE*)stubend_patchdat - 1;
+	while (*asmend == 0xCC /* INT3 */)
+		asmend--;
+	asmend++;
+	asmend -= (uintptr_t)stub_patchdat;
+	asmend += (uintptr_t)asmbuffer;
+	printf("asmend = %X\n", asmend);
+	
+
+	*(DWORD*)(jmpencoding + 1) = ENCODE_REL(asmend,(uintptr_t)datfix + 9);
+	ASSERT(WriteProcessMemory(hProcess, (void*)asmend, jmpencoding, sizeof(jmpencoding), NULL));
+
+	// write jmp to detour
 	*(DWORD*)(jmpencoding + 1) = ENCODE_REL(datfix,asmbuffer);
 	ASSERT(WriteProcessMemory(hProcess, datfix, jmpencoding, sizeof(jmpencoding), NULL));
 	
@@ -150,6 +165,11 @@ __declspec(dllexport) BOOL DATFix(HANDLE hProcess)
 
 __declspec(dllexport) DWORD LaunchClient(LPCWSTR path,LPCWSTR args, DWORD flags,DWORD* out_hThread)
 {
+#if 0
+	AllocConsole();
+	freopen("CONOUT$", "w", stdout);
+#endif
+
 	WCHAR commandLine[0x100];
 	swprintf(commandLine, 0x100, L"\"%s\" %s", path, args);
 	
@@ -168,7 +188,7 @@ __declspec(dllexport) DWORD LaunchClient(LPCWSTR path,LPCWSTR args, DWORD flags,
 		if(!DATFix(procinfo.hProcess))
 			 MCERROR("DATFix");
 		
-	if((flags & GWML_KEEP_SUSPENDED) == 0){
+	if(0) {//(flags & GWML_KEEP_SUSPENDED) == 0){
 		ResumeThread(procinfo.hThread);
 		CloseHandle(procinfo.hThread);
 	}

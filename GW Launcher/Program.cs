@@ -18,9 +18,12 @@ namespace GW_Launcher
 
     static class Program
     {
+
+        const string gwlMutexName = "gwl_instance_mutex";
         public static Account[] accounts;
         public static Thread mainthread;
         public static Mutex mutex = new Mutex();
+        public static Mutex gwlMutex;
         /// <summary>
         /// The main entry point for the application.
         /// </summary>
@@ -34,12 +37,15 @@ namespace GW_Launcher
         [STAThread]
         static void Main()
         {
-            Process[] p = Process.GetProcessesByName("GW Launcher");
-           // if (p.Length > 0)
-           // {
-           //     SetForegroundWindow(p[0].MainWindowHandle);
-            //    return;
-           // }
+
+            if (Mutex.TryOpenExisting(gwlMutexName, out gwlMutex))
+            {
+                return;
+            }
+            else
+            {
+                gwlMutex = new Mutex(true, gwlMutexName);
+            }
 
             StreamReader file;
             try
