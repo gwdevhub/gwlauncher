@@ -31,7 +31,7 @@ namespace GWMC_CS
         [DllImport("Kernel32.dll", CallingConvention = CallingConvention.Winapi)]
         static extern uint CloseHandle(IntPtr handle);
 
-        static public GWCAMemory LaunchClient(string path,string args,bool datfix,bool nologin = false)
+        static public GWCAMemory LaunchClient(string path,string args,bool datfix,bool nologin = false, List<Mod> mods = null)
         {
             try
             {
@@ -74,6 +74,15 @@ namespace GWMC_CS
                 foreach(string file in files)
                 {
                     mem.LoadModule(file);
+                }
+            }
+
+            if(mods != null)
+            {
+                foreach (var mod in mods)
+                {
+                    if (mod.type == ModType.kModTypeDLL && File.Exists(mod.fileName))
+                        mem.LoadModule(mod.fileName);
                 }
             }
 

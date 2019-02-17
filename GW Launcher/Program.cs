@@ -70,7 +70,7 @@ namespace GW_Launcher
                     {
                         int i = mf.needtolaunch.Dequeue();
                         Account a = accounts[i];
-                        GWCAMemory m = MulticlientPatch.LaunchClient(a.gwpath, " -email \"" + a.email + "\" -password \"" + a.password + "\" -character \"" + a.character + "\" " + a.extraargs, a.datfix);
+                        GWCAMemory m = MulticlientPatch.LaunchClient(a.gwpath, " -email \"" + a.email + "\" -password \"" + a.password + "\" -character \"" + a.character + "\" " + a.extraargs, a.datfix, false, a.mods);
                         GWMem.FindAddressesIfNeeded(m);
                         a.process = m;
                         m.WriteWString(GWMem.WinTitle, a.character + '\0');
