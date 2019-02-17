@@ -10,6 +10,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GW Launcher", "GW Launcher\
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Launcher-Dll", "Launcher-Dll\Launcher-Dll.vcxproj", "{5B14128A-090A-4125-B5B2-239A5D737CCA}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UmodServer", "UmodServer\UmodServer.csproj", "{9DF081B6-B54A-4A7E-A8C7-40BB4194532B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -44,6 +46,18 @@ Global
 		{5B14128A-090A-4125-B5B2-239A5D737CCA}.Release|x64.Build.0 = Release|x64
 		{5B14128A-090A-4125-B5B2-239A5D737CCA}.Release|x86.ActiveCfg = Release|Win32
 		{5B14128A-090A-4125-B5B2-239A5D737CCA}.Release|x86.Build.0 = Release|Win32
+		{9DF081B6-B54A-4A7E-A8C7-40BB4194532B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9DF081B6-B54A-4A7E-A8C7-40BB4194532B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9DF081B6-B54A-4A7E-A8C7-40BB4194532B}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{9DF081B6-B54A-4A7E-A8C7-40BB4194532B}.Debug|x64.Build.0 = Debug|Any CPU
+		{9DF081B6-B54A-4A7E-A8C7-40BB4194532B}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{9DF081B6-B54A-4A7E-A8C7-40BB4194532B}.Debug|x86.Build.0 = Debug|Any CPU
+		{9DF081B6-B54A-4A7E-A8C7-40BB4194532B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9DF081B6-B54A-4A7E-A8C7-40BB4194532B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9DF081B6-B54A-4A7E-A8C7-40BB4194532B}.Release|x64.ActiveCfg = Release|Any CPU
+		{9DF081B6-B54A-4A7E-A8C7-40BB4194532B}.Release|x64.Build.0 = Release|Any CPU
+		{9DF081B6-B54A-4A7E-A8C7-40BB4194532B}.Release|x86.ActiveCfg = Release|Any CPU
+		{9DF081B6-B54A-4A7E-A8C7-40BB4194532B}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -16,6 +16,7 @@ namespace GWCA
             #region Basic Members
             // GwProcess we will use
             public Process process { get; }
+            public bool HasExited => process.HasExited;
 
             // Scan variables.
             private IntPtr scan_start;

@@ -135,21 +135,8 @@ namespace GW_Launcher
 
             if (acc.email != null)
             {
-                Account[] new_accs = new Account[Program.accounts.Length + 1];
-                Program.accounts.CopyTo(new_accs, 0);
-                new_accs[Program.accounts.Length] = acc;
-                Program.accounts = new_accs;
-
-                using (StreamWriter sw = new StreamWriter("Accounts.json"))
-                {
-                    using (JsonWriter jw = new JsonTextWriter(sw))
-                    {
-                        jw.Formatting = Formatting.Indented;
-                        JsonSerializer serializer = new JsonSerializer();
-                        serializer.Serialize(jw, Program.accounts);
-                    }
-                }
-
+                Program.accounts.Add(acc);
+                Program.accounts.Save();
                 RefreshUI();
             }
             Program.mutex.ReleaseMutex();
@@ -160,28 +147,8 @@ namespace GW_Launcher
             Program.mutex.WaitOne();
             var selectedthing = listViewAccounts.SelectedIndices[0];
             var account = Program.accounts[selectedthing];
-            Account[] new_accs = new Account[Program.accounts.Length - 1];
-            int j = 0;
-            for(int i = 0; i < Program.accounts.Length; ++i)
-            {
-                if (Program.accounts[i].email != account.email)
-                {
-                    new_accs[j] = Program.accounts[i];
-                    j++;
-                }
-            }
-            Program.accounts = new_accs;
-
-            using (StreamWriter sw = new StreamWriter("Accounts.json"))
-            {
-                using (JsonWriter jw = new JsonTextWriter(sw))
-                {
-                    jw.Formatting = Formatting.Indented;
-                    JsonSerializer serializer = new JsonSerializer();
-                    serializer.Serialize(jw, Program.accounts);
-                }
-            }
-
+            Program.accounts.Remove(account.email);
+            Program.accounts.Save();
             RefreshUI();
             Program.mutex.ReleaseMutex();
         }
@@ -201,7 +168,7 @@ namespace GW_Launcher
         private void refreshAccountsToolStripMenuItem_Click(object sender, EventArgs e)
         {
             Program.mutex.WaitOne();
-            Program.accounts = JsonConvert.DeserializeObject<Account[]>(File.ReadAllText("Accounts.json"));
+            Program.accounts.Load("Accounts.json");
             RefreshUI();
             Program.mutex.ReleaseMutex();
         }
@@ -224,18 +191,22 @@ namespace GW_Launcher
             {
                 Program.mutex.WaitOne();
                 Program.accounts[idx] = addaccform.account;
-                using (StreamWriter sw = new StreamWriter("Accounts.json"))
-                {
-                    using (JsonWriter jw = new JsonTextWriter(sw))
-                    {
-                        jw.Formatting = Formatting.Indented;
-                        JsonSerializer serializer = new JsonSerializer();
-                        serializer.Serialize(jw, Program.accounts);
-                    }
-                }
                 Program.mutex.ReleaseMutex();
             }
            
+        }
+
+        private void texmodsToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Program.mutex.WaitOne();
+            selectedItems = listViewAccounts.SelectedIndices;
+            if (selectedItems.Count == 0) return;
+            var idx = selectedItems[0];
+            var acc = Program.accounts[idx];
+            if (acc.email == "") return;
+
+            var modForm = new ModManager(acc);
+            modForm.Show();
         }
 
         private void listViewAccounts_ItemDrag(object sender, ItemDragEventArgs e)
@@ -273,5 +244,6 @@ namespace GW_Launcher
             this.Visible = !this.Visible;
             this.Activate();
         }
+
     }
 }

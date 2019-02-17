@@ -43,6 +43,7 @@
             this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
             this.launchGWInstanceToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.notifyIcon = new System.Windows.Forms.NotifyIcon(this.components);
+            this.texmodsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.contextMenuStripAccounts.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -77,6 +78,7 @@
             // 
             this.contextMenuStripAccounts.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.refreshAccountsToolStripMenuItem,
+            this.texmodsToolStripMenuItem,
             this.toolStripSeparator2,
             this.addNewToolStripMenuItem,
             this.editSelectedToolStripMenuItem,
@@ -85,7 +87,7 @@
             this.toolStripSeparator1,
             this.launchGWInstanceToolStripMenuItem});
             this.contextMenuStripAccounts.Name = "contextMenuStripAccounts";
-            this.contextMenuStripAccounts.Size = new System.Drawing.Size(211, 148);
+            this.contextMenuStripAccounts.Size = new System.Drawing.Size(211, 192);
             this.contextMenuStripAccounts.Text = "Options.";
             // 
             // refreshAccountsToolStripMenuItem
@@ -147,6 +149,13 @@
             this.notifyIcon.Visible = true;
             this.notifyIcon.MouseClick += new System.Windows.Forms.MouseEventHandler(this.notifyIcon_MouseClick);
             // 
+            // texmodsToolStripMenuItem
+            // 
+            this.texmodsToolStripMenuItem.Name = "texmodsToolStripMenuItem";
+            this.texmodsToolStripMenuItem.Size = new System.Drawing.Size(210, 22);
+            this.texmodsToolStripMenuItem.Text = "Texmods";
+            this.texmodsToolStripMenuItem.Click += new System.EventHandler(this.texmodsToolStripMenuItem_Click);
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -184,6 +193,7 @@
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator1;
         private System.Windows.Forms.ToolStripMenuItem launchSelectedToolStripMenuItem;
         private System.Windows.Forms.NotifyIcon notifyIcon;
+        private System.Windows.Forms.ToolStripMenuItem texmodsToolStripMenuItem;
     }
 }
 

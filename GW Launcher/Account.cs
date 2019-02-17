@@ -10,12 +10,22 @@ namespace GW_Launcher
 {
     public class Account
     {
+
+        [JsonRequired]
         public string email;
+
+        [JsonRequired]
         public string password;
+
+        [JsonRequired]
         public string character;
+
+        [JsonRequired]
         public string gwpath;
+
         public bool datfix;
         public string extraargs;
+        public List<Mod> mods;
 
         [JsonIgnore]
         public bool active;

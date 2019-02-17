@@ -20,7 +20,7 @@ namespace GW_Launcher
     {
 
         const string gwlMutexName = "gwl_instance_mutex";
-        public static Account[] accounts;
+        public static AccountManager accounts;
         public static Thread mainthread;
         public static Mutex mutex = new Mutex();
         public static Mutex gwlMutex;
@@ -47,28 +47,12 @@ namespace GW_Launcher
                 gwlMutex = new Mutex(true, gwlMutexName);
             }
 
-            StreamReader file;
-            try
-            {
-                file = new StreamReader("Accounts.json");
-            }
-            catch (FileNotFoundException)
-            {
-                StreamWriter writerfile = File.CreateText("Accounts.json");
-                writerfile.Write("[]");
-                writerfile.Close();
-                file = new StreamReader("Accounts.json");
-            }
 
-            JsonTextReader reader = new JsonTextReader(file);
-            JsonSerializer serializer = new JsonSerializer();
-
-            accounts = serializer.Deserialize<Account[]>(reader);
-            for(int i = 0; i < accounts.Length; ++i)
+            accounts = new AccountManager("Accounts.json");
+            for (int i = 0; i < accounts.Length; ++i)
             {
                 accounts[i].active = false;
             }
-            file.Close();
 
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);

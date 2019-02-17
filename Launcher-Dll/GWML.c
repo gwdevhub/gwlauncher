@@ -4,9 +4,8 @@
 #define GWML_NO_DATFIX				1
 #define GWML_KEEP_SUSPENDED 		2
 
-#define MCERROR(msg) { printf("ERROR: " msg "\n"); return FALSE; }
-
-#define ASSERT(action) if(!( action )) MCERROR(#action)
+#define MCERROR(msg) do { printf("ERROR: " msg "\n"); return FALSE; } while(0)
+#define ASSERT(action) do { if(!( action )) MCERROR(#action); } while(0)
 
 
 BYTE g__gwdata[0x49a000];
@@ -128,7 +127,6 @@ __declspec(dllexport) BOOL DATFix(HANDLE hProcess)
 		}	
 	}
 	
-	printf("datfix = %X\n",datfix);
 	void* asmbuffer = VirtualAllocEx(hProcess,NULL,
 									(uintptr_t)stubend_patchdat - (uintptr_t)stub_patchdat + 0x20,
 									MEM_COMMIT | MEM_RESERVE, 
