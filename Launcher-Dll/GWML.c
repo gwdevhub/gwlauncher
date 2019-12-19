@@ -4,25 +4,75 @@
 #define GWML_NO_DATFIX				1
 #define GWML_KEEP_SUSPENDED 		2
 
-#define MCERROR(msg) do { printf("ERROR: " msg "\n"); return FALSE; } while(0)
+#define MCERROR(msg) do { printf("ERROR: " msg "\n"); FreeConsole(); return FALSE; } while(0)
 #define ASSERT(action) do { if(!( action )) MCERROR(#action); } while(0)
 
 
-BYTE g__gwdata[0x49a000];
+PBYTE g_moduleBase = NULL;
+BYTE g_gwdata[0x48D000];
+
+
+PBYTE GetProcessModuleBase(HANDLE process)
+{
+
+	typedef
+		NTSTATUS
+		NTAPI
+		NtQueryInformationProcess_t(
+			IN HANDLE               ProcessHandle,
+			IN PROCESS_INFORMATION_CLASS ProcessInformationClass,
+			OUT PVOID               ProcessInformation,
+			IN ULONG                ProcessInformationLength,
+			OUT PULONG              ReturnLength);
+
+	struct PEB
+	{
+		UCHAR InheritedAddressSpace;
+		UCHAR ReadImageFileExecOptions;
+		UCHAR BeingDebugged;
+		UCHAR BitField;
+		PVOID Mutant;
+		PVOID ImageBaseAddress;
+	};
+
+	struct PROCESS_BASIC_INFORMATION {
+		PVOID Reserved1;
+		struct PEB* PebBaseAddress;
+		PVOID Reserved2[2];
+		ULONG_PTR UniqueProcessId;
+		PVOID Reserved3;
+	};
+
+	NtQueryInformationProcess_t* NtQueryInformationProcess = (NtQueryInformationProcess_t*)GetProcAddress(GetModuleHandleA("ntdll.dll"), "NtQueryInformationProcess");
+	struct PROCESS_BASIC_INFORMATION pbi;
+	struct PEB peb;
+	ULONG retLen;
+	if (NtQueryInformationProcess(process, 0, &pbi, sizeof(pbi), &retLen))
+	{
+		return NULL;
+	}
+
+	if (!ReadProcessMemory(process, pbi.PebBaseAddress, &peb, sizeof(peb), &retLen))
+	{
+		return NULL;
+	}
+
+	return (PBYTE)peb.ImageBaseAddress + 0x1000;
+}
+
 
 __declspec(dllexport) BOOL MCPatch(HANDLE hProcess) {
-	const BYTE sig_patch[] = { 0x55, 0x8B, 0xEC, 0x81, 0xEC, 0x2C, 0x01, 0x00,
-							   0x00, 0x53, 0x56, 0x8B, 0xDA, 0x8B, 0xF1, 0x57 };
+	const BYTE sig_patch[] = { 0x56, 0x57, 0x68, 0x00, 0x01, 0x00, 0x00, 0x89, 0x85, 0xF4, 0xFE, 0xFF, 0xFF, 0xC7, 0x00, 0x00, 0x00, 0x00, 0x00 };
 
 	BYTE* mcpatch = NULL;
 
-	if (!ReadProcessMemory(hProcess, (void*)0x401000, g__gwdata, 0x49a000, NULL)) {
+	if (!ReadProcessMemory(hProcess, (void*)g_moduleBase, g_gwdata, 0x48D000, NULL)) {
 		return FALSE;
 	}
 
-	for (DWORD i = 0; i < 0x49a000; ++i) {
-		if (!memcmp(g__gwdata + i, sig_patch, sizeof(sig_patch))) {
-			mcpatch = (BYTE*)(0x401000 + i);
+	for (DWORD i = 0; i < 0x48D000; ++i) {
+		if (!memcmp(g_gwdata + i, sig_patch, sizeof(sig_patch))) {
+			mcpatch = (BYTE*)(g_moduleBase + i - 0x1A);
 			break;
 		}	
 	}
@@ -45,6 +95,7 @@ __declspec(naked) void stub_patchdat(void)
 		push	ecx
 		push	edx
 		push	eax
+		mov		ecx, dword ptr ds:[esp + 0x10]
 		xor		edx,edx
 		xor		eax,eax
 
@@ -92,9 +143,9 @@ __declspec(naked) void stub_patchdat(void)
 			pop		eax
 			pop		edx
 			pop		ecx
-			mov		edx, 0x80000000
-			mov		dword ptr ss : [esp + 0x4], 3
-			mov		dword ptr ss : [esp + 0x10], 1
+			mov		dword ptr ss : [esp + 0x8], 0x80000000
+			mov		dword ptr ss : [esp + 0xC], 3
+			mov		dword ptr ss : [esp + 0x18], 1
 			jmp		end
 
 		exitwithoutset:
@@ -115,14 +166,14 @@ __declspec(naked) void stubend_patchdat(void) {}
 
 __declspec(dllexport) BOOL DATFix(HANDLE hProcess)
 {
-	const BYTE sig_datfix[] = { 0x56, 0x85, 0xC0, 0x8B, 0xF2, 0x74, 0x3B };
+	const BYTE sig_datfix[] = { 0x8B, 0x4D, 0x18, 0x8B, 0x55, 0x1C, 0x8B};
 	BYTE jmpencoding[5] = { 0xE9, 0, 0, 0, 0 };
 
 	BYTE* datfix = NULL;
 
-	for (DWORD i = 0; i < 0x49a000; ++i) {
-		if (!memcmp(g__gwdata + i, sig_datfix, sizeof(sig_datfix))) {
-			datfix = (BYTE*)(0x401000 + i - 0xE);
+	for (DWORD i = 0; i < 0x48D000; ++i) {
+		if (!memcmp(g_gwdata + i, sig_datfix, sizeof(sig_datfix))) {
+			datfix = (BYTE*)(g_moduleBase + i - 0x1A);
 			break;
 		}	
 	}
@@ -172,12 +223,14 @@ __declspec(dllexport) DWORD LaunchClient(LPCWSTR path,LPCWSTR args, DWORD flags,
 	swprintf(commandLine, 0x100, L"\"%s\" %s", path, args);
 	
 	
-	STARTUPINFOW startinfo				= { 0 };
-    PROCESS_INFORMATION procinfo 	= { 0 };
+	STARTUPINFOW startinfo = { 0 };
+    PROCESS_INFORMATION procinfo = { 0 };
 
 
     if(!CreateProcessW(NULL,commandLine,NULL,NULL,FALSE,CREATE_SUSPENDED,NULL,NULL,&startinfo,&procinfo))
         MCERROR("CreateProcessW");
+
+	g_moduleBase = GetProcessModuleBase(procinfo.hProcess);
 	
 	if(!MCPatch(procinfo.hProcess))
        MCERROR("MCPatch");

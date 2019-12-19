@@ -73,12 +73,16 @@ namespace GW_Launcher
                         GWCAMemory m = MulticlientPatch.LaunchClient(a.gwpath, " -email \"" + a.email + "\" -password \"" + a.password + "\" -character \"" + a.character + "\" " + a.extraargs, a.datfix, false, a.mods);
                         GWMem.FindAddressesIfNeeded(m);
                         a.process = m;
-                        m.WriteWString(GWMem.WinTitle, a.character + '\0');
+                       //m.WriteWString(GWMem.WinTitle, a.character + '\0');
 
                         mf.SetActive(i, true);
 
-                        while (m.Read<ushort>(GWMem.CharnamePtr) == 0)
+                        uint timelock = 0;
+                        while (m.Read<ushort>(GWMem.CharnamePtr) == 0 && timelock < 60)
+                        {
                             Thread.Sleep(1000);
+                            timelock += 1;
+                        }
 
                         Thread.Sleep(sleep);
                         sleep += 5000;

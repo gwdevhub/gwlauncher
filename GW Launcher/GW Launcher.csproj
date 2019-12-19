@@ -35,9 +35,7 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
-  <PropertyGroup>
-    <ApplicationManifest>Resources\app.manifest</ApplicationManifest>
-  </PropertyGroup>
+  <PropertyGroup />
   <PropertyGroup>
     <ApplicationIcon>Resources\gw-icon.ico</ApplicationIcon>
   </PropertyGroup>
@@ -111,8 +109,7 @@
       <DependentUpon>Resources.resx</DependentUpon>
       <DesignTime>True</DesignTime>
     </Compile>
-    <None Include="app.config" />
-    <None Include="Resources\app.manifest">
+    <None Include="app.manifest">
       <SubType>Designer</SubType>
     </None>
     <None Include="Resources\packages.config" />
@@ -127,7 +124,7 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Resources\App.config" />
+    <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\gw-icon.png" />

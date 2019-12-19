@@ -35,8 +35,7 @@
             this.columnStatus = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.contextMenuStripAccounts = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.refreshAccountsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.texmodsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.toolStripSeparator2 = new System.Windows.Forms.ToolStripSeparator();
+            this.toolStripSeparator3 = new System.Windows.Forms.ToolStripSeparator();
             this.addNewToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.editSelectedToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.removeSelectedToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -44,7 +43,6 @@
             this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
             this.launchGWInstanceToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.notifyIcon = new System.Windows.Forms.NotifyIcon(this.components);
-            this.toolStripSeparator3 = new System.Windows.Forms.ToolStripSeparator();
             this.contextMenuStripAccounts.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -57,6 +55,7 @@
             this.listViewAccounts.ContextMenuStrip = this.contextMenuStripAccounts;
             this.listViewAccounts.Dock = System.Windows.Forms.DockStyle.Fill;
             this.listViewAccounts.FullRowSelect = true;
+            this.listViewAccounts.HideSelection = false;
             this.listViewAccounts.Location = new System.Drawing.Point(0, 0);
             this.listViewAccounts.Name = "listViewAccounts";
             this.listViewAccounts.Size = new System.Drawing.Size(184, 270);
@@ -80,8 +79,6 @@
             this.contextMenuStripAccounts.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.refreshAccountsToolStripMenuItem,
             this.toolStripSeparator3,
-            this.texmodsToolStripMenuItem,
-            this.toolStripSeparator2,
             this.addNewToolStripMenuItem,
             this.editSelectedToolStripMenuItem,
             this.removeSelectedToolStripMenuItem,
@@ -89,7 +86,7 @@
             this.toolStripSeparator1,
             this.launchGWInstanceToolStripMenuItem});
             this.contextMenuStripAccounts.Name = "contextMenuStripAccounts";
-            this.contextMenuStripAccounts.Size = new System.Drawing.Size(211, 198);
+            this.contextMenuStripAccounts.Size = new System.Drawing.Size(211, 170);
             this.contextMenuStripAccounts.Text = "Options.";
             // 
             // refreshAccountsToolStripMenuItem
@@ -99,17 +96,10 @@
             this.refreshAccountsToolStripMenuItem.Text = "Refresh Accounts";
             this.refreshAccountsToolStripMenuItem.Click += new System.EventHandler(this.refreshAccountsToolStripMenuItem_Click);
             // 
-            // texmodsToolStripMenuItem
+            // toolStripSeparator3
             // 
-            this.texmodsToolStripMenuItem.Name = "texmodsToolStripMenuItem";
-            this.texmodsToolStripMenuItem.Size = new System.Drawing.Size(210, 22);
-            this.texmodsToolStripMenuItem.Text = "Mods";
-            this.texmodsToolStripMenuItem.Click += new System.EventHandler(this.texmodsToolStripMenuItem_Click);
-            // 
-            // toolStripSeparator2
-            // 
-            this.toolStripSeparator2.Name = "toolStripSeparator2";
-            this.toolStripSeparator2.Size = new System.Drawing.Size(207, 6);
+            this.toolStripSeparator3.Name = "toolStripSeparator3";
+            this.toolStripSeparator3.Size = new System.Drawing.Size(207, 6);
             // 
             // addNewToolStripMenuItem
             // 
@@ -158,11 +148,6 @@
             this.notifyIcon.Visible = true;
             this.notifyIcon.MouseClick += new System.Windows.Forms.MouseEventHandler(this.notifyIcon_MouseClick);
             // 
-            // toolStripSeparator3
-            // 
-            this.toolStripSeparator3.Name = "toolStripSeparator3";
-            this.toolStripSeparator3.Size = new System.Drawing.Size(207, 6);
-            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -195,12 +180,10 @@
         private System.Windows.Forms.ToolStripMenuItem removeSelectedToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem launchGWInstanceToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem refreshAccountsToolStripMenuItem;
-        private System.Windows.Forms.ToolStripSeparator toolStripSeparator2;
         private System.Windows.Forms.ToolStripMenuItem editSelectedToolStripMenuItem;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator1;
         private System.Windows.Forms.ToolStripMenuItem launchSelectedToolStripMenuItem;
         private System.Windows.Forms.NotifyIcon notifyIcon;
-        private System.Windows.Forms.ToolStripMenuItem texmodsToolStripMenuItem;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator3;
     }
 }

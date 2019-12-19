@@ -85,7 +85,7 @@ namespace GWMC_CS
                         mem.LoadModule(mod.fileName);
                 }
             }
-
+            
             ResumeThread(hThread);
             CloseHandle(hThread);
 

@@ -189,11 +189,9 @@ namespace GW_Launcher
 
             if (addaccform.finished)
             {
-                Program.mutex.WaitOne();
                 Program.accounts[idx] = addaccform.account;
-                Program.mutex.ReleaseMutex();
             }
-           
+            Program.mutex.ReleaseMutex();
         }
 
         private void texmodsToolStripMenuItem_Click(object sender, EventArgs e)

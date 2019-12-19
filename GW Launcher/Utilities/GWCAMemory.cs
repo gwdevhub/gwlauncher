@@ -228,6 +228,20 @@ namespace GWCA
                 return true;
             }
 
+            public bool InitScanner(ProcessModule module)
+            {
+
+                if (process == null) return false;
+                if (scan_start != IntPtr.Zero) return false;
+
+                scan_start = module.BaseAddress;
+                scan_size = module.ModuleMemorySize;
+
+                memory_dump = ReadBytes(scan_start, scan_size);
+
+                return true;
+            }
+
             public IntPtr AllocMem(int size)
             {
                 return VirtualAllocEx(process.Handle, IntPtr.Zero, (IntPtr)size, 0x3000, 0x40);
