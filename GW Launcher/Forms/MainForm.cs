@@ -53,6 +53,8 @@ namespace GW_Launcher
             // Run through already open GW clients to see if accounts are already active.
             foreach (Process p in Process.GetProcessesByName("Gw"))
             {
+                if (p.Threads.Count == 1)
+                    continue;
                 GWCAMemory m = new GWCAMemory(p);
                 GWMem.FindAddressesIfNeeded(m);
                 string str = m.ReadWString(GWMem.EmailAddPtr, 64);

@@ -84,6 +84,9 @@ namespace GWCA
             [DllImport("kernel32.dll", SetLastError = true)]
             static extern UInt32 WaitForSingleObject(IntPtr hHandle, UInt32 dwMilliseconds);
 
+            [DllImport("kernel32.dll", SetLastError = true)]
+            static extern UInt32 GetExitCodeThread(IntPtr hHandle, out IntPtr dwMilliseconds);
+
             [DllImport("kernel32.dll", CharSet = CharSet.Auto)]
             public static extern IntPtr GetModuleHandle(string lpModuleName);
             #endregion
@@ -147,7 +150,7 @@ namespace GWCA
             /// <returns>String found.</returns>
             public string ReadWString(IntPtr address, int maxsize)
             {
-                byte[] rawbytes = ReadBytes(address, maxsize * 2);
+                byte[] rawbytes = ReadBytes(address, maxsize);
                 string ret = Encoding.Unicode.GetString(rawbytes);
                 if (ret.Contains("\0"))
                     ret = ret.Substring(0, ret.IndexOf('\0'));
@@ -207,6 +210,29 @@ namespace GWCA
             }
             #endregion
 
+            public Tuple<IntPtr, int> GetImageBase()
+            {
+                string name = process.ProcessName;
+                ProcessModuleCollection modules = process.Modules;
+                foreach (ProcessModule module in modules)
+                {
+                    if (module.ModuleName.StartsWith(name, StringComparison.OrdinalIgnoreCase))
+                        return new Tuple<IntPtr, int>(module.BaseAddress, module.ModuleMemorySize);
+                }
+                return new Tuple<IntPtr, int>(IntPtr.Zero, 0);
+            }
+
+            public bool HaveModule(string name)
+            {
+                ProcessModuleCollection modules = process.Modules;
+                foreach (ProcessModule module in modules)
+                {
+                    if (module.ModuleName.IndexOf(name, StringComparison.OrdinalIgnoreCase) != -1)
+                        return true;
+                }
+                return false;
+            }
+
             #region Memory Scanner
             /// <summary>
             /// Initialize scanner range, dump memory block for scan.
@@ -228,45 +254,27 @@ namespace GWCA
                 return true;
             }
 
-            public bool InitScanner(ProcessModule module)
-            {
-
-                if (process == null) return false;
-                if (scan_start != IntPtr.Zero) return false;
-
-                scan_start = module.BaseAddress;
-                scan_size = module.ModuleMemorySize;
-
-                memory_dump = ReadBytes(scan_start, scan_size);
-
-                return true;
-            }
-
-            public IntPtr AllocMem(int size)
-            {
-                return VirtualAllocEx(process.Handle, IntPtr.Zero, (IntPtr)size, 0x3000, 0x40);
-            }
-
             /// <summary>
             /// Scan memory block for byte signature matches.
             /// </summary>
             /// <param name="signature">Group of bytes to match</param>
             /// <param name="offset">Offset from matched sig to pointer.</param>
             /// <returns>Address found if sucessful, IntPtr.Zero if not.</returns>
-            public IntPtr ScanForPtr(byte[] signature, int offset = 0,bool readptr = false)
+            public IntPtr ScanForPtr(byte[] signature, int offset = 0, bool readptr = false)
             {
                 bool match;
                 byte first = signature[0];
                 int sig_length = signature.Length;
 
                 // For start to end of scan range...
-                for (int scan = 0; scan <= scan_size; ++scan)
+                for (int scan = 0; scan < scan_size; ++scan)
                 {
                     // Skip iteration if first byte does not match
                     if (memory_dump[scan] != first)
                     {
                         continue;
                     }
+
                     match = true;
 
                     // For sig size... check for matching signature.
@@ -281,16 +289,16 @@ namespace GWCA
 
                     // Add scanned address to base, plus desired offset, and read the address stored.
                     if (match)
-					{
-						if(readptr)
-						{
+                    {
+                        if (readptr)
+                        {
                             return new IntPtr(BitConverter.ToUInt32(memory_dump, scan + offset));
-						}
-						else
-						{
+                        }
+                        else
+                        {
                             return new IntPtr(scan_start.ToInt32() + scan + offset);
-						}
-					}
+                        }
+                    }
                 }
                 return IntPtr.Zero;
             }
@@ -298,8 +306,7 @@ namespace GWCA
             /// <summary>
             /// Deallocate memory block and scan range of scanner.
             /// </summary>
-            
-            public void FreeScanner()
+            public void TerminateScanner()
             {
                 scan_start = IntPtr.Zero;
                 scan_size = 0;
@@ -309,7 +316,7 @@ namespace GWCA
 
             #region Module Injection
 
-            public enum LOADMODULERETURN
+            public enum LOADMODULERESULT : uint
             {
                 SUCCESSFUL,
                 MODULE_NONEXISTANT,
@@ -327,58 +334,71 @@ namespace GWCA
             /// </summary>
             /// <param name="modulepath">Relative path to module to load.</param>
             /// <returns>bool on if injection was sucessful</returns>
-            public LOADMODULERETURN LoadModule(string modulepath)
+            /// 
+            public LOADMODULERESULT LoadModule(string modulepath)
+            {
+                IntPtr module = IntPtr.Zero;
+                return LoadModule(modulepath, out module);
+            }
+            public LOADMODULERESULT LoadModule(string modulepath, out IntPtr module)
             {
                 string modulefullpath = Path.GetFullPath(modulepath);
+                module = IntPtr.Zero;
 
                 if (!File.Exists(modulefullpath))
                 {
-                    return LOADMODULERETURN.MODULE_NONEXISTANT;
+                    return LOADMODULERESULT.MODULE_NONEXISTANT;
                 }
 
                 IntPtr hKernel32 = GetModuleHandle("kernel32.dll");
                 if (hKernel32 == IntPtr.Zero)
                 {
-                    return LOADMODULERETURN.KERNEL32_NOT_FOUND;
+                    return LOADMODULERESULT.KERNEL32_NOT_FOUND;
                 }
 
                 IntPtr hLoadLib = GetProcAddress(hKernel32, "LoadLibraryW");
                 if (hLoadLib == IntPtr.Zero)
                 {
-                    return LOADMODULERETURN.LOADLIBRARY_NOT_FOUND;
+                    return LOADMODULERESULT.LOADLIBRARY_NOT_FOUND;
                 }
 
                 IntPtr hStringBuffer = VirtualAllocEx(process.Handle, IntPtr.Zero, new IntPtr(2 * (modulefullpath.Length + 1)), 0x3000 /* MEM_COMMIT | MEM_RESERVE */, 0x4 /* PAGE_READWRITE */);
                 if (hStringBuffer == IntPtr.Zero)
                 {
-                    return LOADMODULERETURN.MEMORY_NOT_ALLOCATED;
+                    return LOADMODULERESULT.MEMORY_NOT_ALLOCATED;
                 }
 
                 WriteWString(hStringBuffer, modulefullpath);
                 if (ReadWString(hStringBuffer, 260) != modulefullpath)
                 {
-                    return LOADMODULERETURN.PATH_NOT_WRITTEN;
+                    return LOADMODULERESULT.PATH_NOT_WRITTEN;
                 }
 
                 IntPtr hThread = CreateRemoteThread(process.Handle, IntPtr.Zero, 0, hLoadLib, hStringBuffer, 0, out hThread);
                 if (hThread == IntPtr.Zero)
                 {
-                    return LOADMODULERETURN.REMOTE_THREAD_NOT_SPAWNED;
+                    return LOADMODULERESULT.REMOTE_THREAD_NOT_SPAWNED;
                 }
 
                 uint ThreadResult = WaitForSingleObject(hThread, 5000);
                 if (ThreadResult == 0x102 /* WAIT_TIMEOUT */ || ThreadResult == 0xFFFFFFFF /* WAIT_FAILED */)
                 {
-                    return LOADMODULERETURN.REMOTE_THREAD_DID_NOT_FINISH;
+                    return LOADMODULERESULT.REMOTE_THREAD_DID_NOT_FINISH;
                 }
+
+                if (GetExitCodeThread(hThread, out module) == 0)
+                {
+                    return LOADMODULERESULT.REMOTE_THREAD_DID_NOT_FINISH;
+                }
+
 
                 IntPtr MemoryFreeResult = VirtualFreeEx(process.Handle, hStringBuffer, 0, 0x8000 /* MEM_RELEASE */);
                 if (MemoryFreeResult == IntPtr.Zero)
                 {
-                    return LOADMODULERETURN.MEMORY_NOT_DEALLOCATED;
+                    return LOADMODULERESULT.MEMORY_NOT_DEALLOCATED;
                 }
 
-                return LOADMODULERETURN.SUCCESSFUL;
+                return LOADMODULERESULT.SUCCESSFUL;
             }
             #endregion
 
