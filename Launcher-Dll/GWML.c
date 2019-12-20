@@ -212,7 +212,7 @@ __declspec(dllexport) BOOL DATFix(HANDLE hProcess)
 }
 
 
-__declspec(dllexport) DWORD LaunchClient(LPCWSTR path,LPCWSTR args, DWORD flags,DWORD* out_hThread)
+__declspec(dllexport) DWORD LaunchClient(LPCWSTR path, LPCWSTR args, DWORD flags, DWORD* out_hThread)
 {
 #if 0
 	AllocConsole();
@@ -221,31 +221,35 @@ __declspec(dllexport) DWORD LaunchClient(LPCWSTR path,LPCWSTR args, DWORD flags,
 
 	WCHAR commandLine[0x100];
 	swprintf(commandLine, 0x100, L"\"%s\" %s", path, args);
-	
-	
+
+
 	STARTUPINFOW startinfo = { 0 };
-    PROCESS_INFORMATION procinfo = { 0 };
+	PROCESS_INFORMATION procinfo = { 0 };
 
 
-    if(!CreateProcessW(NULL,commandLine,NULL,NULL,FALSE,CREATE_SUSPENDED,NULL,NULL,&startinfo,&procinfo))
-        MCERROR("CreateProcessW");
+	if (!CreateProcessW(NULL, commandLine, NULL, NULL, FALSE, CREATE_SUSPENDED, NULL, NULL, &startinfo, &procinfo))
+		MCERROR("CreateProcessW");
 
 	g_moduleBase = GetProcessModuleBase(procinfo.hProcess);
-	
-	if(!MCPatch(procinfo.hProcess))
-       MCERROR("MCPatch");
-	
-	if((flags & GWML_NO_DATFIX) == 0)
-		if(!DATFix(procinfo.hProcess))
-			 MCERROR("DATFix");
-		
-	if(0) {//(flags & GWML_KEEP_SUSPENDED) == 0){
+
+	if (!MCPatch(procinfo.hProcess)) {
 		ResumeThread(procinfo.hThread);
 		CloseHandle(procinfo.hThread);
+		CloseHandle(procinfo.hProcess);
+		MCERROR("MCPatch");
 	}
-	else 
-		if (out_hThread != NULL)
-			*out_hThread = (DWORD)procinfo.hThread;
+
+	if ((flags & GWML_NO_DATFIX) == 0) {
+		if (!DATFix(procinfo.hProcess)) {
+			ResumeThread(procinfo.hThread);
+			CloseHandle(procinfo.hThread);
+			CloseHandle(procinfo.hProcess);
+			MCERROR("DATFix");
+		}
+	}
+		
+	if (out_hThread != NULL)
+		*out_hThread = (DWORD)procinfo.hThread;
 	
 	CloseHandle(procinfo.hProcess);
 	return procinfo.dwProcessId;
