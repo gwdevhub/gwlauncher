@@ -18,7 +18,8 @@ namespace GW_Launcher
         public static void FindAddressesIfNeeded(GWCAMemory cli)
         {
             IntPtr tmp;
-            cli.InitScanner(cli.process.MainModule);
+            Tuple<IntPtr, int> imagebase = cli.GetImageBase();
+            cli.InitScanner(imagebase.Item1, imagebase.Item2);
             tmp = cli.ScanForPtr(new byte[] { 0x55, 0x8B, 0xEC, 0x83, 0xEC, 0x10, 0x56, 0x6A }, 0x22, true);
             if (tmp != IntPtr.Zero)
             {
@@ -30,7 +31,7 @@ namespace GW_Launcher
                 EmailAddPtr = cli.Read<IntPtr>(new IntPtr(tmp.ToInt32() - 0x48));
                 CharnamePtr = cli.Read<IntPtr>(new IntPtr(tmp.ToInt32() - 0x2E));
             }
-            cli.FreeScanner();
+            cli.TerminateScanner();
         }
     }
 }

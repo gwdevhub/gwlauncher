@@ -33,8 +33,14 @@ namespace GW_Launcher
             {
                 filePath = this.filePath;
             }
-            string text = File.ReadAllText(filePath);
-            accounts = JsonConvert.DeserializeObject<Account[]>(text);
+            try
+            {
+                string text = File.ReadAllText(filePath);
+                accounts = JsonConvert.DeserializeObject<Account[]>(text);
+            } catch(Exception e) {
+                // silent
+                accounts = new Account[0];
+            }
         }
 
         public void Save(string filePath = null)

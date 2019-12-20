@@ -11,6 +11,7 @@ using GWCA.Memory;
 using System.IO;
 using Newtonsoft.Json;
 using GWMC_CS;
+using ThreadState = System.Diagnostics.ThreadState;
 
 namespace GW_Launcher
 {
@@ -69,16 +70,27 @@ namespace GW_Launcher
                     while (mf.needtolaunch.Count > 0)
                     {
                         int i = mf.needtolaunch.Dequeue();
+                        bool ok = true;
                         Account a = accounts[i];
                         GWCAMemory m = MulticlientPatch.LaunchClient(a.gwpath, " -email \"" + a.email + "\" -password \"" + a.password + "\" -character \"" + a.character + "\" " + a.extraargs, a.datfix, false, a.mods);
-                        GWMem.FindAddressesIfNeeded(m);
-                        a.process = m;
-                       //m.WriteWString(GWMem.WinTitle, a.character + '\0');
-
-                        mf.SetActive(i, true);
 
                         uint timelock = 0;
-                        while (m.Read<ushort>(GWMem.CharnamePtr) == 0 && timelock < 60)
+                        while(ok && m.process.MainWindowHandle == IntPtr.Zero) {
+                            Thread.Sleep(1000);
+                            timelock += 1;
+                            if(timelock > 10) {
+                                ok = false;
+                                break;
+                            }
+                        }
+                        if (!ok) continue;
+                        a.process = m;
+                        //m.WriteWString(GWMem.WinTitle, a.character + '\0');
+
+                        mf.SetActive(i, true);
+                        timelock = 0;
+                        GWMem.FindAddressesIfNeeded(m);
+                        while (ok && m.Read<ushort>(GWMem.CharnamePtr) == 0 && timelock < 60)
                         {
                             Thread.Sleep(1000);
                             timelock += 1;

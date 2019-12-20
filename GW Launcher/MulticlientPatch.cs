@@ -57,7 +57,23 @@ namespace GWMC_CS
             uint dwPID = LaunchClient(path, args, (GWML_FLAGS)((datfix ? 2 : 3) | (nologin ? 4 : 0)), out hThread);
             Process proc = Process.GetProcessById((int)dwPID);
             GWCAMemory mem = new GWCAMemory(proc);
-
+            if (mem.process.Threads[0].ThreadState == ThreadState.Wait && mem.process.Threads[0].WaitReason == ThreadWaitReason.Suspended)
+            {
+                try
+                {
+                    mem.process.Kill();
+                    dwPID = LaunchClient(path, args, (GWML_FLAGS)((datfix ? 2 : 3) | (nologin ? 4 : 0)), out hThread);
+                    proc = Process.GetProcessById((int)dwPID);
+                    mem = new GWCAMemory(proc);
+                }
+                catch (Exception)
+                {
+                    MessageBox.Show("This Guild Wars executable is in a suspended state.\nPlease restart the launcher as admin.", "GWMC - Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    ResumeThread(hThread);
+                    CloseHandle(hThread);
+                    return null;
+                }
+            }
             string dllpath = Directory.GetCurrentDirectory() + "\\plugins";
             if (Directory.Exists(dllpath))
             {
