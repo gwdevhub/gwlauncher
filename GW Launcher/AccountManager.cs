@@ -37,7 +37,14 @@ namespace GW_Launcher
             {
                 string text = File.ReadAllText(filePath);
                 accounts = JsonConvert.DeserializeObject<Account[]>(text);
-            } catch(Exception e) {
+            }
+            catch(FileNotFoundException e) {
+
+                // silent
+                File.WriteAllText(e.FileName, "[]");
+                accounts = new Account[0];
+            }
+            catch (Exception) {
                 // silent
                 accounts = new Account[0];
             }
