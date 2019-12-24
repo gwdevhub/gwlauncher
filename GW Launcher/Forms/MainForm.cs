@@ -236,8 +236,14 @@ namespace GW_Launcher
             Point loc = Cursor.Position;
 
             loc.X -= (this.Width / 2);
-
-            loc.Y -= (25 + this.Height);
+            if (loc.Y > (SystemInformation.VirtualScreen.Height / 2))
+            {
+                loc.Y -= (25 + this.Height);
+            }
+            else
+            {
+                loc.Y += 25;
+            }
 
             this.Location = loc;
 
