@@ -89,85 +89,65 @@ __declspec(dllexport) BOOL MCPatch(HANDLE hProcess) {
 	return TRUE;
 }
 
-__declspec(naked) void stub_patchdat(void)
-{
-	__asm {
-		push	ecx
-		push	edx
-		push	eax
-		mov		ecx, dword ptr ds:[esp + 0x10]
-		xor		edx,edx
-		xor		eax,eax
-
-		getlen:
-			mov		ax, word ptr ds:[ecx + edx]
-			cmp		ax, 0
-			je			getbackslash
-			add		edx, 2
-			jmp		getlen
-
-		getbackslash:
-			sub		edx, 2
-			mov		ax, word ptr ds : [ecx + edx]
-			cmp		ax, L'\\'
-			je			checkifdat
-			jmp		getbackslash
-
-		checkifdat:
-			add		edx, 2
-			mov		ax, word ptr ds : [ecx + edx]
-			cmp		ax, L'G'
-			jne		exitwithoutset
-			add		edx, 2
-			mov		ax, word ptr ds : [ecx + edx]
-			cmp		ax, L'w'
-			jne		exitwithoutset
-			add		edx, 2
-			mov		ax, word ptr ds : [ecx + edx]
-			cmp		ax, L'.'
-			jne		exitwithoutset
-			add		edx, 2
-			mov		ax, word ptr ds : [ecx + edx]
-			cmp		ax, L'd'
-			jne		exitwithoutset
-			add		edx, 2
-			mov		ax, word ptr ds : [ecx + edx]
-			cmp		ax, L'a'
-			jne		exitwithoutset
-			add		edx, 2
-			mov		ax, word ptr ds : [ecx + edx]
-			cmp		ax, L't'
-			jne		exitwithoutset
-
-		setpermissions:
-			pop		eax
-			pop		edx
-			pop		ecx
-			mov		dword ptr ss : [esp + 0x8], 0x80000000
-			mov		dword ptr ss : [esp + 0xC], 3
-			mov		dword ptr ss : [esp + 0x18], 1
-			jmp		end
-
-		exitwithoutset:
-			pop		eax
-			pop		edx
-			pop		ecx
-
-		end:
-			push	ebp
-			mov		ebp, esp
-			sub		esp, 0x104
-	}
-}
-__declspec(naked) void stubend_patchdat(void) {}
-
+const unsigned char payload[] = {
+	0x51,                                   // | PUSH ECX  
+	0x52,                                   // | PUSH EDX                                       
+	0x50,                                   // | PUSH EAX                                       
+	0x3E, 0x8B, 0x4C, 0x24, 0x10,                         // | MOV ECX, DWORD PTR DS:[ESP + 10]               
+	0x33, 0xD2,                                 // | XOR EDX, EDX                                   
+	0x33, 0xC0,                                 // | XOR EAX, EAX                                   
+	0x3E, 0x66, 0x8B, 0x04, 0x11,                          // | MOV AX, WORD PTR DS:[ECX + EDX]                
+	0x66, 0x83, 0xF8, 0x00,                           // | CMP AX, 0                                      
+	0x74, 0x05,                                // | JE <gwml.getbackslash>                         
+	0x83, 0xC2, 0x02,                              // | ADD EDX, 2                                     
+	0xEB, 0xF0,                                // | JMP <gwml.getlen>                              
+	0x83, 0xEA, 0x02,                              // | SUB EDX, 2                                     
+	0x3E, 0x66, 0x8B, 0x04, 0x11,                          // | MOV AX, WORD PTR DS:[ECX + EDX]                
+	0x66, 0x83, 0xF8, 0x5C,                           // | CMP AX, 5C                                     
+	0x74, 0x02,                                // | JE <gwml.checkifdat>                           
+	0xEB, 0xF0,                                // | JMP <gwml.getbackslash>                        
+	0x83, 0xC2, 0x02,                              // | ADD EDX, 2                                     
+	0x3E, 0x66, 0x8B, 0x04, 0x11,                          // | MOV AX, WORD PTR DS:[ECX + EDX]                
+	0x66, 0x83, 0xF8, 0x47,                           // | CMP AX, 47                                     
+	0x75, 0x66,                                // | JNE <gwml.exitwithoutset>                      
+	0x83, 0xC2, 0x02,                              // | ADD EDX, 2                                     
+	0x3E, 0x66, 0x8B, 0x04, 0x11,                          // | MOV AX, WORD PTR DS:[ECX + EDX]                
+	0x66, 0x83, 0xF8, 0x77,                           // | CMP AX, 77                                     
+	0x75, 0x58,                                // | JNE <gwml.exitwithoutset>                      
+	0x83, 0xC2, 0x02,                              // | ADD EDX, 2                                     
+	0x3E, 0x66, 0x8B, 0x04, 0x11,                          // | MOV AX, WORD PTR DS:[ECX + EDX]                
+	0x66, 0x83, 0xF8, 0x2E,                           // | CMP AX, 2E                                     
+	0x75, 0x4A,                                // | JNE <gwml.exitwithoutset>                      
+	0x83, 0xC2, 0x02,                              // | ADD EDX, 2                                     
+	0x3E, 0x66, 0x8B, 0x04, 0x11,                          // | MOV AX, WORD PTR DS:[ECX + EDX]                
+	0x66, 0x83, 0xF8, 0x64,                           // | CMP AX, 64                                     
+	0x75, 0x3C,                                // | JNE <gwml.exitwithoutset>                      
+	0x83, 0xC2, 0x02,                              // | ADD EDX, 2                                     
+	0x3E, 0x66, 0x8B, 0x04, 0x11,                          // | MOV AX, WORD PTR DS:[ECX + EDX]                
+	0x66, 0x83, 0xF8, 0x61,                           // | CMP AX, 61                                     
+	0x75, 0x2E,                                // | JNE <gwml.exitwithoutset>                      
+	0x83, 0xC2, 0x02,                              // | ADD EDX, 2                                     
+	0x3E, 0x66, 0x8B, 0x04, 0x11,                          // | MOV AX, WORD PTR DS:[ECX + EDX]                
+	0x66, 0x83, 0xF8, 0x74,                           // | CMP AX, 74                                     
+	0x75, 0x20,                                // | JNE <gwml.exitwithoutset>                      
+	0x58,                                   // | POP EAX                                        
+	0x5A,                                   // | POP EDX                                        
+	0x59,                                   // | POP ECX                                        
+	0x36, 0xC7, 0x44, 0x24, 0x08, 0x00, 0x00, 0x00, 0x80,                // | MOV DWORD PTR SS:[ESP + 8], 80000000           
+	0x36, 0xC7, 0x44, 0x24, 0x0C, 0x03, 0x00, 0x00, 0x00,                // | MOV DWORD PTR SS:[ESP + C], 3                  
+	0x36, 0xC7, 0x44, 0x24, 0x18, 0x01, 0x00, 0x00, 0x00,                // | MOV DWORD PTR SS:[ESP + 18], 1                 
+	0xEB, 0x03,                                // | JMP <gwml.end>
+	0x58,                                   // | POP EAX                                        
+	0x5A,                                   // | POP EDX                                        
+	0x59,       // | POP ECX
+	0xE9
+};
 
 #define ENCODE_REL(from,to) (uintptr_t)((uintptr_t)(to) - (uintptr_t)(from) - 5)
 
 __declspec(dllexport) BOOL DATFix(HANDLE hProcess)
 {
 	const BYTE sig_datfix[] = { 0x8B, 0x4D, 0x18, 0x8B, 0x55, 0x1C, 0x8B};
-	BYTE jmpencoding[5] = { 0xE9, 0, 0, 0, 0 };
 
 	BYTE* datfix = NULL;
 
@@ -179,32 +159,25 @@ __declspec(dllexport) BOOL DATFix(HANDLE hProcess)
 	}
 	
 	void* asmbuffer = VirtualAllocEx(hProcess,NULL,
-									(uintptr_t)stubend_patchdat - (uintptr_t)stub_patchdat + 0x20,
+									sizeof(payload) + 0x20,
 									MEM_COMMIT | MEM_RESERVE, 
 									PAGE_EXECUTE_READWRITE);
-
-
-									
+								
 	DWORD oldprot;
-	ASSERT(VirtualProtect(stub_patchdat,(uintptr_t)stubend_patchdat - (uintptr_t)stub_patchdat,PAGE_EXECUTE_READWRITE,&oldprot));	
 
 	// dump detour into internal mem
-	ASSERT(WriteProcessMemory(hProcess, asmbuffer, (void*)stub_patchdat, (uintptr_t)stubend_patchdat - (uintptr_t)stub_patchdat, NULL));
+	ASSERT(WriteProcessMemory(hProcess, asmbuffer, (void*)payload, sizeof(payload), NULL));
 
 	// write return to ofunc
-	BYTE* asmend = (BYTE*)stubend_patchdat - 1;
-	while (*asmend == 0xCC /* INT3 */)
-		asmend--;
-	asmend++;
-	asmend -= (uintptr_t)stub_patchdat;
-	asmend += (uintptr_t)asmbuffer;
-	printf("asmend = %X\n", asmend);
+	void* asmend = (char*)asmbuffer + sizeof(payload);
+
 	
 
-	*(DWORD*)(jmpencoding + 1) = ENCODE_REL(asmend,(uintptr_t)datfix + 9);
-	ASSERT(WriteProcessMemory(hProcess, (void*)asmend, jmpencoding, sizeof(jmpencoding), NULL));
+	DWORD rva_payload = ENCODE_REL((char*)asmbuffer + sizeof(payload),(uintptr_t)datfix + 9);
+	ASSERT(WriteProcessMemory(hProcess, (void*)asmend, &rva_payload, sizeof(rva_payload), NULL));
 
 	// write jmp to detour
+	BYTE jmpencoding[5] = { 0xE9, 0, 0, 0, 0 };
 	*(DWORD*)(jmpencoding + 1) = ENCODE_REL(datfix,asmbuffer);
 	ASSERT(WriteProcessMemory(hProcess, datfix, jmpencoding, sizeof(jmpencoding), NULL));
 	

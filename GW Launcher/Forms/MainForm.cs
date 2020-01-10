@@ -251,5 +251,38 @@ namespace GW_Launcher
             this.Activate();
         }
 
+
+        private Task RunClientUpdateAsync(string client, CancellationToken cancellationToken = default(CancellationToken))
+        {
+            try
+            {
+                var proc = Process.Start(client, "-image");
+                var tcs = new TaskCompletionSource<object>();
+                proc.EnableRaisingEvents = true;
+                proc.Exited += (sender, args) => tcs.TrySetResult(null);
+                if (cancellationToken != default(CancellationToken))
+                    cancellationToken.Register(tcs.SetCanceled);
+
+                return tcs.Task;
+            }
+            catch(Win32Exception e) when ((uint)e.ErrorCode == 0x80004005)
+            {
+                return Task.CompletedTask;
+            }
+        }
+
+        private async void updateAllClientsToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            HashSet<string> clients = new HashSet<string>();
+            foreach(var account in Program.accounts)
+            {
+                clients.Add(account.gwpath);
+            }
+
+            foreach(var client in clients)
+            {
+                await RunClientUpdateAsync(client);
+            }
+        }
     }
 }

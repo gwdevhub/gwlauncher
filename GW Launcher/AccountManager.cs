@@ -44,10 +44,6 @@ namespace GW_Launcher
                 File.WriteAllText(e.FileName, "[]");
                 accounts = new Account[0];
             }
-            catch (Exception) {
-                // silent
-                accounts = new Account[0];
-            }
         }
 
         public void Save(string filePath = null)
@@ -115,7 +111,7 @@ namespace GW_Launcher
 
         IEnumerator<Account> IEnumerable<Account>.GetEnumerator()
         {
-            return (IEnumerator<Account>)accounts.GetEnumerator();
+            return ((IEnumerable<Account>)accounts).GetEnumerator();
         }
 
         IEnumerator IEnumerable.GetEnumerator()

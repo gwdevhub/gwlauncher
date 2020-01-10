@@ -43,6 +43,7 @@
             this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
             this.launchGWInstanceToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.notifyIcon = new System.Windows.Forms.NotifyIcon(this.components);
+            this.updateAllClientsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.contextMenuStripAccounts.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -84,9 +85,10 @@
             this.removeSelectedToolStripMenuItem,
             this.launchSelectedToolStripMenuItem,
             this.toolStripSeparator1,
-            this.launchGWInstanceToolStripMenuItem});
+            this.launchGWInstanceToolStripMenuItem,
+            this.updateAllClientsToolStripMenuItem});
             this.contextMenuStripAccounts.Name = "contextMenuStripAccounts";
-            this.contextMenuStripAccounts.Size = new System.Drawing.Size(211, 170);
+            this.contextMenuStripAccounts.Size = new System.Drawing.Size(211, 192);
             this.contextMenuStripAccounts.Text = "Options.";
             // 
             // refreshAccountsToolStripMenuItem
@@ -148,6 +150,13 @@
             this.notifyIcon.Visible = true;
             this.notifyIcon.MouseClick += new System.Windows.Forms.MouseEventHandler(this.notifyIcon_MouseClick);
             // 
+            // updateAllClientsToolStripMenuItem
+            // 
+            this.updateAllClientsToolStripMenuItem.Name = "updateAllClientsToolStripMenuItem";
+            this.updateAllClientsToolStripMenuItem.Size = new System.Drawing.Size(210, 22);
+            this.updateAllClientsToolStripMenuItem.Text = "Update All Clients";
+            this.updateAllClientsToolStripMenuItem.Click += new System.EventHandler(this.updateAllClientsToolStripMenuItem_Click);
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -185,6 +194,7 @@
         private System.Windows.Forms.ToolStripMenuItem launchSelectedToolStripMenuItem;
         private System.Windows.Forms.NotifyIcon notifyIcon;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator3;
+        private System.Windows.Forms.ToolStripMenuItem updateAllClientsToolStripMenuItem;
     }
 }
 
