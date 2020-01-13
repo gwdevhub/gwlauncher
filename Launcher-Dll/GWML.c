@@ -4,7 +4,7 @@
 #define GWML_NO_DATFIX				1
 #define GWML_KEEP_SUSPENDED 		2
 
-#define MCERROR(msg) do { printf("ERROR: " msg "\n"); FreeConsole(); return FALSE; } while(0)
+#define MCERROR(msg) do { MessageBoxA(0, "GWML - Assert Fail",msg,0); return FALSE; } while(0)
 #define ASSERT(action) do { if(!( action )) MCERROR(#action); } while(0)
 
 
@@ -140,6 +140,9 @@ const unsigned char payload[] = {
 	0x58,                                   // | POP EAX                                        
 	0x5A,                                   // | POP EDX                                        
 	0x59,       // | POP ECX
+	0x55,
+	0x8B, 0xEC,
+	0x81, 0xEC, 0x14, 0x01, 0x00, 0x00,
 	0xE9
 };
 
@@ -147,7 +150,7 @@ const unsigned char payload[] = {
 
 __declspec(dllexport) BOOL DATFix(HANDLE hProcess)
 {
-	const BYTE sig_datfix[] = { 0x8B, 0x4D, 0x18, 0x8B, 0x55, 0x1C, 0x8B};
+	const BYTE sig_datfix[] = { 0x8B, 0x4D, 0x18, 0x8B, 0x55, 0x1C, 0x8B };
 
 	BYTE* datfix = NULL;
 
@@ -173,7 +176,7 @@ __declspec(dllexport) BOOL DATFix(HANDLE hProcess)
 
 	
 
-	DWORD rva_payload = ENCODE_REL((char*)asmbuffer + sizeof(payload),(uintptr_t)datfix + 9);
+	DWORD rva_payload = ENCODE_REL((char*)asmbuffer + sizeof(payload) - 1,(uintptr_t)datfix + 9);
 	ASSERT(WriteProcessMemory(hProcess, (void*)asmend, &rva_payload, sizeof(rva_payload), NULL));
 
 	// write jmp to detour
