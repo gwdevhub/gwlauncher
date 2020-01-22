@@ -161,12 +161,6 @@
     <Folder Include="bin\Debug\" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\UmodServer\UmodServer.csproj">
-      <Project>{9df081b6-b54a-4a7e-a8c7-40bb4194532b}</Project>
-      <Name>UmodServer</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
     <BootstrapperPackage Include=".NETFramework,Version=v4.6.1">
       <Visible>False</Visible>
       <ProductName>Microsoft .NET Framework 4.6.1 %28x86 and x64%29</ProductName>

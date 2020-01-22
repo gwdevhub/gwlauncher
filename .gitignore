@@ -1,6 +1,7 @@
 # Build directories
 Debug/
 Release/
+packages/
 *exe
 *.dll
 *.rar
@@ -30,6 +31,5 @@ Release/
 *.json
 *.vcxproj.user
 *.VC.db
-
 
 .vs/
