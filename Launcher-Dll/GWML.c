@@ -202,9 +202,18 @@ __declspec(dllexport) DWORD LaunchClient(LPCWSTR path, LPCWSTR args, DWORD flags
 	STARTUPINFOW startinfo = { 0 };
 	PROCESS_INFORMATION procinfo = { 0 };
 
+	WCHAR last_directory[MAX_PATH];
+	GetCurrentDirectoryW(MAX_PATH, last_directory);
+	WCHAR* trial = wcsstr(path, L"Gw.exe");
+	trial[0] = L'\0';
+	SetCurrentDirectoryW(path);
+
 
 	if (!CreateProcessW(NULL, commandLine, NULL, NULL, FALSE, CREATE_SUSPENDED, NULL, NULL, &startinfo, &procinfo))
 		MCERROR("CreateProcessW");
+
+	SetCurrentDirectoryW(last_directory);
+	trial[0] = L'G';
 
 	g_moduleBase = GetProcessModuleBase(procinfo.hProcess);
 
