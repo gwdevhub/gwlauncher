@@ -33,3 +33,5 @@ packages/
 *.VC.db
 
 .vs/
+
+packages/

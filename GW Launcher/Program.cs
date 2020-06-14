@@ -15,7 +15,35 @@ using ThreadState = System.Diagnostics.ThreadState;
 
 namespace GW_Launcher
 {
+    public class GlobalSettings
+    {
+        public bool encryptAccounts;
+        public bool decryptAccounts;
 
+        GlobalSettings()
+        {
+            encryptAccounts = false;
+            decryptAccounts = false;
+        }
+
+        public void Save(string path = "Settings.json")
+        {
+            File.WriteAllText(path, JsonConvert.SerializeObject(this,Formatting.Indented));
+        }
+
+        public static GlobalSettings Load(string path = "Settings.json")
+        {   
+            try
+            {
+                return JsonConvert.DeserializeObject<GlobalSettings>(File.ReadAllText(path));
+            }
+            catch (FileNotFoundException)
+            {
+                return new GlobalSettings();
+            }
+            
+        }
+    }
 
     static class Program
     {
@@ -25,6 +53,7 @@ namespace GW_Launcher
         public static Thread mainthread;
         public static Mutex mutex = new Mutex();
         public static Mutex gwlMutex;
+        public static GlobalSettings settings;
         /// <summary>
         /// The main entry point for the application.
         /// </summary>
@@ -38,6 +67,8 @@ namespace GW_Launcher
         [STAThread]
         static void Main()
         {
+            Application.EnableVisualStyles();
+            Application.SetCompatibleTextRenderingDefault(false);
 
             if (Mutex.TryOpenExisting(gwlMutexName, out gwlMutex))
             {
@@ -48,6 +79,8 @@ namespace GW_Launcher
                 gwlMutex = new Mutex(true, gwlMutexName);
             }
 
+            settings =  GlobalSettings.Load();
+
 
             accounts = new AccountManager("Accounts.json");
             for (int i = 0; i < accounts.Length; ++i)
@@ -55,10 +88,12 @@ namespace GW_Launcher
                 accounts[i].active = false;
             }
 
-            Application.EnableVisualStyles();
-            Application.SetCompatibleTextRenderingDefault(false);
             MainForm mf = new MainForm();
             mf.Location = new System.Drawing.Point(-1000, -1000);
+            mf.FormClosing += (object sender, FormClosingEventArgs e) =>
+            {
+                Program.settings.Save();
+            };
 
             mainthread = new Thread(() =>
             {
