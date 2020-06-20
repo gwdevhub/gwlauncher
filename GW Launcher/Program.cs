@@ -107,7 +107,7 @@ namespace GW_Launcher
                         int i = mf.needtolaunch.Dequeue();
                         bool ok = true;
                         Account a = accounts[i];
-                        GWCAMemory m = MulticlientPatch.LaunchClient(a.gwpath, " -email \"" + a.email + "\" -password \"" + a.password + "\" -character \"" + a.character + "\" " + a.extraargs, a.datfix, false, a.mods);
+                        GWCAMemory m = MulticlientPatch.LaunchClient(a.gwpath, " -email \"" + a.email + "\" -password \"" + a.password + "\" -character \"" + a.character + "\" " + a.extraargs, a.datfix, false, a.elevated, a.mods);
 
                         uint timelock = 0;
                         while(ok && m.process.MainWindowHandle == IntPtr.Zero) {

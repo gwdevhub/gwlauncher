@@ -32,6 +32,7 @@ namespace GW_Launcher
             account.character = textBoxChar.Text;
             account.gwpath = textBoxPath.Text;
             account.datfix = checkBoxDatFix.Checked;
+            account.elevated = checkBoxElevated.Checked;
             account.extraargs = textBoxExArgs.Text;
             finished = true;
             this.Close();
@@ -44,6 +45,7 @@ namespace GW_Launcher
             textBoxChar.Text = account.character;
             textBoxPath.Text = account.gwpath;
             checkBoxDatFix.Checked = account.datfix;
+            checkBoxElevated.Checked = account.elevated;
             textBoxExArgs.Text = account.extraargs;
         }
 
