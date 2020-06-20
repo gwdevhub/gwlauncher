@@ -32,7 +32,7 @@ namespace GWMC_CS
         [DllImport("Kernel32.dll", CallingConvention = CallingConvention.Winapi)]
         static extern uint CloseHandle(IntPtr handle);
 
-        static public GWCAMemory LaunchClient(string path, string args, bool datfix, bool nologin = false, bool elevated = false, List<Mod> mods = null)
+        public static GWCAMemory LaunchClient(string path, string args, bool datfix, bool nologin = false, bool elevated = false, List<Mod> mods = null)
         {
             try
             {
@@ -55,9 +55,9 @@ namespace GWMC_CS
             }
 
             IntPtr hThread = IntPtr.Zero;
-            uint dwPID = LaunchClient(path, args, (GWML_FLAGS)((int)GWML_FLAGS.KEEP_SUSPENDED | (datfix ? 0 : (int)GWML_FLAGS.NO_DATFIX) | (nologin ? (int)GWML_FLAGS.NO_LOGIN : 0) | (elevated ? (int)GWML_FLAGS.ELEVATED : 0)), out hThread);
-            Process proc = Process.GetProcessById((int)dwPID);
-            GWCAMemory mem = new GWCAMemory(proc);
+            uint dwPid = LaunchClient(path, args, (GWML_FLAGS)((int)GWML_FLAGS.KEEP_SUSPENDED | (datfix ? 0 : (int)GWML_FLAGS.NO_DATFIX) | (nologin ? (int)GWML_FLAGS.NO_LOGIN : 0) | (elevated ? (int)GWML_FLAGS.ELEVATED : 0)), out hThread);
+            var proc = Process.GetProcessById((int)dwPid);
+            var mem = new GWCAMemory(proc);
             //if (mem.process.Threads[0].ThreadState == ThreadState.Wait && mem.process.Threads[0].WaitReason == ThreadWaitReason.Suspended)
             //{
             //    try
