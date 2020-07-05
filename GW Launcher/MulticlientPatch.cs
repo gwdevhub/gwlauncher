@@ -19,11 +19,12 @@ namespace GWMC_CS
 
     class MulticlientPatch
     {
-        enum GWML_FLAGS {
-            NO_DATFIX        = 1,
-            KEEP_SUSPENDED   = 2,
-            NO_LOGIN         = 4,
-            ELEVATED         = 8
+        enum GWML_FLAGS
+        {
+            NO_DATFIX = 1,
+            KEEP_SUSPENDED = 2,
+            NO_LOGIN = 4,
+            ELEVATED = 8
         };
 
         [DllImport("GWML.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
@@ -88,7 +89,8 @@ namespace GWMC_CS
                     var shell = new WshShell();
                     var lnk = (IWshShortcut)shell.CreateShortcut(link);
 
-                    mem.LoadModule(lnk.TargetPath);
+                    if (lnk.TargetPath.EndsWith(".dll"))
+                        mem.LoadModule(lnk.TargetPath);
                 }
                 foreach (string file in files)
                 {
@@ -106,15 +108,16 @@ namespace GWMC_CS
                     var shell = new WshShell();
                     var lnk = (IWshShortcut)shell.CreateShortcut(link);
 
-                    mem.LoadModule(lnk.TargetPath);
+                    if (lnk.TargetPath.EndsWith(".dll"))
+                        mem.LoadModule(lnk.TargetPath);
                 }
-                foreach(string file in files)
+                foreach (string file in files)
                 {
                     mem.LoadModule(file);
                 }
             }
 
-            if(mods != null)
+            if (mods != null)
             {
                 foreach (var mod in mods)
                 {
@@ -122,7 +125,7 @@ namespace GWMC_CS
                         mem.LoadModule(mod.fileName);
                 }
             }
-            
+
             ResumeThread(hThread);
             CloseHandle(hThread);
 
