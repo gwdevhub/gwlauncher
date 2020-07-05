@@ -86,9 +86,9 @@ namespace GW_Launcher
 
 
             accounts = new AccountManager("Accounts.json");
-            for (int i = 0; i < accounts.Length; ++i)
+            foreach (var t in accounts)
             {
-                accounts[i].active = false;
+                t.active = false;
             }
 
             MainForm mf = new MainForm();
@@ -143,9 +143,9 @@ namespace GW_Launcher
 
                     mutex.WaitOne();
 
-                    for(int i = 0; i < accounts.Length; ++i)
+                    for (var i = 0; i < accounts.Length; ++i)
                     {
-                        if (accounts[i].active)
+                        if (!accounts[i].active) continue;
                         if (accounts[i].process.process.HasExited)
                         {
                             mf.SetActive(i, false);
