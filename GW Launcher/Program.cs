@@ -64,6 +64,9 @@ namespace GW_Launcher
         [DllImport("user32.dll")]
         extern static bool SetForegroundWindow(IntPtr hWNd);
 
+        [DllImport("user32.dll")]
+        static extern int SetWindowText(IntPtr hWnd, string text);
+
         [STAThread]
         static void Main()
         {
@@ -83,9 +86,9 @@ namespace GW_Launcher
 
 
             accounts = new AccountManager("Accounts.json");
-            for (int i = 0; i < accounts.Length; ++i)
+            foreach (var t in accounts)
             {
-                accounts[i].active = false;
+                t.active = false;
             }
 
             MainForm mf = new MainForm();
@@ -101,7 +104,7 @@ namespace GW_Launcher
                 mf.FormClosed += (s, a) => { main_closed = true; };
                 while (!main_closed)
                 {
-                    int sleep = 5000;
+                    int sleep = 1000;
                     while (mf.needtolaunch.Count > 0)
                     {
                         int i = mf.needtolaunch.Dequeue();
@@ -120,7 +123,6 @@ namespace GW_Launcher
                         }
                         if (!ok) continue;
                         a.process = m;
-                        //m.WriteWString(GWMem.WinTitle, a.character + '\0');
 
                         mf.SetActive(i, true);
                         timelock = 0;
@@ -130,17 +132,20 @@ namespace GW_Launcher
                             Thread.Sleep(1000);
                             timelock += 1;
                         }
+                        m.process.Refresh();
+                        string charname = m.ReadWString(GWMem.CharnamePtr, 42);
+                        if (charname.Length > 0)
+                            SetWindowText(m.process.MainWindowHandle, charname);
 
                         Thread.Sleep(sleep);
-                        sleep += 5000;
                     }
 
 
                     mutex.WaitOne();
 
-                    for(int i = 0; i < accounts.Length; ++i)
+                    for (var i = 0; i < accounts.Length; ++i)
                     {
-                        if (accounts[i].active)
+                        if (!accounts[i].active) continue;
                         if (accounts[i].process.process.HasExited)
                         {
                             mf.SetActive(i, false);

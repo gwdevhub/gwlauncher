@@ -10,17 +10,21 @@ using System.Runtime.InteropServices;
 using System.IO;
 using GWCA.Memory;
 using GW_Launcher;
+using IWshRuntimeLibrary;
+using File = System.IO.File;
+
 
 namespace GWMC_CS
 {
 
     class MulticlientPatch
     {
-        enum GWML_FLAGS {
-            NO_DATFIX        = 1,
-            KEEP_SUSPENDED   = 2,
-            NO_LOGIN         = 4,
-            ELEVATED         = 8
+        enum GWML_FLAGS
+        {
+            NO_DATFIX = 1,
+            KEEP_SUSPENDED = 2,
+            NO_LOGIN = 4,
+            ELEVATED = 8
         };
 
         [DllImport("GWML.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
@@ -32,7 +36,7 @@ namespace GWMC_CS
         [DllImport("Kernel32.dll", CallingConvention = CallingConvention.Winapi)]
         static extern uint CloseHandle(IntPtr handle);
 
-        static public GWCAMemory LaunchClient(string path, string args, bool datfix, bool nologin = false, bool elevated = false, List<Mod> mods = null)
+        public static GWCAMemory LaunchClient(string path, string args, bool datfix, bool nologin = false, bool elevated = false, List<Mod> mods = null)
         {
             try
             {
@@ -55,30 +59,39 @@ namespace GWMC_CS
             }
 
             IntPtr hThread = IntPtr.Zero;
-            uint dwPID = LaunchClient(path, args, (GWML_FLAGS)((int)GWML_FLAGS.KEEP_SUSPENDED | (datfix ? 0 : (int)GWML_FLAGS.NO_DATFIX) | (nologin ? (int)GWML_FLAGS.NO_LOGIN : 0) | (elevated ? (int)GWML_FLAGS.ELEVATED : 0)), out hThread);
-            Process proc = Process.GetProcessById((int)dwPID);
-            GWCAMemory mem = new GWCAMemory(proc);
-            //if (mem.process.Threads[0].ThreadState == ThreadState.Wait && mem.process.Threads[0].WaitReason == ThreadWaitReason.Suspended)
-            //{
-            //    try
-            //    {
-            //        mem.process.Kill();
-            //        dwPID = LaunchClient(path, args, (GWML_FLAGS)((datfix ? 2 : 3) | (nologin ? 4 : 0)), out hThread);
-            //        proc = Process.GetProcessById((int)dwPID);
-            //        mem = new GWCAMemory(proc);
-            //    }
-            //    catch (Exception)
-            //    {
-            //        MessageBox.Show("This Guild Wars executable is in a suspended state.\nPlease restart the launcher as admin.", "GWMC - Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            //        ResumeThread(hThread);
-            //        CloseHandle(hThread);
-            //        return null;
-            //    }
-            //}
+            uint dwPid = LaunchClient(path, args, (GWML_FLAGS)((int)GWML_FLAGS.KEEP_SUSPENDED | (datfix ? 0 : (int)GWML_FLAGS.NO_DATFIX) | (nologin ? (int)GWML_FLAGS.NO_LOGIN : 0) | (elevated ? (int)GWML_FLAGS.ELEVATED : 0)), out hThread);
+            var proc = Process.GetProcessById((int)dwPid);
+            var mem = new GWCAMemory(proc);
+            if (mem.process.Threads[0].ThreadState == ThreadState.Wait && mem.process.Threads[0].WaitReason == ThreadWaitReason.Suspended)
+            {
+                try
+                {
+                    mem.process.Kill();
+                    dwPid = LaunchClient(path, args, (GWML_FLAGS)((int)GWML_FLAGS.KEEP_SUSPENDED | (datfix ? 0 : (int)GWML_FLAGS.NO_DATFIX) | (nologin ? (int)GWML_FLAGS.NO_LOGIN : 0) | (elevated ? (int)GWML_FLAGS.ELEVATED : 0)), out hThread);
+                    proc = Process.GetProcessById((int)dwPid);
+                    mem = new GWCAMemory(proc);
+                }
+                catch (Exception)
+                {
+                    MessageBox.Show("This Guild Wars executable is in a suspended state.\nPlease restart the launcher as admin.", "GWMC - Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    ResumeThread(hThread);
+                    CloseHandle(hThread);
+                    return null;
+                }
+            }
             string dllpath = Directory.GetCurrentDirectory() + "\\plugins";
             if (Directory.Exists(dllpath))
             {
+                string[] links = Directory.GetFiles(dllpath, "*.lnk");
                 string[] files = Directory.GetFiles(dllpath, "*.dll");
+                foreach (var link in links)
+                {
+                    var shell = new WshShell();
+                    var lnk = (IWshShortcut)shell.CreateShortcut(link);
+
+                    if (lnk.TargetPath.EndsWith(".dll"))
+                        mem.LoadModule(lnk.TargetPath);
+                }
                 foreach (string file in files)
                 {
                     mem.LoadModule(file);
@@ -86,15 +99,25 @@ namespace GWMC_CS
             }
 
             dllpath = Path.GetDirectoryName(path) + "\\plugins";
-            if (Directory.Exists(dllpath)) {
+            if (Directory.Exists(dllpath))
+            {
+                string[] links = Directory.GetFiles(dllpath, "*.lnk");
                 string[] files = Directory.GetFiles(dllpath, "*.dll");
-                foreach(string file in files)
+                foreach (var link in links)
+                {
+                    var shell = new WshShell();
+                    var lnk = (IWshShortcut)shell.CreateShortcut(link);
+
+                    if (lnk.TargetPath.EndsWith(".dll"))
+                        mem.LoadModule(lnk.TargetPath);
+                }
+                foreach (string file in files)
                 {
                     mem.LoadModule(file);
                 }
             }
 
-            if(mods != null)
+            if (mods != null)
             {
                 foreach (var mod in mods)
                 {
@@ -102,7 +125,7 @@ namespace GWMC_CS
                         mem.LoadModule(mod.fileName);
                 }
             }
-            
+
             ResumeThread(hThread);
             CloseHandle(hThread);
 
