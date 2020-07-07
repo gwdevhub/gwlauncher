@@ -43,7 +43,7 @@ namespace GWMC_CS
         {
             try
             {
-                object regSrc = Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\ArenaNet\\Guild Wars", "Src", null);
+                var regSrc = Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\ArenaNet\\Guild Wars", "Src", null);
                 if (regSrc != null && (string)regSrc != Path.GetFullPath(path))
                 {
                     Registry.SetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\ArenaNet\\Guild Wars", "Src", Path.GetFullPath(path));
@@ -59,11 +59,15 @@ namespace GWMC_CS
             }
             catch (System.UnauthorizedAccessException)
             {
-                MessageBox.Show("Insufficient access rights.\nPlease restart the launcher as admin.", "GWMC - Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return null;
+                if (elevated)
+                {
+                    MessageBox.Show("Insufficient access rights.\nPlease restart the launcher as admin.",
+                        "GWMC - Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return null;
+                }
             }
 
-            IntPtr hThread = IntPtr.Zero;
+            var hThread = IntPtr.Zero;
             uint dwPid = NativeMethods.LaunchClient(path, args, ((int)GWML_FLAGS.KEEP_SUSPENDED | (datfix ? 0 : (int)GWML_FLAGS.NO_DATFIX) | (nologin ? (int)GWML_FLAGS.NO_LOGIN : 0) | (elevated ? (int)GWML_FLAGS.ELEVATED : 0)), out hThread);
             var proc = Process.GetProcessById((int)dwPid);
             var mem = new GWCAMemory(proc);
