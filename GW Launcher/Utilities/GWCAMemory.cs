@@ -39,7 +39,7 @@ namespace GWCA
             #region PInvokes
             // PInvokes
             [DllImport("kernel32.dll", SetLastError = true)]
-            static extern bool WriteProcessMemory(
+            private static extern bool WriteProcessMemory(
                 IntPtr hProcess,
                 IntPtr lpBaseAddress,
                 IntPtr lpBuffer,
@@ -47,7 +47,7 @@ namespace GWCA
                 out IntPtr lpNumberOfBytesWritten);
 
             [DllImport("kernel32.dll", SetLastError = true)]
-            static extern bool ReadProcessMemory(
+            private static extern bool ReadProcessMemory(
                 IntPtr hProcess,
                 IntPtr lpBaseAddress,
                 IntPtr lpBuffer,
@@ -55,7 +55,7 @@ namespace GWCA
                 out IntPtr lpNumberOfBytesRead);
 
             [DllImport("kernel32.dll")]
-            static extern IntPtr CreateRemoteThread(
+            private static extern IntPtr CreateRemoteThread(
                IntPtr hProcess,
                IntPtr lpThreadAttributes,
                uint dwStackSize,
@@ -65,7 +65,7 @@ namespace GWCA
                out IntPtr lpThreadId);
 
             [DllImport("kernel32.dll", SetLastError = true, ExactSpelling = true)]
-            static extern IntPtr VirtualAllocEx(
+            private static extern IntPtr VirtualAllocEx(
                 IntPtr hProcess,
                 IntPtr lpAddress,
                 IntPtr dwSize,
@@ -73,23 +73,23 @@ namespace GWCA
                 uint dwProtect);
 
             [DllImport("kernel32.dll", SetLastError = true, ExactSpelling = true)]
-            static extern IntPtr VirtualFreeEx(
+            private static extern IntPtr VirtualFreeEx(
                 IntPtr hProcess,
                 IntPtr lpAddress,
                 uint dwSize,
                 uint dwFreeType);
 
             [DllImport("kernel32", CharSet = CharSet.Ansi, ExactSpelling = true, SetLastError = true)]
-            static extern IntPtr GetProcAddress(IntPtr hModule, string procName);
+            private static extern IntPtr GetProcAddress(IntPtr hModule, string procName);
 
             [DllImport("kernel32.dll", SetLastError = true)]
-            static extern UInt32 WaitForSingleObject(IntPtr hHandle, UInt32 dwMilliseconds);
+            private static extern uint WaitForSingleObject(IntPtr hHandle, uint dwMilliseconds);
 
             [DllImport("kernel32.dll", SetLastError = true)]
-            static extern UInt32 GetExitCodeThread(IntPtr hHandle, out IntPtr dwMilliseconds);
+            private static extern uint GetExitCodeThread(IntPtr hHandle, out IntPtr dwMilliseconds);
 
             [DllImport("kernel32.dll", CharSet = CharSet.Auto)]
-            public static extern IntPtr GetModuleHandle(string lpModuleName);
+            private static extern IntPtr GetModuleHandle(string lpModuleName);
             #endregion
 
             #region Basic Memory Functions
@@ -223,7 +223,7 @@ namespace GWCA
                             return new Tuple<IntPtr, int>(module.BaseAddress, module.ModuleMemorySize);
                     }
                 }
-                catch (Win32Exception e)
+                catch (Win32Exception)
                 {
 
                 }
