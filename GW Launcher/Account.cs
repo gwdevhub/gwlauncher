@@ -24,6 +24,7 @@ namespace GW_Launcher
         public string gwpath;
 
         public bool datfix;
+        public bool elevated;
         public string extraargs;
         public List<Mod> mods;
 

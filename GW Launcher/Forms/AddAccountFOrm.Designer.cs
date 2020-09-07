@@ -43,72 +43,81 @@
             this.labelExtraArgs = new System.Windows.Forms.Label();
             this.textBoxExArgs = new System.Windows.Forms.TextBox();
             this.button1 = new System.Windows.Forms.Button();
+            this.checkBoxElevated = new System.Windows.Forms.CheckBox();
             this.SuspendLayout();
             // 
             // labelEmail
             // 
             this.labelEmail.AutoSize = true;
-            this.labelEmail.Location = new System.Drawing.Point(13, 15);
+            this.labelEmail.Location = new System.Drawing.Point(20, 23);
+            this.labelEmail.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.labelEmail.Name = "labelEmail";
-            this.labelEmail.Size = new System.Drawing.Size(35, 13);
+            this.labelEmail.Size = new System.Drawing.Size(52, 20);
             this.labelEmail.TabIndex = 0;
             this.labelEmail.Text = "Email:";
             // 
             // textBoxEmail
             // 
-            this.textBoxEmail.Location = new System.Drawing.Point(54, 12);
+            this.textBoxEmail.Location = new System.Drawing.Point(81, 18);
+            this.textBoxEmail.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.textBoxEmail.Name = "textBoxEmail";
-            this.textBoxEmail.Size = new System.Drawing.Size(149, 20);
+            this.textBoxEmail.Size = new System.Drawing.Size(222, 26);
             this.textBoxEmail.TabIndex = 1;
             // 
             // textBoxPassword
             // 
-            this.textBoxPassword.Location = new System.Drawing.Point(54, 38);
+            this.textBoxPassword.Location = new System.Drawing.Point(81, 58);
+            this.textBoxPassword.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.textBoxPassword.Name = "textBoxPassword";
             this.textBoxPassword.PasswordChar = '*';
-            this.textBoxPassword.Size = new System.Drawing.Size(123, 20);
+            this.textBoxPassword.Size = new System.Drawing.Size(182, 26);
             this.textBoxPassword.TabIndex = 2;
             // 
             // labelPw
             // 
             this.labelPw.AutoSize = true;
-            this.labelPw.Location = new System.Drawing.Point(12, 41);
+            this.labelPw.Location = new System.Drawing.Point(18, 63);
+            this.labelPw.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.labelPw.Name = "labelPw";
-            this.labelPw.Size = new System.Drawing.Size(33, 13);
+            this.labelPw.Size = new System.Drawing.Size(48, 20);
             this.labelPw.TabIndex = 3;
             this.labelPw.Text = "Pass:";
             // 
             // textBoxChar
             // 
-            this.textBoxChar.Location = new System.Drawing.Point(54, 64);
+            this.textBoxChar.Location = new System.Drawing.Point(81, 98);
+            this.textBoxChar.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.textBoxChar.Name = "textBoxChar";
-            this.textBoxChar.Size = new System.Drawing.Size(149, 20);
+            this.textBoxChar.Size = new System.Drawing.Size(222, 26);
             this.textBoxChar.TabIndex = 4;
             // 
             // labelChar
             // 
             this.labelChar.AutoSize = true;
-            this.labelChar.Location = new System.Drawing.Point(12, 67);
+            this.labelChar.Location = new System.Drawing.Point(18, 103);
+            this.labelChar.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.labelChar.Name = "labelChar";
-            this.labelChar.Size = new System.Drawing.Size(32, 13);
+            this.labelChar.Size = new System.Drawing.Size(47, 20);
             this.labelChar.TabIndex = 5;
             this.labelChar.Text = "Char:";
             // 
             // checkBoxDatFix
             // 
             this.checkBoxDatFix.AutoSize = true;
-            this.checkBoxDatFix.Location = new System.Drawing.Point(12, 147);
+            this.checkBoxDatFix.Location = new System.Drawing.Point(18, 226);
+            this.checkBoxDatFix.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.checkBoxDatFix.Name = "checkBoxDatFix";
-            this.checkBoxDatFix.Size = new System.Drawing.Size(104, 17);
+            this.checkBoxDatFix.Size = new System.Drawing.Size(150, 24);
             this.checkBoxDatFix.TabIndex = 6;
             this.checkBoxDatFix.Text = "Apply .dat Patch";
             this.checkBoxDatFix.UseVisualStyleBackColor = true;
             // 
             // buttonDone
             // 
-            this.buttonDone.Location = new System.Drawing.Point(128, 144);
+            this.buttonDone.Location = new System.Drawing.Point(191, 247);
+            this.buttonDone.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.buttonDone.Name = "buttonDone";
-            this.buttonDone.Size = new System.Drawing.Size(75, 23);
+            this.buttonDone.Size = new System.Drawing.Size(112, 35);
             this.buttonDone.TabIndex = 7;
             this.buttonDone.Text = "Add";
             this.buttonDone.UseCompatibleTextRendering = true;
@@ -118,24 +127,27 @@
             // labelGWPath
             // 
             this.labelGWPath.AutoSize = true;
-            this.labelGWPath.Location = new System.Drawing.Point(12, 93);
+            this.labelGWPath.Location = new System.Drawing.Point(18, 143);
+            this.labelGWPath.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.labelGWPath.Name = "labelGWPath";
-            this.labelGWPath.Size = new System.Drawing.Size(32, 13);
+            this.labelGWPath.Size = new System.Drawing.Size(46, 20);
             this.labelGWPath.TabIndex = 8;
             this.labelGWPath.Text = "Path:";
             // 
             // textBoxPath
             // 
-            this.textBoxPath.Location = new System.Drawing.Point(54, 90);
+            this.textBoxPath.Location = new System.Drawing.Point(81, 138);
+            this.textBoxPath.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.textBoxPath.Name = "textBoxPath";
-            this.textBoxPath.Size = new System.Drawing.Size(109, 20);
+            this.textBoxPath.Size = new System.Drawing.Size(162, 26);
             this.textBoxPath.TabIndex = 9;
             // 
             // buttonDialogPath
             // 
-            this.buttonDialogPath.Location = new System.Drawing.Point(169, 89);
+            this.buttonDialogPath.Location = new System.Drawing.Point(254, 137);
+            this.buttonDialogPath.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.buttonDialogPath.Name = "buttonDialogPath";
-            this.buttonDialogPath.Size = new System.Drawing.Size(34, 22);
+            this.buttonDialogPath.Size = new System.Drawing.Size(51, 34);
             this.buttonDialogPath.TabIndex = 11;
             this.buttonDialogPath.Text = "...";
             this.buttonDialogPath.UseVisualStyleBackColor = true;
@@ -144,34 +156,48 @@
             // labelExtraArgs
             // 
             this.labelExtraArgs.AutoSize = true;
-            this.labelExtraArgs.Location = new System.Drawing.Point(2, 118);
+            this.labelExtraArgs.Location = new System.Drawing.Point(3, 182);
+            this.labelExtraArgs.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.labelExtraArgs.Name = "labelExtraArgs";
-            this.labelExtraArgs.Size = new System.Drawing.Size(46, 13);
+            this.labelExtraArgs.Size = new System.Drawing.Size(68, 20);
             this.labelExtraArgs.TabIndex = 12;
             this.labelExtraArgs.Text = "Ex Args:";
             // 
             // textBoxExArgs
             // 
-            this.textBoxExArgs.Location = new System.Drawing.Point(54, 115);
+            this.textBoxExArgs.Location = new System.Drawing.Point(81, 177);
+            this.textBoxExArgs.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.textBoxExArgs.Name = "textBoxExArgs";
-            this.textBoxExArgs.Size = new System.Drawing.Size(149, 20);
+            this.textBoxExArgs.Size = new System.Drawing.Size(222, 26);
             this.textBoxExArgs.TabIndex = 13;
             // 
             // button1
             // 
-            this.button1.Location = new System.Drawing.Point(183, 38);
+            this.button1.Location = new System.Drawing.Point(274, 58);
+            this.button1.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.button1.Name = "button1";
-            this.button1.Size = new System.Drawing.Size(20, 20);
+            this.button1.Size = new System.Drawing.Size(30, 31);
             this.button1.TabIndex = 14;
             this.button1.Text = "*";
             this.button1.UseVisualStyleBackColor = true;
             this.button1.Click += new System.EventHandler(this.button1_Click);
             // 
+            // checkBoxElevated
+            // 
+            this.checkBoxElevated.AutoSize = true;
+            this.checkBoxElevated.Location = new System.Drawing.Point(18, 258);
+            this.checkBoxElevated.Name = "checkBoxElevated";
+            this.checkBoxElevated.Size = new System.Drawing.Size(129, 24);
+            this.checkBoxElevated.TabIndex = 15;
+            this.checkBoxElevated.Text = "Run elevated";
+            this.checkBoxElevated.UseVisualStyleBackColor = true;
+            // 
             // AddAccountForm
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(9F, 20F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(215, 176);
+            this.ClientSize = new System.Drawing.Size(322, 294);
+            this.Controls.Add(this.checkBoxElevated);
             this.Controls.Add(this.button1);
             this.Controls.Add(this.textBoxExArgs);
             this.Controls.Add(this.labelExtraArgs);
@@ -188,6 +214,7 @@
             this.Controls.Add(this.labelEmail);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
+            this.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.Name = "AddAccountForm";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "Add Account";
@@ -213,5 +240,6 @@
         private System.Windows.Forms.Label labelExtraArgs;
         private System.Windows.Forms.TextBox textBoxExArgs;
         private System.Windows.Forms.Button button1;
+        private System.Windows.Forms.CheckBox checkBoxElevated;
     }
 }

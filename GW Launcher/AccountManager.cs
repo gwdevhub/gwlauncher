@@ -10,7 +10,7 @@ using Logos.Utility.Security.Cryptography;
 
 namespace GW_Launcher
 {
-    public class AccountManager : IEnumerable<Account>
+    public class AccountManager : IEnumerable<Account>, IDisposable
     {
         private Account[] accounts;
         private string filePath;
@@ -31,7 +31,7 @@ namespace GW_Launcher
         
         public void Load(string filePath = null)
         {
-            if (cryptPass == null && (Program.settings.encryptAccounts || Program.settings.decryptAccounts))
+            if (cryptPass == null && (Program.settings.EncryptAccounts || Program.settings.DecryptAccounts))
             {
                 Forms.CryptPassForm form = new Forms.CryptPassForm();
                 form.ShowDialog();
@@ -43,7 +43,7 @@ namespace GW_Launcher
                 filePath = this.filePath;
             }
 
-            if (!Program.settings.decryptAccounts)
+            if (!Program.settings.DecryptAccounts)
             {
                 try
                 {
@@ -55,7 +55,7 @@ namespace GW_Launcher
 
                     // silent
                     File.WriteAllText(e.FileName, "[]");
-                    accounts = new Account[0];
+                    accounts = Array.Empty<Account>();
                 }
             }
             else
@@ -74,16 +74,16 @@ namespace GW_Launcher
                     }
                     accounts = JsonConvert.DeserializeObject<Account[]>(rawJson.Substring(4));
                 }
-                catch (FileNotFoundException e)
+                catch (FileNotFoundException)
                 {
 
                     // silent
                     byte[] bytes = Encoding.UTF8.GetBytes("SHIT[]");
-                    byte[] cryptBytes = new byte[bytes.Length];
+                    var cryptBytes = new byte[bytes.Length];
                     using (var encrypt = crypt.CreateEncryptor(cryptPass, salsaIV))
                         encrypt.TransformBlock(bytes, 0, bytes.Length, cryptBytes, 0);
                     File.WriteAllBytes(filePath, cryptBytes);
-                    accounts = new Account[0];
+                    accounts = Array.Empty<Account>();
                 }
             }
 
@@ -97,7 +97,7 @@ namespace GW_Launcher
             }
 
             string text = JsonConvert.SerializeObject(accounts, Formatting.Indented);
-            if (!Program.settings.encryptAccounts)
+            if (!Program.settings.EncryptAccounts)
             {
                 File.WriteAllText(filePath, text);
             }
@@ -143,13 +143,11 @@ namespace GW_Launcher
 
         public void Remove(string email)
         {
-            for(int i = 0; i < accounts.Length; i++)
+            for (int i = 0; i < accounts.Length; i++)
             {
-                if (accounts[i].email == email)
-                {
-                    Remove(i);
-                    return;
-                }
+                if (accounts[i].email != email) continue;
+                Remove(i);
+                return;
             }
         }
 
@@ -177,14 +175,11 @@ namespace GW_Launcher
 
         public Account this[int index]
         {
-            get
-            {
-                return this.accounts[index];
-            }
+            get => this.accounts[index];
             set
             {
                 accounts[index] = value;
-                if(filePath != null)
+                if (filePath != null)
                 {
                     Save(filePath);
                 }
@@ -196,10 +191,7 @@ namespace GW_Launcher
             get
             {
                 int index = GetIndexOf(email);
-                if (index == -1)
-                    return null;
-                else
-                    return this[index];
+                return index == -1 ? null : this[index];
             }
             set
             {
@@ -209,5 +201,9 @@ namespace GW_Launcher
             }
         }
 
+        void IDisposable.Dispose()
+        {
+            crypt.Dispose();
+        }
     }
 }
