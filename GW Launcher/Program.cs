@@ -1,18 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using System.Windows.Forms;
-using System.Reflection;
-using System.Diagnostics;
-using System.DirectoryServices;
-using System.Runtime.InteropServices;
 using System.Threading;
 using GWCA.Memory;
 using System.IO;
 using Newtonsoft.Json;
 using GWMC_CS;
-using ThreadState = System.Diagnostics.ThreadState;
+using UmodServer;
 
 namespace GW_Launcher
 {
@@ -99,6 +92,10 @@ namespace GW_Launcher
                             GWCAMemory m = MulticlientPatch.LaunchClient(a.gwpath,
                                 " -email \"" + a.email + "\" -password \"" + a.password + "\" -character \"" +
                                 a.character + "\" " + a.extraargs, a.datfix, false, a.elevated, a.mods);
+
+                            //uModTexClient client = new uModTexClient();
+                            //TexBundle bundle = new TexBundle("C:\\Users\\m\\OneDrive\\Desktop\\programs\\gw1\\Minimalus_Dub.tpf");
+                            //client.AddBundle(bundle);
 
                             uint timelock = 0;
                             while (m.process.MainWindowHandle == IntPtr.Zero)
