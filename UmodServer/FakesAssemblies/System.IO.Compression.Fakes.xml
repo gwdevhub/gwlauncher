@@ -1,0 +1,446 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>System.IO.Compression.Fakes</name>
+    </assembly>
+    <members>
+        <member name="T:System.IO.Compression.Fakes.ShimZipArchive">
+            <summary>Shim type of System.IO.Compression.ZipArchive</summary>
+        </member>
+        <member name="M:System.IO.Compression.Fakes.ShimZipArchive.#ctor">
+            <summary>Initializes a new shim instance</summary>
+        </member>
+        <member name="M:System.IO.Compression.Fakes.ShimZipArchive.#ctor(System.IO.Compression.ZipArchive)">
+            <summary>Initializes a new shim for the given instance</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchive.AcquireArchiveStreamZipArchiveEntry">
+            <summary>Sets the shim of ZipArchive.AcquireArchiveStream(ZipArchiveEntry entry)</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchive.AddEntryZipArchiveEntry">
+            <summary>Sets the shim of ZipArchive.AddEntry(ZipArchiveEntry entry)</summary>
+        </member>
+        <member name="T:System.IO.Compression.Fakes.ShimZipArchive.AllInstances">
+            <summary>Define shims for all instances members</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchive.AllInstances.AcquireArchiveStreamZipArchiveEntry">
+            <summary>Sets the shim of ZipArchive.AcquireArchiveStream(ZipArchiveEntry entry)</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchive.AllInstances.AddEntryZipArchiveEntry">
+            <summary>Sets the shim of ZipArchive.AddEntry(ZipArchiveEntry entry)</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchive.AllInstances.ArchiveReaderGet">
+            <summary>Sets the shim of ZipArchive.get_ArchiveReader()</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchive.AllInstances.ArchiveStreamGet">
+            <summary>Sets the shim of ZipArchive.get_ArchiveStream()</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchive.AllInstances.CloseStreams">
+            <summary>Sets the shim of ZipArchive.CloseStreams()</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchive.AllInstances.CreateEntryString">
+            <summary>Sets the shim of ZipArchive.CreateEntry(String entryName)</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchive.AllInstances.CreateEntryStringCompressionLevel">
+            <summary>Sets the shim of ZipArchive.CreateEntry(String entryName, CompressionLevel compressionLevel)</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchive.AllInstances.Dispose">
+            <summary>Sets the shim of ZipArchive.Dispose()</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchive.AllInstances.DisposeBoolean">
+            <summary>Sets the shim of ZipArchive.Dispose(Boolean disposing)</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchive.AllInstances.DoCreateEntryStringNullableOfCompressionLevel">
+            <summary>Sets the shim of ZipArchive.DoCreateEntry(String entryName, Nullable`1&lt;CompressionLevel&gt; compressionLevel)</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchive.AllInstances.EnsureCentralDirectoryRead">
+            <summary>Sets the shim of ZipArchive.EnsureCentralDirectoryRead()</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchive.AllInstances.EntriesGet">
+            <summary>Sets the shim of ZipArchive.get_Entries()</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchive.AllInstances.GetEntryString">
+            <summary>Sets the shim of ZipArchive.GetEntry(String entryName)</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchive.AllInstances.InitStreamZipArchiveModeBoolean">
+            <summary>Sets the shim of ZipArchive.Init(Stream stream, ZipArchiveMode mode, Boolean leaveOpen)</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchive.AllInstances.IsStillArchiveStreamOwnerZipArchiveEntry">
+            <summary>Sets the shim of ZipArchive.IsStillArchiveStreamOwner(ZipArchiveEntry entry)</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchive.AllInstances.ModeGet">
+            <summary>Sets the shim of ZipArchive.get_Mode()</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchive.AllInstances.NumberOfThisDiskGet">
+            <summary>Sets the shim of ZipArchive.get_NumberOfThisDisk()</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchive.AllInstances.ReadCentralDirectory">
+            <summary>Sets the shim of ZipArchive.ReadCentralDirectory()</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchive.AllInstances.ReadEndOfCentralDirectory">
+            <summary>Sets the shim of ZipArchive.ReadEndOfCentralDirectory()</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchive.AllInstances.ReleaseArchiveStreamZipArchiveEntry">
+            <summary>Sets the shim of ZipArchive.ReleaseArchiveStream(ZipArchiveEntry entry)</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchive.AllInstances.RemoveEntryZipArchiveEntry">
+            <summary>Sets the shim of ZipArchive.RemoveEntry(ZipArchiveEntry entry)</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchive.AllInstances.ThrowIfDisposed">
+            <summary>Sets the shim of ZipArchive.ThrowIfDisposed()</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchive.AllInstances.WriteArchiveEpilogueInt64Int64">
+            <summary>Sets the shim of ZipArchive.WriteArchiveEpilogue(Int64 startOfCentralDirectory, Int64 sizeOfCentralDirectory)</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchive.AllInstances.WriteFile">
+            <summary>Sets the shim of ZipArchive.WriteFile()</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchive.ArchiveReaderGet">
+            <summary>Sets the shim of ZipArchive.get_ArchiveReader()</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchive.ArchiveStreamGet">
+            <summary>Sets the shim of ZipArchive.get_ArchiveStream()</summary>
+        </member>
+        <member name="M:System.IO.Compression.Fakes.ShimZipArchive.BehaveAsCurrent">
+            <summary>Assigns the &apos;Current&apos; behavior for all methods of the shimmed type</summary>
+        </member>
+        <member name="M:System.IO.Compression.Fakes.ShimZipArchive.BehaveAsNotImplemented">
+            <summary>Assigns the &apos;NotImplemented&apos; behavior for all methods of the shimmed type</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchive.Behavior">
+            <summary>Assigns the behavior for all methods of the shimmed type</summary>
+        </member>
+        <member name="M:System.IO.Compression.Fakes.ShimZipArchive.Bind(System.IDisposable)">
+            <summary>Binds the members of the interface to the shim.</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchive.CloseStreams">
+            <summary>Sets the shim of ZipArchive.CloseStreams()</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchive.ConstructorStream">
+            <summary>Sets the shim of ZipArchive.ZipArchive(Stream stream)</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchive.ConstructorStreamZipArchiveMode">
+            <summary>Sets the shim of ZipArchive.ZipArchive(Stream stream, ZipArchiveMode mode)</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchive.ConstructorStreamZipArchiveModeBoolean">
+            <summary>Sets the shim of ZipArchive.ZipArchive(Stream stream, ZipArchiveMode mode, Boolean leaveOpen)</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchive.CreateEntryString">
+            <summary>Sets the shim of ZipArchive.CreateEntry(String entryName)</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchive.CreateEntryStringCompressionLevel">
+            <summary>Sets the shim of ZipArchive.CreateEntry(String entryName, CompressionLevel compressionLevel)</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchive.Dispose">
+            <summary>Sets the shim of ZipArchive.Dispose()</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchive.DisposeBoolean">
+            <summary>Sets the shim of ZipArchive.Dispose(Boolean disposing)</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchive.DoCreateEntryStringNullableOfCompressionLevel">
+            <summary>Sets the shim of ZipArchive.DoCreateEntry(String entryName, Nullable`1&lt;CompressionLevel&gt; compressionLevel)</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchive.EnsureCentralDirectoryRead">
+            <summary>Sets the shim of ZipArchive.EnsureCentralDirectoryRead()</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchive.EntriesGet">
+            <summary>Sets the shim of ZipArchive.get_Entries()</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchive.GetEntryString">
+            <summary>Sets the shim of ZipArchive.GetEntry(String entryName)</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchive.InitStreamZipArchiveModeBoolean">
+            <summary>Sets the shim of ZipArchive.Init(Stream stream, ZipArchiveMode mode, Boolean leaveOpen)</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchive.IsStillArchiveStreamOwnerZipArchiveEntry">
+            <summary>Sets the shim of ZipArchive.IsStillArchiveStreamOwner(ZipArchiveEntry entry)</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchive.ModeGet">
+            <summary>Sets the shim of ZipArchive.get_Mode()</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchive.NumberOfThisDiskGet">
+            <summary>Sets the shim of ZipArchive.get_NumberOfThisDisk()</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchive.ReadCentralDirectory">
+            <summary>Sets the shim of ZipArchive.ReadCentralDirectory()</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchive.ReadEndOfCentralDirectory">
+            <summary>Sets the shim of ZipArchive.ReadEndOfCentralDirectory()</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchive.ReleaseArchiveStreamZipArchiveEntry">
+            <summary>Sets the shim of ZipArchive.ReleaseArchiveStream(ZipArchiveEntry entry)</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchive.RemoveEntryZipArchiveEntry">
+            <summary>Sets the shim of ZipArchive.RemoveEntry(ZipArchiveEntry entry)</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchive.ThrowIfDisposed">
+            <summary>Sets the shim of ZipArchive.ThrowIfDisposed()</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchive.WriteArchiveEpilogueInt64Int64">
+            <summary>Sets the shim of ZipArchive.WriteArchiveEpilogue(Int64 startOfCentralDirectory, Int64 sizeOfCentralDirectory)</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchive.WriteFile">
+            <summary>Sets the shim of ZipArchive.WriteFile()</summary>
+        </member>
+        <member name="T:System.IO.Compression.Fakes.ShimZipArchiveEntry">
+            <summary>Shim type of System.IO.Compression.ZipArchiveEntry</summary>
+        </member>
+        <member name="M:System.IO.Compression.Fakes.ShimZipArchiveEntry.#ctor">
+            <summary>Initializes a new shim instance</summary>
+        </member>
+        <member name="M:System.IO.Compression.Fakes.ShimZipArchiveEntry.#ctor(System.IO.Compression.ZipArchiveEntry)">
+            <summary>Initializes a new shim for the given instance</summary>
+        </member>
+        <member name="T:System.IO.Compression.Fakes.ShimZipArchiveEntry.AllInstances">
+            <summary>Define shims for all instances members</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchiveEntry.AllInstances.ArchiveGet">
+            <summary>Sets the shim of ZipArchiveEntry.get_Archive()</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchiveEntry.AllInstances.CloseStreams">
+            <summary>Sets the shim of ZipArchiveEntry.CloseStreams()</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchiveEntry.AllInstances.CompressedLengthGet">
+            <summary>Sets the shim of ZipArchiveEntry.get_CompressedLength()</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchiveEntry.AllInstances.DecodeEntryNameByteArray">
+            <summary>Sets the shim of ZipArchiveEntry.DecodeEntryName(Byte[] entryNameBytes)</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchiveEntry.AllInstances.Delete">
+            <summary>Sets the shim of ZipArchiveEntry.Delete()</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchiveEntry.AllInstances.EncodeEntryNameStringBooleanOut">
+            <summary>Sets the shim of ZipArchiveEntry.EncodeEntryName(String entryName, Boolean&amp; isUTF8)</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchiveEntry.AllInstances.EverOpenedForWriteGet">
+            <summary>Sets the shim of ZipArchiveEntry.get_EverOpenedForWrite()</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchiveEntry.AllInstances.FullNameGet">
+            <summary>Sets the shim of ZipArchiveEntry.get_FullName()</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchiveEntry.AllInstances.FullNameSetString">
+            <summary>Sets the shim of ZipArchiveEntry.set_FullName(String value)</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchiveEntry.AllInstances.GetDataDecompressorStream">
+            <summary>Sets the shim of ZipArchiveEntry.GetDataDecompressor(Stream compressedStreamToRead)</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchiveEntry.AllInstances.IsOpenableBooleanBooleanStringOut">
+            <summary>Sets the shim of ZipArchiveEntry.IsOpenable(Boolean needToUncompress, Boolean needToLoadIntoMemory, String&amp; message)</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchiveEntry.AllInstances.LastWriteTimeGet">
+            <summary>Sets the shim of ZipArchiveEntry.get_LastWriteTime()</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchiveEntry.AllInstances.LastWriteTimeSetDateTimeOffset">
+            <summary>Sets the shim of ZipArchiveEntry.set_LastWriteTime(DateTimeOffset value)</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchiveEntry.AllInstances.LengthGet">
+            <summary>Sets the shim of ZipArchiveEntry.get_Length()</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchiveEntry.AllInstances.LoadLocalHeaderExtraFieldAndCompressedBytesIfNeeded">
+            <summary>Sets the shim of ZipArchiveEntry.LoadLocalHeaderExtraFieldAndCompressedBytesIfNeeded()</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchiveEntry.AllInstances.NameGet">
+            <summary>Sets the shim of ZipArchiveEntry.get_Name()</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchiveEntry.AllInstances.OffsetOfCompressedDataGet">
+            <summary>Sets the shim of ZipArchiveEntry.get_OffsetOfCompressedData()</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchiveEntry.AllInstances.Open">
+            <summary>Sets the shim of ZipArchiveEntry.Open()</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchiveEntry.AllInstances.OpenInReadModeBoolean">
+            <summary>Sets the shim of ZipArchiveEntry.OpenInReadMode(Boolean checkOpenable)</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchiveEntry.AllInstances.OpenInUpdateMode">
+            <summary>Sets the shim of ZipArchiveEntry.OpenInUpdateMode()</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchiveEntry.AllInstances.OpenInWriteMode">
+            <summary>Sets the shim of ZipArchiveEntry.OpenInWriteMode()</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchiveEntry.AllInstances.SizesTooLarge">
+            <summary>Sets the shim of ZipArchiveEntry.SizesTooLarge()</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchiveEntry.AllInstances.ThrowIfInvalidArchive">
+            <summary>Sets the shim of ZipArchiveEntry.ThrowIfInvalidArchive()</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchiveEntry.AllInstances.ThrowIfNotOpenableBooleanBoolean">
+            <summary>Sets the shim of ZipArchiveEntry.ThrowIfNotOpenable(Boolean needToUncompress, Boolean needToLoadIntoMemory)</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchiveEntry.AllInstances.ToString01">
+            <summary>Sets the shim of ZipArchiveEntry.ToString()</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchiveEntry.AllInstances.UnloadStreams">
+            <summary>Sets the shim of ZipArchiveEntry.UnloadStreams()</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchiveEntry.AllInstances.WriteAndFinishLocalEntry">
+            <summary>Sets the shim of ZipArchiveEntry.WriteAndFinishLocalEntry()</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchiveEntry.AllInstances.WriteCentralDirectoryFileHeader">
+            <summary>Sets the shim of ZipArchiveEntry.WriteCentralDirectoryFileHeader()</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchiveEntry.AllInstances.WriteCrcAndSizesInLocalHeaderBoolean">
+            <summary>Sets the shim of ZipArchiveEntry.WriteCrcAndSizesInLocalHeader(Boolean zip64HeaderUsed)</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchiveEntry.AllInstances.WriteDataDescriptor">
+            <summary>Sets the shim of ZipArchiveEntry.WriteDataDescriptor()</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchiveEntry.AllInstances.WriteLocalFileHeaderAndDataIfNeeded">
+            <summary>Sets the shim of ZipArchiveEntry.WriteLocalFileHeaderAndDataIfNeeded()</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchiveEntry.AllInstances.WriteLocalFileHeaderBoolean">
+            <summary>Sets the shim of ZipArchiveEntry.WriteLocalFileHeader(Boolean isEmptyFile)</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchiveEntry.ArchiveGet">
+            <summary>Sets the shim of ZipArchiveEntry.get_Archive()</summary>
+        </member>
+        <member name="M:System.IO.Compression.Fakes.ShimZipArchiveEntry.BehaveAsCurrent">
+            <summary>Assigns the &apos;Current&apos; behavior for all methods of the shimmed type</summary>
+        </member>
+        <member name="M:System.IO.Compression.Fakes.ShimZipArchiveEntry.BehaveAsNotImplemented">
+            <summary>Assigns the &apos;NotImplemented&apos; behavior for all methods of the shimmed type</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchiveEntry.Behavior">
+            <summary>Assigns the behavior for all methods of the shimmed type</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchiveEntry.CloseStreams">
+            <summary>Sets the shim of ZipArchiveEntry.CloseStreams()</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchiveEntry.CompressedLengthGet">
+            <summary>Sets the shim of ZipArchiveEntry.get_CompressedLength()</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchiveEntry.ConstructorZipArchiveString">
+            <summary>Sets the shim of ZipArchiveEntry.ZipArchiveEntry(ZipArchive archive, String entryName)</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchiveEntry.ConstructorZipArchiveStringCompressionLevel">
+            <summary>Sets the shim of ZipArchiveEntry.ZipArchiveEntry(ZipArchive archive, String entryName, CompressionLevel compressionLevel)</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchiveEntry.DecodeEntryNameByteArray">
+            <summary>Sets the shim of ZipArchiveEntry.DecodeEntryName(Byte[] entryNameBytes)</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchiveEntry.Delete">
+            <summary>Sets the shim of ZipArchiveEntry.Delete()</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchiveEntry.EncodeEntryNameStringBooleanOut">
+            <summary>Sets the shim of ZipArchiveEntry.EncodeEntryName(String entryName, Boolean&amp; isUTF8)</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchiveEntry.EverOpenedForWriteGet">
+            <summary>Sets the shim of ZipArchiveEntry.get_EverOpenedForWrite()</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchiveEntry.FullNameGet">
+            <summary>Sets the shim of ZipArchiveEntry.get_FullName()</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchiveEntry.FullNameSetString">
+            <summary>Sets the shim of ZipArchiveEntry.set_FullName(String value)</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchiveEntry.GetDataDecompressorStream">
+            <summary>Sets the shim of ZipArchiveEntry.GetDataDecompressor(Stream compressedStreamToRead)</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchiveEntry.GetFileName_UnixString">
+            <summary>Sets the shim of ZipArchiveEntry.GetFileName_Unix(String path)</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchiveEntry.GetFileName_WindowsString">
+            <summary>Sets the shim of ZipArchiveEntry.GetFileName_Windows(String path)</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchiveEntry.IsOpenableBooleanBooleanStringOut">
+            <summary>Sets the shim of ZipArchiveEntry.IsOpenable(Boolean needToUncompress, Boolean needToLoadIntoMemory, String&amp; message)</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchiveEntry.LastWriteTimeGet">
+            <summary>Sets the shim of ZipArchiveEntry.get_LastWriteTime()</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchiveEntry.LastWriteTimeSetDateTimeOffset">
+            <summary>Sets the shim of ZipArchiveEntry.set_LastWriteTime(DateTimeOffset value)</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchiveEntry.LengthGet">
+            <summary>Sets the shim of ZipArchiveEntry.get_Length()</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchiveEntry.LoadLocalHeaderExtraFieldAndCompressedBytesIfNeeded">
+            <summary>Sets the shim of ZipArchiveEntry.LoadLocalHeaderExtraFieldAndCompressedBytesIfNeeded()</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchiveEntry.NameGet">
+            <summary>Sets the shim of ZipArchiveEntry.get_Name()</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchiveEntry.OffsetOfCompressedDataGet">
+            <summary>Sets the shim of ZipArchiveEntry.get_OffsetOfCompressedData()</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchiveEntry.Open">
+            <summary>Sets the shim of ZipArchiveEntry.Open()</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchiveEntry.OpenInReadModeBoolean">
+            <summary>Sets the shim of ZipArchiveEntry.OpenInReadMode(Boolean checkOpenable)</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchiveEntry.OpenInUpdateMode">
+            <summary>Sets the shim of ZipArchiveEntry.OpenInUpdateMode()</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchiveEntry.OpenInWriteMode">
+            <summary>Sets the shim of ZipArchiveEntry.OpenInWriteMode()</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchiveEntry.SizesTooLarge">
+            <summary>Sets the shim of ZipArchiveEntry.SizesTooLarge()</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchiveEntry.StaticConstructor">
+            <summary>Sets the shim of ZipArchiveEntry.ZipArchiveEntry()</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchiveEntry.ThrowIfInvalidArchive">
+            <summary>Sets the shim of ZipArchiveEntry.ThrowIfInvalidArchive()</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchiveEntry.ThrowIfNotOpenableBooleanBoolean">
+            <summary>Sets the shim of ZipArchiveEntry.ThrowIfNotOpenable(Boolean needToUncompress, Boolean needToLoadIntoMemory)</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchiveEntry.ToString">
+            <summary>Sets the shim of ZipArchiveEntry.ToString()</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchiveEntry.UnloadStreams">
+            <summary>Sets the shim of ZipArchiveEntry.UnloadStreams()</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchiveEntry.WriteAndFinishLocalEntry">
+            <summary>Sets the shim of ZipArchiveEntry.WriteAndFinishLocalEntry()</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchiveEntry.WriteCentralDirectoryFileHeader">
+            <summary>Sets the shim of ZipArchiveEntry.WriteCentralDirectoryFileHeader()</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchiveEntry.WriteCrcAndSizesInLocalHeaderBoolean">
+            <summary>Sets the shim of ZipArchiveEntry.WriteCrcAndSizesInLocalHeader(Boolean zip64HeaderUsed)</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchiveEntry.WriteDataDescriptor">
+            <summary>Sets the shim of ZipArchiveEntry.WriteDataDescriptor()</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchiveEntry.WriteLocalFileHeaderAndDataIfNeeded">
+            <summary>Sets the shim of ZipArchiveEntry.WriteLocalFileHeaderAndDataIfNeeded()</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.ShimZipArchiveEntry.WriteLocalFileHeaderBoolean">
+            <summary>Sets the shim of ZipArchiveEntry.WriteLocalFileHeader(Boolean isEmptyFile)</summary>
+        </member>
+        <member name="T:System.IO.Compression.Fakes.StubZipArchive">
+            <summary>Stub type of System.IO.Compression.ZipArchive</summary>
+        </member>
+        <member name="M:System.IO.Compression.Fakes.StubZipArchive.#ctor(System.IO.Stream)">
+            <summary>Initializes a new instance</summary>
+        </member>
+        <member name="M:System.IO.Compression.Fakes.StubZipArchive.#ctor(System.IO.Stream,System.IO.Compression.ZipArchiveMode)">
+            <summary>Initializes a new instance</summary>
+        </member>
+        <member name="M:System.IO.Compression.Fakes.StubZipArchive.#ctor(System.IO.Stream,System.IO.Compression.ZipArchiveMode,System.Boolean)">
+            <summary>Initializes a new instance</summary>
+        </member>
+        <member name="M:System.IO.Compression.Fakes.StubZipArchive.#ctor(System.IO.Stream,System.IO.Compression.ZipArchiveMode,System.Boolean,System.Text.Encoding)">
+            <summary>Initializes a new instance</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.StubZipArchive.CallBase">
+            <summary>Gets or sets a value that indicates if the base method should be called instead of the fallback behavior</summary>
+        </member>
+        <member name="M:System.IO.Compression.Fakes.StubZipArchive.Dispose(System.Boolean)">
+            <summary>Sets the stub of ZipArchive.Dispose(Boolean disposing)</summary>
+        </member>
+        <member name="F:System.IO.Compression.Fakes.StubZipArchive.DisposeBoolean">
+            <summary>Sets the stub of ZipArchive.Dispose(Boolean disposing)</summary>
+        </member>
+        <member name="M:System.IO.Compression.Fakes.StubZipArchive.InitializeStub">
+            <summary>Initializes a new instance of type StubZipArchive</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.StubZipArchive.InstanceBehavior">
+            <summary>Gets or sets the instance behavior.</summary>
+        </member>
+        <member name="P:System.IO.Compression.Fakes.StubZipArchive.InstanceObserver">
+            <summary>Gets or sets the instance observer.</summary>
+        </member>
+    </members>
+</doc>
