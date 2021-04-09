@@ -10,6 +10,8 @@ namespace GW_Launcher
 {
     public class Account
     {
+        [JsonRequired]
+        public string alias;
 
         [JsonRequired]
         public string email;

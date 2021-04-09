@@ -74,7 +74,7 @@ namespace GW_Launcher
             {
                 listViewAccounts.Items.Add(new ListViewItem(
                     new string[] {
-                            Program.accounts[i].character,
+                            Program.accounts[i].alias,
                             Program.accounts[i].active ? "Active" : "Inactive"
                     },
                     "gw-icon"
@@ -283,6 +283,16 @@ namespace GW_Launcher
             {
                 await RunClientUpdateAsync(client);
             }
+        }
+
+        private void MainForm_Resize(object sender, EventArgs e)
+        {
+            if (WindowState == FormWindowState.Minimized)
+            {
+                
+            }
+            if (!this.rightClickOpen)
+                this.Visible = false;
         }
     }
 }

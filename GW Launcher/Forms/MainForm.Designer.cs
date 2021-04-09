@@ -42,8 +42,8 @@
             this.launchSelectedToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
             this.launchGWInstanceToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.notifyIcon = new System.Windows.Forms.NotifyIcon(this.components);
             this.updateAllClientsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.notifyIcon = new System.Windows.Forms.NotifyIcon(this.components);
             this.contextMenuStripAccounts.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -59,7 +59,7 @@
             this.listViewAccounts.HideSelection = false;
             this.listViewAccounts.Location = new System.Drawing.Point(0, 0);
             this.listViewAccounts.Name = "listViewAccounts";
-            this.listViewAccounts.Size = new System.Drawing.Size(184, 270);
+            this.listViewAccounts.Size = new System.Drawing.Size(187, 270);
             this.listViewAccounts.TabIndex = 0;
             this.listViewAccounts.UseCompatibleStateImageBehavior = false;
             this.listViewAccounts.View = System.Windows.Forms.View.Details;
@@ -88,7 +88,7 @@
             this.launchGWInstanceToolStripMenuItem,
             this.updateAllClientsToolStripMenuItem});
             this.contextMenuStripAccounts.Name = "contextMenuStripAccounts";
-            this.contextMenuStripAccounts.Size = new System.Drawing.Size(211, 192);
+            this.contextMenuStripAccounts.Size = new System.Drawing.Size(211, 170);
             this.contextMenuStripAccounts.Text = "Options.";
             // 
             // refreshAccountsToolStripMenuItem
@@ -143,13 +143,6 @@
             this.launchGWInstanceToolStripMenuItem.Text = "Launch Default GW Client";
             this.launchGWInstanceToolStripMenuItem.Click += new System.EventHandler(this.launchGWInstanceToolStripMenuItem_Click);
             // 
-            // notifyIcon
-            // 
-            this.notifyIcon.Icon = ((System.Drawing.Icon)(resources.GetObject("notifyIcon.Icon")));
-            this.notifyIcon.Text = "GW Launcher";
-            this.notifyIcon.Visible = true;
-            this.notifyIcon.MouseClick += new System.Windows.Forms.MouseEventHandler(this.notifyIcon_MouseClick);
-            // 
             // updateAllClientsToolStripMenuItem
             // 
             this.updateAllClientsToolStripMenuItem.Name = "updateAllClientsToolStripMenuItem";
@@ -157,23 +150,29 @@
             this.updateAllClientsToolStripMenuItem.Text = "Update All Clients";
             this.updateAllClientsToolStripMenuItem.Click += new System.EventHandler(this.updateAllClientsToolStripMenuItem_Click);
             // 
+            // notifyIcon
+            // 
+            this.notifyIcon.Icon = ((System.Drawing.Icon)(resources.GetObject("notifyIcon.Icon")));
+            this.notifyIcon.Text = "GW Launcher";
+            this.notifyIcon.Visible = true;
+            this.notifyIcon.MouseClick += new System.Windows.Forms.MouseEventHandler(this.notifyIcon_MouseClick);
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(184, 270);
+            this.ClientSize = new System.Drawing.Size(187, 270);
             this.Controls.Add(this.listViewAccounts);
-            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedToolWindow;
+            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.MaximizeBox = false;
-            this.MinimizeBox = false;
             this.Name = "MainForm";
-            this.ShowInTaskbar = false;
             this.StartPosition = System.Windows.Forms.FormStartPosition.Manual;
-            this.Text = "GW Launcher";
+            this.Text = "GW Launcher MOD r1";
             this.TopMost = true;
             this.Deactivate += new System.EventHandler(this.MainForm_Deactivate);
             this.Load += new System.EventHandler(this.MainForm_Load);
+            this.Resize += new System.EventHandler(this.MainForm_Resize);
             this.contextMenuStripAccounts.ResumeLayout(false);
             this.ResumeLayout(false);
 

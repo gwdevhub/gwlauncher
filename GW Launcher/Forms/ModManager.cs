@@ -22,7 +22,7 @@ namespace GW_Launcher
 
             InitializeComponent();
 
-            this.Text = "Mod Manager for " + this.account.character;
+            this.Text = "Mod Manager for " + this.account.alias;
         }
 
         private void TexmodManager_Load(object sender, EventArgs e)

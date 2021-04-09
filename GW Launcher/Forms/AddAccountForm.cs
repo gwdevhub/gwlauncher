@@ -27,6 +27,7 @@ namespace GW_Launcher
 
         private void buttonDone_Click(object sender, EventArgs e)
         {
+            account.alias = txt_alias.Text;
             account.email = textBoxEmail.Text;
             account.password = textBoxPassword.Text;
             account.character = textBoxChar.Text;
@@ -40,6 +41,7 @@ namespace GW_Launcher
 
         private void AddAccountForm_Load(object sender, EventArgs e)
         {
+            txt_alias.Text = account.alias;
             textBoxEmail.Text = account.email;
             textBoxPassword.Text = account.password;
             textBoxChar.Text = account.character;
@@ -74,10 +76,16 @@ namespace GW_Launcher
 
         private void button1_Click(object sender, EventArgs e)
         {
+            MessageBox.Show("This is not working as intended anymore. Enabling this leads to bugs and graphical issues.");
             if (textBoxPassword.PasswordChar == '\0')
                 textBoxPassword.PasswordChar = '*';
             else
                 textBoxPassword.PasswordChar = '\0';
+        }
+
+        private void checkBoxDatFix_CheckedChanged(object sender, EventArgs e)
+        {
+
         }
     }
 }
