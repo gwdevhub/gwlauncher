@@ -5,7 +5,7 @@ using GWCA.Memory;
 using System.IO;
 using Newtonsoft.Json;
 using GWMC_CS;
-using UmodServer;
+using System.Runtime.InteropServices;
 
 namespace GW_Launcher
 {
@@ -22,11 +22,11 @@ namespace GW_Launcher
 
         public void Save(string path = "Settings.json")
         {
-            File.WriteAllText(path, JsonConvert.SerializeObject(this,Formatting.Indented));
+            File.WriteAllText(path, JsonConvert.SerializeObject(this, Formatting.Indented));
         }
 
         public static GlobalSettings Load(string path = "Settings.json")
-        {   
+        {
             try
             {
                 return new GlobalSettings();
@@ -37,7 +37,7 @@ namespace GW_Launcher
             {
                 return new GlobalSettings();
             }
-            
+
         }
     }
 
@@ -49,7 +49,10 @@ namespace GW_Launcher
         public static Mutex mutex = new Mutex();
         public static Mutex gwlMutex;
         public static GlobalSettings settings;
-        
+
+        [DllImport("user32.dll", EntryPoint = "SetWindowText")]
+        private static extern bool SetWindowText(IntPtr hwnd, String lpString);
+
         [STAThread]
         internal static void Main()
         {
@@ -63,7 +66,7 @@ namespace GW_Launcher
 
             gwlMutex = new Mutex(true, GwlMutexName);
 
-            settings =  GlobalSettings.Load();
+            settings = GlobalSettings.Load();
 
 
             accounts = new AccountManager("Accounts.json");
@@ -109,6 +112,8 @@ namespace GW_Launcher
 
                             if (!ok) continue;
                             a.process = m;
+                            if (a.character != "")
+                                SetWindowText(m.process.MainWindowHandle, a.character);
 
                             mf.SetActive(i, true);
                             timelock = 0;
@@ -143,6 +148,6 @@ namespace GW_Launcher
                 mainthread.Abort();
             }
         }
-        
+
     }
 }
