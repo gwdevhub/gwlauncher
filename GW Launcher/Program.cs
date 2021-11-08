@@ -23,8 +23,8 @@ namespace GW_Launcher
 
         GlobalSettings()
         {
-            EncryptAccounts = false;
-            DecryptAccounts = false;
+            EncryptAccounts = true;
+            DecryptAccounts = true;
         }
 
         public void Save(string path = "Settings.json")
@@ -36,7 +36,9 @@ namespace GW_Launcher
         {   
             try
             {
-                return JsonConvert.DeserializeObject<GlobalSettings>(File.ReadAllText(path));
+                return new GlobalSettings();
+                string txt = File.ReadAllText(path);
+                return JsonConvert.DeserializeObject<GlobalSettings>(txt);
             }
             catch (FileNotFoundException)
             {
