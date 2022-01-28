@@ -199,7 +199,7 @@ namespace GW_Launcher
             if (selectedItems.Count == 0) return;
             var idx = selectedItems[0];
             var acc = Program.accounts[idx];
-            if (acc.email == "") return;
+            if (string.IsNullOrEmpty(acc.email)) return;
 
             var modForm = new ModManager(acc);
             modForm.Show();

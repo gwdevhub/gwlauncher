@@ -50,7 +50,7 @@ namespace GW_Launcher
         public static Mutex gwlMutex;
         public static GlobalSettings settings;
 
-        [DllImport("user32.dll", EntryPoint = "SetWindowText")]
+        [DllImport("user32.dll", EntryPoint = "SetWindowText", CharSet = CharSet.Unicode)]
         private static extern bool SetWindowText(IntPtr hwnd, String lpString);
 
         [STAThread]
@@ -90,38 +90,31 @@ namespace GW_Launcher
                         while (mf.needtolaunch.Count > 0)
                         {
                             int i = mf.needtolaunch.Dequeue();
-                            var ok = true;
                             Account a = accounts[i];
                             GWCAMemory m = MulticlientPatch.LaunchClient(a.gwpath,
                                 " -email \"" + a.email + "\" -password \"" + a.password + "\" -character \"" +
                                 a.character + "\" " + a.extraargs, a.datfix, false, a.elevated, a.mods);
 
-                            //uModTexClient client = new uModTexClient();
-                            //TexBundle bundle = new TexBundle("C:\\Users\\m\\OneDrive\\Desktop\\programs\\gw1\\Minimalus_Dub.tpf");
-                            //client.AddBundle(bundle);
-
                             uint timelock = 0;
-                            while (m.process.MainWindowHandle == IntPtr.Zero)
+                            while (m.process.MainWindowHandle == IntPtr.Zero || !m.process.WaitForInputIdle(1000) && timelock++ < 10)
                             {
                                 Thread.Sleep(1000);
-                                timelock += 1;
-                                if (timelock <= 10) continue;
-                                ok = false;
-                                break;
+                                m.process.Refresh();
                             }
 
-                            if (!ok) continue;
+                            if (timelock >= 10) continue;
                             a.process = m;
-                            if (a.character != "")
-                                SetWindowText(m.process.MainWindowHandle, a.character);
 
                             mf.SetActive(i, true);
-                            timelock = 0;
                             GWMem.FindAddressesIfNeeded(m);
-                            while (m.Read<ushort>(GWMem.CharnamePtr) == 0 && timelock < 60)
+                            while (m.Read<ushort>(GWMem.CharnamePtr) == 0 && timelock++ < 60)
                             {
                                 Thread.Sleep(1000);
-                                timelock += 1;
+                                m.process.Refresh();
+                            }
+                            if (!string.IsNullOrEmpty(a.character) && m.process.MainWindowTitle == "Guild Wars")
+                            {
+                                bool error = SetWindowText(m.process.MainWindowHandle, a.character);
                             }
                             Thread.Sleep(sleep);
                             sleep += 5000;

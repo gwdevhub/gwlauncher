@@ -69,23 +69,7 @@ namespace GWMC_CS
             uint dwPid = NativeMethods.LaunchClient(path, args, ((int)GWML_FLAGS.KEEP_SUSPENDED | (datfix ? 0 : (int)GWML_FLAGS.NO_DATFIX) | (nologin ? (int)GWML_FLAGS.NO_LOGIN : 0) | (elevated ? (int)GWML_FLAGS.ELEVATED : 0)), out hThread);
             var proc = Process.GetProcessById((int)dwPid);
             var mem = new GWCAMemory(proc);
-            if (mem.process.Threads[0].ThreadState == ThreadState.Wait && mem.process.Threads[0].WaitReason == ThreadWaitReason.Suspended)
-            {
-                try
-                {
-                    mem.process.Kill();
-                    dwPid = NativeMethods.LaunchClient(path, args, ((int)GWML_FLAGS.KEEP_SUSPENDED | (datfix ? 0 : (int)GWML_FLAGS.NO_DATFIX) | (nologin ? (int)GWML_FLAGS.NO_LOGIN : 0) | (elevated ? (int)GWML_FLAGS.ELEVATED : 0)), out hThread);
-                    proc = Process.GetProcessById((int)dwPid);
-                    mem = new GWCAMemory(proc);
-                }
-                catch (Exception)
-                {
-                    MessageBox.Show("This Guild Wars executable is in a suspended state.\nPlease restart the launcher as admin.", "GWMC - Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    NativeMethods.ResumeThread(hThread);
-                    NativeMethods.CloseHandle(hThread);
-                    return null;
-                }
-            }
+            
             string dllpath = Directory.GetCurrentDirectory() + "\\plugins";
             if (Directory.Exists(dllpath))
             {

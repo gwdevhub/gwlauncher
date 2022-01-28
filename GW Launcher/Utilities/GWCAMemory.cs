@@ -76,7 +76,7 @@ namespace GWCA
                 uint dwSize,
                 uint dwFreeType);
 
-            [DllImport("kernel32", CharSet = CharSet.Ansi, ExactSpelling = true, SetLastError = true)]
+            [DllImport("kernel32", CharSet = CharSet.Unicode, ExactSpelling = true, SetLastError = true)]
             private static extern IntPtr GetProcAddress(IntPtr hModule, string procName);
 
             [DllImport("kernel32.dll", SetLastError = true)]
@@ -85,7 +85,7 @@ namespace GWCA
             [DllImport("kernel32.dll", SetLastError = true)]
             private static extern uint GetExitCodeThread(IntPtr hHandle, out IntPtr dwMilliseconds);
 
-            [DllImport("kernel32.dll", CharSet = CharSet.Auto)]
+            [DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
             private static extern IntPtr GetModuleHandle(string lpModuleName);
             #endregion
 
