@@ -29,7 +29,6 @@ namespace GW_Launcher
         {
             try
             {
-                return new GlobalSettings();
                 string txt = File.ReadAllText(path);
                 return JsonConvert.DeserializeObject<GlobalSettings>(txt);
             }

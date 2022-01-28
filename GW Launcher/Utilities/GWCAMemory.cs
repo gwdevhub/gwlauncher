@@ -98,7 +98,6 @@ namespace GWCA
             /// <returns>Found value.</returns>
             public T Read<T>(IntPtr address)
             {
-                IntPtr bytesread;
                 int size = Marshal.SizeOf(typeof(T));
                 IntPtr buffer = Marshal.AllocHGlobal(size);
 
@@ -106,7 +105,7 @@ namespace GWCA
                                   address,
                                   buffer,
                                   size,
-                                  out bytesread
+                                  out _
                                   );
 
                 T ret = (T)Marshal.PtrToStructure(buffer, typeof(T));
@@ -123,14 +122,13 @@ namespace GWCA
             /// <returns>bytes read.</returns>
             public byte[] ReadBytes(IntPtr address, int size)
             {
-                IntPtr bytesread;
                 IntPtr buffer = Marshal.AllocHGlobal(size);
 
                 ReadProcessMemory(process.Handle,
                                   address,
                                   buffer,
                                   size,
-                                  out bytesread
+                                  out _
                                   );
 
                 byte[] ret = new byte[size];
@@ -172,7 +170,6 @@ namespace GWCA
 
             public void Write<T>(IntPtr address, T data)
             {
-                IntPtr bytesread;
                 int size = Marshal.SizeOf(typeof(T));
                 IntPtr buffer = new IntPtr();
                 Marshal.StructureToPtr(data, buffer, true);
@@ -182,12 +179,11 @@ namespace GWCA
                             address,
                             buffer,
                             size,
-                            out bytesread);
+                            out _);
             }
 
             public void WriteBytes(IntPtr address, byte[] data)
             {
-                IntPtr bytesread;
                 int size = data.Length;
                 IntPtr buffer = Marshal.AllocHGlobal(size);
                 Marshal.Copy(data, 0, buffer, size);
@@ -197,7 +193,7 @@ namespace GWCA
                             address,
                             buffer,
                             size,
-                            out bytesread);
+                            out _);
 
                 Marshal.FreeHGlobal(buffer);
             }
@@ -321,7 +317,6 @@ namespace GWCA
 
             #region Module Injection
 
-            [System.Diagnostics.CodeAnalysis.SuppressMessage("Naming", "CA1707:Identifiers should not contain underscores", Justification = "<Pending>")]
             public enum LOADMODULERESULT
             {
                 SUCCESSFUL,
@@ -343,8 +338,7 @@ namespace GWCA
             /// 
             public LOADMODULERESULT LoadModule(string modulepath)
             {
-                IntPtr module = IntPtr.Zero;
-                return LoadModule(modulepath, out module);
+                return LoadModule(modulepath, out _);
             }
             public LOADMODULERESULT LoadModule(string modulepath, out IntPtr module)
             {
@@ -380,7 +374,7 @@ namespace GWCA
                     return LOADMODULERESULT.PATH_NOT_WRITTEN;
                 }
 
-                IntPtr hThread = CreateRemoteThread(process.Handle, IntPtr.Zero, 0, hLoadLib, hStringBuffer, 0, out hThread);
+                IntPtr hThread = CreateRemoteThread(process.Handle, IntPtr.Zero, 0, hLoadLib, hStringBuffer, 0, out _);
                 if (hThread == IntPtr.Zero)
                 {
                     return LOADMODULERESULT.REMOTE_THREAD_NOT_SPAWNED;

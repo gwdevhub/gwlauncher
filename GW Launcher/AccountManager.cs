@@ -11,10 +11,10 @@ namespace GW_Launcher
     public class AccountManager : IEnumerable<Account>, IDisposable
     {
         private List<Account> accounts;
-        private string filePath;
+        private readonly string filePath;
         private byte[] cryptPass = null;
         private readonly byte[] salsaIV = { 0xc8, 0x93, 0x48, 0x45, 0xcf, 0xa0, 0xfa, 0x85 };
-        private Salsa20 crypt = new Salsa20();
+        private readonly Salsa20 crypt = new Salsa20();
         public int Length => accounts.Count;
 
 

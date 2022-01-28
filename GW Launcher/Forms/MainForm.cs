@@ -25,11 +25,6 @@ namespace GW_Launcher
         public int batch_index;
         ListView.SelectedIndexCollection selectedItems;
 
-        System.Windows.Forms.Timer StatusUpdater = new System.Windows.Forms.Timer();
-        System.Windows.Forms.Timer BatchLoader = new System.Windows.Forms.Timer();
-
-        Point detachedPosition = new Point(400,400);
-
         bool rightClickOpen = false;
 
         public MainForm()
@@ -180,9 +175,11 @@ namespace GW_Launcher
             var idx = selectedItems[0];
             var acc = Program.accounts[idx];
 
-            var addaccform = new AddAccountForm();
-            addaccform.Text = "Modify Account";
-            addaccform.account = acc;
+            var addaccform = new AddAccountForm
+            {
+                Text = "Modify Account",
+                account = acc
+            };
             addaccform.ShowDialog();
 
             if (addaccform.finished)
@@ -248,7 +245,7 @@ namespace GW_Launcher
         }
 
 
-        private Task RunClientUpdateAsync(string client, CancellationToken cancellationToken = default(CancellationToken))
+        private Task RunClientUpdateAsync(string client, CancellationToken cancellationToken = default)
         {
             try
             {
@@ -262,7 +259,7 @@ namespace GW_Launcher
                 var tcs = new TaskCompletionSource<object>();
                 proc.EnableRaisingEvents = true;
                 proc.Exited += (sender, args) => tcs.TrySetResult(null);
-                if (cancellationToken != default(CancellationToken))
+                if (cancellationToken != default)
                     cancellationToken.Register(tcs.SetCanceled);
 
                 if (File.Exists(tmpfile))
@@ -286,9 +283,11 @@ namespace GW_Launcher
             {
                 // relaunch the application with admin rights
                 string fileName = Assembly.GetExecutingAssembly().Location;
-                ProcessStartInfo processInfo = new ProcessStartInfo();
-                processInfo.Verb = "runas";
-                processInfo.FileName = fileName;
+                ProcessStartInfo processInfo = new ProcessStartInfo
+                {
+                    Verb = "runas",
+                    FileName = fileName
+                };
 
                 try
                 {
