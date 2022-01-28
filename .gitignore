@@ -2,6 +2,8 @@
 Debug/
 Release/
 packages/
+.vs/
+/GW Launcher/obj
 *exe
 *.dll
 *.rar
@@ -31,7 +33,3 @@ packages/
 *.json
 *.vcxproj.user
 *.VC.db
-
-.vs/
-
-packages/
