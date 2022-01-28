@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.IO;
 using System.IO.Pipes;
 
@@ -42,8 +40,8 @@ namespace UmodServer
     public struct Msg
     {
         public MsgControl msg;
-        public UInt64 value;
-        public UInt64 hash;
+        public ulong value;
+        public ulong hash;
     }
 
     public class uModTexClient
@@ -74,13 +72,13 @@ namespace UmodServer
             if (tmp.Length != 3)
                 throw new Exception("Not using a texmod created texture :s");
 
-           // string exeName = tmp[0];
+            // string exeName = tmp[0];
             string crc = tmp[1];
-           // string textureType = tmp[2];
+            // string textureType = tmp[2];
 
             TexDef def;
             def.fileName = fileName;
-            def.crcHash = UInt32.Parse(crc);
+            def.crcHash = uint.Parse(crc);
 
 
             using (var file = new FileStream(texFilePath, FileMode.Open))
@@ -92,7 +90,7 @@ namespace UmodServer
             looseTextures.Add(def);
         }
 
-        void Send(MsgControl msg, UInt64 value, UInt64 hash, byte[] data = null)
+        public void Send(MsgControl msg, ulong value, ulong hash, byte[] data = null)
         {
             byte[] packet = new byte[20 + (data != null ? data.Length : 0)];
 

@@ -1,20 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
-using Newtonsoft.Json;
-using System.IO;
 
 namespace GW_Launcher
 {
     public partial class ModManager : Form
     {
-        private Account account;
+        private readonly Account account;
 
         public ModManager(Account account)
         {
@@ -35,9 +28,10 @@ namespace GW_Launcher
             foreach (var mod in account.mods)
             {
                 string name = mod.fileName.Split('\\').Last();
-                ListViewItem item = new ListViewItem(name, mod.fileName);
-
-                item.Checked = mod.active;
+                ListViewItem item = new ListViewItem(name, mod.fileName)
+                {
+                    Checked = mod.active
+                };
 
                 switch (mod.type)
                 {
@@ -62,15 +56,19 @@ namespace GW_Launcher
 
         private void addModToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            OpenFileDialog openFileDialog = new OpenFileDialog();
-            openFileDialog.Title = "Select Mod File to Use";
-            openFileDialog.Filter = "Mod Files (*.dll;*.zip;*.tpf)|*.dll;*.zip;*.tpf|All files (*.*)|*.*";
+            OpenFileDialog openFileDialog = new OpenFileDialog
+            {
+                Title = "Select Mod File to Use",
+                Filter = "Mod Files (*.dll;*.zip;*.tpf)|*.dll;*.zip;*.tpf|All files (*.*)|*.*"
+            };
 
             if (openFileDialog.ShowDialog() == DialogResult.OK)
             {
-                Mod mod = new Mod();
-                mod.fileName = openFileDialog.FileName;
-                mod.active = false;
+                Mod mod = new Mod
+                {
+                    fileName = openFileDialog.FileName,
+                    active = false
+                };
                 switch (openFileDialog.FileName.Split('.').Last())
                 {
                     case "dll":

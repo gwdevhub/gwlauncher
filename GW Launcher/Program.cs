@@ -1,42 +1,32 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using System.Windows.Forms;
-using System.Reflection;
-using System.Diagnostics;
-using System.DirectoryServices;
-using System.Runtime.InteropServices;
 using System.Threading;
 using GWCA.Memory;
 using System.IO;
 using Newtonsoft.Json;
 using GWMC_CS;
-using ThreadState = System.Diagnostics.ThreadState;
+using System.Runtime.InteropServices;
 
 namespace GW_Launcher
 {
     public class GlobalSettings
     {
-        public bool EncryptAccounts { get; }
-        public bool DecryptAccounts { get; }
+        public bool Encrypt { get; set; }
 
         GlobalSettings()
         {
-            EncryptAccounts = true;
-            DecryptAccounts = true;
+            Encrypt = true;
         }
 
         public void Save(string path = "Settings.json")
         {
-            File.WriteAllText(path, JsonConvert.SerializeObject(this,Formatting.Indented));
+            File.WriteAllText(path, JsonConvert.SerializeObject(this, Formatting.Indented));
         }
 
         public static GlobalSettings Load(string path = "Settings.json")
-        {   
+        {
             try
             {
-                return new GlobalSettings();
                 string txt = File.ReadAllText(path);
                 return JsonConvert.DeserializeObject<GlobalSettings>(txt);
             }
@@ -44,7 +34,7 @@ namespace GW_Launcher
             {
                 return new GlobalSettings();
             }
-            
+
         }
     }
 
@@ -56,7 +46,10 @@ namespace GW_Launcher
         public static Mutex mutex = new Mutex();
         public static Mutex gwlMutex;
         public static GlobalSettings settings;
-        
+
+        [DllImport("user32.dll", EntryPoint = "SetWindowText", CharSet = CharSet.Unicode)]
+        private static extern bool SetWindowText(IntPtr hwnd, String lpString);
+
         [STAThread]
         internal static void Main()
         {
@@ -70,8 +63,7 @@ namespace GW_Launcher
 
             gwlMutex = new Mutex(true, GwlMutexName);
 
-            settings =  GlobalSettings.Load();
-
+            settings = GlobalSettings.Load();
 
             accounts = new AccountManager("Accounts.json");
             foreach (Account t in accounts)
@@ -94,32 +86,31 @@ namespace GW_Launcher
                         while (mf.needtolaunch.Count > 0)
                         {
                             int i = mf.needtolaunch.Dequeue();
-                            var ok = true;
                             Account a = accounts[i];
                             GWCAMemory m = MulticlientPatch.LaunchClient(a.gwpath,
                                 " -email \"" + a.email + "\" -password \"" + a.password + "\" -character \"" +
                                 a.character + "\" " + a.extraargs, a.datfix, false, a.elevated, a.mods);
 
                             uint timelock = 0;
-                            while (m.process.MainWindowHandle == IntPtr.Zero)
+                            while (m.process.MainWindowHandle == IntPtr.Zero || !m.process.WaitForInputIdle(1000) && timelock++ < 10)
                             {
                                 Thread.Sleep(1000);
-                                timelock += 1;
-                                if (timelock <= 10) continue;
-                                ok = false;
-                                break;
+                                m.process.Refresh();
                             }
 
-                            if (!ok) continue;
+                            if (timelock >= 10) continue;
                             a.process = m;
 
                             mf.SetActive(i, true);
-                            timelock = 0;
                             GWMem.FindAddressesIfNeeded(m);
-                            while (m.Read<ushort>(GWMem.CharnamePtr) == 0 && timelock < 60)
+                            while (m.Read<ushort>(GWMem.CharnamePtr) == 0 && timelock++ < 60)
                             {
                                 Thread.Sleep(1000);
-                                timelock += 1;
+                                m.process.Refresh();
+                            }
+                            if (!string.IsNullOrEmpty(a.character) && m.process.MainWindowTitle == "Guild Wars")
+                            {
+                                bool error = SetWindowText(m.process.MainWindowHandle, a.character);
                             }
                             Thread.Sleep(sleep);
                             sleep += 5000;
@@ -146,6 +137,6 @@ namespace GW_Launcher
                 mainthread.Abort();
             }
         }
-        
+
     }
 }

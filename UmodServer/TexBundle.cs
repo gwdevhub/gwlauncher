@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace UmodServer
 {
@@ -17,7 +15,7 @@ namespace UmodServer
         public string name;
         public List<TexDef> defs;
 
-        TexBundle(string filePath)
+        public TexBundle(string filePath)
         {
             this.name = filePath.Split('\\').Last();
 

@@ -1,21 +1,18 @@
 ﻿using System;
-using Newtonsoft.Json;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Data;
 using System.Drawing;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Diagnostics;
 using System.Threading;
-using System.Windows;
 using System.IO;
 using GWCA.Memory;
 using GWMC_CS;
-using System.Runtime.InteropServices;
 using Microsoft.Win32;
+using System.Security.Principal;
+using System.Reflection;
 
 namespace GW_Launcher
 {
@@ -27,11 +24,6 @@ namespace GW_Launcher
 
         public int batch_index;
         ListView.SelectedIndexCollection selectedItems;
-
-        System.Windows.Forms.Timer StatusUpdater = new System.Windows.Forms.Timer();
-        System.Windows.Forms.Timer BatchLoader = new System.Windows.Forms.Timer();
-
-        Point detachedPosition = new Point(400,400);
 
         bool rightClickOpen = false;
 
@@ -182,11 +174,12 @@ namespace GW_Launcher
             if (selectedItems.Count == 0) return;
             var idx = selectedItems[0];
             var acc = Program.accounts[idx];
-            if (acc.email == "") return;
 
-            var addaccform = new AddAccountForm();
-            addaccform.Text = "Modify Account";
-            addaccform.account = acc;
+            var addaccform = new AddAccountForm
+            {
+                Text = "Modify Account",
+                account = acc
+            };
             addaccform.ShowDialog();
 
             if (addaccform.finished)
@@ -203,7 +196,7 @@ namespace GW_Launcher
             if (selectedItems.Count == 0) return;
             var idx = selectedItems[0];
             var acc = Program.accounts[idx];
-            if (acc.email == "") return;
+            if (string.IsNullOrEmpty(acc.email)) return;
 
             var modForm = new ModManager(acc);
             modForm.Show();
@@ -252,16 +245,27 @@ namespace GW_Launcher
         }
 
 
-        private Task RunClientUpdateAsync(string client, CancellationToken cancellationToken = default(CancellationToken))
+        private Task RunClientUpdateAsync(string client, CancellationToken cancellationToken = default)
         {
             try
             {
+                string tmpfile = Path.GetDirectoryName(client) + Path.DirectorySeparatorChar + "Gw.tmp";
+                if (File.Exists(tmpfile))
+                {
+                    File.Delete(tmpfile);
+                }
+
                 var proc = Process.Start(client, "-image");
                 var tcs = new TaskCompletionSource<object>();
                 proc.EnableRaisingEvents = true;
                 proc.Exited += (sender, args) => tcs.TrySetResult(null);
-                if (cancellationToken != default(CancellationToken))
+                if (cancellationToken != default)
                     cancellationToken.Register(tcs.SetCanceled);
+
+                if (File.Exists(tmpfile))
+                {
+                    File.Delete(tmpfile);
+                }
 
                 return tcs.Task;
             }
@@ -273,13 +277,32 @@ namespace GW_Launcher
 
         private async void updateAllClientsToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            HashSet<string> clients = new HashSet<string>();
-            foreach(var account in Program.accounts)
+            WindowsPrincipal pricipal = new WindowsPrincipal(WindowsIdentity.GetCurrent());
+            bool hasAdministrativeRight = pricipal.IsInRole(WindowsBuiltInRole.Administrator);
+            if (!hasAdministrativeRight)
             {
-                clients.Add(account.gwpath);
-            }
+                // relaunch the application with admin rights
+                string fileName = Assembly.GetExecutingAssembly().Location;
+                ProcessStartInfo processInfo = new ProcessStartInfo
+                {
+                    Verb = "runas",
+                    FileName = fileName
+                };
 
-            foreach(var client in clients)
+                try
+                {
+                    Application.Exit();
+                    Process.Start(processInfo);
+                }
+                catch (Win32Exception)
+                {
+                    // This will be thrown if the user cancels the prompt
+                }
+                return;
+            }
+            var clients = Program.accounts.Select(i => i.gwpath).Distinct();
+
+            foreach(string client in clients)
             {
                 await RunClientUpdateAsync(client);
             }

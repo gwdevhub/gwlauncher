@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using Newtonsoft.Json;
 using System.IO;
 using Logos.Utility.Security.Cryptography;
@@ -12,16 +10,17 @@ namespace GW_Launcher
 {
     public class AccountManager : IEnumerable<Account>, IDisposable
     {
-        private Account[] accounts;
-        private string filePath;
+        private List<Account> accounts;
+        private readonly string filePath;
         private byte[] cryptPass = null;
         private readonly byte[] salsaIV = { 0xc8, 0x93, 0x48, 0x45, 0xcf, 0xa0, 0xfa, 0x85 };
-        private Salsa20 crypt = new Salsa20();
-        public int Length => accounts.Length;
+        private readonly Salsa20 crypt = new Salsa20();
+        public int Length => accounts.Count;
 
 
         public AccountManager(string filePath = null)
         {
+            accounts = new List<Account>();
             if (filePath != null)
             {
                 this.filePath = filePath;
@@ -31,7 +30,7 @@ namespace GW_Launcher
         
         public void Load(string filePath = null)
         {
-            if (cryptPass == null && (Program.settings.EncryptAccounts || Program.settings.DecryptAccounts))
+            if (cryptPass == null && Program.settings.Encrypt)
             {
                 Forms.CryptPassForm form = new Forms.CryptPassForm();
                 form.ShowDialog();
@@ -43,19 +42,19 @@ namespace GW_Launcher
                 filePath = this.filePath;
             }
 
-            if (!Program.settings.DecryptAccounts)
+            if (!Program.settings.Encrypt)
             {
                 try
                 {
                     string text = File.ReadAllText(filePath);
-                    accounts = JsonConvert.DeserializeObject<Account[]>(text);
+                    accounts = JsonConvert.DeserializeObject<List<Account>>(text);
                 }
                 catch (FileNotFoundException e)
                 {
 
                     // silent
                     File.WriteAllText(e.FileName, "[]");
-                    accounts = Array.Empty<Account>();
+                    accounts.Clear();
                 }
             }
             else
@@ -70,9 +69,9 @@ namespace GW_Launcher
                     string rawJson = Encoding.UTF8.GetString(cryptBytes);
                     if (!rawJson.StartsWith("SHIT"))
                     {
-                        System.Windows.Forms.MessageBox.Show("Doesn't look like the inputted password is it bud.\n Restart launcher and try again.", "GW Launcher - Invalid Password");
+                        System.Windows.Forms.MessageBox.Show("Incorrect password.\n Restart launcher and try again.", "GW Launcher - Invalid Password");
                     }
-                    accounts = JsonConvert.DeserializeObject<Account[]>(rawJson.Substring(4));
+                    accounts = JsonConvert.DeserializeObject<List<Account>>(rawJson.Substring(4));
                 }
                 catch (FileNotFoundException)
                 {
@@ -83,7 +82,7 @@ namespace GW_Launcher
                     using (var encrypt = crypt.CreateEncryptor(cryptPass, salsaIV))
                         encrypt.TransformBlock(bytes, 0, bytes.Length, cryptBytes, 0);
                     File.WriteAllBytes(filePath, cryptBytes);
-                    accounts = Array.Empty<Account>();
+                    accounts.Clear();
                 }
             }
 
@@ -97,7 +96,7 @@ namespace GW_Launcher
             }
 
             string text = JsonConvert.SerializeObject(accounts, Formatting.Indented);
-            if (!Program.settings.EncryptAccounts)
+            if (!Program.settings.Encrypt)
             {
                 File.WriteAllText(filePath, text);
             }
@@ -114,10 +113,7 @@ namespace GW_Launcher
 
         public void Add(Account acc)
         {
-            Account[] newAccounts = new Account[accounts.Length+1];
-            accounts.CopyTo(newAccounts, 0);
-            newAccounts[accounts.Length] = acc;
-            accounts = newAccounts;
+            accounts.Add(acc);
             if (filePath != null)
             {
                 Save(filePath);
@@ -126,15 +122,7 @@ namespace GW_Launcher
 
         public void Remove(int index)
         {
-            Account[] newAccounts = new Account[accounts.Length - 1];
-
-            for (int i = 0, j = 0; i < accounts.Length; i++, j++)
-            {
-                if (index == i) i++;
-
-                newAccounts[j] = accounts[i];
-            }
-            accounts = newAccounts;
+            accounts.RemoveAt(index);
             if (filePath != null)
             {
                 Save(filePath);
@@ -143,7 +131,7 @@ namespace GW_Launcher
 
         public void Remove(string email)
         {
-            for (int i = 0; i < accounts.Length; i++)
+            for (int i = 0; i < accounts.Count; i++)
             {
                 if (accounts[i].email != email) continue;
                 Remove(i);
@@ -153,7 +141,7 @@ namespace GW_Launcher
 
         public int GetIndexOf(string email)
         {
-            for (int i = 0; i < accounts.Length; i++)
+            for (int i = 0; i < accounts.Count; i++)
             {
                 if (accounts[i].email == email)
                 {

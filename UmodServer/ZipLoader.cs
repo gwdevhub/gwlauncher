@@ -1,8 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 using System.IO;
 using System.IO.Compression;
@@ -11,8 +8,6 @@ namespace UmodServer
 {
     public class ZipLoader : IDisposable
     {
-
-        bool isTpfEncrypted;
         FileStream stream;
         ZipArchive archive;
 
@@ -32,9 +27,8 @@ namespace UmodServer
             switch (ext)
             {
                 case ".tpf":
-                    isTpfEncrypted = true;
+                    IsTpfEncrypted = true;
                     throw new NotImplementedException("Dont use stupidly encrypted zip files thx.");
-                    break;
             }
 
             stream = new FileStream(fileName, FileMode.Open);
@@ -43,6 +37,8 @@ namespace UmodServer
 
 
         public IReadOnlyCollection<ZipArchiveEntry> Entries => archive.Entries;
+
+        public bool IsTpfEncrypted { get; set; }
 
         public void Dispose()
         {
