@@ -30,7 +30,7 @@ namespace GW_Launcher
         
         public void Load(string filePath = null)
         {
-            if (cryptPass == null && (Program.settings.EncryptAccounts || Program.settings.DecryptAccounts))
+            if (cryptPass == null && Program.settings.Encrypt)
             {
                 Forms.CryptPassForm form = new Forms.CryptPassForm();
                 form.ShowDialog();
@@ -42,7 +42,7 @@ namespace GW_Launcher
                 filePath = this.filePath;
             }
 
-            if (!Program.settings.DecryptAccounts)
+            if (!Program.settings.Encrypt)
             {
                 try
                 {
@@ -69,7 +69,7 @@ namespace GW_Launcher
                     string rawJson = Encoding.UTF8.GetString(cryptBytes);
                     if (!rawJson.StartsWith("SHIT"))
                     {
-                        System.Windows.Forms.MessageBox.Show("Doesn't look like the inputted password is it bud.\n Restart launcher and try again.", "GW Launcher - Invalid Password");
+                        System.Windows.Forms.MessageBox.Show("Incorrect password.\n Restart launcher and try again.", "GW Launcher - Invalid Password");
                     }
                     accounts = JsonConvert.DeserializeObject<List<Account>>(rawJson.Substring(4));
                 }
@@ -96,7 +96,7 @@ namespace GW_Launcher
             }
 
             string text = JsonConvert.SerializeObject(accounts, Formatting.Indented);
-            if (!Program.settings.EncryptAccounts)
+            if (!Program.settings.Encrypt)
             {
                 File.WriteAllText(filePath, text);
             }

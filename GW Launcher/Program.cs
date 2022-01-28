@@ -11,13 +11,11 @@ namespace GW_Launcher
 {
     public class GlobalSettings
     {
-        public bool EncryptAccounts { get; }
-        public bool DecryptAccounts { get; }
+        public bool Encrypt { get; set; }
 
         GlobalSettings()
         {
-            EncryptAccounts = true;
-            DecryptAccounts = true;
+            Encrypt = true;
         }
 
         public void Save(string path = "Settings.json")
@@ -66,7 +64,6 @@ namespace GW_Launcher
             gwlMutex = new Mutex(true, GwlMutexName);
 
             settings = GlobalSettings.Load();
-
 
             accounts = new AccountManager("Accounts.json");
             foreach (Account t in accounts)
