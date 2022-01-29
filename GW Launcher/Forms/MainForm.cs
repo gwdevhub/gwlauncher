@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Drawing;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -38,19 +37,19 @@ namespace GW_Launcher
             if (Program.accounts.Length > 4)
             {
                 heightofgui = 143 + 17 * (Program.accounts.Length - 4);
-                this.SetBounds(Location.X, Location.Y, Size.Width, heightofgui);
+                SetBounds(Location.X, Location.Y, Size.Width, heightofgui);
             }
-            this.listViewAccounts.Items.Clear();
+            listViewAccounts.Items.Clear();
 
             // Run through already open GW clients to see if accounts are already active.
-            foreach (Process p in Process.GetProcessesByName("Gw"))
+            foreach (var p in Process.GetProcessesByName("Gw"))
             {
                 if (p.Threads.Count == 1)
                     continue;
-                GWCAMemory m = new GWCAMemory(p);
+                var m = new GWCAMemory(p);
                 GWMem.FindAddressesIfNeeded(m);
-                string str = m.ReadWString(GWMem.EmailAddPtr, 64);
-                for (int i = 0; i < Program.accounts.Length; ++i)
+                var str = m.ReadWString(GWMem.EmailAddPtr, 64);
+                for (var i = 0; i < Program.accounts.Length; ++i)
                 {
                     if (str == Program.accounts[i].email)
                     {
@@ -62,7 +61,7 @@ namespace GW_Launcher
             }
 
             // Fill out data.
-            for (int i = 0; i < Program.accounts.Length; ++i)
+            for (var i = 0; i < Program.accounts.Length; ++i)
             {
                 listViewAccounts.Items.Add(new ListViewItem(
                     new string[] {
@@ -79,10 +78,10 @@ namespace GW_Launcher
 
         public void SetActive(int idx, bool active)
         {
-            if(this.listViewAccounts.InvokeRequired)
+            if(listViewAccounts.InvokeRequired)
             {
-                SetActiveUICallback cb = new SetActiveUICallback(SetActive);
-                this.Invoke(cb, new object[] { idx, active });
+                var cb = new SetActiveUICallback(SetActive);
+                Invoke(cb, new object[] { idx, active });
             }
             else
             {
@@ -93,9 +92,9 @@ namespace GW_Launcher
 
         private void MainForm_Load(object sender, EventArgs e)
         {
-            this.Visible = false;
+            Visible = false;
             // Initialize things
-            ImageList imglist = new ImageList();
+            var imglist = new ImageList();
             needtolaunch = new Queue<int>();
             imglist.Images.Add("gw-icon", Properties.Resources.gw_icon);
             listViewAccounts.SmallImageList = imglist;
@@ -123,9 +122,9 @@ namespace GW_Launcher
         private void addNewToolStripMenuItem_Click(object sender, EventArgs e)
         {
             Program.mutex.WaitOne();
-            AddAccountForm gui = new AddAccountForm();
+            var gui = new AddAccountForm();
             gui.ShowDialog();
-            Account acc = gui.account;
+            var acc = gui.account;
 
             if (acc.email != null)
             {
@@ -177,7 +176,7 @@ namespace GW_Launcher
 
             var addaccform = new AddAccountForm
             {
-                Text = "Modify Account",
+                Text = @"Modify Account",
                 account = acc
             };
             addaccform.ShowDialog();
@@ -209,39 +208,39 @@ namespace GW_Launcher
 
         private void MainForm_Deactivate(object sender, EventArgs e)
         {
-            if(!this.rightClickOpen)
-                this.Visible = false;
+            if(!rightClickOpen)
+                Visible = false;
         }
 
         private void notifyIcon_MouseClick(object sender, MouseEventArgs e)
         {
             if (e.Button == MouseButtons.Right)
             {
-                if(this.rightClickOpen)
+                if(rightClickOpen)
                 {
-                    this.Visible = false;
-                    this.rightClickOpen = false;
+                    Visible = false;
+                    rightClickOpen = false;
                     return;
                 }
-                this.rightClickOpen = true;
+                rightClickOpen = true;
             }
 
-            Point loc = Cursor.Position;
+            var loc = Cursor.Position;
 
-            loc.X -= (this.Width / 2);
+            loc.X -= (Width / 2);
             if (loc.Y > (SystemInformation.VirtualScreen.Height / 2))
             {
-                loc.Y -= (25 + this.Height);
+                loc.Y -= (25 + Height);
             }
             else
             {
                 loc.Y += 25;
             }
 
-            this.Location = loc;
+            Location = loc;
 
-            this.Visible = !this.Visible;
-            this.Activate();
+            Visible = !Visible;
+            Activate();
         }
 
 
@@ -249,7 +248,7 @@ namespace GW_Launcher
         {
             try
             {
-                string tmpfile = Path.GetDirectoryName(client) + Path.DirectorySeparatorChar + "Gw.tmp";
+                var tmpfile = Path.GetDirectoryName(client) + Path.DirectorySeparatorChar + "Gw.tmp";
                 if (File.Exists(tmpfile))
                 {
                     File.Delete(tmpfile);
@@ -277,13 +276,13 @@ namespace GW_Launcher
 
         private async void updateAllClientsToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            WindowsPrincipal pricipal = new WindowsPrincipal(WindowsIdentity.GetCurrent());
-            bool hasAdministrativeRight = pricipal.IsInRole(WindowsBuiltInRole.Administrator);
+            var pricipal = new WindowsPrincipal(WindowsIdentity.GetCurrent());
+            var hasAdministrativeRight = pricipal.IsInRole(WindowsBuiltInRole.Administrator);
             if (!hasAdministrativeRight)
             {
                 // relaunch the application with admin rights
-                string fileName = Assembly.GetExecutingAssembly().Location;
-                ProcessStartInfo processInfo = new ProcessStartInfo
+                var fileName = Assembly.GetExecutingAssembly().Location;
+                var processInfo = new ProcessStartInfo
                 {
                     Verb = "runas",
                     FileName = fileName
@@ -302,7 +301,7 @@ namespace GW_Launcher
             }
             var clients = Program.accounts.Select(i => i.gwpath).Distinct();
 
-            foreach(string client in clients)
+            foreach(var client in clients)
             {
                 await RunClientUpdateAsync(client);
             }

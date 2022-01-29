@@ -26,7 +26,7 @@ namespace GW_Launcher
             account.elevated = checkBoxElevated.Checked;
             account.extraargs = textBoxExArgs.Text;
             finished = true;
-            this.Close();
+            Close();
         }
 
         private void AddAccountForm_Load(object sender, EventArgs e)
@@ -42,7 +42,7 @@ namespace GW_Launcher
 
         private void buttonDialogPath_Click(object sender, EventArgs e)
         {
-            OpenFileDialog openFileDialog = new OpenFileDialog();
+            var openFileDialog = new OpenFileDialog();
 
             var pathdefault = (string)Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\ArenaNet\\Guild Wars", "Path", null);
             if (pathdefault == null)
@@ -69,6 +69,15 @@ namespace GW_Launcher
                 textBoxPassword.PasswordChar = '*';
             else
                 textBoxPassword.PasswordChar = '\0';
+        }
+
+        private void button2_Click(object sender, EventArgs e)
+        {
+            Program.mutex.WaitOne();
+            if (string.IsNullOrEmpty(account.email)) return;
+
+            var modForm = new ModManager(account);
+            modForm.Show();
         }
     }
 }

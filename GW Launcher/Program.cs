@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Windows.Forms;
 using System.Threading;
-using GWCA.Memory;
 using System.IO;
 using Newtonsoft.Json;
 using GWMC_CS;
@@ -27,7 +26,7 @@ namespace GW_Launcher
         {
             try
             {
-                string txt = File.ReadAllText(path);
+                var txt = File.ReadAllText(path);
                 return JsonConvert.DeserializeObject<GlobalSettings>(txt);
             }
             catch (FileNotFoundException)
@@ -50,6 +49,10 @@ namespace GW_Launcher
         [DllImport("user32.dll", EntryPoint = "SetWindowText", CharSet = CharSet.Unicode)]
         private static extern bool SetWindowText(IntPtr hwnd, String lpString);
 
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        static extern bool SetForegroundWindow(IntPtr hWnd);
+
         [STAThread]
         internal static void Main()
         {
@@ -66,7 +69,7 @@ namespace GW_Launcher
             settings = GlobalSettings.Load();
 
             accounts = new AccountManager("Accounts.json");
-            foreach (Account t in accounts)
+            foreach (var t in accounts)
             {
                 t.active = false;
             }
@@ -74,20 +77,24 @@ namespace GW_Launcher
             using (var mf = new MainForm())
             {
                 mf.Location = new System.Drawing.Point(-1000, -1000);
-                mf.FormClosing += (object sender, FormClosingEventArgs e) => { Program.settings.Save(); };
+                mf.FormClosing += (sender, e) => { settings.Save(); };
 
                 mainthread = new Thread(() =>
                 {
                     var mainClosed = false;
-                    mf.FormClosed += (s, a) => { mainClosed = true; };
+                    mf.FormClosed += (sender, a) => { mainClosed = true; };
                     while (!mainClosed)
                     {
-                        var sleep = 5000;
                         while (mf.needtolaunch.Count > 0)
                         {
-                            int i = mf.needtolaunch.Dequeue();
-                            Account a = accounts[i];
-                            GWCAMemory m = MulticlientPatch.LaunchClient(a.gwpath,
+                            var i = mf.needtolaunch.Dequeue();
+                            var a = accounts[i];
+                            if (a.active && a.process.process != null && a.process.process.MainWindowHandle != IntPtr.Zero)
+                            {
+                                SetForegroundWindow(a.process.process.MainWindowHandle);
+                                continue;
+                            }
+                            var m = MulticlientPatch.LaunchClient(a.gwpath,
                                 " -email \"" + a.email + "\" -password \"" + a.password + "\" -character \"" +
                                 a.character + "\" " + a.extraargs, a.datfix, false, a.elevated, a.mods);
 
@@ -110,10 +117,9 @@ namespace GW_Launcher
                             }
                             if (!string.IsNullOrEmpty(a.character) && m.process.MainWindowTitle == "Guild Wars")
                             {
-                                bool error = SetWindowText(m.process.MainWindowHandle, a.character);
+                                SetWindowText(m.process.MainWindowHandle, a.character);
                             }
-                            Thread.Sleep(sleep);
-                            sleep += 5000;
+                            Thread.Sleep(5000);
                         }
 
                         mutex.WaitOne();
@@ -129,7 +135,7 @@ namespace GW_Launcher
 
                         mutex.ReleaseMutex();
 
-                        Thread.Sleep(150);
+                        Thread.Sleep(1000);
                     }
                 });
                 Application.Run(mf);

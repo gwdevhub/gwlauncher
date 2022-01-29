@@ -13,7 +13,7 @@ namespace GW_Launcher
         public static void FindAddressesIfNeeded(GWCAMemory cli)
         {
             IntPtr tmp;
-            Tuple<IntPtr, int> imagebase = cli.GetImageBase();
+            var imagebase = cli.GetImageBase();
             cli.InitScanner(imagebase.Item1, imagebase.Item2);
             tmp = cli.ScanForPtr(new byte[] { 0x55, 0x8B, 0xEC, 0x83, 0xEC, 0x10, 0x56, 0x6A }, 0x22, true);
             if (tmp != IntPtr.Zero)

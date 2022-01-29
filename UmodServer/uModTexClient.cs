@@ -36,7 +36,8 @@ namespace UmodServer
         CONTROL_ADD_CLIENT = 101,
         CONTROL_REMOVE_CLIENT = 102
     }
-    
+
+
     public struct Msg
     {
         public MsgControl msg;
@@ -47,6 +48,8 @@ namespace UmodServer
     public class uModTexClient
     {
         private NamedPipeClientStream pipeClient;
+        const string PIPE_uMod2Game = "\\\\.\\pipe\\uMod2Game";
+        const string PIPE_Game2uMod = "\\\\.\\pipe\\Game2uMod";
 
         public List<TexBundle> bundles;
         public List<TexDef> looseTextures;
@@ -92,7 +95,7 @@ namespace UmodServer
 
         public void Send(MsgControl msg, ulong value, ulong hash, byte[] data = null)
         {
-            byte[] packet = new byte[20 + (data != null ? data.Length : 0)];
+            byte[] packet = new byte[20 + (data?.Length ?? 0)];
 
             packet.SetValue(msg, 0);
             packet.SetValue(value, 4);

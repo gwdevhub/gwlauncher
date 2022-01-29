@@ -98,8 +98,8 @@ namespace GWCA
             /// <returns>Found value.</returns>
             public T Read<T>(IntPtr address)
             {
-                int size = Marshal.SizeOf(typeof(T));
-                IntPtr buffer = Marshal.AllocHGlobal(size);
+                var size = Marshal.SizeOf(typeof(T));
+                var buffer = Marshal.AllocHGlobal(size);
 
                 ReadProcessMemory(process.Handle,
                                   address,
@@ -108,7 +108,7 @@ namespace GWCA
                                   out _
                                   );
 
-                T ret = (T)Marshal.PtrToStructure(buffer, typeof(T));
+                var ret = (T)Marshal.PtrToStructure(buffer, typeof(T));
                 Marshal.FreeHGlobal(buffer);
 
                 return ret;
@@ -122,7 +122,7 @@ namespace GWCA
             /// <returns>bytes read.</returns>
             public byte[] ReadBytes(IntPtr address, int size)
             {
-                IntPtr buffer = Marshal.AllocHGlobal(size);
+                var buffer = Marshal.AllocHGlobal(size);
 
                 ReadProcessMemory(process.Handle,
                                   address,
@@ -131,7 +131,7 @@ namespace GWCA
                                   out _
                                   );
 
-                byte[] ret = new byte[size];
+                var ret = new byte[size];
                 Marshal.Copy(buffer, ret, 0, size);
                 Marshal.FreeHGlobal(buffer);
 
@@ -146,8 +146,8 @@ namespace GWCA
             /// <returns>String found.</returns>
             public string ReadWString(IntPtr address, int maxsize)
             {
-                byte[] rawbytes = ReadBytes(address, maxsize);
-                string ret = Encoding.Unicode.GetString(rawbytes);
+                var rawbytes = ReadBytes(address, maxsize);
+                var ret = Encoding.Unicode.GetString(rawbytes);
                 if (ret.Contains("\0"))
                     ret = ret.Substring(0, ret.IndexOf('\0'));
                 return ret;
@@ -163,15 +163,15 @@ namespace GWCA
             /// <returns></returns>
             public T ReadPtrChain<T>(IntPtr Base, params int[] offsets)
             {
-                foreach (int offset in offsets)
+                foreach (var offset in offsets)
                     Base = Read<IntPtr>(Base) + offset;
                 return Read<T>(Base);
             }
 
             public void Write<T>(IntPtr address, T data)
             {
-                int size = Marshal.SizeOf(typeof(T));
-                IntPtr buffer = new IntPtr();
+                var size = Marshal.SizeOf(typeof(T));
+                var buffer = new IntPtr();
                 Marshal.StructureToPtr(data, buffer, true);
 
                 WriteProcessMemory(
@@ -184,8 +184,8 @@ namespace GWCA
 
             public void WriteBytes(IntPtr address, byte[] data)
             {
-                int size = data.Length;
-                IntPtr buffer = Marshal.AllocHGlobal(size);
+                var size = data.Length;
+                var buffer = Marshal.AllocHGlobal(size);
                 Marshal.Copy(data, 0, buffer, size);
 
                 WriteProcessMemory(
@@ -206,10 +206,10 @@ namespace GWCA
 
             public Tuple<IntPtr, int> GetImageBase()
             {
-                string name = process.ProcessName;
+                var name = process.ProcessName;
                 try
                 {
-                    ProcessModuleCollection modules = process.Modules;
+                    var modules = process.Modules;
                     foreach (ProcessModule module in modules)
                     {
                         if (module.ModuleName.StartsWith(name, StringComparison.OrdinalIgnoreCase))
@@ -225,7 +225,7 @@ namespace GWCA
 
             public bool HaveModule(string name)
             {
-                ProcessModuleCollection modules = process.Modules;
+                var modules = process.Modules;
                 foreach (ProcessModule module in modules)
                 {
                     if (module.ModuleName.IndexOf(name, StringComparison.OrdinalIgnoreCase) != -1)
@@ -264,11 +264,11 @@ namespace GWCA
             public IntPtr ScanForPtr(byte[] signature, int offset = 0, bool readptr = false)
             {
                 bool match;
-                byte first = signature[0];
-                int sig_length = signature.Length;
+                var first = signature[0];
+                var sig_length = signature.Length;
 
                 // For start to end of scan range...
-                for (int scan = 0; scan < scan_size; ++scan)
+                for (var scan = 0; scan < scan_size; ++scan)
                 {
                     // Skip iteration if first byte does not match
                     if (memory_dump[scan] != first)
@@ -279,7 +279,7 @@ namespace GWCA
                     match = true;
 
                     // For sig size... check for matching signature.
-                    for (int sig = 0; sig < sig_length; ++sig)
+                    for (var sig = 0; sig < sig_length; ++sig)
                     {
                         if (memory_dump[scan + sig] != signature[sig])
                         {
@@ -342,7 +342,7 @@ namespace GWCA
             }
             public LOADMODULERESULT LoadModule(string modulepath, out IntPtr module)
             {
-                string modulefullpath = Path.GetFullPath(modulepath);
+                var modulefullpath = Path.GetFullPath(modulepath);
                 module = IntPtr.Zero;
 
                 if (!File.Exists(modulefullpath))
@@ -350,19 +350,19 @@ namespace GWCA
                     return LOADMODULERESULT.MODULE_NONEXISTANT;
                 }
 
-                IntPtr hKernel32 = GetModuleHandle("kernel32.dll");
+                var hKernel32 = GetModuleHandle("kernel32.dll");
                 if (hKernel32 == IntPtr.Zero)
                 {
                     return LOADMODULERESULT.KERNEL32_NOT_FOUND;
                 }
 
-                IntPtr hLoadLib = GetProcAddress(hKernel32, "LoadLibraryW");
+                var hLoadLib = GetProcAddress(hKernel32, "LoadLibraryW");
                 if (hLoadLib == IntPtr.Zero)
                 {
                     return LOADMODULERESULT.LOADLIBRARY_NOT_FOUND;
                 }
 
-                IntPtr hStringBuffer = VirtualAllocEx(process.Handle, IntPtr.Zero, new IntPtr(2 * (modulefullpath.Length + 1)), 0x3000 /* MEM_COMMIT | MEM_RESERVE */, 0x4 /* PAGE_READWRITE */);
+                var hStringBuffer = VirtualAllocEx(process.Handle, IntPtr.Zero, new IntPtr(2 * (modulefullpath.Length + 1)), 0x3000 /* MEM_COMMIT | MEM_RESERVE */, 0x4 /* PAGE_READWRITE */);
                 if (hStringBuffer == IntPtr.Zero)
                 {
                     return LOADMODULERESULT.MEMORY_NOT_ALLOCATED;
@@ -374,13 +374,13 @@ namespace GWCA
                     return LOADMODULERESULT.PATH_NOT_WRITTEN;
                 }
 
-                IntPtr hThread = CreateRemoteThread(process.Handle, IntPtr.Zero, 0, hLoadLib, hStringBuffer, 0, out _);
+                var hThread = CreateRemoteThread(process.Handle, IntPtr.Zero, 0, hLoadLib, hStringBuffer, 0, out _);
                 if (hThread == IntPtr.Zero)
                 {
                     return LOADMODULERESULT.REMOTE_THREAD_NOT_SPAWNED;
                 }
 
-                uint ThreadResult = WaitForSingleObject(hThread, 5000);
+                var ThreadResult = WaitForSingleObject(hThread, 5000);
                 if (ThreadResult == 0x102 /* WAIT_TIMEOUT */ || ThreadResult == 0xFFFFFFFF /* WAIT_FAILED */)
                 {
                     return LOADMODULERESULT.REMOTE_THREAD_DID_NOT_FINISH;
@@ -392,7 +392,7 @@ namespace GWCA
                 }
 
 
-                IntPtr MemoryFreeResult = VirtualFreeEx(process.Handle, hStringBuffer, 0, 0x8000 /* MEM_RELEASE */);
+                var MemoryFreeResult = VirtualFreeEx(process.Handle, hStringBuffer, 0, 0x8000 /* MEM_RELEASE */);
                 if (MemoryFreeResult == IntPtr.Zero)
                 {
                     return LOADMODULERESULT.MEMORY_NOT_DEALLOCATED;

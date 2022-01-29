@@ -135,7 +135,7 @@ namespace Logos.Utility.Security.Cryptography
 		// Returns a new byte array containing the specified number of random bytes.
 		private static byte[] GetRandomBytes(int byteCount)
 		{
-			byte[] bytes = new byte[byteCount];
+			var bytes = new byte[byteCount];
 			using (RandomNumberGenerator rng = new RNGCryptoServiceProvider())
 				rng.GetBytes(bytes);
 			return bytes;
@@ -194,8 +194,8 @@ namespace Logos.Utility.Security.Cryptography
 				if (m_state == null)
 					throw new ObjectDisposedException(GetType().Name);
 
-				byte[] output = new byte[64];
-				int bytesTransformed = 0;
+				var output = new byte[64];
+				var bytesTransformed = 0;
 
 				while (inputCount > 0)
 				{
@@ -207,8 +207,8 @@ namespace Logos.Utility.Security.Cryptography
 						m_state[9] = AddOne(m_state[9]);
 					}
 
-					int blockSize = Math.Min(64, inputCount);
-					for (int i = 0; i < blockSize; i++)
+					var blockSize = Math.Min(64, inputCount);
+					for (var i = 0; i < blockSize; i++)
 						outputBuffer[outputOffset + i] = (byte)(inputBuffer[inputOffset + i] ^ output[i]);
 					bytesTransformed += blockSize;
 
@@ -225,7 +225,7 @@ namespace Logos.Utility.Security.Cryptography
 				if (inputCount < 0)
 					throw new ArgumentOutOfRangeException("inputCount");
 
-				byte[] output = new byte[inputCount];
+				var output = new byte[inputCount];
 				TransformBlock(inputBuffer, inputOffset, inputCount, output, 0);
 				return output;
 			}
@@ -254,9 +254,9 @@ namespace Logos.Utility.Security.Cryptography
 
 			private void Hash(byte[] output, uint[] input)
 			{
-				uint[] state = (uint[])input.Clone();
+				var state = (uint[])input.Clone();
 
-				for (int round = m_rounds; round > 0; round -= 2)
+				for (var round = m_rounds; round > 0; round -= 2)
 				{
 					state[4] ^= Rotate(Add(state[0], state[12]), 7);
 					state[8] ^= Rotate(Add(state[4], state[0]), 9);
@@ -292,7 +292,7 @@ namespace Logos.Utility.Security.Cryptography
 					state[15] ^= Rotate(Add(state[14], state[13]), 18);
 				}
 
-				for (int index = 0; index < 16; index++)
+				for (var index = 0; index < 16; index++)
 					ToBytes(Add(state[index], input[index]), output, 4 * index);
 			}
 
@@ -304,8 +304,8 @@ namespace Logos.Utility.Security.Cryptography
 				m_state[3] = ToUInt32(key, 8);
 				m_state[4] = ToUInt32(key, 12);
 
-				byte[] constants = key.Length == 32 ? c_sigma : c_tau;
-				int keyIndex = key.Length - 16;
+				var constants = key.Length == 32 ? c_sigma : c_tau;
+				var keyIndex = key.Length - 16;
 
 				m_state[11] = ToUInt32(key, keyIndex + 0);
 				m_state[12] = ToUInt32(key, keyIndex + 4);

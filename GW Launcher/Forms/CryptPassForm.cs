@@ -18,14 +18,12 @@ namespace GW_Launcher.Forms
             
         }
 
-        void Finish()
+        private void Finish()
         {
-            if (textBoxPass.Text != "")
-            {
-                SHA256 sha = new SHA256Cng();
-                Password = sha.ComputeHash(Encoding.UTF8.GetBytes(textBoxPass.Text));
-                this.Close();
-            }
+            if (textBoxPass.Text == "") return;
+            SHA256 sha = new SHA256Cng();
+            Password = sha.ComputeHash(Encoding.UTF8.GetBytes(textBoxPass.Text));
+            Close();
         }
 
         private void buttonEnter_Click(object sender, EventArgs e)

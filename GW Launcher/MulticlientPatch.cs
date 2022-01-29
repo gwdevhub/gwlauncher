@@ -55,27 +55,27 @@ namespace GWMC_CS
                     Registry.SetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\ArenaNet\\Guild Wars", "Path", Path.GetFullPath(path));
                 }
             }
-            catch (System.UnauthorizedAccessException)
+            catch (UnauthorizedAccessException)
             {
                 if (elevated)
                 {
-                    MessageBox.Show("Insufficient access rights.\nPlease restart the launcher as admin.",
-                        "GWMC - Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show(@"Insufficient access rights.\nPlease restart the launcher as admin.",
+                        @"GWMC - Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     return null;
                 }
             }
 
             var hThread = IntPtr.Zero;
-            uint dwPid = NativeMethods.LaunchClient(path, args, ((int)GWML_FLAGS.KEEP_SUSPENDED | (datfix ? 0 : (int)GWML_FLAGS.NO_DATFIX) | (nologin ? (int)GWML_FLAGS.NO_LOGIN : 0) | (elevated ? (int)GWML_FLAGS.ELEVATED : 0)), out hThread);
+            var dwPid = NativeMethods.LaunchClient(path, args, ((int)GWML_FLAGS.KEEP_SUSPENDED | (datfix ? 0 : (int)GWML_FLAGS.NO_DATFIX) | (nologin ? (int)GWML_FLAGS.NO_LOGIN : 0) | (elevated ? (int)GWML_FLAGS.ELEVATED : 0)), out hThread);
             var proc = Process.GetProcessById((int)dwPid);
             var mem = new GWCAMemory(proc);
             
-            string dllpath = Directory.GetCurrentDirectory() + "\\plugins";
+            var dllpath = Directory.GetCurrentDirectory() + "\\plugins";
             if (Directory.Exists(dllpath))
             {
-                string[] links = Directory.GetFiles(dllpath, "*.lnk");
-                string[] files = Directory.GetFiles(dllpath, "*.dll");
-                foreach (string link in links)
+                var links = Directory.GetFiles(dllpath, "*.lnk");
+                var files = Directory.GetFiles(dllpath, "*.dll");
+                foreach (var link in links)
                 {
                     var shell = new WshShell();
                     var lnk = (IWshShortcut)shell.CreateShortcut(link);
@@ -83,7 +83,7 @@ namespace GWMC_CS
                     if (lnk.TargetPath.EndsWith(".dll"))
                         mem.LoadModule(lnk.TargetPath);
                 }
-                foreach (string file in files)
+                foreach (var file in files)
                 {
                     mem.LoadModule(file);
                 }
@@ -92,9 +92,9 @@ namespace GWMC_CS
             dllpath = Path.GetDirectoryName(path) + "\\plugins";
             if (Directory.Exists(dllpath))
             {
-                string[] links = Directory.GetFiles(dllpath, "*.lnk");
-                string[] files = Directory.GetFiles(dllpath, "*.dll");
-                foreach (string link in links)
+                var links = Directory.GetFiles(dllpath, "*.lnk");
+                var files = Directory.GetFiles(dllpath, "*.dll");
+                foreach (var link in links)
                 {
                     var shell = new WshShell();
                     var lnk = (IWshShortcut)shell.CreateShortcut(link);
@@ -102,7 +102,7 @@ namespace GWMC_CS
                     if (lnk.TargetPath.EndsWith(".dll"))
                         mem.LoadModule(lnk.TargetPath);
                 }
-                foreach (string file in files)
+                foreach (var file in files)
                 {
                     mem.LoadModule(file);
                 }
@@ -110,7 +110,7 @@ namespace GWMC_CS
 
             if (mods != null)
             {
-                foreach (Mod mod in mods.Where(mod => mod.type == ModType.kModTypeDLL && File.Exists(mod.fileName)))
+                foreach (var mod in mods.Where(mod => mod.type == ModType.kModTypeDLL && File.Exists(mod.fileName)))
                 {
                     mem.LoadModule(mod.fileName);
                 }

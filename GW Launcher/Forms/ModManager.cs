@@ -8,6 +8,7 @@ namespace GW_Launcher
     public partial class ModManager : Form
     {
         private readonly Account account;
+        public int Selected { get; set; }
 
         public ModManager(Account account)
         {
@@ -15,20 +16,20 @@ namespace GW_Launcher
 
             InitializeComponent();
 
-            this.Text = "Mod Manager for " + this.account.character;
+            Text = @"Mod Manager for " + this.account.character;
         }
 
-        private void TexmodManager_Load(object sender, EventArgs e)
+        private void RefreshUI()
         {
-            if(account.mods == null)
-            {
-                return;
-            }
-
+            listViewAvailableMods.Items.Clear();
             foreach (var mod in account.mods)
             {
-                string name = mod.fileName.Split('\\').Last();
-                ListViewItem item = new ListViewItem(name, mod.fileName)
+                var name = System.IO.Path.GetFileName(mod.fileName);
+                var path = System.IO.Path.GetDirectoryName(mod.fileName);
+                var item = new ListViewItem(new string[] {
+                        name,
+                        path
+                    }, mod.fileName)
                 {
                     Checked = mod.active
                 };
@@ -43,8 +44,19 @@ namespace GW_Launcher
                         listViewAvailableMods.Groups[1].Items.Add(item);
                         break;
                 }
+                
                 listViewAvailableMods.Items.Add(item);
             }
+        }
+
+        private void TexmodManager_Load(object sender, EventArgs e)
+        {
+            if(account.mods == null)
+            {
+                return;
+            }
+
+            RefreshUI();
         }
 
         private void listViewAvailableMods_ItemChecked(object sender, ItemCheckedEventArgs e)
@@ -56,15 +68,15 @@ namespace GW_Launcher
 
         private void addModToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            OpenFileDialog openFileDialog = new OpenFileDialog
+            var openFileDialog = new OpenFileDialog
             {
-                Title = "Select Mod File to Use",
-                Filter = "Mod Files (*.dll;*.zip;*.tpf)|*.dll;*.zip;*.tpf|All files (*.*)|*.*"
+                Title = @"Select Mod File to Use",
+                Filter = @"Mod Files (*.dll;*.zip;*.tpf)|*.dll;*.zip;*.tpf|All files (*.*)|*.*"
             };
 
             if (openFileDialog.ShowDialog() == DialogResult.OK)
             {
-                Mod mod = new Mod
+                var mod = new Mod
                 {
                     fileName = openFileDialog.FileName,
                     active = false
@@ -83,11 +95,24 @@ namespace GW_Launcher
                     account.mods = new List<Mod>();
                 account.mods.Add(mod);
                 Program.accounts.Save();
+                RefreshUI();
             }
         }
 
         private void removeSelectedToolStripMenuItem_Click(object sender, EventArgs e)
         {
+            Program.mutex.WaitOne();
+            var selectedthing = listViewAvailableMods.SelectedIndices[0];
+            var selectedmod = account.mods[selectedthing];
+            account.mods.Remove(selectedmod);
+            Program.accounts.Save();
+            RefreshUI();
+            Program.mutex.ReleaseMutex();
+        }
+
+        private void listViewAvailableMods_SelectedIndexChanged(object sender, EventArgs e)
+        {
+
         }
     }
 }

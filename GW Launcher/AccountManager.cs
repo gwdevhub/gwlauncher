@@ -11,42 +11,40 @@ namespace GW_Launcher
     public class AccountManager : IEnumerable<Account>, IDisposable
     {
         private List<Account> accounts;
-        private readonly string filePath;
-        private byte[] cryptPass = null;
-        private readonly byte[] salsaIV = { 0xc8, 0x93, 0x48, 0x45, 0xcf, 0xa0, 0xfa, 0x85 };
-        private readonly Salsa20 crypt = new Salsa20();
+        private readonly string _filePath;
+        private byte[] _cryptPass = null;
+        private readonly byte[] _salsaIv = { 0xc8, 0x93, 0x48, 0x45, 0xcf, 0xa0, 0xfa, 0x85 };
+        private readonly Salsa20 _crypt = new Salsa20();
         public int Length => accounts.Count;
 
 
         public AccountManager(string filePath = null)
         {
             accounts = new List<Account>();
-            if (filePath != null)
-            {
-                this.filePath = filePath;
-                this.Load(filePath);
-            }
+            if (filePath == null) return;
+            _filePath = filePath;
+            Load(filePath);
         }
         
         public void Load(string filePath = null)
         {
-            if (cryptPass == null && Program.settings.Encrypt)
+            if (_cryptPass == null && Program.settings.Encrypt)
             {
-                Forms.CryptPassForm form = new Forms.CryptPassForm();
+                var form = new Forms.CryptPassForm();
                 form.ShowDialog();
-                cryptPass = form.Password;
+                _cryptPass = form.Password;
             }
 
-            if (filePath == null && this.filePath != null)
+            if (filePath == null && _filePath != null)
             {
-                filePath = this.filePath;
+                filePath = _filePath;
             }
 
             if (!Program.settings.Encrypt)
             {
                 try
                 {
-                    string text = File.ReadAllText(filePath);
+                    var text = File.ReadAllText(filePath);
                     accounts = JsonConvert.DeserializeObject<List<Account>>(text);
                 }
                 catch (FileNotFoundException e)
@@ -62,11 +60,11 @@ namespace GW_Launcher
 
                 try
                 {
-                    byte[] textBytes = File.ReadAllBytes(filePath);
-                    byte[] cryptBytes = new byte[textBytes.Length];
-                    using (var decrypt = crypt.CreateDecryptor(cryptPass, salsaIV))
+                    var textBytes = File.ReadAllBytes(filePath);
+                    var cryptBytes = new byte[textBytes.Length];
+                    using (var decrypt = _crypt.CreateDecryptor(_cryptPass, _salsaIv))
                         decrypt.TransformBlock(textBytes, 0, textBytes.Length, cryptBytes, 0);
-                    string rawJson = Encoding.UTF8.GetString(cryptBytes);
+                    var rawJson = Encoding.UTF8.GetString(cryptBytes);
                     if (!rawJson.StartsWith("SHIT"))
                     {
                         System.Windows.Forms.MessageBox.Show("Incorrect password.\n Restart launcher and try again.", "GW Launcher - Invalid Password");
@@ -77,9 +75,9 @@ namespace GW_Launcher
                 {
 
                     // silent
-                    byte[] bytes = Encoding.UTF8.GetBytes("SHIT[]");
+                    var bytes = Encoding.UTF8.GetBytes("SHIT[]");
                     var cryptBytes = new byte[bytes.Length];
-                    using (var encrypt = crypt.CreateEncryptor(cryptPass, salsaIV))
+                    using (var encrypt = _crypt.CreateEncryptor(_cryptPass, _salsaIv))
                         encrypt.TransformBlock(bytes, 0, bytes.Length, cryptBytes, 0);
                     File.WriteAllBytes(filePath, cryptBytes);
                     accounts.Clear();
@@ -90,12 +88,12 @@ namespace GW_Launcher
 
         public void Save(string filePath = null)
         {
-            if (filePath == null && this.filePath != null)
+            if (filePath == null && _filePath != null)
             {
-                filePath = this.filePath;
+                filePath = _filePath;
             }
 
-            string text = JsonConvert.SerializeObject(accounts, Formatting.Indented);
+            var text = JsonConvert.SerializeObject(accounts, Formatting.Indented);
             if (!Program.settings.Encrypt)
             {
                 File.WriteAllText(filePath, text);
@@ -103,9 +101,9 @@ namespace GW_Launcher
             else
             {
                 text = "SHIT" + text;
-                byte[] bytes = Encoding.UTF8.GetBytes(text);
-                byte[] cryptBytes = new byte[bytes.Length];
-                using (var encrypt = crypt.CreateEncryptor(cryptPass, salsaIV))
+                var bytes = Encoding.UTF8.GetBytes(text);
+                var cryptBytes = new byte[bytes.Length];
+                using (var encrypt = _crypt.CreateEncryptor(_cryptPass, _salsaIv))
                     encrypt.TransformBlock(bytes, 0, bytes.Length, cryptBytes, 0);
                 File.WriteAllBytes(filePath, cryptBytes);
             }
@@ -114,24 +112,24 @@ namespace GW_Launcher
         public void Add(Account acc)
         {
             accounts.Add(acc);
-            if (filePath != null)
+            if (_filePath != null)
             {
-                Save(filePath);
+                Save(_filePath);
             }
         }
 
         public void Remove(int index)
         {
             accounts.RemoveAt(index);
-            if (filePath != null)
+            if (_filePath != null)
             {
-                Save(filePath);
+                Save(_filePath);
             }
         }
 
         public void Remove(string email)
         {
-            for (int i = 0; i < accounts.Count; i++)
+            for (var i = 0; i < accounts.Count; i++)
             {
                 if (accounts[i].email != email) continue;
                 Remove(i);
@@ -141,7 +139,7 @@ namespace GW_Launcher
 
         public int GetIndexOf(string email)
         {
-            for (int i = 0; i < accounts.Count; i++)
+            for (var i = 0; i < accounts.Count; i++)
             {
                 if (accounts[i].email == email)
                 {
@@ -163,13 +161,13 @@ namespace GW_Launcher
 
         public Account this[int index]
         {
-            get => this.accounts[index];
+            get => accounts[index];
             set
             {
                 accounts[index] = value;
-                if (filePath != null)
+                if (_filePath != null)
                 {
-                    Save(filePath);
+                    Save(_filePath);
                 }
             }
         }
@@ -178,12 +176,12 @@ namespace GW_Launcher
         {
             get
             {
-                int index = GetIndexOf(email);
+                var index = GetIndexOf(email);
                 return index == -1 ? null : this[index];
             }
             set
             {
-                int index = GetIndexOf(email);
+                var index = GetIndexOf(email);
                 if (index != -1)
                    this[index] = value;
             }
@@ -191,7 +189,7 @@ namespace GW_Launcher
 
         void IDisposable.Dispose()
         {
-            crypt.Dispose();
+            _crypt.Dispose();
         }
     }
 }
