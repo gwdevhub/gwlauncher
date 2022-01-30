@@ -1,8 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-
 using System.IO;
 using System.IO.Compression;
+using System.Text;
+using Ionic.Zip;
 
 namespace UmodServer
 {
@@ -24,15 +25,27 @@ namespace UmodServer
         public ZipLoader(string fileName)
         {
             string ext = fileName.Substring(fileName.Length - 4);
-            switch (ext)
+            if (ext == ".tpf")
             {
-                case ".tpf":
-                    IsTpfEncrypted = true;
-                    throw new NotImplementedException("Dont use stupidly encrypted zip files thx.");
+                IsTpfEncrypted = true;
             }
 
-            stream = new FileStream(fileName, FileMode.Open);
-            archive = new ZipArchive(stream);
+            if (IsTpfEncrypted)
+            {
+                using (ZipFile archive = new ZipFile(fileName, Encoding.Default))
+                {
+                    archive.Password = Encoding.Default.GetString(tpfPassword);
+                    archive.Encryption = EncryptionAlgorithm.PkzipWeak; // the default: you might need to select the proper value here
+                    archive.StatusMessageTextWriter = Console.Out;
+
+                    archive.ExtractAll(@"c:\path\to\unzip\directory\", ExtractExistingFileAction.Throw);
+                }
+            }
+            else
+            {
+                stream = new FileStream(fileName, FileMode.Open);
+                archive = new ZipArchive(stream);
+            }
         }
 
 

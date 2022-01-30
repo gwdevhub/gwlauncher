@@ -6,7 +6,7 @@ namespace UmodServer
 {
     public struct TexDef
     {
-        public UInt32 crcHash;
+        public uint crcHash;
         public string fileName;
         public byte[] fileData;
     }
@@ -34,7 +34,7 @@ namespace UmodServer
 
                     TexDef def;
                     def.fileName = entry.Name;
-                    def.crcHash = UInt32.Parse(crc);
+                    def.crcHash = uint.Parse(crc);
 
 
                     using (var file = entry.Open())
