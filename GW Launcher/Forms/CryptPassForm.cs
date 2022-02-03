@@ -21,7 +21,7 @@ namespace GW_Launcher.Forms
         private void Finish()
         {
             if (textBoxPass.Text == "") return;
-            SHA256 sha = new SHA256Cng();
+            var sha = SHA256.Create();
             Password = sha.ComputeHash(Encoding.UTF8.GetBytes(textBoxPass.Text));
             Close();
         }

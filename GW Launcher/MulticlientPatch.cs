@@ -1,14 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using Microsoft.Win32;
+﻿using Microsoft.Win32;
 using System.Diagnostics;
-using System.Windows.Forms;
 using System.Runtime.InteropServices;
-using System.IO;
 using GWCA.Memory;
 using GW_Launcher;
-using IWshRuntimeLibrary;
 using File = System.IO.File;
 
 
@@ -37,7 +31,7 @@ namespace GWMC_CS
             public static extern uint CloseHandle(IntPtr handle);
         }
 
-        public static GWCAMemory LaunchClient(string path, string args, bool datfix, bool nologin = false, bool elevated = false, List<Mod> mods = null)
+        public static GWCAMemory LaunchClient(string path, string args, bool datfix, bool nologin = false, bool elevated = false, List<Mod>? mods = null)
         {
             try
             {
@@ -66,23 +60,14 @@ namespace GWMC_CS
             }
 
             var hThread = IntPtr.Zero;
-            var dwPid = NativeMethods.LaunchClient(path, args, ((int)GWML_FLAGS.KEEP_SUSPENDED | (datfix ? 0 : (int)GWML_FLAGS.NO_DATFIX) | (nologin ? (int)GWML_FLAGS.NO_LOGIN : 0) | (elevated ? (int)GWML_FLAGS.ELEVATED : 0)), out hThread);
+            var dwPid = NativeMethods.LaunchClient(path, args, (int)GWML_FLAGS.KEEP_SUSPENDED | (datfix ? 0 : (int)GWML_FLAGS.NO_DATFIX) | (nologin ? (int)GWML_FLAGS.NO_LOGIN : 0) | (elevated ? (int)GWML_FLAGS.ELEVATED : 0), out hThread);
             var proc = Process.GetProcessById((int)dwPid);
             var mem = new GWCAMemory(proc);
             
             var dllpath = Directory.GetCurrentDirectory() + "\\plugins";
             if (Directory.Exists(dllpath))
             {
-                var links = Directory.GetFiles(dllpath, "*.lnk");
                 var files = Directory.GetFiles(dllpath, "*.dll");
-                foreach (var link in links)
-                {
-                    var shell = new WshShell();
-                    var lnk = (IWshShortcut)shell.CreateShortcut(link);
-
-                    if (lnk.TargetPath.EndsWith(".dll"))
-                        mem.LoadModule(lnk.TargetPath);
-                }
                 foreach (var file in files)
                 {
                     mem.LoadModule(file);
@@ -92,16 +77,7 @@ namespace GWMC_CS
             dllpath = Path.GetDirectoryName(path) + "\\plugins";
             if (Directory.Exists(dllpath))
             {
-                var links = Directory.GetFiles(dllpath, "*.lnk");
                 var files = Directory.GetFiles(dllpath, "*.dll");
-                foreach (var link in links)
-                {
-                    var shell = new WshShell();
-                    var lnk = (IWshShortcut)shell.CreateShortcut(link);
-
-                    if (lnk.TargetPath.EndsWith(".dll"))
-                        mem.LoadModule(lnk.TargetPath);
-                }
                 foreach (var file in files)
                 {
                     mem.LoadModule(file);

@@ -66,15 +66,16 @@ namespace UmodServer
             if (XORed) return 0;
             var size = FileLen / 4u;
             var buff = new uint[size];
-            System.Buffer.BlockCopy(FileInMemory, 0, buff, 0, FileInMemory.Length);
+            Buffer.BlockCopy(FileInMemory, 0, buff, 0, FileInMemory.Length);
             var TPF_XOR = 0x3FA43FA4u;
             for (var i = 0; i < size; i++) buff[i] ^= TPF_XOR;
 
-            System.Buffer.BlockCopy(buff, 0, FileInMemory, 0, FileInMemory.Length);
+            Buffer.BlockCopy(buff, 0, FileInMemory, 0, FileInMemory.Length);
 
+            var xorbytes = BitConverter.GetBytes(TPF_XOR);
             for (var i = size * 4; i < size * 4 + FileLen % 4u; i++)
             {
-                FileInMemory[i] ^= (byte)TPF_XOR;
+                FileInMemory[i] ^= xorbytes[0];
             }
 
             var pos = FileLen - 1;
@@ -169,11 +170,11 @@ namespace UmodServer
             return null;
         }
 
-        private string FileName;
-        private bool Loaded;
-        private bool XORed;
-        private byte[] FileInMemory;
-        private long FileLen;
+        private string FileName { get; set; }
+        private bool Loaded { get; set; }
+        private bool XORed { get; set; }
+        private byte[] FileInMemory { get; set; }
+        private long FileLen { get; set; }
 
     }
 }

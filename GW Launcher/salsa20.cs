@@ -60,7 +60,7 @@ namespace Logos.Utility.Security.Cryptography
 		public override ICryptoTransform CreateEncryptor(byte[] rgbKey, byte[] rgbIV)
 		{
 			if (rgbKey == null)
-				throw new ArgumentNullException("rgbKey");
+				throw new ArgumentNullException(nameof(rgbKey));
 			if (!ValidKeySize(rgbKey.Length * 8))
 				throw new CryptographicException("Invalid key size; it must be 128 or 256 bits.");
 			CheckValidIV(rgbIV, "rgbIV");
@@ -94,11 +94,8 @@ namespace Logos.Utility.Security.Cryptography
 		/// <exception cref="CryptographicException">An attempt was made to set the initialization vector to an invalid size. </exception>
 		public override byte[] IV
 		{
-			get
-			{
-				return base.IV;
-			}
-			set
+			get => base.IV;
+            set
 			{
 				CheckValidIV(value, "value");
 				IVValue = (byte[])value.Clone();
@@ -111,14 +108,11 @@ namespace Logos.Utility.Security.Cryptography
 		/// <value>The number of rounds.</value>
 		public int Rounds
 		{
-			get
-			{
-				return m_rounds;
-			}
-			set
+			get => m_rounds;
+            set
 			{
 				if (value != 8 && value != 12 && value != 20)
-					throw new ArgumentOutOfRangeException("value", "The number of rounds must be 8, 12, or 20.");
+					throw new ArgumentOutOfRangeException(nameof(value), @"The number of rounds must be 8, 12, or 20.");
 				m_rounds = value;
 			}
 		}
@@ -136,12 +130,12 @@ namespace Logos.Utility.Security.Cryptography
 		private static byte[] GetRandomBytes(int byteCount)
 		{
 			var bytes = new byte[byteCount];
-			using (RandomNumberGenerator rng = new RNGCryptoServiceProvider())
-				rng.GetBytes(bytes);
+            using RandomNumberGenerator rng = new RNGCryptoServiceProvider();
+            rng.GetBytes(bytes);
 			return bytes;
 		}
 
-		int m_rounds;
+        private int m_rounds;
 
 		/// <summary>
 		/// Salsa20Impl is an implementation of <see cref="ICryptoTransform"/> that uses the Salsa20 algorithm.
@@ -152,45 +146,33 @@ namespace Logos.Utility.Security.Cryptography
 			{
 				Debug.Assert(key.Length == 16 || key.Length == 32, "abyKey.Length == 16 || abyKey.Length == 32", "Invalid key size.");
 				Debug.Assert(iv.Length == 8, "abyIV.Length == 8", "Invalid IV size.");
-				Debug.Assert(rounds == 8 || rounds == 12 || rounds == 20, "rounds == 8 || rounds == 12 || rounds == 20", "Invalid number of rounds.");
+				Debug.Assert(rounds is 8 or 12 or 20, "rounds == 8 || rounds == 12 || rounds == 20", "Invalid number of rounds.");
 
 				Initialize(key, iv);
 				m_rounds = rounds;
 			}
 
-			public bool CanReuseTransform
-			{
-				get { return false; }
-			}
+			public bool CanReuseTransform => false;
 
-			public bool CanTransformMultipleBlocks
-			{
-				get { return true; }
-			}
+            public bool CanTransformMultipleBlocks => true;
 
-			public int InputBlockSize
-			{
-				get { return 64; }
-			}
+            public int InputBlockSize => 64;
 
-			public int OutputBlockSize
-			{
-				get { return 64; }
-			}
+            public int OutputBlockSize => 64;
 
-			public int TransformBlock(byte[] inputBuffer, int inputOffset, int inputCount, byte[] outputBuffer, int outputOffset)
+            public int TransformBlock(byte[] inputBuffer, int inputOffset, int inputCount, byte[] outputBuffer, int outputOffset)
 			{
 				// check arguments
 				if (inputBuffer == null)
-					throw new ArgumentNullException("inputBuffer");
+					throw new ArgumentNullException(nameof(inputBuffer));
 				if (inputOffset < 0 || inputOffset >= inputBuffer.Length)
-					throw new ArgumentOutOfRangeException("inputOffset");
+					throw new ArgumentOutOfRangeException(nameof(inputOffset));
 				if (inputCount < 0 || inputOffset + inputCount > inputBuffer.Length)
-					throw new ArgumentOutOfRangeException("inputCount");
+					throw new ArgumentOutOfRangeException(nameof(inputCount));
 				if (outputBuffer == null)
-					throw new ArgumentNullException("outputBuffer");
+					throw new ArgumentNullException(nameof(outputBuffer));
 				if (outputOffset < 0 || outputOffset + inputCount > outputBuffer.Length)
-					throw new ArgumentOutOfRangeException("outputOffset");
+					throw new ArgumentOutOfRangeException(nameof(outputOffset));
 				if (m_state == null)
 					throw new ObjectDisposedException(GetType().Name);
 
@@ -223,7 +205,7 @@ namespace Logos.Utility.Security.Cryptography
 			public byte[] TransformFinalBlock(byte[] inputBuffer, int inputOffset, int inputCount)
 			{
 				if (inputCount < 0)
-					throw new ArgumentOutOfRangeException("inputCount");
+					throw new ArgumentOutOfRangeException(nameof(inputCount));
 
 				var output = new byte[inputCount];
 				TransformBlock(inputBuffer, inputOffset, inputCount, output, 0);
@@ -338,11 +320,11 @@ namespace Logos.Utility.Security.Cryptography
 				}
 			}
 
-			static readonly byte[] c_sigma = Encoding.ASCII.GetBytes("expand 32-byte k");
-			static readonly byte[] c_tau = Encoding.ASCII.GetBytes("expand 16-byte k");
+            private static readonly byte[] c_sigma = Encoding.ASCII.GetBytes("expand 32-byte k");
+            private static readonly byte[] c_tau = Encoding.ASCII.GetBytes("expand 16-byte k");
 
-			uint[] m_state;
-			readonly int m_rounds;
+            private uint[] m_state;
+            private readonly int m_rounds;
 		}
 	}
 }

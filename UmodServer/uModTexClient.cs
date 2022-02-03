@@ -47,9 +47,9 @@ namespace UmodServer
 
     public class uModTexClient
     {
-        private NamedPipeClientStream pipeClient;
-        const string PIPE_uMod2Game = "\\\\.\\pipe\\uMod2Game";
-        const string PIPE_Game2uMod = "\\\\.\\pipe\\Game2uMod";
+        private readonly NamedPipeClientStream pipeClient;
+        private const string PIPE_uMod2Game = "\\\\.\\pipe\\uMod2Game";
+        private const string PIPE_Game2uMod = "\\\\.\\pipe\\Game2uMod";
 
         public List<TexBundle> bundles;
         public List<TexDef> looseTextures;

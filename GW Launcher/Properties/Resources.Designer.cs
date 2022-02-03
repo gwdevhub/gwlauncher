@@ -65,8 +65,18 @@ namespace GW_Launcher.Properties {
         /// </summary>
         internal static System.Drawing.Bitmap gw_icon {
             get {
-                object obj = ResourceManager.GetObject("gw_icon", resourceCulture);
+                object obj = ResourceManager.GetObject("gw-icon", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] GWML {
+            get {
+                object obj = ResourceManager.GetObject("GWML", resourceCulture);
+                return ((byte[])(obj));
             }
         }
     }

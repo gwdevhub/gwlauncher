@@ -14,11 +14,11 @@ namespace GW_Launcher
         private readonly string _filePath;
         private byte[] _cryptPass = null;
         private readonly byte[] _salsaIv = { 0xc8, 0x93, 0x48, 0x45, 0xcf, 0xa0, 0xfa, 0x85 };
-        private readonly Salsa20 _crypt = new Salsa20();
+        private readonly Salsa20 _crypt = new();
         public int Length => accounts.Count;
 
 
-        public AccountManager(string filePath = null)
+        public AccountManager(string? filePath = null)
         {
             accounts = new List<Account>();
             if (filePath == null) return;

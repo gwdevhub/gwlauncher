@@ -52,7 +52,6 @@
   <ItemGroup>
     <Compile Include="AddTextureClass.cs" />
     <Compile Include="TexBundle.cs" />
-    <Compile Include="TpfLoader.cs" />
     <Compile Include="uModFile.cs" />
     <Compile Include="uModTexClient.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

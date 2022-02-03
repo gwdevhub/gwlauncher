@@ -1,9 +1,4 @@
-﻿using System;
-using System.Windows.Forms;
-using System.Threading;
-using System.IO;
-using Newtonsoft.Json;
-using GWMC_CS;
+﻿using Newtonsoft.Json;
 using System.Runtime.InteropServices;
 
 namespace GW_Launcher
@@ -56,6 +51,16 @@ namespace GW_Launcher
         [STAThread]
         internal static void Main()
         {
+            var location = Path.GetDirectoryName(AppContext.BaseDirectory);
+            if (location != null)
+            {
+                var filename = Path.Combine(location, "GWML.dll");
+                if (!File.Exists(filename))
+                {
+                    File.WriteAllBytes(filename, Properties.Resources.GWML);
+                }
+            }
+
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 
@@ -74,74 +79,70 @@ namespace GW_Launcher
                 t.active = false;
             }
 
-            using (var mf = new MainForm())
+            using var mf = new MainForm();
+            mf.Location = new Point(-1000, -1000);
+            mf.FormClosing += (sender, e) => { settings.Save(); };
+
+            mainthread = new Thread(() =>
             {
-                mf.Location = new System.Drawing.Point(-1000, -1000);
-                mf.FormClosing += (sender, e) => { settings.Save(); };
-
-                mainthread = new Thread(() =>
+                var mainClosed = false;
+                mf.FormClosed += (sender, a) => { mainClosed = true; };
+                while (!mainClosed)
                 {
-                    var mainClosed = false;
-                    mf.FormClosed += (sender, a) => { mainClosed = true; };
-                    while (!mainClosed)
+                    while (mf.needtolaunch.Count > 0)
                     {
-                        while (mf.needtolaunch.Count > 0)
+                        var i = mf.needtolaunch.Dequeue();
+                        var a = accounts[i];
+                        if (a.active && a.process.process.MainWindowHandle != IntPtr.Zero)
                         {
-                            var i = mf.needtolaunch.Dequeue();
-                            var a = accounts[i];
-                            if (a.active && a.process.process != null && a.process.process.MainWindowHandle != IntPtr.Zero)
-                            {
-                                SetForegroundWindow(a.process.process.MainWindowHandle);
-                                continue;
-                            }
-                            var m = MulticlientPatch.LaunchClient(a.gwpath,
-                                " -email \"" + a.email + "\" -password \"" + a.password + "\" -character \"" +
-                                a.character + "\" " + a.extraargs, a.datfix, false, a.elevated, a.mods);
+                            SetForegroundWindow(a.process.process.MainWindowHandle);
+                            continue;
+                        }
+                        var m = GWMC_CS.MulticlientPatch.LaunchClient(a.gwpath,
+                            " -email \"" + a.email + "\" -password \"" + a.password + "\" -character \"" +
+                            a.character + "\" " + a.extraargs, a.datfix, false, a.elevated, a.mods);
 
-                            uint timelock = 0;
-                            while (m.process.MainWindowHandle == IntPtr.Zero || !m.process.WaitForInputIdle(1000) && timelock++ < 10)
-                            {
-                                Thread.Sleep(1000);
-                                m.process.Refresh();
-                            }
-
-                            if (timelock >= 10) continue;
-                            a.process = m;
-
-                            mf.SetActive(i, true);
-                            GWMem.FindAddressesIfNeeded(m);
-                            while (m.Read<ushort>(GWMem.CharnamePtr) == 0 && timelock++ < 60)
-                            {
-                                Thread.Sleep(1000);
-                                m.process.Refresh();
-                            }
-                            if (!string.IsNullOrEmpty(a.character) && m.process.MainWindowTitle == "Guild Wars")
-                            {
-                                SetWindowText(m.process.MainWindowHandle, a.character);
-                            }
-                            Thread.Sleep(5000);
+                        uint timelock = 0;
+                        while (m.process.MainWindowHandle == IntPtr.Zero || !m.process.WaitForInputIdle(1000) && timelock++ < 10)
+                        {
+                            Thread.Sleep(1000);
+                            m.process.Refresh();
                         }
 
-                        mutex.WaitOne();
+                        if (timelock >= 10) continue;
+                        a.process = m;
 
-                        for (var i = 0; i < accounts.Length; ++i)
+                        mf.SetActive(i, true);
+                        GWMem.FindAddressesIfNeeded(m);
+                        while (m.Read<ushort>(GWMem.CharnamePtr) == 0 && timelock++ < 60)
                         {
-                            if (!accounts[i].active) continue;
-                            if (accounts[i].process.process.HasExited)
-                            {
-                                mf.SetActive(i, false);
-                            }
+                            Thread.Sleep(1000);
+                            m.process.Refresh();
                         }
-
-                        mutex.ReleaseMutex();
-
-                        Thread.Sleep(1000);
+                        if (!string.IsNullOrEmpty(a.character) && m.process.MainWindowTitle == "Guild Wars")
+                        {
+                            SetWindowText(m.process.MainWindowHandle, a.character);
+                        }
+                        Thread.Sleep(5000);
                     }
-                });
-                Application.Run(mf);
 
-                mainthread.Abort();
-            }
+                    mutex.WaitOne();
+
+                    for (var i = 0; i < accounts.Length; ++i)
+                    {
+                        if (!accounts[i].active) continue;
+                        if (accounts[i].process.process.HasExited)
+                        {
+                            mf.SetActive(i, false);
+                        }
+                    }
+
+                    mutex.ReleaseMutex();
+
+                    Thread.Sleep(1000);
+                }
+            });
+            Application.Run(mf);
         }
 
     }

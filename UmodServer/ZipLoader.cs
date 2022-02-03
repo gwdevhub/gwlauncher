@@ -9,10 +9,10 @@ namespace UmodServer
 {
     public class ZipLoader : IDisposable
     {
-        FileStream stream;
-        ZipArchive archive;
+        private FileStream stream;
+        private ZipArchive archive;
 
-        readonly byte[] tpfPassword =
+        private readonly byte[] tpfPassword =
         {
             0x73, 0x2A, 0x63, 0x7D, 0x5F, 0x0A, 0xA6, 0xBD,
             0x7D, 0x65, 0x7E, 0x67, 0x61, 0x2A, 0x7F, 0x7F,

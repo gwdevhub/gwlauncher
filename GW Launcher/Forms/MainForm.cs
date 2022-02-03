@@ -1,12 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Linq;
-using System.Threading.Tasks;
-using System.Windows.Forms;
+﻿using System.ComponentModel;
 using System.Diagnostics;
-using System.Threading;
-using System.IO;
 using GWCA.Memory;
 using GWMC_CS;
 using Microsoft.Win32;
@@ -20,8 +13,7 @@ namespace GW_Launcher
         public Queue<int> needtolaunch;
 
         int heightofgui = 143;
-
-        public int batch_index;
+        
         ListView.SelectedIndexCollection selectedItems;
 
         bool rightClickOpen = false;
@@ -29,7 +21,8 @@ namespace GW_Launcher
         public MainForm()
         {
             InitializeComponent();
-            
+            needtolaunch = new Queue<int>();
+            selectedItems = new ListView.SelectedIndexCollection(listViewAccounts);
         }
 
         private void RefreshUI()
@@ -153,9 +146,13 @@ namespace GW_Launcher
             {
                 pathdefault = (string)Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\ArenaNet\\Guild Wars", "Path", null);
                 if (pathdefault == null)
-                    MessageBox.Show("pathdefault = null, gw not installed?");
+                    MessageBox.Show(@"pathdefault = null, gw not installed?");
             }
-            MulticlientPatch.LaunchClient(pathdefault, "", true, true);
+
+            if (pathdefault != null)
+            {
+                MulticlientPatch.LaunchClient(pathdefault, "", true, true);
+            }
         }
 
         private void refreshAccountsToolStripMenuItem_Click(object sender, EventArgs e)
@@ -187,20 +184,6 @@ namespace GW_Launcher
             }
             Program.mutex.ReleaseMutex();
         }
-
-        private void texmodsToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            Program.mutex.WaitOne();
-            selectedItems = listViewAccounts.SelectedIndices;
-            if (selectedItems.Count == 0) return;
-            var idx = selectedItems[0];
-            var acc = Program.accounts[idx];
-            if (string.IsNullOrEmpty(acc.email)) return;
-
-            var modForm = new ModManager(acc);
-            modForm.Show();
-        }
-
         private void listViewAccounts_ItemDrag(object sender, ItemDragEventArgs e)
         {
             

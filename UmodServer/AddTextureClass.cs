@@ -38,7 +38,7 @@ namespace UmodServer
             }
         }
 
-        bool SetSize(uint num)
+        private bool SetSize(uint num)
         {
             Num = 0;
             Textures = new List<byte>[num];
