@@ -42,28 +42,25 @@ namespace GW_Launcher
                 var m = new GWCAMemory(p);
                 GWMem.FindAddressesIfNeeded(m);
                 var str = m.ReadWString(GWMem.EmailAddPtr, 64);
-                for (var i = 0; i < Program.accounts.Length; ++i)
+                foreach (var acc in Program.accounts)
                 {
-                    if (str == Program.accounts[i].email)
-                    {
-                        Program.accounts[i].active = true;
-                        Program.accounts[i].process = m;
-                        break;
-                    }
+                    if (str != acc.email) continue;
+                    acc.active = true;
+                    acc.process = m;
+                    break;
                 }
             }
 
             // Fill out data.
-            for (var i = 0; i < Program.accounts.Length; ++i)
+            foreach (var acc in Program.accounts)
             {
                 listViewAccounts.Items.Add(new ListViewItem(
-                    new string[] {
-                            Program.accounts[i].character,
-                            Program.accounts[i].active ? "Active" : "Inactive"
+                    new[] {
+                        acc.character,
+                        acc.active ? "Active" : "Inactive"
                     },
                     "gw-icon"
-                    ));
-
+                ));
             }
         }
 
@@ -74,7 +71,7 @@ namespace GW_Launcher
             if(listViewAccounts.InvokeRequired)
             {
                 var cb = new SetActiveUICallback(SetActive);
-                Invoke(cb, new object[] { idx, active });
+                Invoke(cb, idx, active);
             }
             else
             {
@@ -131,9 +128,12 @@ namespace GW_Launcher
         private void removeSelectedToolStripMenuItem_Click(object sender, EventArgs e)
         {
             Program.mutex.WaitOne();
-            var selectedthing = listViewAccounts.SelectedIndices[0];
-            var account = Program.accounts[selectedthing];
-            Program.accounts.Remove(account.email);
+            var indices  = from int indice in listViewAccounts.SelectedIndices orderby indice descending select indice;
+            foreach (var indice in indices)
+            {
+                Program.accounts.Remove(indice);
+            }
+
             Program.accounts.Save();
             RefreshUI();
             Program.mutex.ReleaseMutex();
@@ -167,10 +167,9 @@ namespace GW_Launcher
         {
             Program.mutex.WaitOne();
             selectedItems = listViewAccounts.SelectedIndices;
-            if (selectedItems.Count == 0) return;
-            var idx = selectedItems[0];
+            if (selectedItems.Count == 0 && listViewAccounts.FocusedItem == null) return;
+            var idx = selectedItems.Contains(listViewAccounts.FocusedItem.Index) ? listViewAccounts.FocusedItem.Index : selectedItems[0];
             var acc = Program.accounts[idx];
-
             var addaccform = new AddAccountForm
             {
                 Text = @"Modify Account",

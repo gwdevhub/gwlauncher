@@ -1,32 +1,28 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections;
+using System.Security.Cryptography;
 using System.Text;
 using Newtonsoft.Json;
-using System.IO;
-using Logos.Utility.Security.Cryptography;
 
 namespace GW_Launcher
 {
     public class AccountManager : IEnumerable<Account>, IDisposable
     {
-        private List<Account> accounts;
-        private readonly string _filePath;
-        private byte[] _cryptPass = null;
+        private List<Account> accounts = new();
+        private readonly string _filePath = "Accounts.json";
+        private byte[]? _cryptPass;
         private readonly byte[] _salsaIv = { 0xc8, 0x93, 0x48, 0x45, 0xcf, 0xa0, 0xfa, 0x85 };
-        private readonly Salsa20 _crypt = new();
+        private readonly SymmetricAlgorithm _crypt = Aes.Create();
         public int Length => accounts.Count;
 
 
         public AccountManager(string? filePath = null)
         {
-            accounts = new List<Account>();
             if (filePath == null) return;
             _filePath = filePath;
             Load(filePath);
         }
         
-        public void Load(string filePath = null)
+        public void Load(string? filePath = null)
         {
             if (_cryptPass == null && Program.settings.Encrypt)
             {
@@ -35,21 +31,17 @@ namespace GW_Launcher
                 _cryptPass = form.Password;
             }
 
-            if (filePath == null && _filePath != null)
-            {
-                filePath = _filePath;
-            }
+            filePath ??= _filePath;
 
             if (!Program.settings.Encrypt)
             {
                 try
                 {
                     var text = File.ReadAllText(filePath);
-                    accounts = JsonConvert.DeserializeObject<List<Account>>(text);
+                    accounts = JsonConvert.DeserializeObject<List<Account>>(text) ?? accounts;
                 }
                 catch (FileNotFoundException e)
                 {
-
                     // silent
                     File.WriteAllText(e.FileName, "[]");
                     accounts.Clear();
@@ -67,9 +59,9 @@ namespace GW_Launcher
                     var rawJson = Encoding.UTF8.GetString(cryptBytes);
                     if (!rawJson.StartsWith("SHIT"))
                     {
-                        System.Windows.Forms.MessageBox.Show("Incorrect password.\n Restart launcher and try again.", "GW Launcher - Invalid Password");
+                        MessageBox.Show("Incorrect password.\n Restart launcher and try again.", @"GW Launcher - Invalid Password");
                     }
-                    accounts = JsonConvert.DeserializeObject<List<Account>>(rawJson.Substring(4));
+                    accounts = JsonConvert.DeserializeObject<List<Account>>(rawJson[4..]) ?? accounts;
                 }
                 catch (FileNotFoundException)
                 {
@@ -86,7 +78,7 @@ namespace GW_Launcher
 
         }
 
-        public void Save(string filePath = null)
+        public void Save(string? filePath = null)
         {
             if (filePath == null && _filePath != null)
             {

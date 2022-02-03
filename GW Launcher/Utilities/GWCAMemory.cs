@@ -76,8 +76,11 @@ namespace GWCA
                 uint dwSize,
                 uint dwFreeType);
 
-            [DllImport("kernel32", CharSet = CharSet.Unicode, ExactSpelling = true, SetLastError = true)]
+            [DllImport("kernel32.dll", CharSet = CharSet.Ansi, ExactSpelling = true, SetLastError = true)]
             private static extern IntPtr GetProcAddress(IntPtr hModule, string procName);
+
+            [DllImport("kernel32.dll")]
+            private static extern IntPtr LoadLibrary(string dllToLoad);
 
             [DllImport("kernel32.dll", SetLastError = true)]
             private static extern uint WaitForSingleObject(IntPtr hHandle, uint dwMilliseconds);

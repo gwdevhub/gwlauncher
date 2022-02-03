@@ -31,8 +31,8 @@
             this.components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainForm));
             this.listViewAccounts = new System.Windows.Forms.ListView();
-            this.columnName = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-            this.columnStatus = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.columnName = new System.Windows.Forms.ColumnHeader();
+            this.columnStatus = new System.Windows.Forms.ColumnHeader();
             this.contextMenuStripAccounts = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.refreshAccountsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator3 = new System.Windows.Forms.ToolStripSeparator();
@@ -42,8 +42,8 @@
             this.launchSelectedToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
             this.launchGWInstanceToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.notifyIcon = new System.Windows.Forms.NotifyIcon(this.components);
             this.updateAllClientsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.notifyIcon = new System.Windows.Forms.NotifyIcon(this.components);
             this.contextMenuStripAccounts.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -56,10 +56,10 @@
             this.listViewAccounts.ContextMenuStrip = this.contextMenuStripAccounts;
             this.listViewAccounts.Dock = System.Windows.Forms.DockStyle.Fill;
             this.listViewAccounts.FullRowSelect = true;
-            this.listViewAccounts.HideSelection = false;
             this.listViewAccounts.Location = new System.Drawing.Point(0, 0);
+            this.listViewAccounts.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             this.listViewAccounts.Name = "listViewAccounts";
-            this.listViewAccounts.Size = new System.Drawing.Size(184, 270);
+            this.listViewAccounts.Size = new System.Drawing.Size(204, 312);
             this.listViewAccounts.TabIndex = 0;
             this.listViewAccounts.UseCompatibleStateImageBehavior = false;
             this.listViewAccounts.View = System.Windows.Forms.View.Details;
@@ -69,7 +69,7 @@
             // columnName
             // 
             this.columnName.Text = "Name";
-            this.columnName.Width = 120;
+            this.columnName.Width = 140;
             // 
             // columnStatus
             // 
@@ -88,7 +88,7 @@
             this.launchGWInstanceToolStripMenuItem,
             this.updateAllClientsToolStripMenuItem});
             this.contextMenuStripAccounts.Name = "contextMenuStripAccounts";
-            this.contextMenuStripAccounts.Size = new System.Drawing.Size(211, 192);
+            this.contextMenuStripAccounts.Size = new System.Drawing.Size(211, 170);
             this.contextMenuStripAccounts.Text = "Options.";
             // 
             // refreshAccountsToolStripMenuItem
@@ -143,13 +143,6 @@
             this.launchGWInstanceToolStripMenuItem.Text = "Launch Default GW Client";
             this.launchGWInstanceToolStripMenuItem.Click += new System.EventHandler(this.launchGWInstanceToolStripMenuItem_Click);
             // 
-            // notifyIcon
-            // 
-            this.notifyIcon.Icon = ((System.Drawing.Icon)(resources.GetObject("notifyIcon.Icon")));
-            this.notifyIcon.Text = "GW Launcher";
-            this.notifyIcon.Visible = true;
-            this.notifyIcon.MouseClick += new System.Windows.Forms.MouseEventHandler(this.notifyIcon_MouseClick);
-            // 
             // updateAllClientsToolStripMenuItem
             // 
             this.updateAllClientsToolStripMenuItem.Name = "updateAllClientsToolStripMenuItem";
@@ -157,14 +150,22 @@
             this.updateAllClientsToolStripMenuItem.Text = "Update All Clients";
             this.updateAllClientsToolStripMenuItem.Click += new System.EventHandler(this.updateAllClientsToolStripMenuItem_Click);
             // 
+            // notifyIcon
+            // 
+            this.notifyIcon.Icon = ((System.Drawing.Icon)(resources.GetObject("notifyIcon.Icon")));
+            this.notifyIcon.Text = "GW Launcher";
+            this.notifyIcon.Visible = true;
+            this.notifyIcon.MouseClick += new System.Windows.Forms.MouseEventHandler(this.notifyIcon_MouseClick);
+            // 
             // MainForm
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(184, 270);
+            this.ClientSize = new System.Drawing.Size(204, 312);
             this.Controls.Add(this.listViewAccounts);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedToolWindow;
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
+            this.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             this.MaximizeBox = false;
             this.MinimizeBox = false;
             this.Name = "MainForm";
