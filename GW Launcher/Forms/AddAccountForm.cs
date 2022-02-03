@@ -79,5 +79,13 @@ namespace GW_Launcher
             var modForm = new ModManager(account);
             modForm.Show();
         }
+
+        private void checkBoxDatFix_CheckedChanged(object sender, EventArgs e)
+        {
+            if (checkBoxDatFix.Checked)
+            {
+                MessageBox.Show(@"This is a legacy feature that will likely lead to issues. Only enable this is you know what you're doing.");
+            }
+        }
     }
 }
