@@ -207,6 +207,12 @@ namespace GW_Launcher
                 rightClickOpen = true;
             }
 
+            var isVisible = (Point p) =>
+            {
+                return Screen.AllScreens.Any(s => p.X < s.Bounds.Right && p.X > s.Bounds.Left && p.Y > s.Bounds.Top && p.Y < s.Bounds.Bottom);
+            };
+               
+
             var loc = Cursor.Position;
 
             loc.X -= (Width / 2);
@@ -217,6 +223,17 @@ namespace GW_Launcher
             else
             {
                 loc.Y += 25;
+            }
+
+            if (!isVisible(loc))
+            {
+                loc.Y = Cursor.Position.Y;
+            }
+
+            if (!isVisible(loc))
+            {
+                loc.X = Screen.PrimaryScreen.Bounds.Width / 2;
+                loc.Y = Screen.PrimaryScreen.Bounds.Height / 2;
             }
 
             Location = loc;
