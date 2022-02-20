@@ -24,8 +24,8 @@ namespace GW_Launcher
             listViewAvailableMods.Items.Clear();
             foreach (var mod in account.mods)
             {
-                var name = System.IO.Path.GetFileName(mod.fileName);
-                var path = System.IO.Path.GetDirectoryName(mod.fileName);
+                var name = Path.GetFileName(mod.fileName);
+                var path = Path.GetDirectoryName(mod.fileName);
                 var item = new ListViewItem(new string[] {
                         name,
                         path

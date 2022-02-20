@@ -256,7 +256,7 @@ namespace GW_Launcher
                 var proc = Process.Start(client, "-image");
                 var tcs = new TaskCompletionSource<object>();
                 proc.EnableRaisingEvents = true;
-                proc.Exited += (sender, args) => tcs.TrySetResult(null);
+                proc.Exited += (sender, args) => tcs.TrySetResult(null!);
                 if (cancellationToken != default)
                     cancellationToken.Register(tcs.SetCanceled);
 

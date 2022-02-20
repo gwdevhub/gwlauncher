@@ -1,5 +1,4 @@
-﻿using System;
-using GWCA.Memory;
+﻿using GWCA.Memory;
 
 namespace GW_Launcher
 {

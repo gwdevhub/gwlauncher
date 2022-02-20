@@ -22,7 +22,7 @@ namespace GW_Launcher
             try
             {
                 var txt = File.ReadAllText(path);
-                return JsonConvert.DeserializeObject<GlobalSettings>(txt);
+                return JsonConvert.DeserializeObject<GlobalSettings>(txt) ?? new GlobalSettings();
             }
             catch (FileNotFoundException)
             {
@@ -37,8 +37,8 @@ namespace GW_Launcher
         private const string GwlMutexName = "gwl_instance_mutex";
         public static AccountManager accounts;
         public static Thread mainthread;
-        public static Mutex mutex = new Mutex();
-        public static Mutex gwlMutex;
+        public static Mutex mutex = new();
+        public static Mutex? gwlMutex;
         public static GlobalSettings settings;
 
         [DllImport("user32.dll", EntryPoint = "SetWindowText", CharSet = CharSet.Unicode)]

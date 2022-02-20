@@ -8,6 +8,9 @@ packages/
 *.dll
 *.rar
 
+# Rider project files
+/.idea/
+
 # Bloated Windows Databases
 *.sdf
 *.opensdf
