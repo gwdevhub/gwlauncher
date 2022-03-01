@@ -1,9 +1,6 @@
-﻿using System;
-using Microsoft.Win32;
-using System.Windows.Forms;
+﻿using Microsoft.Win32;
 
-
-namespace GW_Launcher
+namespace GW_Launcher.Forms
 {
     public partial class AddAccountForm : Form
     {
@@ -44,15 +41,15 @@ namespace GW_Launcher
         {
             var openFileDialog = new OpenFileDialog();
 
-            var pathdefault = (string)Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\ArenaNet\\Guild Wars", "Path", null);
+            var pathdefault = (string?)Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\ArenaNet\\Guild Wars", "Path", null);
             if (pathdefault == null)
             {
-                pathdefault = (string)Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\ArenaNet\\Guild Wars", "Path", null);
+                pathdefault = (string?)Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\ArenaNet\\Guild Wars", "Path", null);
                 if (pathdefault == null)
                     MessageBox.Show("pathdefault = null, gw not installed?");
             }
 
-            openFileDialog.InitialDirectory = (string)pathdefault;
+            openFileDialog.InitialDirectory = pathdefault;
             openFileDialog.Filter = "Guild Wars|Gw.exe";
             openFileDialog.RestoreDirectory = true;
 

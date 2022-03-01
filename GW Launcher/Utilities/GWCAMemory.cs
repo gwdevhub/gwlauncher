@@ -1,9 +1,10 @@
 ﻿using System.ComponentModel;
-using System.Text;
-using System.Runtime.InteropServices;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
+using System.Text;
 
-namespace GWCA.Memory;
+namespace GW_Launcher.Utilities;
+
 public class GWCAMemory
 {
     #region Basic Members
@@ -14,7 +15,7 @@ public class GWCAMemory
     // Scan variables.
     private IntPtr scan_start;
     private int scan_size;
-    private byte[] memory_dump;
+    private byte[]? memory_dump;
     #endregion
 
     #region Constructor
@@ -118,7 +119,7 @@ public class GWCAMemory
     /// <param name="address">Address of base to read from.</param>
     /// <param name="size">Amount of bytes to read from base.</param>
     /// <returns>bytes read.</returns>
-    public byte[] ReadBytes(IntPtr address, int size)
+    public byte[]? ReadBytes(IntPtr address, int size)
     {
         var buffer = Marshal.AllocHGlobal(size);
 

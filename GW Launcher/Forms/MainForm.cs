@@ -1,12 +1,11 @@
 ﻿using System.ComponentModel;
 using System.Diagnostics;
-using GWCA.Memory;
-using GWMC_CS;
-using Microsoft.Win32;
-using System.Security.Principal;
 using System.Reflection;
+using System.Security.Principal;
+using GW_Launcher.Utilities;
+using Microsoft.Win32;
 
-namespace GW_Launcher
+namespace GW_Launcher.Forms
 {
     public partial class MainForm : Form
     {
@@ -141,10 +140,10 @@ namespace GW_Launcher
 
         private void launchGWInstanceToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            var pathdefault = (string)Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\ArenaNet\\Guild Wars", "Path", null);
+            var pathdefault = (string?)Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\ArenaNet\\Guild Wars", "Path", null);
             if (pathdefault == null)
             {
-                pathdefault = (string)Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\ArenaNet\\Guild Wars", "Path", null);
+                pathdefault = (string?)Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\ArenaNet\\Guild Wars", "Path", null);
                 if (pathdefault == null)
                     MessageBox.Show(@"pathdefault = null, gw not installed?");
             }

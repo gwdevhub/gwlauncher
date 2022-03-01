@@ -1,10 +1,9 @@
 ﻿using System.Diagnostics;
 using System.Runtime.InteropServices;
-using GW_Launcher;
-using GWCA.Memory;
+using GW_Launcher.Utilities;
 using Microsoft.Win32;
 
-namespace GWMC_CS;
+namespace GW_Launcher;
 
 internal class MulticlientPatch
 {

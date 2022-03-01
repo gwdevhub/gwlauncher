@@ -1,7 +1,8 @@
 ﻿using System.Text;
 using Ionic.Zip;
 
-namespace UMod;
+namespace GW_Launcher.UMod;
+
 public class uModFile
 {
     public uModFile(string fileName = null)

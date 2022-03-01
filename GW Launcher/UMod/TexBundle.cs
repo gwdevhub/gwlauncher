@@ -1,4 +1,4 @@
-﻿namespace UMod;
+﻿namespace GW_Launcher.UMod;
 
 public struct TexDef
 {

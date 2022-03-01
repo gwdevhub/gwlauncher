@@ -1,11 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.IO;
-using System.IO.Pipes;
+﻿using System.IO.Pipes;
 
-namespace UMod;
-public enum MsgControl : UInt32
+namespace GW_Launcher.UMod;
+
+public enum MsgControl : uint
 {
     CONTROL_ADD_TEXTURE = 1,
     CONTROL_FORCE_RELOAD_TEXTURE = 2,
