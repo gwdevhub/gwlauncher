@@ -4,7 +4,7 @@
     <OutputType>WinExe</OutputType>
     <TargetFramework>net6.0-windows</TargetFramework>
     <RootNamespace>GW_Launcher</RootNamespace>
-    <Nullable>enable</Nullable>
+	<Nullable>enable</Nullable>
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
     <StartupObject>GW_Launcher.Program</StartupObject>
@@ -13,6 +13,9 @@
     <Platforms>x86</Platforms>
     <PlatformTarget>x86</PlatformTarget>
     <DebugType>portable</DebugType>
+    <AssemblyVersion>12.1</AssemblyVersion>
+    <FileVersion>12.1</FileVersion>
+    <Copyright>2015-2022 GregLando113</Copyright>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'">
@@ -53,6 +56,10 @@
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Properties\PublishProfiles\" />
   </ItemGroup>
 
 </Project>

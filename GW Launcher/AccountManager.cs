@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using System.Text;
 using GW_Launcher.Forms;
 using Newtonsoft.Json;
+using System.Diagnostics;
 
 namespace GW_Launcher;
 
@@ -10,10 +11,9 @@ public class AccountManager : IEnumerable<Account>, IDisposable
 {
     private readonly SymmetricAlgorithm _crypt = Aes.Create();
     private readonly string _filePath = "Accounts.json";
-    private readonly byte[] _salsaIv = { 0xc8, 0x93, 0x48, 0x45, 0xcf, 0xa0, 0xfa, 0x85 };
+    private readonly byte[] _salsaIv = { 0xc8, 0x93, 0x48, 0x45, 0xcf, 0xa0, 0xfa, 0x85, 0xc8, 0x93, 0x48, 0x45, 0xcf, 0xa0, 0xfa, 0x85 };
     private byte[] _cryptPass;
     private List<Account> _accounts = new();
-
 
     public AccountManager(string? filePath = null)
     {
@@ -91,29 +91,35 @@ public class AccountManager : IEnumerable<Account>, IDisposable
             try
             {
                 var textBytes = File.ReadAllBytes(filePath);
-                var cryptBytes = new byte[textBytes.Length];
                 using (var decrypt = _crypt.CreateDecryptor(_cryptPass, _salsaIv))
                 {
-                    decrypt.TransformBlock(textBytes, 0, textBytes.Length, cryptBytes, 0);
+                    try
+                    {
+                        var cryptBytes = decrypt.TransformFinalBlock(textBytes, 0, textBytes.Length);
+                        var rawJson = Encoding.UTF8.GetString(cryptBytes);
+                        if (!rawJson.StartsWith("SHIT"))
+                        {
+                            throw new Exception();
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        var result = MessageBox.Show("Incorrect password.\n Restart launcher and try again.",
+                                @"GW Launcher - Invalid Password");
+                        throw new Exception("Wrong password");
+                    }
                 }
-
-                var rawJson = Encoding.UTF8.GetString(cryptBytes);
-                if (!rawJson.StartsWith("SHIT"))
-                    MessageBox.Show(@"Incorrect password.\n Restart launcher and try again.",
-                        @"GW Launcher - Invalid Password");
-                _accounts = JsonConvert.DeserializeObject<List<Account>>(rawJson[4..]) ?? _accounts;
             }
             catch (FileNotFoundException)
             {
                 // silent
                 var bytes = Encoding.UTF8.GetBytes("SHIT[]");
-                var cryptBytes = new byte[bytes.Length];
                 using (var encrypt = _crypt.CreateEncryptor(_cryptPass, _salsaIv))
                 {
-                    encrypt.TransformBlock(bytes, 0, bytes.Length, cryptBytes, 0);
+                    var cryptBytes = encrypt.TransformFinalBlock(bytes, 0, bytes.Length);
+                    File.WriteAllBytes(filePath, cryptBytes);
                 }
 
-                File.WriteAllBytes(filePath, cryptBytes);
                 _accounts.Clear();
             }
     }

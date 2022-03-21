@@ -2,6 +2,7 @@
 using System.Runtime.InteropServices;
 using GW_Launcher.Forms;
 using GW_Launcher.Utilities;
+using System.Diagnostics;
 
 namespace GW_Launcher;
 public class GlobalSettings
@@ -72,7 +73,14 @@ internal static class Program
 
         gwlMutex = new Mutex(true, GwlMutexName);
 
-        accounts = new AccountManager("Accounts.json");
+        try
+        {
+            accounts = new AccountManager("Accounts.json");
+        }
+        catch (Exception ex)
+        {
+            return;
+        }
         foreach (var t in accounts)
         {
             t.active = false;
