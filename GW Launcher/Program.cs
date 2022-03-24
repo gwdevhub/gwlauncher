@@ -28,7 +28,10 @@ public class GlobalSettings
         }
         catch (FileNotFoundException)
         {
-            return new GlobalSettings();
+            var settings = new GlobalSettings();
+            var result = MessageBox.Show("Would you like to encrypt the account info?", "Encryption", MessageBoxButtons.YesNo);
+            if (result == DialogResult.No) { settings.Encrypt = false; }
+            return settings;
         }
 
     }
