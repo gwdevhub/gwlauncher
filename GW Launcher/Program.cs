@@ -80,7 +80,7 @@ internal static class Program
         {
             accounts = new AccountManager("Accounts.json");
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return;
         }

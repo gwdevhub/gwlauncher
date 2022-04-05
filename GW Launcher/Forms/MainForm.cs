@@ -280,10 +280,16 @@ namespace GW_Launcher.Forms
             {
                 // relaunch the application with admin rights
                 var fileName = Assembly.GetExecutingAssembly().Location;
+                if (fileName == null || !File.Exists(fileName) || !fileName.EndsWith(".exe"))
+                {
+                    fileName = Environment.ProcessPath;
+                }
                 var processInfo = new ProcessStartInfo
                 {
                     Verb = "runas",
-                    FileName = fileName
+                    UseShellExecute = true,
+                    FileName = fileName,
+                    Arguments = "restart"
                 };
 
                 try
