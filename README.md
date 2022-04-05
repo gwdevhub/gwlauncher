@@ -15,7 +15,7 @@
 
 * * *
 
-1.  Click download below.
+1.  Click [download](https://github.com/GregLando113/gwlauncher/releases) below.
 2.  Select the most recent revision executable. The regular version requires the [.NET 6 runtime](https://dotnet.microsoft.com/en-us/download/dotnet/6.0). The self-contained version runs out of the box.
 3.  Put the executable in its own folder! Dont be that guy who keeps everything in their downloads folder/desktop please.
 4.  Run the executable.
