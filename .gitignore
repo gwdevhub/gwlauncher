@@ -8,6 +8,9 @@ packages/
 *.dll
 *.rar
 
+# user files
+*.user
+
 # Rider project files
 /.idea/
 
@@ -15,8 +18,6 @@ packages/
 *.sdf
 *.opensdf
 *.suo
-
-
 
 # Compiled Object files
 *.slo
