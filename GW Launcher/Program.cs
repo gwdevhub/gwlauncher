@@ -56,16 +56,6 @@ internal static class Program
     [STAThread]
     internal static void Main()
     {
-        var location = Path.GetDirectoryName(AppContext.BaseDirectory);
-        if (location != null)
-        {
-            var filename = Path.Combine(location, "GWML.dll");
-            if (!File.Exists(filename))
-            {
-                File.WriteAllBytes(filename, Properties.Resources.GWML);
-            }
-        }
-
         Application.EnableVisualStyles();
         Application.SetCompatibleTextRenderingDefault(false);
 
@@ -75,6 +65,13 @@ internal static class Program
         }
 
         gwlMutex = new Mutex(true, GwlMutexName);
+
+        var location = Path.GetDirectoryName(AppContext.BaseDirectory);
+        if (location != null)
+        {
+            var filename = Path.Combine(location, "GWML.dll");
+            File.WriteAllBytes(filename, Properties.Resources.GWML); //overwrite the file
+        }
 
         try
         {
