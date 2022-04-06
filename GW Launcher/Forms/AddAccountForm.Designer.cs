@@ -1,4 +1,4 @@
-﻿namespace GW_Launcher
+﻿namespace GW_Launcher.Forms
 {
     partial class AddAccountForm
     {

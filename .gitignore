@@ -8,12 +8,16 @@ packages/
 *.dll
 *.rar
 
+# user files
+*.user
+
+# Rider project files
+/.idea/
+
 # Bloated Windows Databases
 *.sdf
 *.opensdf
 *.suo
-
-
 
 # Compiled Object files
 *.slo

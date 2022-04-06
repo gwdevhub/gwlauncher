@@ -3,9 +3,6 @@
 
 ### Overview
 
-![lnch-add-account](http://tools.fbgmguild.com/wp-content/uploads/2016/08/lnch-add-account.png)
-![lnch-1](http://tools.fbgmguild.com/wp-content/uploads/2016/08/lnch-1.png)
-
 * * *
 
 *   Able to add accounts to a list in order to quickly launch them on demand.
@@ -18,8 +15,8 @@
 
 * * *
 
-1.  Click download below.
-2.  Select the most recent revision executable. (Or source of you want to compile yourself)
+1.  Click [download](https://github.com/GregLando113/gwlauncher/releases) below.
+2.  Select the most recent revision executable. The regular version requires the [.NET 6 runtime](https://dotnet.microsoft.com/en-us/download/dotnet/6.0). The self-contained version runs out of the box.
 3.  Put the executable in its own folder! Dont be that guy who keeps everything in their downloads folder/desktop please.
 4.  Run the executable.
 
@@ -61,22 +58,6 @@ Right click the Main Launcher Window to reveal a context menu, then select _Edit
     "password": "poop",
     "character": "Werpy Derp",
     "gwpath": "C:\\Derp\\GW3\\Gw.exe",
-    "datfix": false,
-    "extraargs":""
-  },
-  {
-    "email": "derp3@derperkins.derp",
-    "password": "iamsomature",
-    "character": "Derrrrrp Derp",
-    "gwpath": "C:\\Derp\\GW2\\Gw.exe",
-    "datfix": false,
-    "extraargs":""
-  },
-  {
-    "email": "derp4@derperkins.derp",
-    "password": "I<3GWLauncher",
-    "character": "So Much Derp",
-    "gwpath": "C:\\Derp\\GW1\\Gw.exe",
     "datfix": false,
     "extraargs":""
   }

@@ -1,33 +1,31 @@
-﻿using System.Collections.Generic;
+﻿using GW_Launcher.Utilities;
 using Newtonsoft.Json;
-using GWCA.Memory;
 
-namespace GW_Launcher
+namespace GW_Launcher;
+
+public class Account
 {
-    public class Account
-    {
 
-        [JsonRequired]
-        public string email;
+    [JsonRequired]
+    public string email;
 
-        [JsonRequired]
-        public string password;
+    [JsonRequired]
+    public string password;
 
-        [JsonRequired]
-        public string character;
+    [JsonRequired]
+    public string character;
 
-        [JsonRequired]
-        public string gwpath;
+    [JsonRequired]
+    public string gwpath;
 
-        public bool datfix;
-        public bool elevated;
-        public string extraargs;
-        public List<Mod> mods;
+    public bool datfix;
+    public bool elevated;
+    public string extraargs;
+    public List<Mod> mods = new();
 
-        [JsonIgnore]
-        public bool active;
+    [JsonIgnore]
+    public bool active;
 
-        [JsonIgnore]
-        public GWCAMemory process;
-    }
+    [JsonIgnore]
+    public GWCAMemory process;
 }

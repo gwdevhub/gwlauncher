@@ -1,187 +1,166 @@
 ﻿using System.Collections;
 using System.Security.Cryptography;
 using System.Text;
+using GW_Launcher.Forms;
 using Newtonsoft.Json;
+using System.Diagnostics;
 
-namespace GW_Launcher
+namespace GW_Launcher;
+
+public class AccountManager : IEnumerable<Account>, IDisposable
 {
-    public class AccountManager : IEnumerable<Account>, IDisposable
+    private readonly SymmetricAlgorithm _crypt = Aes.Create();
+    private readonly string _filePath = "Accounts.json";
+    private readonly byte[] _salsaIv = { 0xc8, 0x93, 0x48, 0x45, 0xcf, 0xa0, 0xfa, 0x85, 0xc8, 0x93, 0x48, 0x45, 0xcf, 0xa0, 0xfa, 0x85 };
+    private byte[] _cryptPass;
+    private List<Account> _accounts = new();
+
+    public AccountManager(string? filePath = null)
     {
-        private List<Account> accounts = new();
-        private readonly string _filePath = "Accounts.json";
-        private byte[]? _cryptPass;
-        private readonly byte[] _salsaIv = { 0xc8, 0x93, 0x48, 0x45, 0xcf, 0xa0, 0xfa, 0x85 };
-        private readonly SymmetricAlgorithm _crypt = Aes.Create();
-        public int Length => accounts.Count;
+        if (filePath == null) return;
+        _filePath = filePath;
+        Load(filePath);
+    }
 
+    public int Length => _accounts.Count;
 
-        public AccountManager(string? filePath = null)
+    public Account this[int index]
+    {
+        get => _accounts[index];
+        set
         {
-            if (filePath == null) return;
-            _filePath = filePath;
-            Load(filePath);
+            _accounts[index] = value;
+            Save(_filePath);
         }
-        
-        public void Load(string? filePath = null)
+    }
+
+    public Account? this[string email]
+    {
+        get
         {
-            if (_cryptPass == null && Program.settings.Encrypt)
+            return _accounts.Find(a => a.email == email);
+        }
+        set
+        {
+            var index = _accounts.FindIndex(a => a.email == email);
+            if (index != -1 && value != null)
+                this[index] = value;
+        }
+    }
+
+    void IDisposable.Dispose()
+    {
+        GC.SuppressFinalize(this);
+        _crypt.Dispose();
+    }
+
+    IEnumerator<Account> IEnumerable<Account>.GetEnumerator()
+    {
+        return ((IEnumerable<Account>)_accounts).GetEnumerator();
+    }
+
+    IEnumerator IEnumerable.GetEnumerator()
+    {
+        return _accounts.GetEnumerator();
+    }
+
+    public void Load(string? filePath = null)
+    {
+        if (Program.settings.Encrypt)
+        {
+            var form = new CryptPassForm();
+            form.ShowDialog();
+            _cryptPass = form.Password;
+        }
+
+        filePath ??= _filePath;
+
+        if (!Program.settings.Encrypt)
+            try
             {
-                var form = new Forms.CryptPassForm();
-                form.ShowDialog();
-                _cryptPass = form.Password;
+                var text = File.ReadAllText(filePath);
+                _accounts = JsonConvert.DeserializeObject<List<Account>>(text) ?? _accounts;
             }
-
-            filePath ??= _filePath;
-
-            if (!Program.settings.Encrypt)
+            catch (FileNotFoundException)
             {
-                try
-                {
-                    var text = File.ReadAllText(filePath);
-                    accounts = JsonConvert.DeserializeObject<List<Account>>(text) ?? accounts;
-                }
-                catch (FileNotFoundException e)
-                {
-                    // silent
-                    File.WriteAllText(e.FileName, "[]");
-                    accounts.Clear();
-                }
+                // silent
+                File.WriteAllText(filePath, "[]");
+                _accounts.Clear();
             }
-            else
+        else
+            try
             {
-
-                try
+                var textBytes = File.ReadAllBytes(filePath);
+                using (var decrypt = _crypt.CreateDecryptor(_cryptPass, _salsaIv))
                 {
-                    var textBytes = File.ReadAllBytes(filePath);
-                    var cryptBytes = new byte[textBytes.Length];
-                    using (var decrypt = _crypt.CreateDecryptor(_cryptPass, _salsaIv))
-                        decrypt.TransformBlock(textBytes, 0, textBytes.Length, cryptBytes, 0);
-                    var rawJson = Encoding.UTF8.GetString(cryptBytes);
-                    if (!rawJson.StartsWith("SHIT"))
+                    try
                     {
-                        MessageBox.Show("Incorrect password.\n Restart launcher and try again.", @"GW Launcher - Invalid Password");
+                        var cryptBytes = decrypt.TransformFinalBlock(textBytes, 0, textBytes.Length);
+                        var rawJson = Encoding.UTF8.GetString(cryptBytes);
+                        if (!rawJson.StartsWith("SHIT"))
+                        {
+                            throw new Exception();
+                        }
                     }
-                    accounts = JsonConvert.DeserializeObject<List<Account>>(rawJson[4..]) ?? accounts;
-                }
-                catch (FileNotFoundException)
-                {
-
-                    // silent
-                    var bytes = Encoding.UTF8.GetBytes("SHIT[]");
-                    var cryptBytes = new byte[bytes.Length];
-                    using (var encrypt = _crypt.CreateEncryptor(_cryptPass, _salsaIv))
-                        encrypt.TransformBlock(bytes, 0, bytes.Length, cryptBytes, 0);
-                    File.WriteAllBytes(filePath, cryptBytes);
-                    accounts.Clear();
+                    catch (Exception)
+                    {
+                        var result = MessageBox.Show("Incorrect password.\n Restart launcher and try again.",
+                                @"GW Launcher - Invalid Password");
+                        throw new Exception("Wrong password");
+                    }
                 }
             }
-
-        }
-
-        public void Save(string? filePath = null)
-        {
-            if (filePath == null && _filePath != null)
+            catch (FileNotFoundException)
             {
-                filePath = _filePath;
-            }
-
-            var text = JsonConvert.SerializeObject(accounts, Formatting.Indented);
-            if (!Program.settings.Encrypt)
-            {
-                File.WriteAllText(filePath, text);
-            }
-            else
-            {
-                text = "SHIT" + text;
-                var bytes = Encoding.UTF8.GetBytes(text);
-                var cryptBytes = new byte[bytes.Length];
+                // silent
+                var bytes = Encoding.UTF8.GetBytes("SHIT[]");
                 using (var encrypt = _crypt.CreateEncryptor(_cryptPass, _salsaIv))
-                    encrypt.TransformBlock(bytes, 0, bytes.Length, cryptBytes, 0);
-                File.WriteAllBytes(filePath, cryptBytes);
-            }
-        }
-
-        public void Add(Account acc)
-        {
-            accounts.Add(acc);
-            if (_filePath != null)
-            {
-                Save(_filePath);
-            }
-        }
-
-        public void Remove(int index)
-        {
-            accounts.RemoveAt(index);
-            if (_filePath != null)
-            {
-                Save(_filePath);
-            }
-        }
-
-        public void Remove(string email)
-        {
-            for (var i = 0; i < accounts.Count; i++)
-            {
-                if (accounts[i].email != email) continue;
-                Remove(i);
-                return;
-            }
-        }
-
-        public int GetIndexOf(string email)
-        {
-            for (var i = 0; i < accounts.Count; i++)
-            {
-                if (accounts[i].email == email)
                 {
-                    return i;
+                    var cryptBytes = encrypt.TransformFinalBlock(bytes, 0, bytes.Length);
+                    File.WriteAllBytes(filePath, cryptBytes);
                 }
+
+                _accounts.Clear();
             }
-            return -1;
-        }
+    }
 
-        IEnumerator<Account> IEnumerable<Account>.GetEnumerator()
-        {
-            return ((IEnumerable<Account>)accounts).GetEnumerator();
-        }
+    public void Save(string? filePath = null)
+    {
+        filePath ??= _filePath;
 
-        IEnumerator IEnumerable.GetEnumerator()
+        var text = JsonConvert.SerializeObject(_accounts, Formatting.Indented);
+        if (!Program.settings.Encrypt)
         {
-            return accounts.GetEnumerator();
+            File.WriteAllText(filePath, text);
         }
-
-        public Account this[int index]
+        else
         {
-            get => accounts[index];
-            set
+            text = "SHIT" + text;
+            var bytes = Encoding.UTF8.GetBytes(text);
+            var cryptBytes = new byte[bytes.Length];
+            using (var encrypt = _crypt.CreateEncryptor(_cryptPass, _salsaIv))
             {
-                accounts[index] = value;
-                if (_filePath != null)
-                {
-                    Save(_filePath);
-                }
+                encrypt.TransformBlock(bytes, 0, bytes.Length, cryptBytes, 0);
             }
-        }
 
-        public Account this[string email]
-        {
-            get
-            {
-                var index = GetIndexOf(email);
-                return index == -1 ? null : this[index];
-            }
-            set
-            {
-                var index = GetIndexOf(email);
-                if (index != -1)
-                   this[index] = value;
-            }
+            File.WriteAllBytes(filePath, cryptBytes);
         }
+    }
 
-        void IDisposable.Dispose()
-        {
-            _crypt.Dispose();
-        }
+    public void Add(Account acc)
+    {
+        _accounts.Add(acc);
+        Save(_filePath);
+    }
+
+    public void Remove(int index)
+    {
+        _accounts.RemoveAt(index);
+        Save(_filePath);
+    }
+
+    public void Remove(string email)
+    {
+        _accounts.RemoveAll(a => a.email == email);
     }
 }

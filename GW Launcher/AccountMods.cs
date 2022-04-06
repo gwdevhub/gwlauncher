@@ -1,15 +1,13 @@
-﻿namespace GW_Launcher
+﻿namespace GW_Launcher;
+public enum ModType
 {
-    public enum ModType
-    {
-        kModTypeTexmod,
-        kModTypeDLL
-    }
+    kModTypeTexmod,
+    kModTypeDLL
+}
 
-    public class Mod
-    {
-        public ModType type;
-        public string fileName;
-        public bool active;
-    }
+public class Mod
+{
+    public ModType type;
+    public string fileName;
+    public bool active;
 }
