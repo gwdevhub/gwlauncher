@@ -53,6 +53,12 @@ internal static class Program
     [return: MarshalAs(UnmanagedType.Bool)]
     static extern bool SetForegroundWindow(IntPtr hWnd);
 
+    [DllImport("uMod.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+    public static extern int RunServer();
+
+    [DllImport("uMod.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+    public static extern bool LoadTextures(string texturepack);
+
     [STAThread]
     internal static void Main()
     {
@@ -85,6 +91,8 @@ internal static class Program
         {
             t.active = false;
         }
+
+        int server = RunServer();
 
         using var mf = new MainForm();
         mf.Location = new Point(-1000, -1000);
@@ -130,6 +138,9 @@ internal static class Program
                     {
                         SetWindowText(m.process.MainWindowHandle, a.character);
                     }
+
+                    LoadTextures("C:\\Users\\m\\OneDrive\\Desktop\\programs\\gw1\\Minimalus_Dub.tpf");
+
                     Thread.Sleep(5000);
                 }
 
