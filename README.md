@@ -17,8 +17,9 @@
 
 1.  Click [download](https://github.com/GregLando113/gwlauncher/releases) below.
 2.  Select the most recent revision executable. The regular version requires the [.NET 6 Desktop Runtime (x86)](https://dotnet.microsoft.com/en-us/download/dotnet/6.0). The self-contained version runs out of the box.
-3.  Put the executable in its own folder! Dont be that guy who keeps everything in their downloads folder/desktop please.
-4.  Run the executable.
+3.  Confirm that you have the latest [Visual C++ Redistributables x86](https://aka.ms/vs/17/release/vc_redist.x86.exe) installed.
+4.  Put the executable in its own folder! Dont be that guy who keeps everything in their downloads folder/desktop please. It will create three files (Settings.json, Accounts.json, GWML.dll) in the same location you put the executable when you launch it.
+5.  Run the executable.
 
 ### Usage
 
@@ -76,9 +77,9 @@ The dat patch as stated above will allow you to run as many clients as you want 
 *   Game updates will fail to update, will cause a hang come updates. (Run the Guild Wars client normally to update in order to fix this)
 *   If the game crashes, there is no chance of a reconnect to be possible.
 
-There may be more side effects, however these are the effects I have seen. The general problem is that any process involving writing to Gw.dat will fail.
+There may be more side effects, however these are the effects I have seen. The general problem is that any process involving writing to Gw.dat will fail. It is generally advised *not* to tick the .dat patch.
 
 #### GW Plugins
 
-Well, since you read this far, ill tell you another feature not noted in the overview. If you create a folder named "plugins" within the Gw.exe folder, the launcher will load all .dll's or shortcuts (.lnk) to .dll's inside this folder on launch. This is beneficial for many reasons as you can load plugins and modules at runtime, for example umod's d3d9.dll can be loaded, avoiding the global hook and its side effects. (uMod's d3d9 dll allows for you to close uMod after launch and is significantly less taxing on performance.) I hope that this feature comes in handy to people.
-Dll's placed in gwlauncher/plugins folder will load for every instance, dll's in the <gw-installation-path>/plugins folder will only load for the instance launched from that path.
+If you create a folder named "plugins" within the Gw.exe folder, the launcher will load all .dll's or shortcuts (.lnk) to .dll's inside this folder on launch. This is beneficial for many reasons as you can load plugins and modules at runtime, for example umod's d3d9.dll can be loaded, avoiding the global hook and its side effects.
+Dll's placed in gwlauncher/plugins folder will load for every instance, dll's in the <gw-installation-path>/plugins folder will only load for the instance launched from that path. Alternatively there is also a GUI to select plugins for specific accounts when you edit the account. Texmod files may already be selected, but do not have any effect yet.
