@@ -279,11 +279,7 @@ public partial class MainForm : Form
         if (!hasAdministrativeRight)
         {
             // relaunch the application with admin rights
-            var fileName = Assembly.GetExecutingAssembly().Location;
-            if (fileName == null || !File.Exists(fileName) || !fileName.EndsWith(".exe"))
-            {
-                fileName = Environment.ProcessPath;
-            }
+            var fileName = Environment.ProcessPath;
             var processInfo = new ProcessStartInfo
             {
                 Verb = "runas",

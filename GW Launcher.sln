@@ -7,8 +7,6 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Launcher-Dll", "Launcher-Dl
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GW Launcher", "GW Launcher\GW Launcher.csproj", "{D5834DAB-6827-4F24-A6DC-BF8A7543D643}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "uMod", "uMod\uMod.vcxproj", "{480EA6DA-1F9A-414F-BEDE-0CDD5EC4BFAB}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -33,14 +31,6 @@ Global
 		{D5834DAB-6827-4F24-A6DC-BF8A7543D643}.Release|x64.Build.0 = Release|x86
 		{D5834DAB-6827-4F24-A6DC-BF8A7543D643}.Release|x86.ActiveCfg = Release|x86
 		{D5834DAB-6827-4F24-A6DC-BF8A7543D643}.Release|x86.Build.0 = Release|x86
-		{480EA6DA-1F9A-414F-BEDE-0CDD5EC4BFAB}.Debug|x64.ActiveCfg = Debug|x64
-		{480EA6DA-1F9A-414F-BEDE-0CDD5EC4BFAB}.Debug|x64.Build.0 = Debug|x64
-		{480EA6DA-1F9A-414F-BEDE-0CDD5EC4BFAB}.Debug|x86.ActiveCfg = Debug|Win32
-		{480EA6DA-1F9A-414F-BEDE-0CDD5EC4BFAB}.Debug|x86.Build.0 = Debug|Win32
-		{480EA6DA-1F9A-414F-BEDE-0CDD5EC4BFAB}.Release|x64.ActiveCfg = Release|x64
-		{480EA6DA-1F9A-414F-BEDE-0CDD5EC4BFAB}.Release|x64.Build.0 = Release|x64
-		{480EA6DA-1F9A-414F-BEDE-0CDD5EC4BFAB}.Release|x86.ActiveCfg = Release|Win32
-		{480EA6DA-1F9A-414F-BEDE-0CDD5EC4BFAB}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

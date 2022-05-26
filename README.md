@@ -16,10 +16,9 @@
 * * *
 
 1.  Click [download](https://github.com/GregLando113/gwlauncher/releases) below.
-2.  Select the most recent revision executable. The regular version requires the [.NET 6 Desktop Runtime (x86)](https://dotnet.microsoft.com/en-us/download/dotnet/6.0). The self-contained version runs out of the box.
-3.  Confirm that you have the latest [Visual C++ Redistributables x86](https://aka.ms/vs/17/release/vc_redist.x86.exe) installed.
-4.  Put the executable in its own folder! Dont be that guy who keeps everything in their downloads folder/desktop please. It will create three files (Settings.json, Accounts.json, GWML.dll) in the same location you put the executable when you launch it.
-5.  Run the executable.
+2.  Select the most recent revision executable. The regular version requires the [.NET 6 Desktop Runtime (x86)](https://dotnet.microsoft.com/en-us/download/dotnet/6.0).
+3.  Put the executable in its own folder! It will create three files (Settings.json, Accounts.json, GWML.dll) in the same location you put the executable when you launch it.
+4.  Run the executable.
 
 ### Usage
 

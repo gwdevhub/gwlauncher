@@ -43,10 +43,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="Resources\GWML.dll" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="Costura.Fody" Version="5.7.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; compile; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
