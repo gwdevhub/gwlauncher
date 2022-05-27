@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 using GW_Launcher.Forms;
 using GW_Launcher.Utilities;
 using System.Diagnostics;
+using GW_Launcher.uMod;
 
 namespace GW_Launcher;
 public class GlobalSettings
@@ -90,6 +91,8 @@ internal static class Program
         mf.Location = new Point(-1000, -1000);
         mf.FormClosing += (sender, e) => { settings.Save(); };
 
+        var texClient = new uModTexClient();
+
         mainthread = new Thread(() =>
         {
             var mainClosed = false;
@@ -130,6 +133,9 @@ internal static class Program
                     {
                         SetWindowText(m.process.MainWindowHandle, a.character);
                     }
+
+                    texClient.AddFile("C:\\Users\\m\\OneDrive\\Desktop\\programs\\gw1\\Minimalus.zip");
+                    texClient.Send();
 
                     Thread.Sleep(5000);
                 }

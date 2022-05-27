@@ -1,6 +1,6 @@
-﻿namespace GW_Launcher.UMod;
+﻿namespace GW_Launcher.uMod;
 
-public class AddTextureClass
+internal class AddTextureClass
 {
     public AddTextureClass(AddTextureClass? tex = null)
     {
@@ -49,7 +49,7 @@ public class AddTextureClass
     }
 
     public uint Num { get; set; }
-    public List<byte>[]? Textures { get; set; }
+    public List<byte>[] Textures { get; set; }
     public uint[]? Size { get; set; }
     public ulong[]? Hash { get; set; }
     public bool[]? WasAdded { get; set; }

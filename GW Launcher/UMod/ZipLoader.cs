@@ -2,7 +2,7 @@
 using System.Text;
 using Ionic.Zip;
 
-namespace GW_Launcher.UMod;
+namespace GW_Launcher.uMod;
 
 public class ZipLoader
 {

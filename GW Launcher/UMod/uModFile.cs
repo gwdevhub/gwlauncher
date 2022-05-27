@@ -1,11 +1,11 @@
 ﻿using System.Text;
 using Ionic.Zip;
 
-namespace GW_Launcher.UMod;
+namespace GW_Launcher.uMod;
 
 public class uModFile
 {
-    public uModFile(string fileName = null)
+    public uModFile(string fileName)
     {
         FileName = fileName;
     }
@@ -20,7 +20,7 @@ public class uModFile
         return 0;
     }
 
-    public AddTextureClass GetContent(bool add)
+    internal AddTextureClass GetContent(bool add)
     {
         var file_type = Path.GetExtension(FileName);
         if (file_type != ".zip" && file_type != ".tpf") return null;
@@ -111,55 +111,53 @@ public class uModFile
         }
         else
         {
-            return AddContent(null, add);
+            return AddContent(Array.Empty<byte>(), add);
         }
     }
 
     private AddTextureClass AddContent(byte[] pw, bool add)
     {
         var tex = new AddTextureClass();
-        using (var archive = new ZipFile(FileName, Encoding.Default))
+        using var archive = new ZipFile(FileName, Encoding.Default);
+        archive.Password = Encoding.Default.GetString(pw);
+        archive.Encryption = EncryptionAlgorithm.PkzipWeak; // the default: you might need to select the proper value here
+        archive.StatusMessageTextWriter = Console.Out;
+
+        var contents = new Dictionary<string, byte[]>();
+        foreach (var entry in archive.Entries)
         {
-            archive.Password = Encoding.Default.GetString(pw);
-            archive.Encryption = EncryptionAlgorithm.PkzipWeak; // the default: you might need to select the proper value here
-            archive.StatusMessageTextWriter = Console.Out;
+            var content = new byte[entry.UncompressedSize];
+            entry.Extract(new MemoryStream(content));
+            contents[entry.FileName] = content;
+        }
 
-            var contents = new Dictionary<string, byte[]>();
-            foreach (var entry in archive.Entries)
+        var texmoddef = contents["texmod.def"];
+        var texstring = Encoding.Default.GetString(texmoddef);
+        var lines = texstring.Split('\n');
+        var count = 0;
+        foreach (var line in lines)
+        {
+            var splits = new List<string>(line.Replace("\r", "").Split('|'));
+            var addrstr = splits.First();
+            var addr = Convert.ToUInt64(addrstr.Replace("0x", ""), 16);
+            splits.RemoveAt(0);
+            var path = string.Join("|", splits);
+            while (path[0] == '.' && (path[1] == '/' || path[1] == '\\') || path[0] == '/' || path[0] == '\\') path = path.Remove(0, 1);
+
+            if (!add)
             {
-                var content = new byte[entry.UncompressedSize];
-                entry.Extract(new MemoryStream(content));
-                contents[entry.FileName] = content;
-            }
-
-            var texmoddef = contents["texmod.def"];
-            var texstring = Encoding.Default.GetString(texmoddef);
-            var lines = texstring.Split('\n');
-            var count = 0;
-            foreach (var line in lines)
-            {
-                var splits = new List<string>(line.Replace("\r", "").Split('|'));
-                var addrstr = splits.First();
-                var addr = Convert.ToUInt64(addrstr.Replace("0x", ""), 16);
-                splits.RemoveAt(0);
-                var path = string.Join("|", splits);
-                while (path[0] == '.' && (path[1] == '/' || path[1] == '\\') || path[0] == '/' || path[0] == '\\') path = path.Remove(0, 1);
-
-                if (!add)
-                {
-                    tex.Hash[count] = addr;
-                    tex.Size[count] = 0;
-                    count++;
-                    continue;
-                }
-
-                if (!contents.ContainsKey(path)) continue;
-                var item = contents[path];
-                tex.Textures[count] = new List<byte>(item);
                 tex.Hash[count] = addr;
-                tex.Size[count] = (uint)item.Length;
+                tex.Size[count] = 0;
                 count++;
+                continue;
             }
+
+            if (!contents.ContainsKey(path)) continue;
+            var item = contents[path];
+            tex.Textures[count] = new List<byte>(item);
+            tex.Hash[count] = addr;
+            tex.Size[count] = (uint)item.Length;
+            count++;
         }
 
         return null;

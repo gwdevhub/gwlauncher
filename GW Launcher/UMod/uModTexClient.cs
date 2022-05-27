@@ -1,6 +1,8 @@
-﻿using System.IO.Pipes;
+﻿using System.Buffers.Binary;
+using System.Diagnostics;
+using System.IO.Pipes;
 
-namespace GW_Launcher.UMod;
+namespace GW_Launcher.uMod;
 
 public enum MsgControl : uint
 {
@@ -43,66 +45,92 @@ public struct Msg
 
 public class uModTexClient
 {
-    private readonly NamedPipeClientStream pipeClient;
+    private readonly NamedPipeServerStream pipeReceive;
+    private readonly NamedPipeServerStream pipeSend;
     private const string PIPE_uMod2Game = "\\\\.\\pipe\\uMod2Game";
     private const string PIPE_Game2uMod = "\\\\.\\pipe\\Game2uMod";
 
-    public List<TexBundle> bundles;
-    public List<TexDef> looseTextures;
+    private List<TexBundle> bundles;
+    private List<uModFile> files;
+    private List<byte[]> bytes = new();
 
     public uModTexClient()
     {
-        pipeClient = new NamedPipeClientStream(".", "uMod2Game", PipeDirection.Out);
+        pipeReceive = new NamedPipeServerStream("Game2uMod", PipeDirection.In);
+        pipeSend = new NamedPipeServerStream("uMod2Game", PipeDirection.Out);
+        var res = pipeReceive.BeginWaitForConnection(async (IAsyncResult iar) =>
+        {
+            if (!pipeReceive.IsConnected)
+            {
+                pipeReceive.WaitForConnection();
+            }
+        }, null);
+        bundles = new List<TexBundle>();
+        files = new List<uModFile>();
     }
-
-
-    public void AddBundle(TexBundle bundle)
+    
+    internal void AddBundle(TexBundle bundle)
     {
         bundles.Add(bundle);
     }
 
-    public void AddSingleFile(string texFilePath)
+    public void AddFile(string filePath)
     {
-        var fileName = texFilePath.Split('\\').Last();
-
-
-        var tmp = fileName.Split('_', '.');
-
-        if (tmp.Length != 3)
-            throw new Exception("Not using a texmod created texture :s");
-
-        // string exeName = tmp[0];
-        var crc = tmp[1];
-        // string textureType = tmp[2];
-
-        TexDef def;
-        def.fileName = fileName;
-        def.crcHash = uint.Parse(crc);
-
-
-        using (var file = new FileStream(texFilePath, FileMode.Open))
-        {
-            def.fileData = new byte[file.Length];
-            file.Read(def.fileData, 0, (int)file.Length);
-        }
-
-        looseTextures.Add(def);
+        var bundle = new TexBundle(filePath);
+        bundles.Add(bundle);
     }
 
-    public void Send(MsgControl msg, ulong value, ulong hash, byte[] data = null)
+    public void Send()
     {
-        var packet = new byte[20 + (data?.Length ?? 0)];
+        foreach (var bundle in bundles)
+        {
+            foreach (var tex in bundle.defs)
+            {
+                var msg = new Msg();
+                msg.hash = tex.crcHash;
+                msg.msg = MsgControl.CONTROL_FORCE_RELOAD_TEXTURE_DATA;
+                msg.value = (ulong) tex.fileData.Length;
+                AddMessage(msg, tex.fileData);
+            }
+        }
+        SendAll();
+    }
 
-        packet.SetValue(msg, 0);
-        packet.SetValue(value, 4);
-        packet.SetValue(hash, 12);
-        packet.SetValue(data, 20);
+    private void AddMessage(Msg msg, byte[] data)
+    {
+        var packet = new byte[20 + data.Length];
 
-        pipeClient.Write(packet, 0, packet.Length);
+        var buf = BitConverter.GetBytes((uint) msg.msg);
+        buf.CopyTo(packet, 0);
+        buf = BitConverter.GetBytes(msg.value);
+        buf.CopyTo(packet, 4);
+        buf = BitConverter.GetBytes(msg.hash);
+        buf.CopyTo(packet, 12);
+
+        data.CopyTo(packet, 20);
+        
+        //packet.SetValue(msgbuf, 0);
+        //packet.SetValue(msg.value, 4);
+        //packet.SetValue(msg.hash, 12);
+        //packet.SetValue(data, 20);
+        bytes.Add(packet);
+    }
+
+    private void SendAll()
+    {
+        var buffer = bytes
+            .SelectMany(a => a)
+            .ToArray();
+
+        if (pipeSend.IsConnected)
+        {
+            pipeSend.Write(buffer, 0, buffer.Length);
+        }
+
     }
 
     ~uModTexClient()
     {
-        pipeClient.Close();
+        pipeSend.Close();
     }
 }
