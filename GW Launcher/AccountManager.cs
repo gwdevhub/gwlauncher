@@ -91,23 +91,24 @@ public class AccountManager : IEnumerable<Account>, IDisposable
             try
             {
                 var textBytes = File.ReadAllBytes(filePath);
-                using (var decrypt = _crypt.CreateDecryptor(_cryptPass, _salsaIv))
+                using var decrypt = _crypt.CreateDecryptor(_cryptPass, _salsaIv);
+                try
                 {
-                    try
+                    var cryptBytes = decrypt.TransformFinalBlock(textBytes, 0, textBytes.Length);
+                    var rawJson = Encoding.UTF8.GetString(cryptBytes);
+                    if (!rawJson.StartsWith("SHIT"))
                     {
-                        var cryptBytes = decrypt.TransformFinalBlock(textBytes, 0, textBytes.Length);
-                        var rawJson = Encoding.UTF8.GetString(cryptBytes);
-                        if (!rawJson.StartsWith("SHIT"))
-                        {
-                            throw new Exception();
-                        }
+                        throw new Exception();
                     }
-                    catch (Exception)
-                    {
-                        var result = MessageBox.Show("Incorrect password.\n Restart launcher and try again.",
-                                @"GW Launcher - Invalid Password");
-                        throw new Exception("Wrong password");
-                    }
+
+                    var text = rawJson.Substring(4);
+                    _accounts = JsonConvert.DeserializeObject<List<Account>>(text) ?? _accounts;
+                }
+                catch (Exception)
+                {
+                    var result = MessageBox.Show("Incorrect password.\n Restart launcher and try again.",
+                        @"GW Launcher - Invalid Password");
+                    throw new Exception("Wrong password");
                 }
             }
             catch (FileNotFoundException)
@@ -137,12 +138,8 @@ public class AccountManager : IEnumerable<Account>, IDisposable
         {
             text = "SHIT" + text;
             var bytes = Encoding.UTF8.GetBytes(text);
-            var cryptBytes = new byte[bytes.Length];
-            using (var encrypt = _crypt.CreateEncryptor(_cryptPass, _salsaIv))
-            {
-                encrypt.TransformBlock(bytes, 0, bytes.Length, cryptBytes, 0);
-            }
-
+            using var encrypt = _crypt.CreateEncryptor(_cryptPass, _salsaIv);
+            var cryptBytes = encrypt.TransformFinalBlock(bytes, 0, bytes.Length);
             File.WriteAllBytes(filePath, cryptBytes);
         }
     }
