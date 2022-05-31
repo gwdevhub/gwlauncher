@@ -135,7 +135,7 @@ internal static class Program
                     }
 
                     texClient.AddFile("C:\\Users\\m\\OneDrive\\Desktop\\programs\\gw1\\Minimalus.zip");
-                    //texClient.Send();
+                    texClient.Send();
 
                     Thread.Sleep(5000);
                 }

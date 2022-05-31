@@ -61,11 +61,22 @@ public class uModFile
         if (XORed) return 0;
         var size = FileLen / 4u;
         var buff = new uint[size];
-        Buffer.BlockCopy(FileInMemory, 0, buff, 0, FileInMemory.Length);
+        for (int i = 0; i < size; i++)
+        {
+            buff[i] = BitConverter.ToUInt32(FileInMemory, i * 4);
+        }
+
         var TPF_XOR = 0x3FA43FA4u;
         for (var i = 0; i < size; i++) buff[i] ^= TPF_XOR;
 
-        Buffer.BlockCopy(buff, 0, FileInMemory, 0, FileInMemory.Length);
+        for (var i = 0; i < size; i++)
+        {
+            var arr = BitConverter.GetBytes(buff[i]);
+            for (var j = 0; j < arr.Length; j++)
+            {
+                FileInMemory[i*4 + j] = arr[j];
+            }
+        }
 
         var xorbytes = BitConverter.GetBytes(TPF_XOR);
         for (var i = size * 4; i < size * 4 + FileLen % 4u; i++)
@@ -118,7 +129,8 @@ public class uModFile
     private AddTextureClass AddContent(byte[] pw, bool add)
     {
         var tex = new AddTextureClass();
-        using var archive = new ZipFile(FileName, Encoding.Default);
+        using var memoryStream = new MemoryStream(FileInMemory);
+        using var archive = ZipFile.Read(memoryStream);
         archive.Password = Encoding.Default.GetString(pw);
         archive.Encryption = EncryptionAlgorithm.PkzipWeak; // the default: you might need to select the proper value here
         archive.StatusMessageTextWriter = Console.Out;
