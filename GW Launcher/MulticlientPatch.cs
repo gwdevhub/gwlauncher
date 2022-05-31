@@ -1,7 +1,4 @@
-﻿using System.Diagnostics;
-using System.Runtime.InteropServices;
-using GW_Launcher.Utilities;
-using Microsoft.Win32;
+﻿using Microsoft.Win32;
 using IWshRuntimeLibrary;
 
 namespace GW_Launcher;
@@ -47,12 +44,13 @@ internal class MulticlientPatch
         var mem = new GWCAMemory(proc);
 
         var dllpath = Directory.GetCurrentDirectory() + "\\plugins";
-        var to_load = new List<string>();
+        var to_load = new List<string>(
+        );
         if (Directory.Exists(dllpath))
         {
             var links = Directory.GetFiles(dllpath, "*.lnk");
             var files = Directory.GetFiles(dllpath, "*.dll");
-            links = links.Select(l => GetShortcutPath(l)).Where(l => l.EndsWith(".dll")).ToArray();
+            links = links.Select(GetShortcutPath).Where(l => l.EndsWith(".dll")).ToArray();
             to_load.AddRange(links);
             to_load.AddRange(files);
         }
@@ -62,14 +60,16 @@ internal class MulticlientPatch
         {
             var links = Directory.GetFiles(dllpath, "*.lnk");
             var files = Directory.GetFiles(dllpath, "*.dll");
-            links = links.Select(l => GetShortcutPath(l)).Where(l => l.EndsWith(".dll")).ToArray();
+            links = links.Select(GetShortcutPath).Where(l => l.EndsWith(".dll")).ToArray();
             to_load.AddRange(links);
             to_load.AddRange(files);
         }
 
-        if (mods != null)
-            foreach (var mod in mods.Where(mod => mod.type == ModType.kModTypeDLL && System.IO.File.Exists(mod.fileName)))
-                to_load.Add(mod.fileName);
+        if (mods != null) to_load.AddRange(mods.Where(mod => mod.type == ModType.kModTypeDLL && System.IO.File.Exists(mod.fileName)).Select(mod => mod.fileName));
+        if (mods != null && mods.Exists(m => m.type == ModType.kModTypeTexmod))
+        {
+            to_load.Add(Path.Combine(Directory.GetCurrentDirectory(), "d3d9.dll")); // load d3d9.dll for umod
+        }
 
         foreach (var dll in to_load.Distinct())
         {

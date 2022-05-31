@@ -1,7 +1,4 @@
-﻿using GW_Launcher.Utilities;
-using Newtonsoft.Json;
-
-namespace GW_Launcher;
+﻿namespace GW_Launcher;
 
 public class Account
 {

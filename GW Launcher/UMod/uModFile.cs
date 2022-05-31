@@ -1,7 +1,4 @@
-﻿using System.Text;
-using Ionic.Zip;
-
-namespace GW_Launcher.uMod;
+﻿namespace GW_Launcher.uMod;
 
 public class uModFile
 {
@@ -15,53 +12,34 @@ public class uModFile
         return FileName.EndsWith(".tpf") || FileName.EndsWith(".zip");
     }
 
-    public int GetComment(string tool_tip)
+    private bool ReadFile()
     {
-        return 0;
-    }
-
-    internal AddTextureClass GetContent(bool add)
-    {
-        var file_type = Path.GetExtension(FileName);
-        if (file_type != ".zip" && file_type != ".tpf") return null;
-        var tex = AddZip(add, file_type == ".tpf");
-
-        if (add) tex.Loaded = true;
-        return tex;
-    }
-
-    public int SetFile(string file) { FileName = file; Loaded = false; return 0; }
-    public string GetFile() { return FileName; }
-
-    private int ReadFile()
-    {
-        if (Loaded) return 0;
+        if (Loaded) return true;
         XORed = false;
 
         var dat = new FileStream(FileName, FileMode.Open);
         FileLen = dat.Length;
 
-        FileInMemory = new byte[FileLen + 1];
+        FileInMemory = new byte[FileLen];
 
         var result = dat.Read(FileInMemory, 0, (int)FileLen);
         dat.Close();
 
         if (result != FileLen)
         {
-            return -1;
+            return false;
         }
-        FileInMemory[FileLen] = 0;
 
         Loaded = true;
-        return 0;
+        return true;
     }
 
-    private int UnXOR()
+    private void UnXOR()
     {
-        if (XORed) return 0;
+        if (XORed) return;
         var size = FileLen / 4u;
         var buff = new uint[size];
-        for (int i = 0; i < size; i++)
+        for (var i = 0; i < size; i++)
         {
             buff[i] = BitConverter.ToUInt32(FileInMemory, i * 4);
         }
@@ -84,95 +62,28 @@ public class uModFile
             FileInMemory[i] ^= xorbytes[0];
         }
 
-        var pos = FileLen - 1;
+        var pos = (int)FileLen - 1;
         while (pos > 0u && FileInMemory[pos] != 0) pos--;
         if (pos > 0u && pos < FileLen - 1) FileLen = pos + 1;
+        var buf = new byte[FileLen];
+        Buffer.BlockCopy(FileInMemory, 0, buf, 0, (int) FileLen);
+        FileInMemory = new byte[FileLen];
+        Buffer.BlockCopy(buf, 0, FileInMemory, 0, (int)FileLen);
         XORed = true;
-
-        return 0;
     }
 
-    private int GetCommentZip(string tool_tip)
-    {
-        return 0;
-    }
 
-    private int GetCommentTpf(string tool_tip)
+    public byte[]? GetFile()
     {
-        return 0;
-    }
-
-    private AddTextureClass AddZip(bool add, bool tpf)
-    {
+        if (Loaded) return FileInMemory;
         var ret = ReadFile();
-        if (ret != 0) return null;
+        if (!ret) return null;
 
-        if (tpf)
+        if (FileName.EndsWith(".tpf"))
         {
             UnXOR();
-
-            var pw = new byte[] {0x73, 0x2A, 0x63, 0x7D, 0x5F, 0x0A, 0xA6, 0xBD,
-                    0x7D, 0x65, 0x7E, 0x67, 0x61, 0x2A, 0x7F, 0x7F,
-                    0x74, 0x61, 0x67, 0x5B, 0x60, 0x70, 0x45, 0x74,
-                    0x5C, 0x22, 0x74, 0x5D, 0x6E, 0x6A, 0x73, 0x41,
-                    0x77, 0x6E, 0x46, 0x47, 0x77, 0x49, 0x0C, 0x4B,
-                    0x46, 0x6F, 0};
-
-            return AddContent(pw, add);
         }
-        else
-        {
-            return AddContent(Array.Empty<byte>(), add);
-        }
-    }
-
-    private AddTextureClass AddContent(byte[] pw, bool add)
-    {
-        var tex = new AddTextureClass();
-        using var memoryStream = new MemoryStream(FileInMemory);
-        using var archive = ZipFile.Read(memoryStream);
-        archive.Password = Encoding.Default.GetString(pw);
-        archive.Encryption = EncryptionAlgorithm.PkzipWeak; // the default: you might need to select the proper value here
-        archive.StatusMessageTextWriter = Console.Out;
-
-        var contents = new Dictionary<string, byte[]>();
-        foreach (var entry in archive.Entries)
-        {
-            var content = new byte[entry.UncompressedSize];
-            entry.Extract(new MemoryStream(content));
-            contents[entry.FileName] = content;
-        }
-
-        var texmoddef = contents["texmod.def"];
-        var texstring = Encoding.Default.GetString(texmoddef);
-        var lines = texstring.Split('\n');
-        var count = 0;
-        foreach (var line in lines)
-        {
-            var splits = new List<string>(line.Replace("\r", "").Split('|'));
-            var addrstr = splits.First();
-            var addr = Convert.ToUInt64(addrstr.Replace("0x", ""), 16);
-            splits.RemoveAt(0);
-            var path = string.Join("|", splits);
-            while (path[0] == '.' && (path[1] == '/' || path[1] == '\\') || path[0] == '/' || path[0] == '\\') path = path.Remove(0, 1);
-
-            if (!add)
-            {
-                tex.Hash[count] = addr;
-                tex.Size[count] = 0;
-                count++;
-                continue;
-            }
-
-            if (!contents.ContainsKey(path)) continue;
-            var item = contents[path];
-            tex.Textures[count] = new List<byte>(item);
-            tex.Hash[count] = addr;
-            tex.Size[count] = (uint)item.Length;
-            count++;
-        }
-
-        return null;
+        return FileInMemory;
     }
 
     private string FileName { get; set; }

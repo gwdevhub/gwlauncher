@@ -1,11 +1,8 @@
-﻿using Newtonsoft.Json;
-using System.Runtime.InteropServices;
-using GW_Launcher.Forms;
-using GW_Launcher.Utilities;
-using System.Diagnostics;
+﻿using GW_Launcher.Forms;
 using GW_Launcher.uMod;
 
 namespace GW_Launcher;
+
 public class GlobalSettings
 {
     public bool Encrypt { get; set; }
@@ -70,8 +67,11 @@ internal static class Program
         var location = Path.GetDirectoryName(AppContext.BaseDirectory);
         if (location != null)
         {
+            // overwrite files
             var filename = Path.Combine(location, "GWML.dll");
-            File.WriteAllBytes(filename, Properties.Resources.GWML); //overwrite the file
+            File.WriteAllBytes(filename, Properties.Resources.GWML);
+            var filenameumod = Path.Combine(location, "d3d9.dll");
+            File.WriteAllBytes(filenameumod, Properties.Resources.d3d9);
         }
 
         try
@@ -134,7 +134,7 @@ internal static class Program
                         SetWindowText(m.process.MainWindowHandle, a.character);
                     }
 
-                    texClient.AddFile("C:\\Users\\m\\OneDrive\\Desktop\\programs\\gw1\\Minimalus.zip");
+                    texClient.AddFile("C:\\Users\\m\\OneDrive\\Desktop\\programs\\gw1\\Minimalus_Dub.tpf");
                     texClient.Send();
 
                     Thread.Sleep(5000);

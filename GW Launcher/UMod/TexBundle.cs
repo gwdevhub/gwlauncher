@@ -23,12 +23,11 @@ public class TexBundle
             if (tmp.Length != 4)
             {
                 continue;
-                throw new Exception("Not using a texmod created texture :s");
             }
 
             // string exeName = tmp[0];
             var crc = tmp[2];
-            // string textureType = tmp[2];
+            // string textureType = tmp[3];
 
             TexDef def;
             def.fileName = key;

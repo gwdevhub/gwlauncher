@@ -1,7 +1,4 @@
-﻿using System.Buffers.Binary;
-using System.Diagnostics;
-using System.IO.Pipes;
-using System.Text;
+﻿using System.IO.Pipes;
 
 namespace GW_Launcher.uMod;
 
@@ -59,11 +56,11 @@ public class uModTexClient
 
     public uModTexClient()
     {
-        pipeReceive = new NamedPipeServerStream("Game2uMod", PipeDirection.In, 255, PipeTransmissionMode.Byte, PipeOptions.None, SMALL_PIPE_SIZE, SMALL_PIPE_SIZE);
-        pipeSend = new NamedPipeServerStream("uMod2Game", PipeDirection.Out, 255, PipeTransmissionMode.Byte, PipeOptions.None, BIG_PIPE_SIZE, BIG_PIPE_SIZE);
+        pipeReceive = new NamedPipeServerStream("Game2uMod", PipeDirection.In, 1, PipeTransmissionMode.Byte, PipeOptions.None, SMALL_PIPE_SIZE, SMALL_PIPE_SIZE);
+        pipeSend = new NamedPipeServerStream("uMod2Game", PipeDirection.Out, 1, PipeTransmissionMode.Byte, PipeOptions.None, BIG_PIPE_SIZE, BIG_PIPE_SIZE);
         var res = pipeReceive.BeginWaitForConnection(async (IAsyncResult iar) =>
         {
-            var buf = new byte[1024];
+            var buf = new byte[SMALL_PIPE_SIZE];
             var num = pipeReceive.Read(buf);
             if (num <= 2) return;
             var gameName = Encoding.Default.GetString(buf);
@@ -77,17 +74,10 @@ public class uModTexClient
         files = new List<uModFile>();
     }
     
-    internal void AddBundle(TexBundle bundle)
-    {
-        bundles.Add(bundle);
-    }
-
     public void AddFile(string filePath)
     {
         var bundle = new TexBundle(filePath);
         bundles.Add(bundle);
-        //var file = new uModFile(filePath);
-        //var content = file.GetContent(true);
     }
 
     public void Send()
@@ -96,7 +86,7 @@ public class uModTexClient
         {
             foreach (var tex in bundle.defs)
             {
-                if (bytes.Select(l => l.Length).Sum() + tex.fileData.Length > PIPE_SIZE)
+                if (bytes.Select(l => l.Length).Sum() + tex.fileData.Length > BIG_PIPE_SIZE)
                 {
                     var msg = new Msg
                     {
