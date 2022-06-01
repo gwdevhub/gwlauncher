@@ -1,4 +1,6 @@
-﻿namespace GW_Launcher.uMod;
+﻿using System.Collections.ObjectModel;
+
+namespace GW_Launcher.uMod;
 
 public class ZipLoader
 {
@@ -14,6 +16,7 @@ public class ZipLoader
 
     public ZipLoader(string fileName)
     {
+        Entries = new ReadOnlyDictionary<string, byte[]>(new Dictionary<string, byte[]>());
         var ext = Path.GetExtension(fileName);
         if (ext == ".tpf")
         {
@@ -23,13 +26,13 @@ public class ZipLoader
         if (IsTpfEncrypted)
         {
             var file = new uModFile(fileName);
-            if (file.GetFile() == null) return;
-            using var memoryStream = new MemoryStream(file.GetFile());
+            var fileContent = file.GetContent();
+            if (fileContent == null) return;
+            using var memoryStream = new MemoryStream(fileContent);
             using var archive = Ionic.Zip.ZipFile.Read(memoryStream);
             var password = Encoding.Latin1.GetString(_tpfPassword);
             archive.Password = password;
             archive.Encryption = EncryptionAlgorithm.None;
-            archive.StatusMessageTextWriter = Console.Out;
 
             var contents = new Dictionary<string, byte[]>();
             foreach (var entry in archive.Entries)
@@ -41,7 +44,7 @@ public class ZipLoader
 
                 if (entry.FileName.Contains("copy"))
                 {
-                    curFileName = entry.FileName.Substring(0, 17) + Path.GetExtension(entry.FileName);
+                    curFileName = entry.FileName[..17] + Path.GetExtension(entry.FileName);
                 }
                 contents[curFileName] = content;
             }
@@ -66,6 +69,7 @@ public class ZipLoader
 
             Entries = files;
         }
+        GC.Collect();
     }
 
     public IReadOnlyDictionary<string, byte[]> Entries { get; }

@@ -33,7 +33,7 @@ public class uModFile
         Loaded = true;
         return true;
     }
-
+    
     private void UnXOR()
     {
         if (XORed) return;
@@ -65,17 +65,14 @@ public class uModFile
         var pos = (int)FileLen - 1;
         while (pos > 0u && FileInMemory[pos] != 0) pos--;
         if (pos > 0u && pos < FileLen - 1) FileLen = pos + 1;
-        var buf = new byte[FileLen];
-        Buffer.BlockCopy(FileInMemory, 0, buf, 0, (int) FileLen);
-        FileInMemory = new byte[FileLen];
-        Buffer.BlockCopy(buf, 0, FileInMemory, 0, (int)FileLen);
+        
         XORed = true;
     }
 
 
-    public byte[]? GetFile()
+    public byte[]? GetContent()
     {
-        if (Loaded) return FileInMemory;
+        if (Loaded) return FileInMemory[..(System.Index)FileLen];
         var ret = ReadFile();
         if (!ret) return null;
 
@@ -83,7 +80,7 @@ public class uModFile
         {
             UnXOR();
         }
-        return FileInMemory;
+        return FileInMemory[..(System.Index)FileLen];
     }
 
     private string FileName { get; set; }

@@ -33,13 +33,18 @@ internal class MulticlientPatch
             memory.LoadModule(dll);
         }
 
-        foreach (var textureMod in GetTextureMods(path, account.mods))
-        {
-            account.texClient?.AddFile(textureMod);
-        }
-
         NativeMethods.ResumeThread(hThread);
         NativeMethods.CloseHandle(hThread);
+
+        Task.Run(() =>
+        {
+            foreach (var textureMod in GetTexmods(path, account.mods))
+            {
+                account.texClient?.AddFile(textureMod);
+            }
+
+            account.texClient?.Send();
+        });
 
         return memory;
     }
