@@ -83,6 +83,7 @@ public class AccountManager : IEnumerable<Account>, IDisposable
                 _accounts.Clear();
             }
         else
+        {
             try
             {
                 var textBytes = File.ReadAllBytes(filePath);
@@ -118,6 +119,12 @@ public class AccountManager : IEnumerable<Account>, IDisposable
 
                 _accounts.Clear();
             }
+        }
+
+        foreach (var account in _accounts.Where(account => account.mods == null))
+        {
+            account.mods = new List<Mod>();
+        }
     }
 
     public void Save(string? filePath = null)
