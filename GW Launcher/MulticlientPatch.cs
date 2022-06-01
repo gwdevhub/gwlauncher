@@ -43,9 +43,8 @@ internal class MulticlientPatch
             foreach (var tex in GetTexmods(path, a.mods))
             {
                 a.texClient?.AddFile(tex);
+                a.texClient?.Send();
             }
-
-            a.texClient?.Send();
         });
 
         return mem;

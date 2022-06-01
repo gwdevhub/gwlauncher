@@ -143,6 +143,7 @@ public class uModTexClient
             _hashes.Add(tex.crcHash);
             AddMessage(msg, tex.fileData);
         }
+        _bundles.Clear();
         SendAll();
     }
 

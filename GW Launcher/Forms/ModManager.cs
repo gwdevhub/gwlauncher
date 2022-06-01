@@ -23,7 +23,7 @@ public partial class ModManager : Form
             var path = Path.GetDirectoryName(mod.fileName);
             var item = new ListViewItem(new string[] {
                         name,
-                        path
+                        path ?? string.Empty
                     }, mod.fileName)
             {
                 Checked = mod.active
