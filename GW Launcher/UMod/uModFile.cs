@@ -1,20 +1,19 @@
-﻿namespace GW_Launcher.uMod;
+﻿using System.Reflection.Metadata.Ecma335;
 
-public class uModFile
+namespace GW_Launcher.uMod;
+
+public class uModFile : IDisposable
 {
     public uModFile(string fileName)
     {
         FileName = fileName;
-    }
-
-    public bool FileSupported()
-    {
-        return FileName.EndsWith(".tpf") || FileName.EndsWith(".zip");
+        FileInMemory = Array.Empty<byte>();
     }
 
     private bool ReadFile()
     {
         if (Loaded) return true;
+        if (_disposed) return false;
         XORed = false;
 
         var dat = new FileStream(FileName, FileMode.Open);
@@ -33,10 +32,11 @@ public class uModFile
         Loaded = true;
         return true;
     }
-    
+
     private void UnXOR()
     {
         if (XORed) return;
+        if (_disposed) return;
         var size = FileLen / 4u;
         var buff = new uint[size];
         for (var i = 0; i < size; i++)
@@ -52,7 +52,7 @@ public class uModFile
             var arr = BitConverter.GetBytes(buff[i]);
             for (var j = 0; j < arr.Length; j++)
             {
-                FileInMemory[i*4 + j] = arr[j];
+                FileInMemory[i * 4 + j] = arr[j];
             }
         }
 
@@ -65,13 +65,14 @@ public class uModFile
         var pos = (int)FileLen - 1;
         while (pos > 0u && FileInMemory[pos] != 0) pos--;
         if (pos > 0u && pos < FileLen - 1) FileLen = pos + 1;
-        
+
         XORed = true;
     }
 
 
     public byte[]? GetContent()
     {
+        if (_disposed) return null;
         if (Loaded) return FileInMemory[..(System.Index)FileLen];
         var ret = ReadFile();
         if (!ret) return null;
@@ -89,4 +90,18 @@ public class uModFile
     private byte[] FileInMemory { get; set; }
     private long FileLen { get; set; }
 
+    private bool _disposed = false;
+
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        FileInMemory = Array.Empty<byte>();
+        FileLen = 0;
+        Loaded = false;
+        _disposed = true;
+    }
 }

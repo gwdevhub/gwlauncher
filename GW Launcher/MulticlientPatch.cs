@@ -41,9 +41,8 @@ internal class MulticlientPatch
             foreach (var textureMod in GetTextureMods(path, account.mods))
             {
                 account.texClient?.AddFile(textureMod);
+                account.texClient?.Send();
             }
-
-            account.texClient?.Send();
         });
 
         return memory;

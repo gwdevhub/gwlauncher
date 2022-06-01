@@ -22,10 +22,12 @@ public class ZipLoader
         {
             IsTpfEncrypted = true;
         }
+        var files = new Dictionary<string, byte[]>();
+        var contents = new Dictionary<string, byte[]>();
 
         if (IsTpfEncrypted)
         {
-            var file = new uModFile(fileName);
+            using var file = new uModFile(fileName);
             var fileContent = file.GetContent();
             if (fileContent == null) return;
             using var memoryStream = new MemoryStream(fileContent);
@@ -33,41 +35,75 @@ public class ZipLoader
             var password = Encoding.Latin1.GetString(_tpfPassword);
             archive.Password = password;
             archive.Encryption = EncryptionAlgorithm.None;
-
-            var contents = new Dictionary<string, byte[]>();
+            
             foreach (var entry in archive.Entries)
             {
                 var content = new byte[entry.UncompressedSize];
-                entry.ExtractWithPassword(new MemoryStream(content), password);
+                entry.Extract(new MemoryStream(content));
 
                 var curFileName = entry.FileName;
-
-                if (entry.FileName.Contains("copy"))
-                {
-                    curFileName = entry.FileName[..17] + Path.GetExtension(entry.FileName);
-                }
-                contents[curFileName] = content;
+                files[curFileName] = content;
             }
-
-            Entries = contents;
         }
         else
         {
             using var stream = new FileStream(fileName, FileMode.Open);
             var archive = new ZipArchive(stream);
-            var files = new Dictionary<string, byte[]>();
             foreach (var entry in archive.Entries)
             {
                 MemoryStream tempS = new MemoryStream();
                 using var file = entry.Open();
                 {
                     var fileData = new byte[entry.Length];
-                    file.Read(fileData, 0, (int)entry.Length);
-                    files.Add(entry.Name, fileData);
+                    var readBytes = file.Read(fileData, 0, (int)entry.Length);
+                    if (readBytes == entry.Length)
+                    {
+                        files.Add(entry.Name, fileData);
+                    }
                 }
             }
+        }
+        
+        if (files.ContainsKey("texmod.def"))
+        {
+            var texcontent = files["texmod.def"];
+            var text = Encoding.Default.GetString(texcontent);
+            var lines = text.Replace("\r", "").Split('\n');
+            foreach (var line in lines)
+            {
+                var splits = line.Split('|');
+                if (splits.Length != 2) continue;
 
-            Entries = files;
+                var addrstr = splits[0];
+                var path = splits[1];
+                while (path[0] == '.' && (path[1] == '/' || path[1] == '\\') || path[0] == '/' || path[0] == '\\') path = path.Remove(0, 1);
+
+                if (!files.ContainsKey(path)) continue;
+                files.Remove(path, out var content);
+                Debug.Assert(content != null, nameof(content) + " != null");
+                contents[addrstr] = content;
+            }
+
+            Entries = contents;
+        }
+        else
+        {
+            foreach (var filename in files.Keys)
+            {
+                // GW.EXE_0xE386EED8.dds
+                files.Remove(filename, out var content);
+                if (content == null) continue;
+                
+                var splits = filename.Split('.', '_');
+                if (splits.Length != 4) continue;
+                if (splits[0] != "GW" || splits[1] != "exe") continue;
+                var address = splits[2];
+                if (address.Length == 10)
+                {
+                    contents[address] = content;
+                }
+            }
+            Entries = contents;
         }
         GC.Collect();
     }

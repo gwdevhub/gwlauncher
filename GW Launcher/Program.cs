@@ -39,7 +39,7 @@ internal static class Program
 {
     private const string GwlMutexName = "gwl_instance_mutex";
     public static AccountManager accounts = new();
-    public static Thread mainthread;
+    public static Thread mainthread = new(() => {});
     public static Mutex mutex = new();
     public static Mutex? gwlMutex;
     public static GlobalSettings settings = GlobalSettings.Load();
@@ -77,7 +77,7 @@ internal static class Program
             }
             catch (Exception)
             {
-
+                // use the file that already exists
             }
         }
 
