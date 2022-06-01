@@ -8,16 +8,58 @@ internal class MulticlientPatch
 {
     public static GWCAMemory LaunchClient(Account account)
     {
-        if (GetTexmods(account.gwpath, account.mods).Any())
+        var mods = GetTexmods(account.gwpath, account.mods);
+        if (mods.Any())
         {
             account.texClient = new uModTexClient();
         }
-        var commandline = $"-email \"{account.email}\" -password \"{account.password}\" {account.extraargs} -char \"{account.character}\"";
-        return LaunchClient(account.gwpath, commandline, account.datfix, false, account.elevated, account.mods, account.texClient);
+
+        var path = account.gwpath;
+        var args = $" -email \"{account.email}\" -password \"{account.password}\" -character \"{account.character}\" {account.extraargs}";
+        var datfix = account.datfix;
+        var nologin = false;
+        var elevated = account.elevated;
+
+        PatchRegistry(path);
+        
+        var dwPid = NativeMethods.LaunchClient(path, args,
+            (int)GWML_FLAGS.KEEP_SUSPENDED | (datfix ? 0 : (int)GWML_FLAGS.NO_DATFIX) |
+            (nologin ? (int)GWML_FLAGS.NO_LOGIN : 0) | (elevated ? (int)GWML_FLAGS.ELEVATED : 0), out var hThread);
+        var proc = Process.GetProcessById((int)dwPid);
+        var memory = new GWCAMemory(proc);
+
+
+        foreach (var dll in GetDlls(path, account.mods))
+        {
+            memory.LoadModule(dll);
+        }
+
+        foreach (var tex in GetTexmods(path, account.mods))
+        {
+            account.texClient?.AddFile(tex);
+        }
+
+        NativeMethods.ResumeThread(hThread);
+        NativeMethods.CloseHandle(hThread);
+
+        return memory;
     }
 
-    public static GWCAMemory LaunchClient(string path, string args, bool datfix, bool nologin = false,
-        bool elevated = false, List<Mod>? mods = null, uModTexClient? texClient = null)
+    public static GWCAMemory LaunchClient(string path)
+    {
+        PatchRegistry(path);
+
+        var dwPid = NativeMethods.LaunchClient(path, "", 0, out var hThread);
+        var proc = Process.GetProcessById((int)dwPid);
+        var mem = new GWCAMemory(proc);
+
+        NativeMethods.ResumeThread(hThread);
+        NativeMethods.CloseHandle(hThread);
+
+        return mem;
+    }
+
+    private static void PatchRegistry(string path)
     {
         try
         {
@@ -39,37 +81,8 @@ internal class MulticlientPatch
         }
         catch (UnauthorizedAccessException)
         {
-            if (elevated)
-            {
-                MessageBox.Show(@"Insufficient access rights.
-Please restart the launcher as admin.",
-                    @"GWMC - Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return null;
-            }
+
         }
-
-        var hThread = IntPtr.Zero;
-        var dwPid = NativeMethods.LaunchClient(path, args,
-            (int)GWML_FLAGS.KEEP_SUSPENDED | (datfix ? 0 : (int)GWML_FLAGS.NO_DATFIX) |
-            (nologin ? (int)GWML_FLAGS.NO_LOGIN : 0) | (elevated ? (int)GWML_FLAGS.ELEVATED : 0), out hThread);
-        var proc = Process.GetProcessById((int)dwPid);
-        var mem = new GWCAMemory(proc);
-
-
-        foreach (var dll in GetDlls(path, mods))
-        {
-            mem.LoadModule(dll);
-        }
-
-        foreach (var tex in GetTexmods(path, mods))
-        {
-            texClient?.AddFile(tex);
-        }
-
-        NativeMethods.ResumeThread(hThread);
-        NativeMethods.CloseHandle(hThread);
-
-        return mem;
     }
 
     private static IOrderedEnumerable<string> GetDlls(string path, List<Mod>? mods = null)

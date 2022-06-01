@@ -71,7 +71,14 @@ internal static class Program
             var filename = Path.Combine(location, "GWML.dll");
             File.WriteAllBytes(filename, Properties.Resources.GWML);
             var filenameumod = Path.Combine(location, "d3d9.dll");
-            File.WriteAllBytes(filenameumod, Properties.Resources.d3d9);
+            try
+            {
+                File.WriteAllBytes(filenameumod, Properties.Resources.d3d9);
+            }
+            catch (Exception)
+            {
+
+            }
         }
 
         try
@@ -99,9 +106,9 @@ internal static class Program
             {
                 while (mainForm.needTolaunch.Count > 0)
                 {
-                    var i = mainForm.needTolaunch.Dequeue();
+                    var i = mainForm.needtolaunch.Dequeue();
                     var account = accounts[i];
-                    if (account.active && account.process.process.MainWindowHandle != IntPtr.Zero)
+                    if (account.active && account.process != null && account.process.process.MainWindowHandle != IntPtr.Zero)
                     {
                         SetForegroundWindow(account.process.process.MainWindowHandle);
                         continue;
@@ -139,10 +146,10 @@ internal static class Program
                 for (var i = 0; i < accounts.Length; ++i)
                 {
                     if (!accounts[i].active) continue;
-                    if (!accounts[i].process.process.HasExited) continue;
+                    var gwcaMemory = accounts[i].process;
+                    if (gwcaMemory != null && !gwcaMemory.process.HasExited) continue;
                     mainForm.SetActive(i, false);
-                    accounts[i].texClient?.Kill();
-                    accounts[i].texClient = null;
+                    accounts[i].Dispose();
                 }
 
                 mutex.ReleaseMutex();

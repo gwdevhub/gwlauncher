@@ -156,7 +156,7 @@ public partial class MainForm : Form
 
         if (pathdefault != null)
         {
-            MulticlientPatch.LaunchClient(pathdefault, "", true, true);
+            MulticlientPatch.LaunchClient(pathdefault);
         }
     }
 
