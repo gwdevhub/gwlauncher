@@ -39,7 +39,6 @@ public class Account
     public void Dispose()
     {
         process = null;
-        texClient?.Dispose();
         texClient = null;
     }
 }

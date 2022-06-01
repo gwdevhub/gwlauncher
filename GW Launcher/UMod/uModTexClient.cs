@@ -1,6 +1,7 @@
 ﻿using System.IO.Pipes;
 using System.Security.AccessControl;
 using System.Security.Principal;
+using Microsoft.VisualBasic;
 
 namespace GW_Launcher.uMod;
 
@@ -34,7 +35,6 @@ public enum MsgControl : uint
     CONTROL_ADD_CLIENT = 101,
     CONTROL_REMOVE_CLIENT = 102
 }
-
 
 public struct Msg
 {
@@ -78,7 +78,7 @@ public class uModTexClient
             PipeTransmissionMode.Byte, PipeOptions.None, BIG_PIPE_SIZE, BIG_PIPE_SIZE, securityPipe);
 
         _disposed = false;
-        _pipeReceive.BeginWaitForConnection( (IAsyncResult eAr) =>
+        _pipeReceive.BeginWaitForConnection((IAsyncResult eAr) =>
         {
             var buf = new byte[SMALL_PIPE_SIZE];
             var num = _pipeReceive.Read(buf);
@@ -88,7 +88,7 @@ public class uModTexClient
 
             if (!_pipeSend.IsConnected)
             {
-                _pipeSend.BeginWaitForConnection( (IAsyncResult iAr) =>
+                _pipeSend.BeginWaitForConnection((IAsyncResult iAr) =>
                 {
 
                 }, null);
@@ -104,6 +104,7 @@ public class uModTexClient
     public void Dispose()
     {
         if (_disposed) return;
+        if (!Send()) return;
         _bundles.Clear();
         _packets.Clear();
         _pipeSend.Dispose();
@@ -117,12 +118,12 @@ public class uModTexClient
         _bundles.Add(bundle);
     }
 
-    public void Send()
+    public bool Send()
     {
         foreach (var tex in _bundles.SelectMany(bundle => bundle.defs))
         {
             if (_hashes.Contains(tex.crcHash)) continue; // do not send previously loaded textures
-            if (_packets.Select(l => l.Length).Sum() + tex.fileData.Length > BIG_PIPE_SIZE)
+            if (_packets.Select(l => l.Length).Sum() + 2 * Marshal.SizeOf(typeof(Msg)) + sizeof(uint) + tex.fileData.Length > BIG_PIPE_SIZE)
             {
                 var loadmoreMsg = new Msg
                 {
@@ -131,26 +132,35 @@ public class uModTexClient
                     value = 0
                 };
                 AddMessage(loadmoreMsg, Array.Empty<byte>());
-                SendAll();
+                if (!SendAll())
+                {
+                    MessageBox.Show(@"Failed to send textures");
+                }
             }
             var msg = new Msg
             {
                 hash = tex.crcHash,
                 msg = MsgControl.CONTROL_FORCE_RELOAD_TEXTURE_DATA,
-                value = (uint) tex.fileData.Length
+                value = (uint)tex.fileData.Length
             };
             _hashes.Add(tex.crcHash);
             AddMessage(msg, tex.fileData);
         }
-        _bundles.Clear();
-        SendAll();
+
+        var success = SendAll();
+        if (success)
+        {
+            _bundles.Clear();
+        }
+
+        return success;
     }
 
     private void AddMessage(Msg msg, byte[] data)
     {
         var packet = new byte[12 + data.Length];
 
-        var buf = BitConverter.GetBytes((uint) msg.msg);
+        var buf = BitConverter.GetBytes((uint)msg.msg);
         buf.CopyTo(packet, 0);
         buf = BitConverter.GetBytes(msg.value);
         buf.CopyTo(packet, 4);
@@ -162,8 +172,9 @@ public class uModTexClient
         _packets.Enqueue(packet);
     }
 
-    private void SendAll()
+    private bool SendAll()
     {
+<<<<<<< HEAD
         if (!_pipeSend.IsConnected || !_pipeSend.CanWrite) return;
 
         while (_packets.Any())
@@ -171,5 +182,22 @@ public class uModTexClient
             var buffer = _packets.Dequeue();
             _pipeSend.Write(buffer, 0, buffer.Length);
         }
+=======
+        if (!_pipeSend.IsConnected || !_pipeSend.CanWrite) return false;
+
+        var buffer = _packets.SelectMany(b => b).ToArray();
+        _pipeSend.Write(buffer, 0, buffer.Length);
+        _packets.Clear();
+        
+        // TODO: this should work... find out why it doesn't and possibly fix umods d3d9.dll
+        //while (_packets.Any())
+        //{
+        //    var buffer = _packets.Dequeue();
+        //    _pipeSend.Write(buffer, 0, buffer.Length);
+        //}
+
+        return !_packets.Any();
+
+>>>>>>> umod
     }
 }
