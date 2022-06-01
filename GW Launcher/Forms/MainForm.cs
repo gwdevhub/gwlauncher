@@ -12,7 +12,7 @@ public partial class MainForm : Form
     public Queue<int> needtolaunch;
 
     int heightofgui = 143;
-    
+
     ListView.SelectedIndexCollection selectedItems;
 
     bool rightClickOpen = false;

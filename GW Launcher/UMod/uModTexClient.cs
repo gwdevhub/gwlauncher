@@ -90,7 +90,7 @@ public class uModTexClient
             {
                 _pipeSend.BeginWaitForConnection( (IAsyncResult iAr) =>
                 {
-                    
+
                 }, null);
             }
         }, null);
@@ -158,19 +158,18 @@ public class uModTexClient
         buf.CopyTo(packet, 8);
 
         data.CopyTo(packet, 12);
-        
+
         _packets.Enqueue(packet);
     }
 
     private void SendAll()
     {
         if (!_pipeSend.IsConnected || !_pipeSend.CanWrite) return;
-        
+
         while (_packets.Any())
         {
             var buffer = _packets.Dequeue();
             _pipeSend.Write(buffer, 0, buffer.Length);
         }
-        
     }
 }
