@@ -73,16 +73,16 @@ Please restart the launcher as admin.",
         return mem;
     }
 
-    private static IEnumerable<string> GetDlls(string path, List<Mod>? mods = null)
+    private static IOrderedEnumerable<string> GetDlls(string path, List<Mod>? mods = null)
     {
         return GetMods(path, mods).Item1;
     }
 
-    private static IEnumerable<string> GetTexmods(string path, List<Mod>? mods = null)
+    private static IOrderedEnumerable<string> GetTexmods(string path, List<Mod>? mods = null)
     {
         return GetMods(path, mods).Item2;
     }
-    private static Tuple<IEnumerable<string>, IEnumerable<string>> GetMods(string path, IReadOnlyCollection<Mod>? mods = null)
+    private static Tuple<IOrderedEnumerable<string>, IOrderedEnumerable<string>> GetMods(string path, IReadOnlyCollection<Mod>? mods = null)
     {
         var directory = Directory.GetCurrentDirectory() + "\\plugins";
         var dllsToLoad = new List<string>();
@@ -92,11 +92,11 @@ Please restart the launcher as admin.",
             var links = Directory.GetFiles(directory, "*.lnk");
             var files = Directory.GetFiles(directory, "*.dll");
             var dlllinks = links.Select(GetShortcutPath).Where(l => l.EndsWith(".dll")).ToArray();
-            var texlinks = links.Select(GetShortcutPath).Where(l => l.EndsWith(".zip") || l.EndsWith(".tpf")).ToArray();
+            var textures = Directory.GetFiles(directory, "*").Where(t => t.EndsWith(".tpf") || t.EndsWith(".zip"));
 
-            dllsToLoad.AddRange(dlllinks);
             dllsToLoad.AddRange(files);
-            texsToLoad.AddRange(texlinks);
+            dllsToLoad.AddRange(dlllinks);
+            texsToLoad.AddRange(textures);
         }
 
         directory = Path.GetDirectoryName(path) + "\\plugins";
@@ -105,11 +105,11 @@ Please restart the launcher as admin.",
             var links = Directory.GetFiles(directory, "*.lnk");
             var files = Directory.GetFiles(directory, "*.dll");
             var dlllinks = links.Select(GetShortcutPath).Where(l => l.EndsWith(".dll")).ToArray();
-            var texlinks = links.Select(GetShortcutPath).Where(l => l.EndsWith(".zip") || l.EndsWith(".tpf")).ToArray();
+            var textures = Directory.GetFiles(directory, "*").Where(t => t.EndsWith(".tpf") || t.EndsWith(".zip"));
 
             dllsToLoad.AddRange(dlllinks);
             dllsToLoad.AddRange(files);
-            texsToLoad.AddRange(texlinks);
+            texsToLoad.AddRange(textures);
         }
 
         if (mods != null) dllsToLoad.AddRange(mods.Where(mod => mod.type == ModType.kModTypeDLL && System.IO.File.Exists(mod.fileName)).Select(mod => mod.fileName));
@@ -119,7 +119,10 @@ Please restart the launcher as admin.",
             dllsToLoad.Add(Path.Combine(Directory.GetCurrentDirectory(), "d3d9.dll")); // load d3d9.dll for umod
         }
 
-        return Tuple.Create(dllsToLoad.Distinct(), texsToLoad.Distinct());
+        return Tuple.Create(
+            dllsToLoad.Distinct().OrderBy(Path.GetFileName),
+            texsToLoad.Distinct().OrderBy(Path.GetFileName)
+        );
     }
 
     private enum GWML_FLAGS

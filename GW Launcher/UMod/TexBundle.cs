@@ -18,6 +18,7 @@ public class TexBundle
         var loader = new ZipLoader(filePath);
         foreach (var (key, value) in loader.Entries)
         {
+            // GW.EXE_0x18F22DA3.dds
             var tmp = key.Split('_', '.');
 
             if (tmp.Length != 4)
@@ -25,7 +26,7 @@ public class TexBundle
                 continue;
             }
 
-            // string exeName = tmp[0];
+            // string exeName = tmp[0] + "." + tmp[1];
             var crc = tmp[2];
             // string textureType = tmp[3];
 

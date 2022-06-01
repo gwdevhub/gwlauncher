@@ -45,30 +45,34 @@ public class uModTexClient
 {
     private const int SMALL_PIPE_SIZE = 1 << 10;
     private const int BIG_PIPE_SIZE = 1 << 24;
-    private readonly NamedPipeServerStream pipeReceive;
-    private readonly NamedPipeServerStream pipeSend;
+    private readonly NamedPipeServerStream _pipeReceive;
+    private readonly NamedPipeServerStream _pipeSend;
 
-    private readonly List<TexBundle> bundles;
+    private readonly List<TexBundle> _bundles;
     private readonly List<byte[]> _bytes = new();
+    private readonly HashSet<uint> _hashes = new();
+
+    private bool _disposed;
 
     public uModTexClient()
     {
-        pipeReceive = new NamedPipeServerStream("Game2uMod", PipeDirection.In, 10, PipeTransmissionMode.Byte, PipeOptions.None, SMALL_PIPE_SIZE, SMALL_PIPE_SIZE);
-        pipeSend = new NamedPipeServerStream("uMod2Game", PipeDirection.Out, 10, PipeTransmissionMode.Byte, PipeOptions.None, BIG_PIPE_SIZE, BIG_PIPE_SIZE);
-        var res = pipeReceive.BeginWaitForConnection(async (IAsyncResult iar) =>
+        _pipeReceive = new NamedPipeServerStream("Game2uMod", PipeDirection.In, 10, PipeTransmissionMode.Byte, PipeOptions.None, SMALL_PIPE_SIZE, SMALL_PIPE_SIZE);
+        _pipeSend = new NamedPipeServerStream("uMod2Game", PipeDirection.Out, 10, PipeTransmissionMode.Byte, PipeOptions.None, BIG_PIPE_SIZE, BIG_PIPE_SIZE);
+        _disposed = false;
+        var res = _pipeReceive.BeginWaitForConnection(async (IAsyncResult iar) =>
         {
             var buf = new byte[SMALL_PIPE_SIZE];
-            var num = pipeReceive.Read(buf);
+            var num = _pipeReceive.Read(buf);
             if (num <= 2) return;
             // ReSharper disable once UnusedVariable
             var gameName = Encoding.Default.GetString(buf);
 
-            if (!pipeSend.IsConnected)
+            if (!_pipeSend.IsConnected)
             {
-                await pipeSend.WaitForConnectionAsync();
+                await _pipeSend.WaitForConnectionAsync();
             }
         }, null);
-        bundles = new List<TexBundle>();
+        _bundles = new List<TexBundle>();
     }
     ~uModTexClient()
     {
@@ -77,43 +81,45 @@ public class uModTexClient
 
     public void Kill()
     {
-        pipeSend.Close();
-        pipeReceive.Close();
+        if (_disposed) return;
+        _pipeSend.Dispose();
+        _pipeReceive.Dispose();
+        _disposed = true;
     }
 
     public void AddFile(string filePath)
     {
         var bundle = new TexBundle(filePath);
-        bundles.Add(bundle);
+        _bundles.Add(bundle);
     }
 
     public void Send()
     {
-        foreach (var tex in bundles.SelectMany(bundle => bundle.defs))
+        foreach (var tex in _bundles.SelectMany(bundle => bundle.defs))
         {
+            if (_hashes.Contains(tex.crcHash)) continue; // do not send previously loaded textures
             if (_bytes.Select(l => l.Length).Sum() + tex.fileData.Length > BIG_PIPE_SIZE)
             {
-                var msg = new Msg
+                var loadmoreMsg = new Msg
                 {
                     hash = 0,
                     msg = MsgControl.CONTROL_MORE_TEXTURES,
                     value = 0
                 };
-                AddMessage(msg, Array.Empty<byte>());
+                AddMessage(loadmoreMsg, Array.Empty<byte>());
                 SendAll();
             }
-            else
+            var msg = new Msg
             {
-                var msg = new Msg
-                {
-                    hash = tex.crcHash,
-                    msg = MsgControl.CONTROL_FORCE_RELOAD_TEXTURE_DATA,
-                    value = (uint) tex.fileData.Length
-                };
-                AddMessage(msg, tex.fileData);
-            }
+                hash = tex.crcHash,
+                msg = MsgControl.CONTROL_FORCE_RELOAD_TEXTURE_DATA,
+                value = (uint) tex.fileData.Length
+            };
+            _hashes.Add(tex.crcHash);
+            AddMessage(msg, tex.fileData);
         }
         SendAll();
+        Kill();
     }
 
     private void AddMessage(Msg msg, byte[] data)
@@ -138,11 +144,9 @@ public class uModTexClient
             .SelectMany(a => a)
             .ToArray();
 
-        if (pipeSend.IsConnected && pipeSend.CanWrite)
-        {
-            pipeSend.Write(buffer, 0, buffer.Length);
-        }
-
+        if (!_pipeSend.IsConnected || !_pipeSend.CanWrite) return;
+        _pipeSend.Write(buffer, 0, buffer.Length);
         _bytes.Clear();
+
     }
 }

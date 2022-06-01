@@ -27,7 +27,7 @@ public class GlobalSettings
         catch (FileNotFoundException)
         {
             var settings = new GlobalSettings();
-            var result = MessageBox.Show("Would you like to encrypt the account info?", "Encryption", MessageBoxButtons.YesNo);
+            var result = MessageBox.Show(@"Would you like to encrypt the account info?", @"Encryption", MessageBoxButtons.YesNo);
             if (result == DialogResult.No) { settings.Encrypt = false; }
             return settings;
         }
@@ -117,6 +117,7 @@ internal static class Program
 
                     if (timelock >= 10) continue;
                     a.process = m;
+                    a.texClient?.Send();
 
                     mf.SetActive(i, true);
                     GWMem.FindAddressesIfNeeded(m);
@@ -130,9 +131,6 @@ internal static class Program
                         SetWindowText(m.process.MainWindowHandle, a.character);
                     }
 
-                    a.texClient.AddFile("C:\\Users\\m\\OneDrive\\Desktop\\programs\\gw1\\Minimalus_Dub.tpf");
-                    a.texClient.Send();
-
                     Thread.Sleep(5000);
                 }
 
@@ -143,11 +141,8 @@ internal static class Program
                     if (!accounts[i].active) continue;
                     if (!accounts[i].process.process.HasExited) continue;
                     mf.SetActive(i, false);
-                    if (accounts[i].texClient != null)
-                    {
-                        accounts[i].texClient?.Kill();
-                        accounts[i].texClient = null;
-                    }
+                    accounts[i].texClient?.Kill();
+                    accounts[i].texClient = null;
                 }
 
                 mutex.ReleaseMutex();
