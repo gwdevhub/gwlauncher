@@ -124,7 +124,6 @@ internal static class Program
 
                     if (timelock >= 10) continue;
                     account.process = memory;
-                    account.texClient?.Send();
 
                     mainForm.SetActive(i, true);
                     GWMem.FindAddressesIfNeeded(memory);

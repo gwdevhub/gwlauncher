@@ -90,10 +90,7 @@ public class uModTexClient
             {
                 _pipeSend.BeginWaitForConnection( (IAsyncResult iAr) =>
                 {
-                    if (_packets.Any())
-                    {
-                        Send();
-                    }
+                    
                 }, null);
             }
         }, null);
@@ -107,6 +104,8 @@ public class uModTexClient
     public void Dispose()
     {
         if (_disposed) return;
+        _bundles.Clear();
+        _packets.Clear();
         _pipeSend.Dispose();
         _pipeReceive.Dispose();
         _disposed = true;

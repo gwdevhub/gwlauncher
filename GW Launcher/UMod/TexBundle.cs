@@ -3,7 +3,6 @@
 internal struct TexDef
 {
     public uint crcHash;
-    public string fileName;
     public byte[] fileData;
 }
 public class TexBundle
@@ -28,11 +27,8 @@ public class TexBundle
                     crc = crc[..10];
                     break;
             }
-
-            // 0xD1714A21
-
+            
             TexDef def;
-            def.fileName = key;
             def.crcHash = Convert.ToUInt32(crc, 16);
             def.fileData = value;
 

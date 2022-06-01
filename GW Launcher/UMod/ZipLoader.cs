@@ -90,7 +90,7 @@ public class ZipLoader
         {
             foreach (var filename in files.Keys)
             {
-                // GW.EXE_0xE386EED8.dds
+                // GW.EXE_0x12345678.dds
                 files.Remove(filename, out var content);
                 if (content == null) continue;
                 
