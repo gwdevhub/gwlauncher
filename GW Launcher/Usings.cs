@@ -1,9 +1,10 @@
-﻿global using Newtonsoft.Json;
+﻿global using GW_Launcher.Utilities;
+global using Newtonsoft.Json;
 global using System.Runtime.InteropServices;
 global using System.Collections;
 global using System.Security.Cryptography;
 global using System.Text;
-global using GW_Launcher.Utilities;
-global using Ionic.Zip;
 global using System.Reflection;
 global using System.Diagnostics;
+global using System.ComponentModel;
+global using System.Text.RegularExpressions;

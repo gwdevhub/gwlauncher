@@ -56,6 +56,9 @@ internal static class Program
         Application.EnableVisualStyles();
         Application.SetCompatibleTextRenderingDefault(false);
 
+        File.Delete("old.exe");
+        Task.Run(CheckGitHubNewerVersion);
+
         if (Mutex.TryOpenExisting(GwlMutexName, out gwlMutex))
         {
             return;
@@ -156,6 +159,82 @@ internal static class Program
             }
         });
         Application.Run(mainForm);
+    }
+
+
+    private static async Task CheckGitHubNewerVersion()
+    {
+        //Get all releases from GitHub
+        //Source: https://octokitnet.readthedocs.io/en/latest/getting-started/
+        var client = new Octokit.GitHubClient(new Octokit.ProductHeaderValue("GWLauncher"));
+        IReadOnlyList<Octokit.Release> releases = await client.Repository.Release.GetAll("GregLando113", "gwlauncher");
+
+        //Setup the versions
+        var tagName = Regex.Replace(releases[0].TagName,  @"[^\d\.]", "");
+        var latestGitHubVersion = new Version(tagName);
+        var assembly = Assembly.GetExecutingAssembly();
+        var fvi = FileVersionInfo.GetVersionInfo(assembly.Location);
+        var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString();
+        var strVersion = fvi.FileVersion ?? version ?? "";
+        Version localVersion = new Version(strVersion); //Replace this with your local version. 
+        //Only tested with numeric values.
+
+        //Compare the Versions
+        //Source: https://stackoverflow.com/questions/7568147/compare-version-numbers-without-using-split-function
+        int versionComparison = localVersion.CompareTo(latestGitHubVersion);
+        if (versionComparison < 0)
+        {
+            //The version on GitHub is more up to date than this local release.
+            var latest = releases[0];
+            
+            var currentName = Path.GetFileName(Process.GetCurrentProcess().MainModule?.FileName);
+            if (currentName == null) return;
+            var newName = "new.exe"; 
+            var asset = latest.Assets.First(a => a.Name == "GW_Launcher.exe");
+            if (asset == null) return;
+            var uri = new Uri(asset.BrowserDownloadUrl);
+            var httpClient = new HttpClient();
+            await using (var s = await httpClient.GetStreamAsync(uri))
+            {
+                await using (var fs = new FileStream(newName, FileMode.Create))
+                {
+                    await s.CopyToAsync(fs);
+                }
+            }
+            
+            File.Move(currentName, "old.exe");
+
+            File.Move(newName, currentName);
+
+            var fileName = Environment.ProcessPath;
+            var processInfo = new ProcessStartInfo
+            {
+                UseShellExecute = true,
+                FileName = fileName,
+                Arguments = "restart"
+            };
+
+            try
+            {
+                Application.Restart();
+                Process.Start(processInfo);
+                Environment.Exit(0);
+            }
+            catch (Win32Exception)
+            {
+                MessageBox.Show("Cancelled");
+                // This will be thrown if the user cancels the prompt
+            }
+            return;
+        }
+        else if (versionComparison > 0)
+        {
+            //This local version is greater than the release version on GitHub.
+        }
+        else
+        {
+            //This local Version and the Version on GitHub are equal.
+        }
     }
 
 }
