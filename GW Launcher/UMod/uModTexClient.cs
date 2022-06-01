@@ -78,7 +78,7 @@ public class uModTexClient
             PipeTransmissionMode.Byte, PipeOptions.None, BIG_PIPE_SIZE, BIG_PIPE_SIZE, securityPipe);
 
         _disposed = false;
-        _pipeReceive.BeginWaitForConnection(async (IAsyncResult eAr) =>
+        _pipeReceive.BeginWaitForConnection( (IAsyncResult eAr) =>
         {
             var buf = new byte[SMALL_PIPE_SIZE];
             var num = _pipeReceive.Read(buf);
@@ -88,7 +88,7 @@ public class uModTexClient
 
             if (!_pipeSend.IsConnected)
             {
-                _pipeSend.BeginWaitForConnection(async (IAsyncResult iAr) =>
+                _pipeSend.BeginWaitForConnection( (IAsyncResult iAr) =>
                 {
                     if (_packets.Any())
                     {

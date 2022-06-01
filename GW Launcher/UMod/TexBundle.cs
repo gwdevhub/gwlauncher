@@ -28,6 +28,16 @@ public class TexBundle
 
             // string exeName = tmp[0] + "." + tmp[1];
             var crc = tmp[2];
+            switch (crc.Length)
+            {
+                case < 10:
+                    continue;
+                case > 10:
+                    crc = crc[..10];
+                    break;
+            }
+
+            // 0xD1714A21
             // string textureType = tmp[3];
 
             TexDef def;

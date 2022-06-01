@@ -35,13 +35,18 @@ internal class MulticlientPatch
             mem.LoadModule(dll);
         }
 
-        foreach (var tex in GetTexmods(path, a.mods))
-        {
-            a.texClient?.AddFile(tex);
-        }
-
         NativeMethods.ResumeThread(hThread);
         NativeMethods.CloseHandle(hThread);
+
+        Task.Run(() =>
+        {
+            foreach (var tex in GetTexmods(path, a.mods))
+            {
+                a.texClient?.AddFile(tex);
+            }
+
+            a.texClient?.Send();
+        });
 
         return mem;
     }

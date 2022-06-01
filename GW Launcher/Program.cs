@@ -38,7 +38,7 @@ public class GlobalSettings
 internal static class Program
 {
     private const string GwlMutexName = "gwl_instance_mutex";
-    public static AccountManager accounts;
+    public static AccountManager accounts = new();
     public static Thread mainthread;
     public static Mutex mutex = new();
     public static Mutex? gwlMutex;
@@ -124,7 +124,6 @@ internal static class Program
 
                     if (timelock >= 10) continue;
                     account.process = mem;
-                    account.texClient?.Send();
 
                     mf.SetActive(i, true);
                     GWMem.FindAddressesIfNeeded(mem);
