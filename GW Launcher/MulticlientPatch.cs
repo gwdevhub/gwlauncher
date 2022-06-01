@@ -38,7 +38,7 @@ internal class MulticlientPatch
 
         Task.Run(() =>
         {
-            foreach (var textureMod in GetTexmods(path, account.mods))
+            foreach (var textureMod in GetTextureMods(path, account.mods))
             {
                 account.texClient?.AddFile(textureMod);
             }
