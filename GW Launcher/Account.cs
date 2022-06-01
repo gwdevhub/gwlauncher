@@ -15,11 +15,11 @@ public class Account
     public string character = "";
 
     [JsonRequired]
-    public string gwpath = "";
+    public string path = "";
 
     public bool datfix;
     public bool elevated;
-    public string extraargs = "";
+    public string extraArguments = "";
     public List<Mod> mods = new();
 
     [JsonIgnore]

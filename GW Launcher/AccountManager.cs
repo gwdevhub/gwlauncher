@@ -33,11 +33,11 @@ public class AccountManager : IEnumerable<Account>, IDisposable
     {
         get
         {
-            return _accounts.Find(a => a.email == email);
+            return _accounts.Find(account => account.email == email);
         }
         set
         {
-            var index = _accounts.FindIndex(a => a.email == email);
+            var index = _accounts.FindIndex(account => account.email == email);
             if (index != -1 && value != null)
                 this[index] = value;
         }
@@ -139,9 +139,9 @@ public class AccountManager : IEnumerable<Account>, IDisposable
         }
     }
 
-    public void Add(Account acc)
+    public void Add(Account account)
     {
-        _accounts.Add(acc);
+        _accounts.Add(account);
         Save(_filePath);
     }
 
@@ -153,6 +153,6 @@ public class AccountManager : IEnumerable<Account>, IDisposable
 
     public void Remove(string email)
     {
-        _accounts.RemoveAll(a => a.email == email);
+        _accounts.RemoveAll(account => account.email == email);
     }
 }

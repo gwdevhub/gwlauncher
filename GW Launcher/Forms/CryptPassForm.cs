@@ -13,25 +13,23 @@ namespace GW_Launcher.Forms
         {
             InitializeComponent();
         }
-        private void CryptPassForm_Load(object sender, EventArgs e)
-        {
-            
-        }
 
         private void Finish()
         {
-            if (textBoxPass.Text == "") return;
+            if (textBoxPassword.Text == "")
+                return;
+
             var sha = SHA256.Create();
-            Password = sha.ComputeHash(Encoding.UTF8.GetBytes(textBoxPass.Text));
+            Password = sha.ComputeHash(Encoding.UTF8.GetBytes(textBoxPassword.Text));
             Close();
         }
 
-        private void buttonEnter_Click(object sender, EventArgs e)
+        private void ButtonEnter_Click(object sender, EventArgs e)
         {
             Finish();
         }
 
-        private void textBoxPass_KeyPress(object sender, KeyPressEventArgs e)
+        private void TextBoxPassword_KeyPress(object sender, KeyPressEventArgs e)
         {
             if (e.KeyChar == 0x0D) // Enter key
             {
