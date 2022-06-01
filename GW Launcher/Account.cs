@@ -1,4 +1,6 @@
-﻿namespace GW_Launcher;
+﻿using GW_Launcher.uMod;
+
+namespace GW_Launcher;
 
 public class Account
 {
@@ -25,4 +27,7 @@ public class Account
 
     [JsonIgnore]
     public GWCAMemory process;
+
+    [JsonIgnore]
+    public uModTexClient? texClient;
 }

@@ -91,8 +91,6 @@ internal static class Program
         mf.Location = new Point(-1000, -1000);
         mf.FormClosing += (sender, e) => { settings.Save(); };
 
-        var texClient = new uModTexClient();
-
         mainthread = new Thread(() =>
         {
             var mainClosed = false;
@@ -108,9 +106,7 @@ internal static class Program
                         SetForegroundWindow(a.process.process.MainWindowHandle);
                         continue;
                     }
-                    var m = MulticlientPatch.LaunchClient(a.gwpath,
-                        " -email \"" + a.email + "\" -password \"" + a.password + "\" -character \"" +
-                        a.character + "\" " + a.extraargs, a.datfix, false, a.elevated, a.mods);
+                    var m = MulticlientPatch.LaunchClient(a);
 
                     uint timelock = 0;
                     while (m.process.MainWindowHandle == IntPtr.Zero || !m.process.WaitForInputIdle(1000) && timelock++ < 10)
@@ -134,8 +130,8 @@ internal static class Program
                         SetWindowText(m.process.MainWindowHandle, a.character);
                     }
 
-                    texClient.AddFile("C:\\Users\\m\\OneDrive\\Desktop\\programs\\gw1\\Minimalus_Dub.tpf");
-                    texClient.Send();
+                    a.texClient.AddFile("C:\\Users\\m\\OneDrive\\Desktop\\programs\\gw1\\Minimalus_Dub.tpf");
+                    a.texClient.Send();
 
                     Thread.Sleep(5000);
                 }
@@ -145,9 +141,12 @@ internal static class Program
                 for (var i = 0; i < accounts.Length; ++i)
                 {
                     if (!accounts[i].active) continue;
-                    if (accounts[i].process.process.HasExited)
+                    if (!accounts[i].process.process.HasExited) continue;
+                    mf.SetActive(i, false);
+                    if (accounts[i].texClient != null)
                     {
-                        mf.SetActive(i, false);
+                        accounts[i].texClient?.Kill();
+                        accounts[i].texClient = null;
                     }
                 }
 
