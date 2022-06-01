@@ -298,7 +298,7 @@ public partial class MainForm : Form
             }
             return;
         }
-        var clients = Program.accounts.Select(account => account.path).Distinct();
+        var clients = Program.accounts.Select(account => account.gwpath).Distinct();
 
         foreach (var client in clients)
         {

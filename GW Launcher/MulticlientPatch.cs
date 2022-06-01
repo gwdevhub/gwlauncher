@@ -8,13 +8,13 @@ internal class MulticlientPatch
 {
     public static GWCAMemory LaunchClient(Account account)
     {
-        var mods = GetTextureMods(account.path, account.mods);
-        if (mods.Any())
+        var texmods = GetTexmods(account.gwpath, account.mods);
+        if (texmods.Any())
         {
             account.texClient = new uModTexClient();
         }
 
-        var path = account.path;
+        var path = account.gwpath;
         var args = $" -email \"{account.email}\" -password \"{account.password}\" -character \"{account.character}\" {account.extraArguments}";
         var datfix = account.datfix;
         var nologin = false;
@@ -38,12 +38,11 @@ internal class MulticlientPatch
 
         Task.Run(() =>
         {
-            foreach (var tex in GetTexmods(path, a.mods))
+            foreach (var tex in GetTexmods(path, account.mods))
             {
-                a.texClient?.AddFile(tex);
+                account.texClient?.AddFile(tex);
+                account.texClient?.Send();
             }
-
-            a.texClient?.Send();
         });
 
         return memory;
@@ -89,16 +88,16 @@ internal class MulticlientPatch
         }
     }
 
-    private static IOrderedEnumerable<string> GetDlls(string path, List<Mod>? mods = null)
+    private static IOrderedEnumerable<string> GetDlls(string path, IReadOnlyCollection<Mod> mods)
     {
         return GetMods(path, mods).Item1;
     }
 
-    private static IOrderedEnumerable<string> GetTextureMods(string path, List<Mod>? mods = null)
+    private static IOrderedEnumerable<string> GetTexmods(string path, IReadOnlyCollection<Mod> mods)
     {
         return GetMods(path, mods).Item2;
     }
-    private static Tuple<IOrderedEnumerable<string>, IOrderedEnumerable<string>> GetMods(string path, IReadOnlyCollection<Mod>? mods = null)
+    private static Tuple<IOrderedEnumerable<string>, IOrderedEnumerable<string>> GetMods(string path, IReadOnlyCollection<Mod> mods)
     {
         var directory = Directory.GetCurrentDirectory() + "\\plugins";
         var dllsToLoad = new List<string>();
@@ -128,8 +127,8 @@ internal class MulticlientPatch
             texsToLoad.AddRange(textures);
         }
 
-        if (mods != null) dllsToLoad.AddRange(mods.Where(mod => mod.type == ModType.kModTypeDLL && System.IO.File.Exists(mod.fileName)).Select(mod => mod.fileName));
-        if (mods != null) texsToLoad.AddRange(mods.Where(mod => mod.type == ModType.kModTypeTexmod && System.IO.File.Exists(mod.fileName)).Select(mod => mod.fileName));
+        dllsToLoad.AddRange(mods.Where(mod => mod.type == ModType.kModTypeDLL && System.IO.File.Exists(mod.fileName)).Select(mod => mod.fileName));
+        texsToLoad.AddRange(mods.Where(mod => mod.type == ModType.kModTypeTexmod && System.IO.File.Exists(mod.fileName)).Select(mod => mod.fileName));
         if (texsToLoad.Count > 0)
         {
             dllsToLoad.Add(Path.Combine(Directory.GetCurrentDirectory(), "d3d9.dll")); // load d3d9.dll for umod

@@ -15,7 +15,7 @@ public class Account
     public string character = "";
 
     [JsonRequired]
-    public string path = "";
+    public string gwpath = "";
 
     public bool datfix;
     public bool elevated;

@@ -1,9 +1,4 @@
-﻿using System;
-using System.Text;
-using System.Windows.Forms;
-using System.Security.Cryptography;
-
-namespace GW_Launcher.Forms
+﻿namespace GW_Launcher.Forms
 {
     public partial class CryptPassForm : Form
     {
@@ -11,6 +6,7 @@ namespace GW_Launcher.Forms
 
         public CryptPassForm()
         {
+            Password = Array.Empty<byte>();
             InitializeComponent();
         }
 

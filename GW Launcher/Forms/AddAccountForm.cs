@@ -18,7 +18,7 @@ namespace GW_Launcher.Forms
             account.email = textBoxEmail.Text;
             account.password = textBoxPassword.Text;
             account.character = textBoxCharacter.Text;
-            account.path = textBoxPath.Text;
+            account.gwpath = textBoxPath.Text;
             account.datfix = checkBoxDatFix.Checked;
             account.elevated = checkBoxElevated.Checked;
             account.extraArguments = textBoxExtraArguments.Text;
@@ -31,7 +31,7 @@ namespace GW_Launcher.Forms
             textBoxEmail.Text = account.email;
             textBoxPassword.Text = account.password;
             textBoxCharacter.Text = account.character;
-            textBoxPath.Text = account.path;
+            textBoxPath.Text = account.gwpath;
             checkBoxDatFix.Checked = account.datfix;
             checkBoxElevated.Checked = account.elevated;
             textBoxExtraArguments.Text = account.extraArguments;
