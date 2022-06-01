@@ -6,15 +6,14 @@ namespace GW_Launcher;
 
 internal class MulticlientPatch
 {
-    public static GWCAMemory LaunchClient(Account a)
+    public static GWCAMemory LaunchClient(Account account)
     {
-        if (GetTexmods(a.gwpath, a.mods).Any())
+        if (GetTexmods(account.gwpath, account.mods).Any())
         {
-            a.texClient = new uModTexClient();
+            account.texClient = new uModTexClient();
         }
-        return LaunchClient(a.gwpath,
-            " -email \"" + a.email + "\" -password \"" + a.password + "\" -character \"" +
-            a.character + "\" " + a.extraargs, a.datfix, false, a.elevated, a.mods, a.texClient);
+        var commandline = $"-email \"{account.email}\" -password \"{account.password}\" {account.extraargs} -char \"{account.character}\"";
+        return LaunchClient(account.gwpath, commandline, account.datfix, false, account.elevated, account.mods, account.texClient);
     }
 
     public static GWCAMemory LaunchClient(string path, string args, bool datfix, bool nologin = false,

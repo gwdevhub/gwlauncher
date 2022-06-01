@@ -82,53 +82,53 @@ internal static class Program
         {
             return;
         }
-        foreach (var t in accounts)
+        foreach (var account in accounts)
         {
-            t.active = false;
+            account.active = false;
         }
 
-        using var mf = new MainForm();
-        mf.Location = new Point(-1000, -1000);
-        mf.FormClosing += (sender, e) => { settings.Save(); };
+        using var mainForm = new MainForm();
+        mainForm.Location = new Point(-1000, -1000);
+        mainForm.FormClosing += (sender, e) => { settings.Save(); };
 
         mainthread = new Thread(() =>
         {
             var mainClosed = false;
-            mf.FormClosed += (sender, a) => { mainClosed = true; };
+            mainForm.FormClosed += (sender, a) => { mainClosed = true; };
             while (!mainClosed)
             {
-                while (mf.needtolaunch.Count > 0)
+                while (mainForm.needTolaunch.Count > 0)
                 {
-                    var i = mf.needtolaunch.Dequeue();
-                    var a = accounts[i];
-                    if (a.active && a.process.process.MainWindowHandle != IntPtr.Zero)
+                    var i = mainForm.needTolaunch.Dequeue();
+                    var account = accounts[i];
+                    if (account.active && account.process.process.MainWindowHandle != IntPtr.Zero)
                     {
-                        SetForegroundWindow(a.process.process.MainWindowHandle);
+                        SetForegroundWindow(account.process.process.MainWindowHandle);
                         continue;
                     }
-                    var m = MulticlientPatch.LaunchClient(a);
+                    var launchClient = MulticlientPatch.LaunchClient(account);
 
                     uint timelock = 0;
-                    while (m.process.MainWindowHandle == IntPtr.Zero || !m.process.WaitForInputIdle(1000) && timelock++ < 10)
+                    while (launchClient.process.MainWindowHandle == IntPtr.Zero || !launchClient.process.WaitForInputIdle(1000) && timelock++ < 10)
                     {
                         Thread.Sleep(1000);
-                        m.process.Refresh();
+                        launchClient.process.Refresh();
                     }
 
                     if (timelock >= 10) continue;
-                    a.process = m;
-                    a.texClient?.Send();
+                    account.process = launchClient;
+                    account.texClient?.Send();
 
-                    mf.SetActive(i, true);
-                    GWMem.FindAddressesIfNeeded(m);
-                    while (m.Read<ushort>(GWMem.CharnamePtr) == 0 && timelock++ < 60)
+                    mainForm.SetActive(i, true);
+                    GWMem.FindAddressesIfNeeded(launchClient);
+                    while (launchClient.Read<ushort>(GWMem.CharnamePtr) == 0 && timelock++ < 60)
                     {
                         Thread.Sleep(1000);
-                        m.process.Refresh();
+                        launchClient.process.Refresh();
                     }
-                    if (!string.IsNullOrEmpty(a.character) && m.process.MainWindowTitle == "Guild Wars")
+                    if (!string.IsNullOrEmpty(account.character) && launchClient.process.MainWindowTitle == "Guild Wars")
                     {
-                        SetWindowText(m.process.MainWindowHandle, a.character);
+                        SetWindowText(launchClient.process.MainWindowHandle, account.character);
                     }
 
                     Thread.Sleep(5000);
@@ -140,7 +140,7 @@ internal static class Program
                 {
                     if (!accounts[i].active) continue;
                     if (!accounts[i].process.process.HasExited) continue;
-                    mf.SetActive(i, false);
+                    mainForm.SetActive(i, false);
                     accounts[i].texClient?.Kill();
                     accounts[i].texClient = null;
                 }
@@ -150,7 +150,7 @@ internal static class Program
                 Thread.Sleep(1000);
             }
         });
-        Application.Run(mf);
+        Application.Run(mainForm);
     }
 
 }

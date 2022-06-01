@@ -13,15 +13,15 @@ namespace GW_Launcher.Forms
             InitializeComponent();
         }
 
-        private void buttonDone_Click(object sender, EventArgs e)
+        private void buttonAdd_Click(object sender, EventArgs e)
         {
             account.email = textBoxEmail.Text;
             account.password = textBoxPassword.Text;
-            account.character = textBoxChar.Text;
+            account.character = textBoxCharacter.Text;
             account.gwpath = textBoxPath.Text;
             account.datfix = checkBoxDatFix.Checked;
             account.elevated = checkBoxElevated.Checked;
-            account.extraargs = textBoxExArgs.Text;
+            account.extraargs = textBoxExtraArguments.Text;
             finished = true;
             Close();
         }
@@ -30,11 +30,11 @@ namespace GW_Launcher.Forms
         {
             textBoxEmail.Text = account.email;
             textBoxPassword.Text = account.password;
-            textBoxChar.Text = account.character;
+            textBoxCharacter.Text = account.character;
             textBoxPath.Text = account.gwpath;
             checkBoxDatFix.Checked = account.datfix;
             checkBoxElevated.Checked = account.elevated;
-            textBoxExArgs.Text = account.extraargs;
+            textBoxExtraArguments.Text = account.extraargs;
         }
 
         private void buttonDialogPath_Click(object sender, EventArgs e)
@@ -60,7 +60,7 @@ namespace GW_Launcher.Forms
 
         }
 
-        private void button1_Click(object sender, EventArgs e)
+        private void buttonShowPassword_Click(object sender, EventArgs e)
         {
             if (textBoxPassword.PasswordChar == '\0')
                 textBoxPassword.PasswordChar = '*';
@@ -68,7 +68,7 @@ namespace GW_Launcher.Forms
                 textBoxPassword.PasswordChar = '\0';
         }
 
-        private void button2_Click(object sender, EventArgs e)
+        private void buttonMods_Click(object sender, EventArgs e)
         {
             Program.mutex.WaitOne();
             if (string.IsNullOrEmpty(account.email)) return;

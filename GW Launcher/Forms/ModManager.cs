@@ -44,19 +44,19 @@ public partial class ModManager : Form
         }
     }
 
-    private void TexmodManager_Load(object sender, EventArgs e)
+    private void ModManager_Load(object sender, EventArgs e)
     {
         RefreshUI();
     }
 
-    private void listViewAvailableMods_ItemChecked(object sender, ItemCheckedEventArgs e)
+    private void ListViewAvailableMods_ItemChecked(object sender, ItemCheckedEventArgs e)
     {
         var mod = account.mods[e.Item.Index];
         mod.active = e.Item.Checked;
         Program.accounts.Save();
     }
 
-    private void addModToolStripMenuItem_Click(object sender, EventArgs e)
+    private void ToolStripMenuItemAddMod_Click(object sender, EventArgs e)
     {
         var openFileDialog = new OpenFileDialog
         {
@@ -87,7 +87,7 @@ public partial class ModManager : Form
         }
     }
 
-    private void removeSelectedToolStripMenuItem_Click(object sender, EventArgs e)
+    private void ToolStripMenuItemRemoveSelected_Click(object sender, EventArgs e)
     {
         Program.mutex.WaitOne();
         var selectedthing = listViewAvailableMods.SelectedIndices[0];
@@ -96,10 +96,5 @@ public partial class ModManager : Form
         Program.accounts.Save();
         RefreshUI();
         Program.mutex.ReleaseMutex();
-    }
-
-    private void listViewAvailableMods_SelectedIndexChanged(object sender, EventArgs e)
-    {
-
     }
 }

@@ -33,11 +33,11 @@ public class AccountManager : IEnumerable<Account>, IDisposable
     {
         get
         {
-            return _accounts.Find(a => a.email == email);
+            return _accounts.Find(account => account.email == email);
         }
         set
         {
-            var index = _accounts.FindIndex(a => a.email == email);
+            var index = _accounts.FindIndex(account => account.email == email);
             if (index != -1 && value != null)
                 this[index] = value;
         }

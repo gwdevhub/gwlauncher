@@ -9,7 +9,7 @@ namespace GW_Launcher.Forms;
 
 public partial class MainForm : Form
 {
-    public Queue<int> needtolaunch;
+    public Queue<int> needTolaunch;
 
     int heightofgui = 143;
     
@@ -20,7 +20,7 @@ public partial class MainForm : Form
     public MainForm()
     {
         InitializeComponent();
-        needtolaunch = new Queue<int>();
+        needTolaunch = new Queue<int>();
         selectedItems = new ListView.SelectedIndexCollection(listViewAccounts);
     }
 
@@ -31,32 +31,34 @@ public partial class MainForm : Form
             heightofgui = 143 + 17 * (Program.accounts.Length - 4);
             SetBounds(Location.X, Location.Y, Size.Width, heightofgui);
         }
+
         listViewAccounts.Items.Clear();
 
         // Run through already open GW clients to see if accounts are already active.
-        foreach (var p in Process.GetProcessesByName("Gw"))
+        foreach (var process in Process.GetProcessesByName("Gw"))
         {
-            if (p.Threads.Count == 1)
+            if (process.Threads.Count == 1)
                 continue;
-            var m = new GWCAMemory(p);
-            GWMem.FindAddressesIfNeeded(m);
-            var str = m.ReadWString(GWMem.EmailAddPtr, 64);
-            foreach (var acc in Program.accounts)
+
+            var memory = new GWCAMemory(process);
+            GWMem.FindAddressesIfNeeded(memory);
+            var email = memory.ReadWString(GWMem.EmailAddPtr, 64);
+            foreach (var account in Program.accounts)
             {
-                if (str != acc.email) continue;
-                acc.active = true;
-                acc.process = m;
+                if (email != account.email) continue;
+                account.active = true;
+                account.process = memory;
                 break;
             }
         }
 
         // Fill out data.
-        foreach (var acc in Program.accounts)
+        foreach (var account in Program.accounts)
         {
             listViewAccounts.Items.Add(new ListViewItem(
                 new[] {
-                    acc.character,
-                    acc.active ? "Active" : "Inactive"
+                    account.character,
+                    account.active ? "Active" : "Inactive"
                 },
                 "gw-icon"
             ));
@@ -65,17 +67,17 @@ public partial class MainForm : Form
 
     delegate void SetActiveUICallback(int idx, bool active);
 
-    public void SetActive(int idx, bool active)
+    public void SetActive(int index, bool active)
     {
-        if(listViewAccounts.InvokeRequired)
+        if (listViewAccounts.InvokeRequired)
         {
-            var cb = new SetActiveUICallback(SetActive);
-            Invoke(cb, idx, active);
+            var callback = new SetActiveUICallback(SetActive);
+            Invoke(callback, index, active);
         }
         else
         {
-            Program.accounts[idx].active = active;
-            listViewAccounts.Items[idx].SubItems[1].Text = active ? "Active" : "Inactive";
+            Program.accounts[index].active = active;
+            listViewAccounts.Items[index].SubItems[1].Text = active ? "Active" : "Inactive";
         }    
     }
 
@@ -83,48 +85,52 @@ public partial class MainForm : Form
     {
         Visible = false;
         // Initialize things
-        var imglist = new ImageList();
-        needtolaunch = new Queue<int>();
-        imglist.Images.Add("gw-icon", Properties.Resources.gw_icon);
-        listViewAccounts.SmallImageList = imglist;
+        var imageList = new ImageList();
+        needTolaunch = new Queue<int>();
+        imageList.Images.Add("gw-icon", Properties.Resources.gw_icon);
+        listViewAccounts.SmallImageList = imageList;
         RefreshUI();
         Program.mainthread.Start();
     }
 
-    private void listViewAccounts_MouseDoubleClick(object sender, MouseEventArgs e)
+    private void ListViewAccounts_MouseDoubleClick(object sender, MouseEventArgs e)
     {
         var selectedItems = listViewAccounts.SelectedIndices;
-        if (selectedItems.Count == 0) return;
-        needtolaunch.Enqueue(selectedItems[0]);
+        if (selectedItems.Count == 0)
+            return;
+
+        needTolaunch.Enqueue(selectedItems[0]);
     }
 
-    private void launchSelectedToolStripMenuItem_Click(object sender, EventArgs e)
+    private void ToolStripMenuItemLaunchSelected_Click(object sender, EventArgs e)
     {
         selectedItems = listViewAccounts.SelectedIndices;
-        if (selectedItems.Count == 0) return;
+        if (selectedItems.Count == 0)
+            return;
+
         foreach(int i in selectedItems)
         {
-            needtolaunch.Enqueue(i);
+            needTolaunch.Enqueue(i);
         }
     }
 
-    private void addNewToolStripMenuItem_Click(object sender, EventArgs e)
+    private void ToolStripMenuItemAddNew_Click(object sender, EventArgs e)
     {
         Program.mutex.WaitOne();
         var gui = new AddAccountForm();
         gui.ShowDialog();
         var acc = gui.account;
-
         if (acc.email != null)
         {
             Program.accounts.Add(acc);
             Program.accounts.Save();
             RefreshUI();
         }
+
         Program.mutex.ReleaseMutex();
     }
 
-    private void removeSelectedToolStripMenuItem_Click(object sender, EventArgs e)
+    private void ToolStripMenuItemRemoveSelected_Click(object sender, EventArgs e)
     {
         Program.mutex.WaitOne();
         var indices  = from int indice in listViewAccounts.SelectedIndices orderby indice descending select indice;
@@ -138,7 +144,7 @@ public partial class MainForm : Form
         Program.mutex.ReleaseMutex();
     }
 
-    private void launchGWInstanceToolStripMenuItem_Click(object sender, EventArgs e)
+    private void ToolStripMenuItemLaunchGWInstance_Click(object sender, EventArgs e)
     {
         var pathdefault = (string?)Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\ArenaNet\\Guild Wars", "Path", null);
         if (pathdefault == null)
@@ -154,7 +160,7 @@ public partial class MainForm : Form
         }
     }
 
-    private void refreshAccountsToolStripMenuItem_Click(object sender, EventArgs e)
+    private void ToolStripMenuItemRefreshAccounts_Click(object sender, EventArgs e)
     {
         Program.mutex.WaitOne();
         Program.accounts.Load("Accounts.json");
@@ -162,11 +168,13 @@ public partial class MainForm : Form
         Program.mutex.ReleaseMutex();
     }
 
-    private void editSelectedToolStripMenuItem_Click(object sender, EventArgs e)
+    private void ToolStripMenuItemEditSelected_Click(object sender, EventArgs e)
     {
         Program.mutex.WaitOne();
         selectedItems = listViewAccounts.SelectedIndices;
-        if (selectedItems.Count == 0 && listViewAccounts.FocusedItem == null) return;
+        if (selectedItems.Count == 0 && listViewAccounts.FocusedItem == null)
+            return;
+
         var idx = selectedItems.Contains(listViewAccounts.FocusedItem.Index) ? listViewAccounts.FocusedItem.Index : selectedItems[0];
         var acc = Program.accounts[idx];
         var addaccform = new AddAccountForm
@@ -174,17 +182,14 @@ public partial class MainForm : Form
             Text = @"Modify Account",
             account = acc
         };
-        addaccform.ShowDialog();
 
+        addaccform.ShowDialog();
         if (addaccform.finished)
         {
             Program.accounts[idx] = addaccform.account;
         }
+
         Program.mutex.ReleaseMutex();
-    }
-    private void listViewAccounts_ItemDrag(object sender, ItemDragEventArgs e)
-    {
-        
     }
 
     private void MainForm_Deactivate(object sender, EventArgs e)
@@ -193,11 +198,11 @@ public partial class MainForm : Form
             Visible = false;
     }
 
-    private void notifyIcon_MouseClick(object sender, MouseEventArgs e)
+    private void NotifyIcon_MouseClick(object sender, MouseEventArgs e)
     {
         if (e.Button == MouseButtons.Right)
         {
-            if(rightClickOpen)
+            if (rightClickOpen)
             {
                 Visible = false;
                 rightClickOpen = false;
@@ -272,7 +277,7 @@ public partial class MainForm : Form
         }
     }
 
-    private async void updateAllClientsToolStripMenuItem_Click(object sender, EventArgs e)
+    private async void ToolStripMenuItemUpdateAllClients_Click(object sender, EventArgs e)
     {
         var pricipal = new WindowsPrincipal(WindowsIdentity.GetCurrent());
         var hasAdministrativeRight = pricipal.IsInRole(WindowsBuiltInRole.Administrator);
@@ -299,8 +304,8 @@ public partial class MainForm : Form
             }
             return;
         }
-        var clients = Program.accounts.Select(i => i.gwpath).Distinct();
 
+        var clients = Program.accounts.Select(i => i.gwpath).Distinct();
         foreach (var client in clients)
         {
             await RunClientUpdateAsync(client);
