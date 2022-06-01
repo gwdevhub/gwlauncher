@@ -128,14 +128,15 @@ internal class MulticlientPatch
         }
 
         dllsToLoad.AddRange(mods.Where(mod => mod.type == ModType.kModTypeDLL && System.IO.File.Exists(mod.fileName)).Select(mod => mod.fileName));
-        texsToLoad.AddRange(mods.Where(mod => mod.type == ModType.kModTypeTexmod && System.IO.File.Exists(mod.fileName)).Select(mod => mod.fileName));
+        texsToLoad.AddRange(mods.Where(mod => mod.type == ModType.kModTypeTexmod && mod.active && System.IO.File.Exists(mod.fileName)).Select(mod => mod.fileName));
         if (texsToLoad.Count > 0)
         {
+            dllsToLoad.RemoveAll(p => Path.GetFileName(p) == "d3d9.dll"); // don't load any other d3d9.dll
             dllsToLoad.Add(Path.Combine(Directory.GetCurrentDirectory(), "d3d9.dll")); // load d3d9.dll for umod
         }
-
+        
         return Tuple.Create(
-            dllsToLoad.Distinct().OrderBy(Path.GetFileName),
+            dllsToLoad.Distinct().OrderByDescending(p => Path.GetFileName(p) == "d3d9.dll").ThenBy(Path.GetFileName),
             texsToLoad.Distinct().OrderBy(Path.GetFileName)
         );
     }
