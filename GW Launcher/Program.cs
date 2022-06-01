@@ -21,8 +21,8 @@ public class GlobalSettings
     {
         try
         {
-            var txt = File.ReadAllText(path);
-            return JsonConvert.DeserializeObject<GlobalSettings>(txt) ?? new GlobalSettings();
+            var text = File.ReadAllText(path);
+            return JsonConvert.DeserializeObject<GlobalSettings>(text) ?? new GlobalSettings();
         }
         catch (FileNotFoundException)
         {
@@ -89,52 +89,53 @@ internal static class Program
         {
             return;
         }
-        foreach (var t in accounts)
+        foreach (var accounts in accounts)
         {
-            t.active = false;
+            accounts.active = false;
         }
 
-        using var mf = new MainForm();
-        mf.Location = new Point(-1000, -1000);
-        mf.FormClosing += (sender, e) => { settings.Save(); };
+        using var mainForm = new MainForm();
+        mainForm.Location = new Point(-1000, -1000);
+        mainForm.FormClosing += (sender, e) => { settings.Save(); };
 
         mainthread = new Thread(() =>
         {
             var mainClosed = false;
-            mf.FormClosed += (sender, a) => { mainClosed = true; };
+            mainForm.FormClosed += (sender, a) => { mainClosed = true; };
             while (!mainClosed)
             {
-                while (mf.needtolaunch.Count > 0)
+                while (mainForm.needtolaunch.Count > 0)
                 {
-                    var i = mf.needtolaunch.Dequeue();
+                    var i = mainForm.needtolaunch.Dequeue();
                     var account = accounts[i];
                     if (account.active && account.process != null && account.process.process.MainWindowHandle != IntPtr.Zero)
                     {
                         SetForegroundWindow(account.process.process.MainWindowHandle);
                         continue;
                     }
-                    var mem = MulticlientPatch.LaunchClient(account);
+                    var memory = MulticlientPatch.LaunchClient(account);
 
                     uint timelock = 0;
-                    while (mem.process.MainWindowHandle == IntPtr.Zero || !mem.process.WaitForInputIdle(1000) && timelock++ < 10)
+                    while (memory.process.MainWindowHandle == IntPtr.Zero || !memory.process.WaitForInputIdle(1000) && timelock++ < 10)
                     {
                         Thread.Sleep(1000);
-                        mem.process.Refresh();
+                        memory.process.Refresh();
                     }
 
                     if (timelock >= 10) continue;
-                    account.process = mem;
+                    account.process = memory;
+                    account.texClient?.Send();
 
-                    mf.SetActive(i, true);
-                    GWMem.FindAddressesIfNeeded(mem);
-                    while (mem.Read<ushort>(GWMem.CharnamePtr) == 0 && timelock++ < 60)
+                    mainForm.SetActive(i, true);
+                    GWMem.FindAddressesIfNeeded(memory);
+                    while (memory.Read<ushort>(GWMem.CharnamePtr) == 0 && timelock++ < 60)
                     {
                         Thread.Sleep(1000);
-                        mem.process.Refresh();
+                        memory.process.Refresh();
                     }
-                    if (!string.IsNullOrEmpty(account.character) && mem.process.MainWindowTitle == "Guild Wars")
+                    if (!string.IsNullOrEmpty(account.character) && memory.process.MainWindowTitle == "Guild Wars")
                     {
-                        SetWindowText(mem.process.MainWindowHandle, account.character);
+                        SetWindowText(memory.process.MainWindowHandle, account.character);
                     }
 
                     Thread.Sleep(5000);
@@ -147,7 +148,7 @@ internal static class Program
                     if (!accounts[i].active) continue;
                     var gwcaMemory = accounts[i].process;
                     if (gwcaMemory != null && !gwcaMemory.process.HasExited) continue;
-                    mf.SetActive(i, false);
+                    mainForm.SetActive(i, false);
                     accounts[i].Dispose();
                 }
 
@@ -156,7 +157,7 @@ internal static class Program
                 Thread.Sleep(1000);
             }
         });
-        Application.Run(mf);
+        Application.Run(mainForm);
     }
 
 }

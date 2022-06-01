@@ -6,20 +6,19 @@ namespace GW_Launcher;
 
 internal class MulticlientPatch
 {
-    public static GWCAMemory LaunchClient(Account a)
+    public static GWCAMemory LaunchClient(Account account)
     {
-        var mods = GetTexmods(a.gwpath, a.mods);
+        var mods = GetTextureMods(account.path, account.mods);
         if (mods.Any())
         {
-            a.texClient = new uModTexClient();
+            account.texClient = new uModTexClient();
         }
 
-        var path = a.gwpath;
-        var args = " -email \"" + a.email + "\" -password \"" + a.password + "\" -character \"" +
-                   a.character + "\" " + a.extraargs;
-        var datfix = a.datfix;
+        var path = account.path;
+        var args = $" -email \"{account.email}\" -password \"{account.password}\" -character \"{account.character}\" {account.extraArguments}";
+        var datfix = account.datfix;
         var nologin = false;
-        var elevated = a.elevated;
+        var elevated = account.elevated;
 
         PatchRegistry(path);
         
@@ -27,12 +26,11 @@ internal class MulticlientPatch
             (int)GWML_FLAGS.KEEP_SUSPENDED | (datfix ? 0 : (int)GWML_FLAGS.NO_DATFIX) |
             (nologin ? (int)GWML_FLAGS.NO_LOGIN : 0) | (elevated ? (int)GWML_FLAGS.ELEVATED : 0), out var hThread);
         var proc = Process.GetProcessById((int)dwPid);
-        var mem = new GWCAMemory(proc);
+        var memory = new GWCAMemory(proc);
 
-
-        foreach (var dll in GetDlls(path, a.mods))
+        foreach (var dll in GetDlls(path, account.mods))
         {
-            mem.LoadModule(dll);
+            memory.LoadModule(dll);
         }
 
         NativeMethods.ResumeThread(hThread);
@@ -43,11 +41,12 @@ internal class MulticlientPatch
             foreach (var tex in GetTexmods(path, a.mods))
             {
                 a.texClient?.AddFile(tex);
-                a.texClient?.Send();
             }
+
+            a.texClient?.Send();
         });
 
-        return mem;
+        return memory;
     }
 
     public static GWCAMemory LaunchClient(string path)
@@ -95,7 +94,7 @@ internal class MulticlientPatch
         return GetMods(path, mods).Item1;
     }
 
-    private static IOrderedEnumerable<string> GetTexmods(string path, List<Mod>? mods = null)
+    private static IOrderedEnumerable<string> GetTextureMods(string path, List<Mod>? mods = null)
     {
         return GetMods(path, mods).Item2;
     }
