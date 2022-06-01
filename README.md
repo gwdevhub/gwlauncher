@@ -78,7 +78,7 @@ The dat patch as stated above will allow you to run as many clients as you want 
 
 There may be more side effects, however these are the effects I have seen. The general problem is that any process involving writing to Gw.dat will fail. It is generally advised *not* to tick the .dat patch.
 
-#### GW Plugins
+#### GW Plugins (.dll or .tpf)
 
-If you create a folder named "plugins" within the Gw.exe folder, the launcher will load all .dll's or shortcuts (.lnk) to .dll's inside this folder on launch. This is beneficial for many reasons as you can load plugins and modules at runtime, for example umod's d3d9.dll can be loaded, avoiding the global hook and its side effects.
-Dll's placed in gwlauncher/plugins folder will load for every instance, dll's in the <gw-installation-path>/plugins folder will only load for the instance launched from that path. Alternatively there is also a GUI to select plugins for specific accounts when you edit the account. Texmod files may already be selected, but do not have any effect yet.
+If you create a folder named "plugins" within the folder, the launcher will load all .dll's or shortcuts (.lnk) to .dll's inside this folder on launch. Dll's placed in gwlauncher/plugins folder will load for every instance, dll's in the <gw-installation-path>/plugins folder will only load for the instance launched from that path. Alternatively there is also a GUI to select plugins for specific accounts when you edit the account.
+Similarly, all .tpf or .zip files will be loaded as TexMod files. This means that you do not have to use uMod anymore, if you only want basic TexMod functionality.
