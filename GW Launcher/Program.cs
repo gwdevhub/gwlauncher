@@ -71,7 +71,14 @@ internal static class Program
             var filename = Path.Combine(location, "GWML.dll");
             File.WriteAllBytes(filename, Properties.Resources.GWML);
             var filenameumod = Path.Combine(location, "d3d9.dll");
-            File.WriteAllBytes(filenameumod, Properties.Resources.d3d9);
+            try
+            {
+                File.WriteAllBytes(filenameumod, Properties.Resources.d3d9);
+            }
+            catch (Exception)
+            {
+
+            }
         }
 
         try
@@ -100,35 +107,35 @@ internal static class Program
                 while (mf.needtolaunch.Count > 0)
                 {
                     var i = mf.needtolaunch.Dequeue();
-                    var a = accounts[i];
-                    if (a.active && a.process.process.MainWindowHandle != IntPtr.Zero)
+                    var account = accounts[i];
+                    if (account.active && account.process != null && account.process.process.MainWindowHandle != IntPtr.Zero)
                     {
-                        SetForegroundWindow(a.process.process.MainWindowHandle);
+                        SetForegroundWindow(account.process.process.MainWindowHandle);
                         continue;
                     }
-                    var m = MulticlientPatch.LaunchClient(a);
+                    var mem = MulticlientPatch.LaunchClient(account);
 
                     uint timelock = 0;
-                    while (m.process.MainWindowHandle == IntPtr.Zero || !m.process.WaitForInputIdle(1000) && timelock++ < 10)
+                    while (mem.process.MainWindowHandle == IntPtr.Zero || !mem.process.WaitForInputIdle(1000) && timelock++ < 10)
                     {
                         Thread.Sleep(1000);
-                        m.process.Refresh();
+                        mem.process.Refresh();
                     }
 
                     if (timelock >= 10) continue;
-                    a.process = m;
-                    a.texClient?.Send();
+                    account.process = mem;
+                    account.texClient?.Send();
 
                     mf.SetActive(i, true);
-                    GWMem.FindAddressesIfNeeded(m);
-                    while (m.Read<ushort>(GWMem.CharnamePtr) == 0 && timelock++ < 60)
+                    GWMem.FindAddressesIfNeeded(mem);
+                    while (mem.Read<ushort>(GWMem.CharnamePtr) == 0 && timelock++ < 60)
                     {
                         Thread.Sleep(1000);
-                        m.process.Refresh();
+                        mem.process.Refresh();
                     }
-                    if (!string.IsNullOrEmpty(a.character) && m.process.MainWindowTitle == "Guild Wars")
+                    if (!string.IsNullOrEmpty(account.character) && mem.process.MainWindowTitle == "Guild Wars")
                     {
-                        SetWindowText(m.process.MainWindowHandle, a.character);
+                        SetWindowText(mem.process.MainWindowHandle, account.character);
                     }
 
                     Thread.Sleep(5000);
@@ -139,10 +146,10 @@ internal static class Program
                 for (var i = 0; i < accounts.Length; ++i)
                 {
                     if (!accounts[i].active) continue;
-                    if (!accounts[i].process.process.HasExited) continue;
+                    var gwcaMemory = accounts[i].process;
+                    if (gwcaMemory != null && !gwcaMemory.process.HasExited) continue;
                     mf.SetActive(i, false);
-                    accounts[i].texClient?.Kill();
-                    accounts[i].texClient = null;
+                    accounts[i].Dispose();
                 }
 
                 mutex.ReleaseMutex();

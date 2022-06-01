@@ -6,28 +6,35 @@ public class Account
 {
 
     [JsonRequired]
-    public string email;
+    public string email = "";
 
     [JsonRequired]
-    public string password;
+    public string password = "";
 
     [JsonRequired]
-    public string character;
+    public string character = "";
 
     [JsonRequired]
-    public string gwpath;
+    public string gwpath = "";
 
     public bool datfix;
     public bool elevated;
-    public string extraargs;
+    public string extraargs = "";
     public List<Mod> mods = new();
 
     [JsonIgnore]
     public bool active;
 
     [JsonIgnore]
-    public GWCAMemory process;
+    public GWCAMemory? process;
 
     [JsonIgnore]
     public uModTexClient? texClient;
+
+    public void Dispose()
+    {
+        process = null;
+        texClient?.Dispose();
+        texClient = null;
+    }
 }

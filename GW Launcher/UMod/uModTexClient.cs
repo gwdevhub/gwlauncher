@@ -1,4 +1,6 @@
 ﻿using System.IO.Pipes;
+using System.Security.AccessControl;
+using System.Security.Principal;
 
 namespace GW_Launcher.uMod;
 
@@ -49,17 +51,34 @@ public class uModTexClient
     private readonly NamedPipeServerStream _pipeSend;
 
     private readonly List<TexBundle> _bundles;
-    private readonly List<byte[]> _bytes = new();
+    private readonly Queue<byte[]> _packets = new();
     private readonly HashSet<uint> _hashes = new();
 
     private bool _disposed;
 
     public uModTexClient()
     {
-        _pipeReceive = new NamedPipeServerStream("Game2uMod", PipeDirection.In, 10, PipeTransmissionMode.Byte, PipeOptions.None, SMALL_PIPE_SIZE, SMALL_PIPE_SIZE);
-        _pipeSend = new NamedPipeServerStream("uMod2Game", PipeDirection.Out, 10, PipeTransmissionMode.Byte, PipeOptions.None, BIG_PIPE_SIZE, BIG_PIPE_SIZE);
+        var sid = new SecurityIdentifier(WellKnownSidType.WorldSid, null);
+        var account = (NTAccount)sid.Translate(typeof(NTAccount));
+        var rule = new PipeAccessRule(
+            account.ToString(),
+            PipeAccessRights.FullControl,
+            AccessControlType.Allow);
+        var securityPipe = new PipeSecurity();
+        securityPipe.AddAccessRule(rule);
+
+        _pipeReceive = NamedPipeServerStreamAcl.Create(
+            "Game2uMod", PipeDirection.In,
+            NamedPipeServerStream.MaxAllowedServerInstances,
+            PipeTransmissionMode.Byte, PipeOptions.None, SMALL_PIPE_SIZE, SMALL_PIPE_SIZE, securityPipe);
+
+        _pipeSend = NamedPipeServerStreamAcl.Create(
+            "uMod2Game", PipeDirection.Out,
+            NamedPipeServerStream.MaxAllowedServerInstances,
+            PipeTransmissionMode.Byte, PipeOptions.None, BIG_PIPE_SIZE, BIG_PIPE_SIZE, securityPipe);
+
         _disposed = false;
-        var res = _pipeReceive.BeginWaitForConnection(async (IAsyncResult iar) =>
+        _pipeReceive.BeginWaitForConnection(async (IAsyncResult eAr) =>
         {
             var buf = new byte[SMALL_PIPE_SIZE];
             var num = _pipeReceive.Read(buf);
@@ -69,17 +88,23 @@ public class uModTexClient
 
             if (!_pipeSend.IsConnected)
             {
-                await _pipeSend.WaitForConnectionAsync();
+                _pipeSend.BeginWaitForConnection(async (IAsyncResult iAr) =>
+                {
+                    if (_packets.Any())
+                    {
+                        Send();
+                    }
+                }, null);
             }
         }, null);
         _bundles = new List<TexBundle>();
     }
     ~uModTexClient()
     {
-        Kill();
+        Dispose();
     }
 
-    public void Kill()
+    public void Dispose()
     {
         if (_disposed) return;
         _pipeSend.Dispose();
@@ -98,7 +123,7 @@ public class uModTexClient
         foreach (var tex in _bundles.SelectMany(bundle => bundle.defs))
         {
             if (_hashes.Contains(tex.crcHash)) continue; // do not send previously loaded textures
-            if (_bytes.Select(l => l.Length).Sum() + tex.fileData.Length > BIG_PIPE_SIZE)
+            if (_packets.Select(l => l.Length).Sum() + tex.fileData.Length > BIG_PIPE_SIZE)
             {
                 var loadmoreMsg = new Msg
                 {
@@ -119,7 +144,6 @@ public class uModTexClient
             AddMessage(msg, tex.fileData);
         }
         SendAll();
-        Kill();
     }
 
     private void AddMessage(Msg msg, byte[] data)
@@ -135,18 +159,18 @@ public class uModTexClient
 
         data.CopyTo(packet, 12);
         
-        _bytes.Add(packet);
+        _packets.Enqueue(packet);
     }
 
     private void SendAll()
     {
-        var buffer = _bytes
-            .SelectMany(a => a)
-            .ToArray();
-
         if (!_pipeSend.IsConnected || !_pipeSend.CanWrite) return;
-        _pipeSend.Write(buffer, 0, buffer.Length);
-        _bytes.Clear();
-
+        
+        while (_packets.Any())
+        {
+            var buffer = _packets.Dequeue();
+            _pipeSend.Write(buffer, 0, buffer.Length);
+        }
+        
     }
 }

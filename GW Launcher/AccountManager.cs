@@ -96,7 +96,7 @@ public class AccountManager : IEnumerable<Account>, IDisposable
                         throw new Exception();
                     }
 
-                    var text = rawJson.Substring(4);
+                    var text = rawJson[4..];
                     _accounts = JsonConvert.DeserializeObject<List<Account>>(text) ?? _accounts;
                 }
                 catch (Exception)
