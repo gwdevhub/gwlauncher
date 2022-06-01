@@ -21,7 +21,7 @@ namespace GW_Launcher.Forms
             account.gwpath = textBoxPath.Text;
             account.datfix = checkBoxDatFix.Checked;
             account.elevated = checkBoxElevated.Checked;
-            account.extraArguments = textBoxExtraArguments.Text;
+            account.extraargs = textBoxExtraArguments.Text;
             finished = true;
             Close();
         }
@@ -34,7 +34,7 @@ namespace GW_Launcher.Forms
             textBoxPath.Text = account.gwpath;
             checkBoxDatFix.Checked = account.datfix;
             checkBoxElevated.Checked = account.elevated;
-            textBoxExtraArguments.Text = account.extraArguments;
+            textBoxExtraArguments.Text = account.extraargs;
         }
 
         private void ButtonDialogPath_Click(object sender, EventArgs e)

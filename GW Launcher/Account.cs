@@ -19,7 +19,7 @@ public class Account
 
     public bool datfix;
     public bool elevated;
-    public string extraArguments = "";
+    public string extraargs = "";
     public List<Mod> mods = new();
 
     [JsonIgnore]
@@ -34,7 +34,6 @@ public class Account
     public void Dispose()
     {
         process = null;
-        texClient?.Dispose();
         texClient = null;
     }
 }
