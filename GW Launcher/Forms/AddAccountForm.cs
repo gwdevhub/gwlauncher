@@ -15,26 +15,42 @@ namespace GW_Launcher.Forms
 
         private void ButtonDone_Click(object sender, EventArgs e)
         {
+            account.title = textBoxTitle.Text;
             account.email = textBoxEmail.Text;
             account.password = textBoxPassword.Text;
             account.character = textBoxCharacter.Text;
             account.gwpath = textBoxPath.Text;
             account.datfix = checkBoxDatFix.Checked;
             account.elevated = checkBoxElevated.Checked;
-            account.extraArguments = textBoxExtraArguments.Text;
+            account.extraargs = textBoxExtraArguments.Text;
+
+            if (account.title != "")
+            {
+                account.name = account.title;
+            }
+            else if (account.character != "")
+            {
+                account.name = account.character;
+            }
+            else
+            {
+                account.name = account.email;
+            }
+
             finished = true;
             Close();
         }
 
         private void AddAccountForm_Load(object sender, EventArgs e)
         {
+            textBoxTitle.Text = account.title;
             textBoxEmail.Text = account.email;
             textBoxPassword.Text = account.password;
             textBoxCharacter.Text = account.character;
             textBoxPath.Text = account.gwpath;
             checkBoxDatFix.Checked = account.datfix;
             checkBoxElevated.Checked = account.elevated;
-            textBoxExtraArguments.Text = account.extraArguments;
+            textBoxExtraArguments.Text = account.extraargs;
         }
 
         private void ButtonDialogPath_Click(object sender, EventArgs e)

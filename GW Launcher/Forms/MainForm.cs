@@ -55,7 +55,7 @@ public partial class MainForm : Form
         {
             listViewAccounts.Items.Add(new ListViewItem(
                 new[] {
-                    account.character,
+                    account.name,
                     account.active ? "Active" : "Inactive"
                 },
                 "gw-icon"
@@ -208,7 +208,7 @@ public partial class MainForm : Form
 
         var isVisible = (Point p) =>
         {
-            return Screen.AllScreens.Any(screen => p.X < screen.Bounds.Right && p.X > screen.Bounds.Left && p.Y > screen.Bounds.Top && p.Y < screen.Bounds.Bottom);
+            return Screen.AllScreens.Any(s => p.X < s.Bounds.Right && p.X > s.Bounds.Left && p.Y > s.Bounds.Top && p.Y < s.Bounds.Bottom);
         };
 
         var position = Cursor.Position;

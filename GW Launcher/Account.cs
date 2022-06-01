@@ -4,6 +4,11 @@ namespace GW_Launcher;
 
 public class Account
 {
+    [JsonRequired]
+    public string title = "";
+
+    [JsonRequired]
+    public string name = "";
 
     [JsonRequired]
     public string email = "";
@@ -19,7 +24,7 @@ public class Account
 
     public bool datfix;
     public bool elevated;
-    public string extraArguments = "";
+    public string extraargs = "";
     public List<Mod> mods = new();
 
     [JsonIgnore]

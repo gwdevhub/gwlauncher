@@ -15,7 +15,13 @@ internal class MulticlientPatch
         }
 
         var path = account.gwpath;
-        var args = $" -email \"{account.email}\" -password \"{account.password}\" -character \"{account.character}\" {account.extraArguments}";
+        var character = " ";
+        if (!string.IsNullOrEmpty(account.character))
+        {
+            character = account.character;
+        }
+
+        var args = $" -email \"{account.email}\" -password \"{account.password}\" -character \"{character}\" {account.extraargs}";
         var datfix = account.datfix;
         var nologin = false;
         var elevated = account.elevated;
