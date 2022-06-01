@@ -39,41 +39,41 @@ partial class ModManager
         this.listViewAvailableMods = new System.Windows.Forms.ListView();
         this.contextMenuStrip.SuspendLayout();
         this.SuspendLayout();
-        // 
+        //
         // contextMenuStrip1
-        // 
+        //
         this.contextMenuStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.toolStripMenuItemAddMod,
             this.toolStripMenuItemRemoveSelected});
         this.contextMenuStrip.Name = "contextMenuStrip";
         this.contextMenuStrip.Size = new System.Drawing.Size(165, 48);
-        // 
+        //
         // addModToolStripMenuItem
-        // 
+        //
         this.toolStripMenuItemAddMod.Name = "toolStripMenuItemAddMod";
         this.toolStripMenuItemAddMod.Size = new System.Drawing.Size(164, 22);
         this.toolStripMenuItemAddMod.Text = "Add Mod";
         this.toolStripMenuItemAddMod.Click += new System.EventHandler(this.ToolStripMenuItemAddMod_Click);
-        // 
+        //
         // removeSelectedToolStripMenuItem
-        // 
+        //
         this.toolStripMenuItemRemoveSelected.Name = "toolStripMenuItemRemoveSelected";
         this.toolStripMenuItemRemoveSelected.Size = new System.Drawing.Size(164, 22);
         this.toolStripMenuItemRemoveSelected.Text = "Remove Selected";
         this.toolStripMenuItemRemoveSelected.Click += new System.EventHandler(this.ToolStripMenuItemRemoveSelected_Click);
-        // 
+        //
         // columnHeaderName
-        // 
+        //
         this.columnHeaderName.Text = "Name";
         this.columnHeaderName.Width = 160;
-        // 
+        //
         // columnHeaderFullName
-        // 
+        //
         this.columnHeaderPath.Text = "Full Path";
         this.columnHeaderPath.Width = -2;
-        // 
+        //
         // listViewAvailableMods
-        // 
+        //
         this.listViewAvailableMods.CheckBoxes = true;
         this.listViewAvailableMods.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
             this.columnHeaderName,
@@ -96,9 +96,9 @@ partial class ModManager
         this.listViewAvailableMods.UseCompatibleStateImageBehavior = false;
         this.listViewAvailableMods.View = System.Windows.Forms.View.Details;
         this.listViewAvailableMods.ItemChecked += new System.Windows.Forms.ItemCheckedEventHandler(this.listViewAvailableMods_ItemChecked);
-        // 
+        //
         // ModManager
-        // 
+        //
         this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
         this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
         this.ClientSize = new System.Drawing.Size(393, 304);

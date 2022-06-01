@@ -35,7 +35,7 @@ public class ZipLoader
             var password = Encoding.Latin1.GetString(_tpfPassword);
             archive.Password = password;
             archive.Encryption = EncryptionAlgorithm.None;
-            
+
             foreach (var entry in archive.Entries)
             {
                 var content = new byte[entry.UncompressedSize];
@@ -63,7 +63,7 @@ public class ZipLoader
                 }
             }
         }
-        
+
         if (files.ContainsKey("texmod.def"))
         {
             var texcontent = files["texmod.def"];
@@ -93,7 +93,7 @@ public class ZipLoader
                 // GW.EXE_0x12345678.dds
                 files.Remove(filename, out var content);
                 if (content == null) continue;
-                
+
                 var splits = filename.Split('.', '_');
                 if (splits.Length != 4) continue;
                 if (splits[0] != "GW" || splits[1] != "exe") continue;
@@ -111,5 +111,4 @@ public class ZipLoader
     public IReadOnlyDictionary<string, byte[]> Entries { get; }
 
     public bool IsTpfEncrypted { get; set; }
-    
 }

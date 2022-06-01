@@ -15,6 +15,7 @@ namespace GW_Launcher.Forms
 
         private void ButtonDone_Click(object sender, EventArgs e)
         {
+            account.title = textBoxTitle.Text;
             account.email = textBoxEmail.Text;
             account.password = textBoxPassword.Text;
             account.character = textBoxCharacter.Text;
@@ -28,6 +29,7 @@ namespace GW_Launcher.Forms
 
         private void AddAccountForm_Load(object sender, EventArgs e)
         {
+            textBoxTitle.Text = account.title;
             textBoxEmail.Text = account.email;
             textBoxPassword.Text = account.password;
             textBoxCharacter.Text = account.character;

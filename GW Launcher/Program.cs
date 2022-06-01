@@ -132,9 +132,9 @@ internal static class Program
                         Thread.Sleep(1000);
                         memory.process.Refresh();
                     }
-                    if (!string.IsNullOrEmpty(account.character) && memory.process.MainWindowTitle == "Guild Wars")
+                    if (memory.process.MainWindowTitle == "Guild Wars")
                     {
-                        SetWindowText(memory.process.MainWindowHandle, account.character);
+                        SetWindowText(memory.process.MainWindowHandle, account.name);
                     }
 
                     Thread.Sleep(5000);

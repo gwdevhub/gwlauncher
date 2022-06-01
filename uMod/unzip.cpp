@@ -409,7 +409,7 @@ int inflateSetDictionary(z_streamp strm,
 
 
 int inflateSync(z_streamp strm);
-// 
+//
 //    Skips invalid compressed data until a full flush point can be found, or until all
 //  available input is skipped. No output is provided.
 //

@@ -335,7 +335,7 @@ public class GWCAMemory
     /// </summary>
     /// <param name="modulepath">Relative gwpath to module to load.</param>
     /// <returns>bool on if injection was sucessful</returns>
-    /// 
+    ///
     public LOADMODULERESULT LoadModule(string modulepath)
     {
         return LoadModule(modulepath, out _);

@@ -4,6 +4,11 @@ namespace GW_Launcher;
 
 public class Account
 {
+    [JsonRequired]
+    public string title = "";
+
+    [JsonRequired]
+    public string name = "";
 
     [JsonRequired]
     public string email = "";

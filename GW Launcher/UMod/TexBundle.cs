@@ -27,7 +27,7 @@ public class TexBundle
                     crc = crc[..10];
                     break;
             }
-            
+
             TexDef def;
             def.crcHash = Convert.ToUInt32(crc, 16);
             def.fileData = value;

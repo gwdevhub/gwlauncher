@@ -11,7 +11,7 @@ public partial class ModManager : Form
 
         InitializeComponent();
 
-        Text = @"Mod Manager for " + this.account.character;
+        Text = $"Mod Manager for {this.account.name}";
     }
 
     private void RefreshUI()
