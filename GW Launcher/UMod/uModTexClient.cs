@@ -174,15 +174,6 @@ public class uModTexClient
 
     private bool SendAll()
     {
-<<<<<<< HEAD
-        if (!_pipeSend.IsConnected || !_pipeSend.CanWrite) return;
-
-        while (_packets.Any())
-        {
-            var buffer = _packets.Dequeue();
-            _pipeSend.Write(buffer, 0, buffer.Length);
-        }
-=======
         if (!_pipeSend.IsConnected || !_pipeSend.CanWrite) return false;
 
         var buffer = _packets.SelectMany(b => b).ToArray();
@@ -198,6 +189,5 @@ public class uModTexClient
 
         return !_packets.Any();
 
->>>>>>> umod
     }
 }

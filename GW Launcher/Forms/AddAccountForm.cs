@@ -23,7 +23,6 @@ namespace GW_Launcher.Forms
             account.datfix = checkBoxDatFix.Checked;
             account.elevated = checkBoxElevated.Checked;
             account.extraargs = textBoxExtraArguments.Text;
-<<<<<<< HEAD
 
             if (account.title != "")
             {
@@ -38,8 +37,6 @@ namespace GW_Launcher.Forms
                 account.name = account.email;
             }
 
-=======
->>>>>>> umod
             finished = true;
             Close();
         }

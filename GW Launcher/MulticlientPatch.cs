@@ -15,7 +15,6 @@ internal class MulticlientPatch
         }
 
         var path = account.gwpath;
-<<<<<<< HEAD
         var character = " ";
         if (!string.IsNullOrEmpty(account.character))
         {
@@ -23,9 +22,6 @@ internal class MulticlientPatch
         }
 
         var args = $" -email \"{account.email}\" -password \"{account.password}\" -character \"{character}\" {account.extraargs}";
-=======
-        var args = $" -email \"{account.email}\" -password \"{account.password}\" -character \"{account.character}\" {account.extraargs}";
->>>>>>> umod
         var datfix = account.datfix;
         var nologin = false;
         var elevated = account.elevated;
