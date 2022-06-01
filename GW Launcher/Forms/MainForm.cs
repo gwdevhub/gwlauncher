@@ -166,8 +166,14 @@ public partial class MainForm : Form
         if (selectedItems.Count == 0 && listViewAccounts.FocusedItem == null)
             return;
 
-        var index = selectedItems.Contains(listViewAccounts.FocusedItem.Index) ? listViewAccounts.FocusedItem.Index : selectedItems[0];
-        var account = Program.accounts[index];
+        int? index = selectedItems.Contains(listViewAccounts.FocusedItem.Index) ? listViewAccounts.FocusedItem.Index : null;
+        if (index == null && selectedItems.Count > 0)
+        {
+            index = selectedItems[0];
+        }
+
+        if (index == null) return;
+        var account = Program.accounts[(int) index];
         var addAccountForm = new AddAccountForm
         {
             Text = @"Modify Account",
@@ -177,7 +183,7 @@ public partial class MainForm : Form
         addAccountForm.ShowDialog();
         if (addAccountForm.finished)
         {
-            Program.accounts[index] = addAccountForm.account;
+            Program.accounts[(int) index] = addAccountForm.account;
         }
 
         Program.mutex.ReleaseMutex();
