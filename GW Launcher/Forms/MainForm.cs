@@ -262,7 +262,6 @@ public partial class MainForm : Form
         Activate();
     }
 
-
     private Task RunClientUpdateAsync(string client, CancellationToken cancellationToken = default)
     {
         try

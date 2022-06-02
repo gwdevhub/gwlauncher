@@ -52,7 +52,7 @@ public class uModTexClient
     private readonly List<TexBundle> _bundles;
     private readonly Queue<byte[]> _packets = new();
     private readonly HashSet<uint> _hashes = new();
-
+    
     private bool _disposed;
 
     public uModTexClient()
@@ -103,7 +103,6 @@ public class uModTexClient
     public void Dispose()
     {
         if (_disposed) return;
-        if (!Send()) return;
         _bundles.Clear();
         _packets.Clear();
         _pipeSend.Dispose();
@@ -113,12 +112,14 @@ public class uModTexClient
 
     public void AddFile(string filePath)
     {
+        if (_disposed) return;
         var bundle = new TexBundle(filePath);
         _bundles.Add(bundle);
     }
 
     public bool Send()
     {
+        if (_disposed) return false;
         foreach (var tex in _bundles.SelectMany(bundle => bundle.defs))
         {
             if (_hashes.Contains(tex.crcHash)) continue; // do not send previously loaded textures
@@ -177,6 +178,7 @@ public class uModTexClient
 
         var buffer = _packets.SelectMany(b => b).ToArray();
         _pipeSend.Write(buffer, 0, buffer.Length);
+        _pipeSend.Flush();
         _packets.Clear();
         
         // TODO: this should work... find out why it doesn't and possibly fix umods d3d9.dll

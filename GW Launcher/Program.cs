@@ -108,9 +108,10 @@ internal static class Program
 
         mainthread = new Thread(() =>
         {
-            var mainClosed = false;
-            mainForm.FormClosed += (sender, a) => { mainClosed = true; };
-            while (!mainClosed && !shouldClose)
+            mainForm.FormClosed += (sender, a) => {
+                shouldClose = true;
+            };
+            while (!shouldClose)
             {
                 while (mainForm.needtolaunch.Count > 0)
                 {

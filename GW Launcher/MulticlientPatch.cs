@@ -44,10 +44,16 @@ internal class MulticlientPatch
 
         Task.Run(() =>
         {
+            if (account.texClient == null) return;
             foreach (var tex in GetTexmods(path, account.mods))
             {
-                account.texClient?.AddFile(tex);
-                account.texClient?.Send();
+                if (Program.shouldClose)
+                {
+                    account.texClient.Dispose();
+                    return;
+                }
+                account.texClient.AddFile(tex);
+                account.texClient.Send();
             }
         });
 
