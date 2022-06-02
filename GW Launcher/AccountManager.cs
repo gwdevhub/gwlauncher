@@ -1,9 +1,4 @@
-﻿using System.Collections;
-using System.Security.Cryptography;
-using System.Text;
-using GW_Launcher.Forms;
-using Newtonsoft.Json;
-using System.Diagnostics;
+﻿using GW_Launcher.Forms;
 
 namespace GW_Launcher;
 
@@ -38,11 +33,11 @@ public class AccountManager : IEnumerable<Account>, IDisposable
     {
         get
         {
-            return _accounts.Find(a => a.email == email);
+            return _accounts.Find(account => account.email == email);
         }
         set
         {
-            var index = _accounts.FindIndex(a => a.email == email);
+            var index = _accounts.FindIndex(account => account.email == email);
             if (index != -1 && value != null)
                 this[index] = value;
         }
@@ -88,26 +83,28 @@ public class AccountManager : IEnumerable<Account>, IDisposable
                 _accounts.Clear();
             }
         else
+        {
             try
             {
                 var textBytes = File.ReadAllBytes(filePath);
-                using (var decrypt = _crypt.CreateDecryptor(_cryptPass, _salsaIv))
+                using var decrypt = _crypt.CreateDecryptor(_cryptPass, _salsaIv);
+                try
                 {
-                    try
+                    var cryptBytes = decrypt.TransformFinalBlock(textBytes, 0, textBytes.Length);
+                    var rawJson = Encoding.UTF8.GetString(cryptBytes);
+                    if (!rawJson.StartsWith("SHIT"))
                     {
-                        var cryptBytes = decrypt.TransformFinalBlock(textBytes, 0, textBytes.Length);
-                        var rawJson = Encoding.UTF8.GetString(cryptBytes);
-                        if (!rawJson.StartsWith("SHIT"))
-                        {
-                            throw new Exception();
-                        }
+                        throw new Exception();
                     }
-                    catch (Exception)
-                    {
-                        var result = MessageBox.Show("Incorrect password.\n Restart launcher and try again.",
-                                @"GW Launcher - Invalid Password");
-                        throw new Exception("Wrong password");
-                    }
+
+                    var text = rawJson[4..];
+                    _accounts = JsonConvert.DeserializeObject<List<Account>>(text) ?? _accounts;
+                }
+                catch (Exception)
+                {
+                    var result = MessageBox.Show("Incorrect password.\n Restart launcher and try again.",
+                        @"GW Launcher - Invalid Password");
+                    throw new Exception("Wrong password");
                 }
             }
             catch (FileNotFoundException)
@@ -122,6 +119,12 @@ public class AccountManager : IEnumerable<Account>, IDisposable
 
                 _accounts.Clear();
             }
+        }
+
+        foreach (var account in _accounts.Where(account => account.mods == null))
+        {
+            account.mods = new List<Mod>();
+        }
     }
 
     public void Save(string? filePath = null)
@@ -137,19 +140,15 @@ public class AccountManager : IEnumerable<Account>, IDisposable
         {
             text = "SHIT" + text;
             var bytes = Encoding.UTF8.GetBytes(text);
-            var cryptBytes = new byte[bytes.Length];
-            using (var encrypt = _crypt.CreateEncryptor(_cryptPass, _salsaIv))
-            {
-                encrypt.TransformBlock(bytes, 0, bytes.Length, cryptBytes, 0);
-            }
-
+            using var encrypt = _crypt.CreateEncryptor(_cryptPass, _salsaIv);
+            var cryptBytes = encrypt.TransformFinalBlock(bytes, 0, bytes.Length);
             File.WriteAllBytes(filePath, cryptBytes);
         }
     }
 
-    public void Add(Account acc)
+    public void Add(Account account)
     {
-        _accounts.Add(acc);
+        _accounts.Add(account);
         Save(_filePath);
     }
 
@@ -161,6 +160,6 @@ public class AccountManager : IEnumerable<Account>, IDisposable
 
     public void Remove(string email)
     {
-        _accounts.RemoveAll(a => a.email == email);
+        _accounts.RemoveAll(account => account.email == email);
     }
 }

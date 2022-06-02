@@ -11,7 +11,7 @@ public partial class ModManager : Form
 
         InitializeComponent();
 
-        Text = @"Mod Manager for " + this.account.character;
+        Text = $@"Mod Manager for {this.account.Name}";
     }
 
     private void RefreshUI()
@@ -23,7 +23,7 @@ public partial class ModManager : Form
             var path = Path.GetDirectoryName(mod.fileName);
             var item = new ListViewItem(new string[] {
                         name,
-                        path
+                        path ?? string.Empty
                     }, mod.fileName)
             {
                 Checked = mod.active
@@ -44,7 +44,7 @@ public partial class ModManager : Form
         }
     }
 
-    private void TexmodManager_Load(object sender, EventArgs e)
+    private void ModManager_Load(object sender, EventArgs e)
     {
         RefreshUI();
     }
@@ -56,7 +56,7 @@ public partial class ModManager : Form
         Program.accounts.Save();
     }
 
-    private void addModToolStripMenuItem_Click(object sender, EventArgs e)
+    private void ToolStripMenuItemAddMod_Click(object sender, EventArgs e)
     {
         var openFileDialog = new OpenFileDialog
         {
@@ -87,7 +87,7 @@ public partial class ModManager : Form
         }
     }
 
-    private void removeSelectedToolStripMenuItem_Click(object sender, EventArgs e)
+    private void ToolStripMenuItemRemoveSelected_Click(object sender, EventArgs e)
     {
         Program.mutex.WaitOne();
         var selectedthing = listViewAvailableMods.SelectedIndices[0];
@@ -96,10 +96,5 @@ public partial class ModManager : Form
         Program.accounts.Save();
         RefreshUI();
         Program.mutex.ReleaseMutex();
-    }
-
-    private void listViewAvailableMods_SelectedIndexChanged(object sender, EventArgs e)
-    {
-
     }
 }

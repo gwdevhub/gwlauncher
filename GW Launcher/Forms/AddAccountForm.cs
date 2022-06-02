@@ -13,31 +13,34 @@ namespace GW_Launcher.Forms
             InitializeComponent();
         }
 
-        private void buttonDone_Click(object sender, EventArgs e)
+        private void ButtonDone_Click(object sender, EventArgs e)
         {
+            account.title = textBoxTitle.Text;
             account.email = textBoxEmail.Text;
             account.password = textBoxPassword.Text;
-            account.character = textBoxChar.Text;
+            account.character = textBoxCharacter.Text;
             account.gwpath = textBoxPath.Text;
             account.datfix = checkBoxDatFix.Checked;
             account.elevated = checkBoxElevated.Checked;
-            account.extraargs = textBoxExArgs.Text;
+            account.extraargs = textBoxExtraArguments.Text;
+            
             finished = true;
             Close();
         }
 
         private void AddAccountForm_Load(object sender, EventArgs e)
         {
+            textBoxTitle.Text = account.title;
             textBoxEmail.Text = account.email;
             textBoxPassword.Text = account.password;
-            textBoxChar.Text = account.character;
+            textBoxCharacter.Text = account.character;
             textBoxPath.Text = account.gwpath;
             checkBoxDatFix.Checked = account.datfix;
             checkBoxElevated.Checked = account.elevated;
-            textBoxExArgs.Text = account.extraargs;
+            textBoxExtraArguments.Text = account.extraargs;
         }
 
-        private void buttonDialogPath_Click(object sender, EventArgs e)
+        private void ButtonDialogPath_Click(object sender, EventArgs e)
         {
             var openFileDialog = new OpenFileDialog();
 
@@ -60,7 +63,7 @@ namespace GW_Launcher.Forms
 
         }
 
-        private void button1_Click(object sender, EventArgs e)
+        private void ButtonTogglePasswordVisibility_Click(object sender, EventArgs e)
         {
             if (textBoxPassword.PasswordChar == '\0')
                 textBoxPassword.PasswordChar = '*';
@@ -68,7 +71,7 @@ namespace GW_Launcher.Forms
                 textBoxPassword.PasswordChar = '\0';
         }
 
-        private void button2_Click(object sender, EventArgs e)
+        private void ButtonMods_Click(object sender, EventArgs e)
         {
             Program.mutex.WaitOne();
             if (string.IsNullOrEmpty(account.email)) return;
@@ -77,7 +80,7 @@ namespace GW_Launcher.Forms
             modForm.Show();
         }
 
-        private void checkBoxDatFix_CheckedChanged(object sender, EventArgs e)
+        private void CheckBoxDatFix_CheckedChanged(object sender, EventArgs e)
         {
             if (checkBoxDatFix.Checked)
             {
