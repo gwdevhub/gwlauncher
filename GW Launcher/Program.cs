@@ -1,4 +1,7 @@
-﻿using GW_Launcher.Forms;
+﻿using System.ComponentModel;
+using System.Reflection;
+using System.Text.RegularExpressions;
+using GW_Launcher.Forms;
 
 namespace GW_Launcher;
 
@@ -6,9 +9,15 @@ public class GlobalSettings
 {
     public bool Encrypt { get; set; }
 
-    GlobalSettings()
+    public bool CheckForUpdates { get; set; }
+
+    public bool AutoUpdate { get; set; }
+
+    private GlobalSettings()
     {
         Encrypt = true;
+        CheckForUpdates = true;
+        AutoUpdate = false;
     }
 
     public void Save(string path = "Settings.json")
@@ -38,7 +47,7 @@ internal static class Program
 {
     private const string GwlMutexName = "gwl_instance_mutex";
     public static AccountManager accounts = new();
-    public static Thread mainthread;
+    public static Thread mainthread = null!;
     public static Mutex mutex = new();
     public static Mutex? gwlMutex;
     public static GlobalSettings settings = GlobalSettings.Load();
@@ -48,7 +57,7 @@ internal static class Program
 
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
-    static extern bool SetForegroundWindow(IntPtr hWnd);
+    private static extern bool SetForegroundWindow(IntPtr hWnd);
 
     [STAThread]
     internal static void Main()
@@ -56,12 +65,19 @@ internal static class Program
         Application.EnableVisualStyles();
         Application.SetCompatibleTextRenderingDefault(false);
 
-        File.Delete("old.exe");
-        Task.Run(CheckGitHubNewerVersion);
-
         if (Mutex.TryOpenExisting(GwlMutexName, out gwlMutex))
         {
             return;
+        }
+
+        if (settings.AutoUpdate)
+        {
+            File.Delete(".old.exe");
+            File.Delete(".new.exe");
+        }
+        if (settings.CheckForUpdates)
+        {
+            Task.Run(CheckGitHubNewerVersion);
         }
 
         gwlMutex = new Mutex(true, GwlMutexName);
@@ -90,10 +106,6 @@ internal static class Program
         catch (Exception)
         {
             return;
-        }
-        foreach (var accounts in accounts)
-        {
-            accounts.active = false;
         }
 
         using var mainForm = new MainForm();
@@ -165,76 +177,80 @@ internal static class Program
     private static async Task CheckGitHubNewerVersion()
     {
         //Get all releases from GitHub
-        //Source: https://octokitnet.readthedocs.io/en/latest/getting-started/
         var client = new Octokit.GitHubClient(new Octokit.ProductHeaderValue("GWLauncher"));
         IReadOnlyList<Octokit.Release> releases = await client.Repository.Release.GetAll("GregLando113", "gwlauncher");
 
-        //Setup the versions
-        var tagName = Regex.Replace(releases[0].TagName,  @"[^\d\.]", "");
-        var latestGitHubVersion = new Version(tagName);
+        if (releases.Count <= 0) return;
+
+        var tagName = Regex.Replace(releases[0].TagName, @"[^\d\.]", "");
+        var latestVersion = new Version(tagName);
+        var minVersion = new Version("13.0");
+        if (latestVersion.CompareTo(minVersion) <= 0) return;
         var assembly = Assembly.GetExecutingAssembly();
         var fvi = FileVersionInfo.GetVersionInfo(assembly.Location);
-        var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString();
+        var version = assembly.GetName().Version?.ToString();
+        if (version == null && fvi.FileVersion == null) return;
+
         var strVersion = fvi.FileVersion ?? version ?? "";
-        Version localVersion = new Version(strVersion); //Replace this with your local version. 
-        //Only tested with numeric values.
+        var localVersion = new Version(strVersion);
 
-        //Compare the Versions
-        //Source: https://stackoverflow.com/questions/7568147/compare-version-numbers-without-using-split-function
-        int versionComparison = localVersion.CompareTo(latestGitHubVersion);
-        if (versionComparison < 0)
+        var versionComparison = localVersion.CompareTo(latestVersion);
+        if (versionComparison >= 0) return;
+
+        var latest = releases[0];
+
+        if (!settings.AutoUpdate)
         {
-            //The version on GitHub is more up to date than this local release.
-            var latest = releases[0];
-            
-            var currentName = Path.GetFileName(Process.GetCurrentProcess().MainModule?.FileName);
-            if (currentName == null) return;
-            var newName = "new.exe"; 
-            var asset = latest.Assets.First(a => a.Name == "GW_Launcher.exe");
-            if (asset == null) return;
-            var uri = new Uri(asset.BrowserDownloadUrl);
-            var httpClient = new HttpClient();
-            await using (var s = await httpClient.GetStreamAsync(uri))
+            var msgBoxResult = MessageBox.Show(
+                $@"New version {tagName} available online. Visit page?",
+                @"Update",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Information,
+                MessageBoxDefaultButton.Button2);
+            if (msgBoxResult == DialogResult.Yes)
             {
-                await using (var fs = new FileStream(newName, FileMode.Create))
-                {
-                    await s.CopyToAsync(fs);
-                }
-            }
-            
-            File.Move(currentName, "old.exe");
-
-            File.Move(newName, currentName);
-
-            var fileName = Environment.ProcessPath;
-            var processInfo = new ProcessStartInfo
-            {
-                UseShellExecute = true,
-                FileName = fileName,
-                Arguments = "restart"
-            };
-
-            try
-            {
-                Application.Restart();
-                Process.Start(processInfo);
-                Environment.Exit(0);
-            }
-            catch (Win32Exception)
-            {
-                MessageBox.Show("Cancelled");
-                // This will be thrown if the user cancels the prompt
+                Process.Start("explorer", latest.HtmlUrl);
             }
             return;
         }
-        else if (versionComparison > 0)
+        var currentName = Path.GetFileName(Process.GetCurrentProcess().MainModule?.FileName);
+        if (currentName == null) return;
+        const string newName = ".new.exe";
+        var asset = latest.Assets.First(a => a.Name == "GW_Launcher.exe");
+        if (asset == null) return;
+        var uri = new Uri(asset.BrowserDownloadUrl);
+        var httpClient = new HttpClient();
+        await using (var s = await httpClient.GetStreamAsync(uri))
         {
-            //This local version is greater than the release version on GitHub.
+            await using (var fs = new FileStream(newName, FileMode.Create))
+            {
+                await s.CopyToAsync(fs);
+            }
         }
-        else
-        {
-            //This local Version and the Version on GitHub are equal.
-        }
-    }
 
+        File.Move(currentName, ".old.exe");
+
+        File.Move(newName, currentName);
+
+        var fileName = Environment.ProcessPath;
+        var processInfo = new ProcessStartInfo
+        {
+            UseShellExecute = true,
+            FileName = fileName,
+            Arguments = "restart"
+        };
+
+        try
+        {
+            Application.Restart();
+            Process.Start(processInfo);
+            Environment.Exit(0);
+        }
+        catch (Win32Exception)
+        {
+            MessageBox.Show(@"Cancelled");
+            // This will be thrown if the user cancels the prompt
+        }
+
+    }
 }
