@@ -78,6 +78,14 @@ The dat patch as stated above will allow you to run as many clients as you want 
 
 There may be more side effects, however these are the effects I have seen. The general problem is that any process involving writing to Gw.dat will fail. It is generally advised *not* to tick the .dat patch.
 
+### Settings
+
+There are three settings that you can change in the file Settings.json:
+
+*	Encrypt: bool, if GW Launcher will ask you for a password and encrypt your account info.
+*	CheckForUpdates: bool, if GW Launcher should check for new releases, default true
+*	AutoUpdate: bool, if GW Launcher should automatically update, default false
+
 #### GW Plugins (.dll or .tpf)
 
 If you create a folder named "plugins" within the folder, the launcher will load all .dll's or shortcuts (.lnk) to .dll's inside this folder on launch. Dll's placed in gwlauncher/plugins folder will load for every instance, dll's in the <gw-installation-path>/plugins folder will only load for the instance launched from that path. Alternatively there is also a GUI to select plugins for specific accounts when you edit the account.

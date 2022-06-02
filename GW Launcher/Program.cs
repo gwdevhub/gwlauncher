@@ -70,11 +70,6 @@ internal static class Program
             return;
         }
 
-        if (settings.AutoUpdate)
-        {
-            File.Delete(".old.exe");
-            File.Delete(".new.exe");
-        }
         if (settings.CheckForUpdates)
         {
             Task.Run(CheckGitHubNewerVersion);
@@ -176,11 +171,19 @@ internal static class Program
 
     private static async Task CheckGitHubNewerVersion()
     {
+        const string oldName = ".old.exe";
+        const string newName = ".new.exe";
+        if (settings.AutoUpdate && (File.Exists(oldName) || File.Exists(newName)))
+        {
+            File.Delete(oldName);
+            File.Delete(newName);
+        }
+
         //Get all releases from GitHub
         var client = new Octokit.GitHubClient(new Octokit.ProductHeaderValue("GWLauncher"));
         IReadOnlyList<Octokit.Release> releases = await client.Repository.Release.GetAll("GregLando113", "gwlauncher");
 
-        if (releases.Count <= 0) return;
+        if (!releases.Any()) return;
 
         var tagName = Regex.Replace(releases[0].TagName, @"[^\d\.]", "");
         var latestVersion = new Version(tagName);
@@ -215,20 +218,17 @@ internal static class Program
         }
         var currentName = Path.GetFileName(Process.GetCurrentProcess().MainModule?.FileName);
         if (currentName == null) return;
-        const string newName = ".new.exe";
         var asset = latest.Assets.First(a => a.Name == "GW_Launcher.exe");
         if (asset == null) return;
         var uri = new Uri(asset.BrowserDownloadUrl);
         var httpClient = new HttpClient();
         await using (var s = await httpClient.GetStreamAsync(uri))
         {
-            await using (var fs = new FileStream(newName, FileMode.Create))
-            {
-                await s.CopyToAsync(fs);
-            }
+            await using var fs = new FileStream(newName, FileMode.Create);
+            await s.CopyToAsync(fs);
         }
 
-        File.Move(currentName, ".old.exe");
+        File.Move(currentName, oldName);
 
         File.Move(newName, currentName);
 
@@ -239,18 +239,9 @@ internal static class Program
             FileName = fileName,
             Arguments = "restart"
         };
-
-        try
-        {
-            Application.Restart();
-            Process.Start(processInfo);
-            Environment.Exit(0);
-        }
-        catch (Win32Exception)
-        {
-            MessageBox.Show(@"Cancelled");
-            // This will be thrown if the user cancels the prompt
-        }
-
+        
+        Application.Restart();
+        Process.Start(processInfo);
+        Environment.Exit(0);
     }
 }
