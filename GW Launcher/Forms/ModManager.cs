@@ -16,6 +16,8 @@ public partial class ModManager : Form
     private void RefreshUI()
     {
         listViewAvailableMods.Items.Clear();
+
+        _account.mods.Sort((a, b) => string.CompareOrdinal(a.fileName, b.fileName));
         foreach (var mod in _account.mods)
         {
             var name = Path.GetFileName(mod.fileName);
@@ -60,27 +62,33 @@ public partial class ModManager : Form
         var openFileDialog = new OpenFileDialog
         {
             Title = @"Select Mod File to Use",
-            Filter = @"Mod Files (*.dll;*.zip;*.tpf)|*.dll;*.zip;*.tpf|All files (*.*)|*.*"
+            Filter = @"Mod Files (*.dll;*.zip;*.tpf)|*.dll;*.zip;*.tpf|All files (*.*)|*.*",
+            Multiselect = true
         };
 
         if (openFileDialog.ShowDialog() != DialogResult.OK) return;
-        
-        var mod = new Mod
+        foreach (var fileName in openFileDialog.FileNames)
         {
-            fileName = openFileDialog.FileName,
-            active = false
-        };
-        switch (openFileDialog.FileName.Split('.').Last())
-        {
-            case "dll":
-                mod.type = ModType.kModTypeDLL;
-                break;
-            case "zip":
-            case "tpf":
-                mod.type = ModType.kModTypeTexmod;
-                break;
+            if (_account.mods.Any(m => Path.GetFileName(m.fileName) == Path.GetFileName(fileName))) continue;
+            var mod = new Mod
+            {
+                fileName = fileName,
+                active = false
+            };
+            switch (openFileDialog.FileName.Split('.').Last())
+            {
+                case "dll":
+                    mod.type = ModType.kModTypeDLL;
+                    break;
+                case "zip":
+                case "tpf":
+                    mod.type = ModType.kModTypeTexmod;
+                    break;
+            }
+
+            _account.mods.Add(mod);
         }
-        _account.mods.Add(mod);
+
         Program.accounts.Save();
         RefreshUI();
     }
@@ -88,9 +96,12 @@ public partial class ModManager : Form
     private void ToolStripMenuItemRemoveSelected_Click(object sender, EventArgs e)
     {
         Program.mutex.WaitOne();
-        var selectedthing = listViewAvailableMods.SelectedIndices[0];
-        var selectedmod = _account.mods[selectedthing];
-        _account.mods.Remove(selectedmod);
+        var list = listViewAvailableMods.SelectedIndices.Cast<int>().ToList().OrderByDescending(i => i);
+        foreach (var index in list)
+        {
+            _account.mods.RemoveAt(index);
+        }
+        
         Program.accounts.Save();
         RefreshUI();
         Program.mutex.ReleaseMutex();

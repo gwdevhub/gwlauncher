@@ -181,7 +181,7 @@ internal static class Program
 
         //Get all releases from GitHub
         var client = new Octokit.GitHubClient(new Octokit.ProductHeaderValue("GWLauncher"));
-        IReadOnlyList<Octokit.Release> releases = await client.Repository.Release.GetAll("GregLando113", "gwlauncher");
+        var releases = await client.Repository.Release.GetAll("GregLando113", "gwlauncher");
 
         if (!releases.Any(r => !r.Prerelease && !r.Draft)) return;
         
@@ -191,7 +191,7 @@ internal static class Program
         var minVersion = new Version("13.0");
         if (latestVersion.CompareTo(minVersion) <= 0) return;
         var assembly = Assembly.GetExecutingAssembly();
-        var fvi = FileVersionInfo.GetVersionInfo(assembly.Location);
+        var fvi = FileVersionInfo.GetVersionInfo(Environment.ProcessPath ?? "");
         var version = assembly.GetName().Version?.ToString();
         if (version == null && fvi.FileVersion == null) return;
 

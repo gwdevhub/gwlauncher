@@ -20,7 +20,10 @@ internal class MulticlientPatch
             Task.Run(() =>
             {
                 using var texClient = new uModTexClient();
-                texClient.WaitForConnection();
+                while (!texClient.IsReady() && !Program.shouldClose)
+                {
+                    Thread.Sleep(200);
+                }
                 foreach (var tex in GetTexmods(path, account.mods))
                 {
                     if (Program.shouldClose)
@@ -33,7 +36,7 @@ internal class MulticlientPatch
                 }
                 texClient.Send();
 
-                GC.Collect(); // force garbage collection
+                GC.Collect(2, GCCollectionMode.Optimized); // force garbage collection
             });
         }
 

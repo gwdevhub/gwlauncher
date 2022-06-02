@@ -54,6 +54,7 @@ public class uModTexClient : IDisposable
     private readonly HashSet<uint> _hashes = new();
     
     private bool _disposed;
+    private bool _connected;
 
     public uModTexClient()
     {
@@ -75,7 +76,25 @@ public class uModTexClient : IDisposable
             "uMod2Game", PipeDirection.Out,
             NamedPipeServerStream.MaxAllowedServerInstances,
             PipeTransmissionMode.Byte, PipeOptions.None, BIG_PIPE_SIZE, BIG_PIPE_SIZE, securityPipe);
+
+        _pipeReceive.BeginWaitForConnection(ear =>
+        {
+            var buf = new byte[SMALL_PIPE_SIZE];
+            var num = _pipeReceive.Read(buf);
+            if (num <= 2) return;
+            // ReSharper disable once UnusedVariable
+            var gameName = Encoding.Default.GetString(buf);
+
+            if (!_pipeSend.IsConnected)
+            {
+                _pipeSend.BeginWaitForConnection(iar =>
+                {
+                    _connected = true;
+                }, null);
+            }
+        }, null);
     }
+
     ~uModTexClient()
     {
         Dispose();
@@ -182,21 +201,11 @@ public class uModTexClient : IDisposable
         //}
 
         return !_packets.Any();
-
     }
 
-    public void WaitForConnection()
+    public bool IsReady()
     {
-        _pipeReceive.WaitForConnection();
-        var buf = new byte[SMALL_PIPE_SIZE];
-        var num = _pipeReceive.Read(buf);
-        if (num <= 2) return;
-        // ReSharper disable once UnusedVariable
-        var gameName = Encoding.Default.GetString(buf);
-
-        if (!_pipeSend.IsConnected)
-        {
-            _pipeSend.WaitForConnection();
-        }
+        return _connected;
     }
+    
 }
