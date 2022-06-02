@@ -8,6 +8,6 @@ public enum ModType
 public class Mod
 {
     public ModType type;
-    public string fileName;
+    public string fileName = "";
     public bool active;
 }

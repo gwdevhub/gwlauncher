@@ -16,10 +16,9 @@
 * * *
 
 1.  Click [download](https://github.com/GregLando113/gwlauncher/releases) below.
-2.  Select the most recent revision executable. The regular version requires the [.NET 6 Desktop Runtime (x86)](https://dotnet.microsoft.com/en-us/download/dotnet/6.0). The self-contained version runs out of the box.
-3.  Confirm that you have the latest [Visual C++ Redistributables x86](https://aka.ms/vs/17/release/vc_redist.x86.exe) installed.
-4.  Put the executable in its own folder! Dont be that guy who keeps everything in their downloads folder/desktop please. It will create three files (Settings.json, Accounts.json, GWML.dll) in the same location you put the executable when you launch it.
-5.  Run the executable.
+2.  Select the most recent revision executable. The regular version requires the [.NET 6 Desktop Runtime (x86)](https://dotnet.microsoft.com/en-us/download/dotnet/6.0).
+3.  Put the executable in its own folder! It will create three files (Settings.json, Accounts.json, GWML.dll) in the same location you put the executable when you launch it.
+4.  Run the executable.
 
 ### Usage
 
@@ -79,7 +78,16 @@ The dat patch as stated above will allow you to run as many clients as you want 
 
 There may be more side effects, however these are the effects I have seen. The general problem is that any process involving writing to Gw.dat will fail. It is generally advised *not* to tick the .dat patch.
 
-#### GW Plugins
+### Settings
 
-If you create a folder named "plugins" within the Gw.exe folder, the launcher will load all .dll's or shortcuts (.lnk) to .dll's inside this folder on launch. This is beneficial for many reasons as you can load plugins and modules at runtime, for example umod's d3d9.dll can be loaded, avoiding the global hook and its side effects.
-Dll's placed in gwlauncher/plugins folder will load for every instance, dll's in the <gw-installation-path>/plugins folder will only load for the instance launched from that path. Alternatively there is also a GUI to select plugins for specific accounts when you edit the account. Texmod files may already be selected, but do not have any effect yet.
+There are three settings that you can change in the file Settings.json:
+
+*	Encrypt: bool, if GW Launcher will ask you for a password and encrypt your account info.
+*	CheckForUpdates: bool, if GW Launcher should check for new releases, default true
+*	AutoUpdate: bool, if GW Launcher should automatically update, default false
+
+#### GW Plugins (.dll or .tpf)
+
+If you create a folder named "plugins" within the folder, the launcher will load all .dll's or shortcuts (.lnk) to .dll's inside this folder on launch. Dll's placed in gwlauncher/plugins folder will load for every instance, dll's in the <gw-installation-path>/plugins folder will only load for the instance launched from that path. Alternatively there is also a GUI to select plugins for specific accounts when you edit the account.
+Similarly, all .tpf or .zip files will be loaded as TexMod files. This means that you do not have to use uMod anymore, if you only want basic TexMod functionality.
+Plugins are loaded in the alphabetical order of their filename. Textures that are already replaced by 1_FirstTexmod.tpf cannot be replaced by subsequent 2_SecondTexmod.tpf, so make sure your texmods are named in ascending alphabetical order.

@@ -1,6 +1,4 @@
-﻿using System.Diagnostics;
-using System.Runtime.InteropServices;
-using GW_Launcher.Utilities;
+﻿using GW_Launcher.uMod;
 using Microsoft.Win32;
 using IWshRuntimeLibrary;
 
@@ -8,8 +6,79 @@ namespace GW_Launcher;
 
 internal class MulticlientPatch
 {
-    public static GWCAMemory LaunchClient(string path, string args, bool datfix, bool nologin = false,
-        bool elevated = false, List<Mod>? mods = null)
+    public static GWCAMemory LaunchClient(Account account)
+    {
+        var path = account.gwpath;
+        var character = " ";
+        if (!string.IsNullOrEmpty(account.character))
+        {
+            character = account.character;
+        }
+
+        if (GetTexmods(account.gwpath, account.mods).Any())
+        {
+            Task.Run(() =>
+            {
+                using var texClient = new uModTexClient();
+                while (!texClient.IsReady() && !Program.shouldClose)
+                {
+                    Thread.Sleep(200);
+                }
+                foreach (var tex in GetTexmods(path, account.mods))
+                {
+                    if (Program.shouldClose)
+                    {
+                        texClient.Dispose();
+                        return;
+                    }
+
+                    texClient.AddFile(tex);
+                }
+                texClient.Send();
+
+                GC.Collect(2, GCCollectionMode.Optimized); // force garbage collection
+            });
+        }
+
+        var args = $" -email \"{account.email}\" -password \"{account.password}\" -character \"{character}\" {account.extraargs}";
+        var datfix = account.datfix;
+        var nologin = false;
+        var elevated = account.elevated;
+
+        PatchRegistry(path);
+
+        var dwPid = NativeMethods.LaunchClient(path, args,
+            (int)GWML_FLAGS.KEEP_SUSPENDED | (datfix ? 0 : (int)GWML_FLAGS.NO_DATFIX) |
+            (nologin ? (int)GWML_FLAGS.NO_LOGIN : 0) | (elevated ? (int)GWML_FLAGS.ELEVATED : 0), out var hThread);
+        var proc = Process.GetProcessById((int)dwPid);
+        var memory = new GWCAMemory(proc);
+
+        foreach (var dll in GetDlls(path, account.mods))
+        {
+            memory.LoadModule(dll);
+        }
+
+        NativeMethods.ResumeThread(hThread);
+        NativeMethods.CloseHandle(hThread);
+
+        return memory;
+    }
+
+    public static GWCAMemory LaunchClient(string path)
+    {
+        PatchRegistry(path);
+
+        var dwPid = NativeMethods.LaunchClient(path, "", 0, out var hThread);
+        var proc = Process.GetProcessById((int)dwPid);
+        var mem = new GWCAMemory(proc);
+
+        NativeMethods.ResumeThread(hThread);
+        NativeMethods.CloseHandle(hThread);
+
+        return mem;
+    }
+
+    private static void PatchRegistry(string path)
     {
         try
         {
@@ -31,55 +100,61 @@ internal class MulticlientPatch
         }
         catch (UnauthorizedAccessException)
         {
-            if (elevated)
-            {
-                MessageBox.Show("Insufficient access rights.\nPlease restart the launcher as admin.",
-                    @"GWMC - Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return null;
-            }
+
         }
+    }
 
-        var hThread = IntPtr.Zero;
-        var dwPid = NativeMethods.LaunchClient(path, args,
-            (int)GWML_FLAGS.KEEP_SUSPENDED | (datfix ? 0 : (int)GWML_FLAGS.NO_DATFIX) |
-            (nologin ? (int)GWML_FLAGS.NO_LOGIN : 0) | (elevated ? (int)GWML_FLAGS.ELEVATED : 0), out hThread);
-        var proc = Process.GetProcessById((int)dwPid);
-        var mem = new GWCAMemory(proc);
+    private static IOrderedEnumerable<string> GetDlls(string path, IReadOnlyCollection<Mod> mods)
+    {
+        return GetMods(path, mods).Item1;
+    }
 
-        var dllpath = Directory.GetCurrentDirectory() + "\\plugins";
-        var to_load = new List<string>();
-        if (Directory.Exists(dllpath))
+    private static IOrderedEnumerable<string> GetTexmods(string path, IReadOnlyCollection<Mod> mods)
+    {
+        return GetMods(path, mods).Item2;
+    }
+    private static Tuple<IOrderedEnumerable<string>, IOrderedEnumerable<string>> GetMods(string path, IReadOnlyCollection<Mod> mods)
+    {
+        var directory = Directory.GetCurrentDirectory() + "\\plugins";
+        var dllsToLoad = new List<string>();
+        var texsToLoad = new List<string>();
+        if (Directory.Exists(directory))
         {
-            var links = Directory.GetFiles(dllpath, "*.lnk");
-            var files = Directory.GetFiles(dllpath, "*.dll");
-            links = links.Select(l => GetShortcutPath(l)).Where(l => l.EndsWith(".dll")).ToArray();
-            to_load.AddRange(links);
-            to_load.AddRange(files);
+            var links = Directory.GetFiles(directory, "*.lnk");
+            var files = Directory.GetFiles(directory, "*.dll");
+            var dlllinks = links.Select(GetShortcutPath).Where(l => l.EndsWith(".dll")).ToArray();
+            var textures = Directory.GetFiles(directory, "*").Where(t => t.EndsWith(".tpf") || t.EndsWith(".zip"));
+
+            dllsToLoad.AddRange(files);
+            dllsToLoad.AddRange(dlllinks);
+            texsToLoad.AddRange(textures);
         }
 
-        dllpath = Path.GetDirectoryName(path) + "\\plugins";
-        if (Directory.Exists(dllpath))
+        directory = Path.GetDirectoryName(path) + "\\plugins";
+        if (Directory.Exists(directory))
         {
-            var links = Directory.GetFiles(dllpath, "*.lnk");
-            var files = Directory.GetFiles(dllpath, "*.dll");
-            links = links.Select(l => GetShortcutPath(l)).Where(l => l.EndsWith(".dll")).ToArray();
-            to_load.AddRange(links);
-            to_load.AddRange(files);
+            var links = Directory.GetFiles(directory, "*.lnk");
+            var files = Directory.GetFiles(directory, "*.dll");
+            var dlllinks = links.Select(GetShortcutPath).Where(l => l.EndsWith(".dll")).ToArray();
+            var textures = Directory.GetFiles(directory, "*").Where(t => t.EndsWith(".tpf") || t.EndsWith(".zip"));
+
+            dllsToLoad.AddRange(dlllinks);
+            dllsToLoad.AddRange(files);
+            texsToLoad.AddRange(textures);
         }
 
-        if (mods != null)
-            foreach (var mod in mods.Where(mod => mod.type == ModType.kModTypeDLL && System.IO.File.Exists(mod.fileName)))
-                to_load.Add(mod.fileName);
-
-        foreach (var dll in to_load.Distinct())
+        dllsToLoad.AddRange(mods.Where(mod => mod.type == ModType.kModTypeDLL && System.IO.File.Exists(mod.fileName)).Select(mod => mod.fileName));
+        texsToLoad.AddRange(mods.Where(mod => mod.type == ModType.kModTypeTexmod && mod.active && System.IO.File.Exists(mod.fileName)).Select(mod => mod.fileName));
+        if (texsToLoad.Count > 0)
         {
-            mem.LoadModule(dll);
+            dllsToLoad.RemoveAll(p => Path.GetFileName(p) == "d3d9.dll"); // don't load any other d3d9.dll
+            dllsToLoad.Add(Path.Combine(Directory.GetCurrentDirectory(), "d3d9.dll")); // load d3d9.dll for umod
         }
 
-        NativeMethods.ResumeThread(hThread);
-        NativeMethods.CloseHandle(hThread);
-
-        return mem;
+        return Tuple.Create(
+            dllsToLoad.Distinct().OrderByDescending(p => Path.GetFileName(p) == "d3d9.dll").ThenBy(Path.GetFileName),
+            texsToLoad.Distinct().OrderBy(Path.GetFileName)
+        );
     }
 
     private enum GWML_FLAGS

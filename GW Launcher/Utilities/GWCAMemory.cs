@@ -1,7 +1,5 @@
 ﻿using System.ComponentModel;
 using System.Diagnostics;
-using System.Runtime.InteropServices;
-using System.Text;
 
 namespace GW_Launcher.Utilities;
 
@@ -146,10 +144,12 @@ public class GWCAMemory
     public string ReadWString(IntPtr address, int maxsize)
     {
         var rawbytes = ReadBytes(address, maxsize);
+        if (rawbytes == null) return "";
         var ret = Encoding.Unicode.GetString(rawbytes);
-        if (ret.Contains("\0"))
-            ret = ret.Substring(0, ret.IndexOf('\0'));
+        if (ret.Contains('\0'))
+            ret = ret[..ret.IndexOf('\0')];
         return ret;
+
     }
 
     /// <summary>
@@ -270,6 +270,7 @@ public class GWCAMemory
         for (var scan = 0; scan < scan_size; ++scan)
         {
             // Skip iteration if first byte does not match
+            Debug.Assert(memory_dump != null, nameof(memory_dump) + " != null");
             if (memory_dump[scan] != first)
             {
                 continue;
@@ -332,9 +333,9 @@ public class GWCAMemory
     /// <summary>
     /// Inject module into process using LoadLibrary CRT method.
     /// </summary>
-    /// <param name="modulepath">Relative path to module to load.</param>
+    /// <param name="modulepath">Relative gwpath to module to load.</param>
     /// <returns>bool on if injection was sucessful</returns>
-    /// 
+    ///
     public LOADMODULERESULT LoadModule(string modulepath)
     {
         return LoadModule(modulepath, out _);

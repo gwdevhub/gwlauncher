@@ -1,6 +1,8 @@
 ﻿using System.IO.Pipes;
+using System.Security.AccessControl;
+using System.Security.Principal;
 
-namespace GW_Launcher.UMod;
+namespace GW_Launcher.uMod;
 
 public enum MsgControl : uint
 {
@@ -33,76 +35,177 @@ public enum MsgControl : uint
     CONTROL_REMOVE_CLIENT = 102
 }
 
-
 public struct Msg
 {
     public MsgControl msg;
-    public ulong value;
-    public ulong hash;
+    public uint value;
+    public uint hash;
 }
 
-public class uModTexClient
+public class uModTexClient : IDisposable
 {
-    private readonly NamedPipeClientStream pipeClient;
-    private const string PIPE_uMod2Game = "\\\\.\\pipe\\uMod2Game";
-    private const string PIPE_Game2uMod = "\\\\.\\pipe\\Game2uMod";
+    private const int SMALL_PIPE_SIZE = 1 << 10;
+    private const int BIG_PIPE_SIZE = 1 << 24;
+    private readonly NamedPipeServerStream _pipeReceive;
+    private readonly NamedPipeServerStream _pipeSend;
 
-    public List<TexBundle> bundles;
-    public List<TexDef> looseTextures;
+    private readonly List<TexBundle> _bundles = new();
+    private readonly Queue<byte[]> _packets = new();
+    private readonly HashSet<uint> _hashes = new();
+    
+    private bool _disposed;
+    private bool _connected;
 
     public uModTexClient()
     {
-        pipeClient = new NamedPipeClientStream(".", "uMod2Game", PipeDirection.Out);
-    }
+        var sid = new SecurityIdentifier(WellKnownSidType.WorldSid, null);
+        var account = (NTAccount)sid.Translate(typeof(NTAccount));
+        var rule = new PipeAccessRule(
+            account.ToString(),
+            PipeAccessRights.FullControl,
+            AccessControlType.Allow);
+        var securityPipe = new PipeSecurity();
+        securityPipe.AddAccessRule(rule);
 
+        _pipeReceive = NamedPipeServerStreamAcl.Create(
+            "Game2uMod", PipeDirection.In,
+            NamedPipeServerStream.MaxAllowedServerInstances,
+            PipeTransmissionMode.Byte, PipeOptions.None, SMALL_PIPE_SIZE, SMALL_PIPE_SIZE, securityPipe);
 
-    public void AddBundle(TexBundle bundle)
-    {
-        bundles.Add(bundle);
-    }
+        _pipeSend = NamedPipeServerStreamAcl.Create(
+            "uMod2Game", PipeDirection.Out,
+            NamedPipeServerStream.MaxAllowedServerInstances,
+            PipeTransmissionMode.Byte, PipeOptions.None, BIG_PIPE_SIZE, BIG_PIPE_SIZE, securityPipe);
 
-    public void AddSingleFile(string texFilePath)
-    {
-        var fileName = texFilePath.Split('\\').Last();
-
-
-        var tmp = fileName.Split('_', '.');
-
-        if (tmp.Length != 3)
-            throw new Exception("Not using a texmod created texture :s");
-
-        // string exeName = tmp[0];
-        var crc = tmp[1];
-        // string textureType = tmp[2];
-
-        TexDef def;
-        def.fileName = fileName;
-        def.crcHash = uint.Parse(crc);
-
-
-        using (var file = new FileStream(texFilePath, FileMode.Open))
+        _pipeReceive.BeginWaitForConnection(ear =>
         {
-            def.fileData = new byte[file.Length];
-            file.Read(def.fileData, 0, (int)file.Length);
-        }
+            var buf = new byte[SMALL_PIPE_SIZE];
+            var num = _pipeReceive.Read(buf);
+            if (num <= 2) return;
+            // ReSharper disable once UnusedVariable
+            var gameName = Encoding.Default.GetString(buf);
 
-        looseTextures.Add(def);
-    }
-
-    public void Send(MsgControl msg, ulong value, ulong hash, byte[] data = null)
-    {
-        var packet = new byte[20 + (data?.Length ?? 0)];
-
-        packet.SetValue(msg, 0);
-        packet.SetValue(value, 4);
-        packet.SetValue(hash, 12);
-        packet.SetValue(data, 20);
-
-        pipeClient.Write(packet, 0, packet.Length);
+            if (!_pipeSend.IsConnected)
+            {
+                _pipeSend.BeginWaitForConnection(iar =>
+                {
+                    _connected = true;
+                }, null);
+            }
+        }, null);
     }
 
     ~uModTexClient()
     {
-        pipeClient.Close();
+        Dispose();
     }
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _bundles.Clear();
+        _packets.Clear();
+        _pipeSend.Dispose();
+        _pipeReceive.Dispose();
+        _disposed = true;
+    }
+
+    public void AddFile(string filePath)
+    {
+        if (_disposed) return;
+        var bundle = new TexBundle(filePath);
+        _bundles.Add(bundle);
+    }
+
+    public bool Send()
+    {
+        if (_disposed) return false;
+        foreach (var tex in _bundles.SelectMany(bundle => bundle.defs))
+        {
+            if (_hashes.Contains(tex.crcHash)) continue; // do not send previously loaded textures
+            if (_packets.Select(l => l.Length).Sum() + 2 * Marshal.SizeOf(typeof(Msg)) + tex.fileData.Length > BIG_PIPE_SIZE)
+            {
+                var loadmoreMsg = new Msg
+                {
+                    hash = 0,
+                    msg = MsgControl.CONTROL_MORE_TEXTURES,
+                    value = 0
+                };
+                AddMessage(loadmoreMsg, Array.Empty<byte>());
+                if (!SendAll())
+                {
+                    MessageBox.Show(@"Failed to send textures");
+                    return false;
+                }
+            }
+            var msg = new Msg
+            {
+                hash = tex.crcHash,
+                msg = MsgControl.CONTROL_ADD_TEXTURE_DATA,
+                value = (uint)tex.fileData.Length
+            };
+            _hashes.Add(tex.crcHash);
+            AddMessage(msg, tex.fileData);
+        }
+
+        var success = SendAll();
+        if (success)
+        {
+            _bundles.ForEach(b => b.Dispose());
+            _bundles.Clear();
+        }
+
+        return success;
+    }
+
+    private void AddMessage(Msg msg, byte[] data)
+    {
+        var packet = new byte[12 + data.Length];
+
+        var buf = BitConverter.GetBytes((uint)msg.msg);
+        buf.CopyTo(packet, 0);
+        buf = BitConverter.GetBytes(msg.value);
+        buf.CopyTo(packet, 4);
+        buf = BitConverter.GetBytes(msg.hash);
+        buf.CopyTo(packet, 8);
+
+        data.CopyTo(packet, 12);
+
+        _packets.Enqueue(packet);
+    }
+
+    private bool SendAll()
+    {
+        if (!_pipeSend.IsConnected || !_pipeSend.CanWrite) return false;
+
+        var buffer = _packets.SelectMany(b => b).ToArray();
+        try
+        {
+            _pipeSend.Write(buffer, 0, buffer.Length);
+            _pipeSend.Flush();
+            _packets.Clear();
+            Thread.Sleep(100);
+        }
+        catch (Exception)
+        {
+            Program.shouldClose = true;
+        }
+
+        // TODO: this should work... find out why it doesn't and possibly fix umods d3d9.dll
+        // TODO: looks like the messages are sent but overwritten before the dll is ready to read again
+        //while (_packets.Any())
+        //{
+        //    var buffer = _packets.Dequeue();
+        //    _pipeSend.Write(buffer, 0, buffer.Length);
+        //    Thread.Sleep(20);
+        //}
+
+        return !_packets.Any();
+    }
+
+    public bool IsReady()
+    {
+        return _connected;
+    }
+    
 }
