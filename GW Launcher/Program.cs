@@ -134,7 +134,7 @@ internal static class Program
                     }
                     if (memory.process.MainWindowTitle == "Guild Wars")
                     {
-                        SetWindowText(memory.process.MainWindowHandle, account.name);
+                        SetWindowText(memory.process.MainWindowHandle, account.Name);
                     }
 
                     Thread.Sleep(5000);

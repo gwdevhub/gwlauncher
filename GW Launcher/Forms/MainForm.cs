@@ -52,7 +52,7 @@ public partial class MainForm : Form
         {
             listViewAccounts.Items.Add(new ListViewItem(
                 new[] {
-                    account.name,
+                    account.Name,
                     account.active ? "Active" : "Inactive"
                 },
                 "gw-icon"
@@ -184,6 +184,7 @@ public partial class MainForm : Form
         if (addAccountForm.finished)
         {
             Program.accounts[(int) index] = addAccountForm.account;
+            RefreshUI();
         }
 
         Program.mutex.ReleaseMutex();

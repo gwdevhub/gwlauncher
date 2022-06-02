@@ -4,12 +4,8 @@ namespace GW_Launcher;
 
 public class Account
 {
-    [JsonRequired]
     public string title = "";
-
-    [JsonRequired]
-    public string name = "";
-
+    
     [JsonRequired]
     public string email = "";
 
@@ -35,6 +31,16 @@ public class Account
 
     [JsonIgnore]
     public uModTexClient? texClient;
+
+    public string Name
+    {
+        get
+        {
+            if (!string.IsNullOrEmpty(title)) return title;
+            if (!string.IsNullOrEmpty(character)) return character;
+            return !string.IsNullOrEmpty(email) ? email : character;
+        }
+    }
 
     public void Dispose()
     {

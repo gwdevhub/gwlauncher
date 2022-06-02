@@ -23,6 +23,7 @@ namespace GW_Launcher.Forms
             account.datfix = checkBoxDatFix.Checked;
             account.elevated = checkBoxElevated.Checked;
             account.extraargs = textBoxExtraArguments.Text;
+            
             finished = true;
             Close();
         }
