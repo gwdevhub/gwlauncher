@@ -31,7 +31,7 @@ public class ZipLoader
             var fileContent = file.GetContent();
             if (fileContent == null) return;
             using var memoryStream = new MemoryStream(fileContent);
-            using var archive = Ionic.Zip.ZipFile.Read(memoryStream);
+            using var archive = ZipFile.Read(memoryStream);
             var password = Encoding.Latin1.GetString(_tpfPassword);
             archive.Password = password;
             archive.Encryption = EncryptionAlgorithm.None;

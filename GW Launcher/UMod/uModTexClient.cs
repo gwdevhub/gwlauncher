@@ -42,14 +42,14 @@ public struct Msg
     public uint hash;
 }
 
-public class uModTexClient
+public class uModTexClient : IDisposable
 {
     private const int SMALL_PIPE_SIZE = 1 << 10;
     private const int BIG_PIPE_SIZE = 1 << 24;
     private readonly NamedPipeServerStream _pipeReceive;
     private readonly NamedPipeServerStream _pipeSend;
 
-    private readonly List<TexBundle> _bundles;
+    private readonly List<TexBundle> _bundles = new();
     private readonly Queue<byte[]> _packets = new();
     private readonly HashSet<uint> _hashes = new();
     
@@ -75,25 +75,6 @@ public class uModTexClient
             "uMod2Game", PipeDirection.Out,
             NamedPipeServerStream.MaxAllowedServerInstances,
             PipeTransmissionMode.Byte, PipeOptions.None, BIG_PIPE_SIZE, BIG_PIPE_SIZE, securityPipe);
-
-        _disposed = false;
-        _pipeReceive.BeginWaitForConnection((IAsyncResult eAr) =>
-        {
-            var buf = new byte[SMALL_PIPE_SIZE];
-            var num = _pipeReceive.Read(buf);
-            if (num <= 2) return;
-            // ReSharper disable once UnusedVariable
-            var gameName = Encoding.Default.GetString(buf);
-
-            if (!_pipeSend.IsConnected)
-            {
-                _pipeSend.BeginWaitForConnection((IAsyncResult iAr) =>
-                {
-
-                }, null);
-            }
-        }, null);
-        _bundles = new List<TexBundle>();
     }
     ~uModTexClient()
     {
@@ -123,7 +104,7 @@ public class uModTexClient
         foreach (var tex in _bundles.SelectMany(bundle => bundle.defs))
         {
             if (_hashes.Contains(tex.crcHash)) continue; // do not send previously loaded textures
-            if (_packets.Select(l => l.Length).Sum() + 2 * Marshal.SizeOf(typeof(Msg)) + sizeof(uint) + tex.fileData.Length > BIG_PIPE_SIZE)
+            if (_packets.Select(l => l.Length).Sum() + 2 * Marshal.SizeOf(typeof(Msg)) + tex.fileData.Length > BIG_PIPE_SIZE)
             {
                 var loadmoreMsg = new Msg
                 {
@@ -140,7 +121,7 @@ public class uModTexClient
             var msg = new Msg
             {
                 hash = tex.crcHash,
-                msg = MsgControl.CONTROL_FORCE_RELOAD_TEXTURE_DATA,
+                msg = MsgControl.CONTROL_ADD_TEXTURE_DATA,
                 value = (uint)tex.fileData.Length
             };
             _hashes.Add(tex.crcHash);
@@ -150,6 +131,7 @@ public class uModTexClient
         var success = SendAll();
         if (success)
         {
+            _bundles.ForEach(b => b.Dispose());
             _bundles.Clear();
         }
 
@@ -177,18 +159,43 @@ public class uModTexClient
         if (!_pipeSend.IsConnected || !_pipeSend.CanWrite) return false;
 
         var buffer = _packets.SelectMany(b => b).ToArray();
-        _pipeSend.Write(buffer, 0, buffer.Length);
-        _pipeSend.Flush();
-        _packets.Clear();
-        
+        try
+        {
+            _pipeSend.Write(buffer, 0, buffer.Length);
+            _pipeSend.Flush();
+            _packets.Clear();
+            Thread.Sleep(100);
+        }
+        catch (Exception)
+        {
+            Program.shouldClose = true;
+        }
+
         // TODO: this should work... find out why it doesn't and possibly fix umods d3d9.dll
+        // TODO: looks like the messages are sent but overwritten before the dll is ready to read again
         //while (_packets.Any())
         //{
         //    var buffer = _packets.Dequeue();
         //    _pipeSend.Write(buffer, 0, buffer.Length);
+        //    Thread.Sleep(20);
         //}
 
         return !_packets.Any();
 
+    }
+
+    public void WaitForConnection()
+    {
+        _pipeReceive.WaitForConnection();
+        var buf = new byte[SMALL_PIPE_SIZE];
+        var num = _pipeReceive.Read(buf);
+        if (num <= 2) return;
+        // ReSharper disable once UnusedVariable
+        var gameName = Encoding.Default.GetString(buf);
+
+        if (!_pipeSend.IsConnected)
+        {
+            _pipeSend.WaitForConnection();
+        }
     }
 }

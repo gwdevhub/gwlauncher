@@ -28,10 +28,7 @@ public class Account
 
     [JsonIgnore]
     public GWCAMemory? process;
-
-    [JsonIgnore]
-    public uModTexClient? texClient;
-
+    
     public string Name
     {
         get
@@ -40,11 +37,5 @@ public class Account
             if (!string.IsNullOrEmpty(character)) return character;
             return !string.IsNullOrEmpty(email) ? email : character;
         }
-    }
-
-    public void Dispose()
-    {
-        process = null;
-        texClient = null;
     }
 }

@@ -156,8 +156,8 @@ internal static class Program
                     if (!accounts[i].active) continue;
                     var gwcaMemory = accounts[i].process;
                     if (gwcaMemory != null && !gwcaMemory.process.HasExited) continue;
+                    accounts[i].process = null;
                     mainForm.SetActive(i, false);
-                    accounts[i].Dispose();
                 }
 
                 mutex.ReleaseMutex();

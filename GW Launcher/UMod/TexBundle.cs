@@ -13,7 +13,11 @@ public class TexBundle
     public TexBundle(string filePath)
     {
         name = filePath.Split('\\').Last();
+        Load(filePath);
+    }
 
+    public void Load(string filePath)
+    {
         var loader = new ZipLoader(filePath);
         foreach (var (key, value) in loader.Entries)
         {
@@ -34,5 +38,10 @@ public class TexBundle
 
             defs.Add(def);
         }
+    }
+
+    public void Dispose()
+    {
+        defs.Clear();
     }
 }

@@ -8,17 +8,36 @@ internal class MulticlientPatch
 {
     public static GWCAMemory LaunchClient(Account account)
     {
-        var texmods = GetTexmods(account.gwpath, account.mods);
-        if (texmods.Any())
-        {
-            account.texClient = new uModTexClient();
-        }
-
         var path = account.gwpath;
         var character = " ";
         if (!string.IsNullOrEmpty(account.character))
         {
             character = account.character;
+        }
+
+        if (GetTexmods(account.gwpath, account.mods).Any())
+        {
+            Task.Run(() =>
+            {
+                using var texClient = new uModTexClient();
+                texClient.WaitForConnection();
+                foreach (var tex in GetTexmods(path, account.mods))
+                {
+                    if (Program.shouldClose)
+                    {
+                        texClient.Dispose();
+                        return;
+                    }
+
+                    texClient.AddFile(tex);
+                }
+                texClient.Send();
+
+                texClient.Dispose();
+
+                GC.Collect(); // force garbage collection
+                GC.WaitForPendingFinalizers();
+            });
         }
 
         var args = $" -email \"{account.email}\" -password \"{account.password}\" -character \"{character}\" {account.extraargs}";
@@ -41,21 +60,6 @@ internal class MulticlientPatch
 
         NativeMethods.ResumeThread(hThread);
         NativeMethods.CloseHandle(hThread);
-
-        Task.Run(() =>
-        {
-            if (account.texClient == null) return;
-            foreach (var tex in GetTexmods(path, account.mods))
-            {
-                if (Program.shouldClose)
-                {
-                    account.texClient.Dispose();
-                    return;
-                }
-                account.texClient.AddFile(tex);
-                account.texClient.Send();
-            }
-        });
 
         return memory;
     }

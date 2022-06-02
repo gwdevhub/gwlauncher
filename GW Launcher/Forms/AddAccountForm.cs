@@ -5,7 +5,7 @@ namespace GW_Launcher.Forms
     public partial class AddAccountForm : Form
     {
         public Account account;
-        public bool finished = false;
+        public bool finished;
 
         public AddAccountForm()
         {
@@ -49,7 +49,7 @@ namespace GW_Launcher.Forms
             {
                 pathdefault = (string?)Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\ArenaNet\\Guild Wars", "Path", null);
                 if (pathdefault == null)
-                    MessageBox.Show("pathdefault = null, gw not installed?");
+                    MessageBox.Show(@"pathdefault = null, gw not installed?");
             }
 
             openFileDialog.InitialDirectory = pathdefault;
@@ -65,10 +65,7 @@ namespace GW_Launcher.Forms
 
         private void ButtonTogglePasswordVisibility_Click(object sender, EventArgs e)
         {
-            if (textBoxPassword.PasswordChar == '\0')
-                textBoxPassword.PasswordChar = '*';
-            else
-                textBoxPassword.PasswordChar = '\0';
+            textBoxPassword.PasswordChar = textBoxPassword.PasswordChar == '\0' ? '*' : '\0';
         }
 
         private void ButtonMods_Click(object sender, EventArgs e)
