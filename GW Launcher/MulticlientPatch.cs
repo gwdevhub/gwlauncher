@@ -33,10 +33,7 @@ internal class MulticlientPatch
                 }
                 texClient.Send();
 
-                texClient.Dispose();
-
                 GC.Collect(); // force garbage collection
-                GC.WaitForPendingFinalizers();
             });
         }
 
