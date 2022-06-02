@@ -1,4 +1,7 @@
-﻿using GW_Launcher.Forms;
+﻿using System.ComponentModel;
+using System.Reflection;
+using System.Text.RegularExpressions;
+using GW_Launcher.Forms;
 
 namespace GW_Launcher;
 
@@ -6,9 +9,15 @@ public class GlobalSettings
 {
     public bool Encrypt { get; set; }
 
-    GlobalSettings()
+    public bool CheckForUpdates { get; set; }
+
+    public bool AutoUpdate { get; set; }
+
+    private GlobalSettings()
     {
         Encrypt = true;
+        CheckForUpdates = true;
+        AutoUpdate = false;
     }
 
     public void Save(string path = "Settings.json")
@@ -38,7 +47,7 @@ internal static class Program
 {
     private const string GwlMutexName = "gwl_instance_mutex";
     public static AccountManager accounts = new();
-    public static Thread mainthread;
+    public static Thread mainthread = null!;
     public static Mutex mutex = new();
     public static Mutex? gwlMutex;
     public static GlobalSettings settings = GlobalSettings.Load();
@@ -48,7 +57,7 @@ internal static class Program
 
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
-    static extern bool SetForegroundWindow(IntPtr hWnd);
+    private static extern bool SetForegroundWindow(IntPtr hWnd);
 
     [STAThread]
     internal static void Main()
@@ -59,6 +68,11 @@ internal static class Program
         if (Mutex.TryOpenExisting(GwlMutexName, out gwlMutex))
         {
             return;
+        }
+
+        if (settings.CheckForUpdates)
+        {
+            Task.Run(CheckGitHubNewerVersion);
         }
 
         gwlMutex = new Mutex(true, GwlMutexName);
@@ -87,10 +101,6 @@ internal static class Program
         catch (Exception)
         {
             return;
-        }
-        foreach (var accounts in accounts)
-        {
-            accounts.active = false;
         }
 
         using var mainForm = new MainForm();
@@ -158,4 +168,80 @@ internal static class Program
         Application.Run(mainForm);
     }
 
+
+    private static async Task CheckGitHubNewerVersion()
+    {
+        const string oldName = ".old.exe";
+        const string newName = ".new.exe";
+        if (settings.AutoUpdate && (File.Exists(oldName) || File.Exists(newName)))
+        {
+            File.Delete(oldName);
+            File.Delete(newName);
+        }
+
+        //Get all releases from GitHub
+        var client = new Octokit.GitHubClient(new Octokit.ProductHeaderValue("GWLauncher"));
+        IReadOnlyList<Octokit.Release> releases = await client.Repository.Release.GetAll("GregLando113", "gwlauncher");
+
+        if (!releases.Any()) return;
+
+        var tagName = Regex.Replace(releases[0].TagName, @"[^\d\.]", "");
+        var latestVersion = new Version(tagName);
+        var minVersion = new Version("13.0");
+        if (latestVersion.CompareTo(minVersion) <= 0) return;
+        var assembly = Assembly.GetExecutingAssembly();
+        var fvi = FileVersionInfo.GetVersionInfo(assembly.Location);
+        var version = assembly.GetName().Version?.ToString();
+        if (version == null && fvi.FileVersion == null) return;
+
+        var strVersion = fvi.FileVersion ?? version ?? "";
+        var localVersion = new Version(strVersion);
+
+        var versionComparison = localVersion.CompareTo(latestVersion);
+        if (versionComparison >= 0) return;
+
+        var latest = releases[0];
+
+        if (!settings.AutoUpdate)
+        {
+            var msgBoxResult = MessageBox.Show(
+                $@"New version {tagName} available online. Visit page?",
+                @"Update",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Information,
+                MessageBoxDefaultButton.Button2);
+            if (msgBoxResult == DialogResult.Yes)
+            {
+                Process.Start("explorer", latest.HtmlUrl);
+            }
+            return;
+        }
+        var currentName = Path.GetFileName(Process.GetCurrentProcess().MainModule?.FileName);
+        if (currentName == null) return;
+        var asset = latest.Assets.First(a => a.Name == "GW_Launcher.exe");
+        if (asset == null) return;
+        var uri = new Uri(asset.BrowserDownloadUrl);
+        var httpClient = new HttpClient();
+        await using (var s = await httpClient.GetStreamAsync(uri))
+        {
+            await using var fs = new FileStream(newName, FileMode.Create);
+            await s.CopyToAsync(fs);
+        }
+
+        File.Move(currentName, oldName);
+
+        File.Move(newName, currentName);
+
+        var fileName = Environment.ProcessPath;
+        var processInfo = new ProcessStartInfo
+        {
+            UseShellExecute = true,
+            FileName = fileName,
+            Arguments = "restart"
+        };
+        
+        Application.Restart();
+        Process.Start(processInfo);
+        Environment.Exit(0);
+    }
 }

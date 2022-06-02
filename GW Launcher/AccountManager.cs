@@ -7,7 +7,7 @@ public class AccountManager : IEnumerable<Account>, IDisposable
     private readonly SymmetricAlgorithm _crypt = Aes.Create();
     private readonly string _filePath = "Accounts.json";
     private readonly byte[] _salsaIv = { 0xc8, 0x93, 0x48, 0x45, 0xcf, 0xa0, 0xfa, 0x85, 0xc8, 0x93, 0x48, 0x45, 0xcf, 0xa0, 0xfa, 0x85 };
-    private byte[] _cryptPass;
+    private byte[]? _cryptPass;
     private List<Account> _accounts = new();
 
     public AccountManager(string? filePath = null)
@@ -84,6 +84,7 @@ public class AccountManager : IEnumerable<Account>, IDisposable
             }
         else
         {
+            Debug.Assert(_cryptPass != null, nameof(_cryptPass) + " != null");
             try
             {
                 var textBytes = File.ReadAllBytes(filePath);
@@ -125,6 +126,10 @@ public class AccountManager : IEnumerable<Account>, IDisposable
         {
             account.mods = new List<Mod>();
         }
+        foreach (var account in _accounts)
+        {
+            account.active = false;
+        }
     }
 
     public void Save(string? filePath = null)
@@ -140,6 +145,7 @@ public class AccountManager : IEnumerable<Account>, IDisposable
         {
             text = "SHIT" + text;
             var bytes = Encoding.UTF8.GetBytes(text);
+            Debug.Assert(_cryptPass != null, nameof(_cryptPass) + " != null");
             using var encrypt = _crypt.CreateEncryptor(_cryptPass, _salsaIv);
             var cryptBytes = encrypt.TransformFinalBlock(bytes, 0, bytes.Length);
             File.WriteAllBytes(filePath, cryptBytes);
