@@ -25,7 +25,8 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'">
     <WarningLevel>5</WarningLevel>
   </PropertyGroup>
-	<ItemGroup>
+	
+  <ItemGroup>
     <COMReference Include="IWshRuntimeLibrary">
       <WrapperTool>tlbimp</WrapperTool>
       <VersionMinor>0</VersionMinor>

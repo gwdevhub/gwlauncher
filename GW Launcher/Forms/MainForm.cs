@@ -35,15 +35,33 @@ public partial class MainForm : Form
         {
             if (process.Threads.Count == 1)
                 continue;
-            var memory = new GWCAMemory(process);
-            GWMem.FindAddressesIfNeeded(memory);
-            var email = memory.ReadWString(GWMem.EmailAddPtr, 64);
-            foreach (var account in Program.accounts)
+            try
             {
-                if (email != account.email) continue;
-                account.active = true;
-                account.process = memory;
-                break;
+                var memory = new GWCAMemory(process);
+                GWMem.FindAddressesIfNeeded(memory);
+                var email = memory.ReadWString(GWMem.EmailAddPtr, 64);
+                foreach (var account in Program.accounts)
+                {
+                    if (email != account.email) continue;
+                    account.active = true;
+                    account.process = memory;
+                    break;
+                }
+            }
+            catch (Win32Exception)
+            {
+                if (!AdminAccess.HasAdmin())
+                {
+                    MessageBox.Show(
+                        @"There is a running Guild Wars instance with a higher privilege level than GW Launcher currently has. Attempting to restart as Admin.");
+                    AdminAccess.RestartAsAdminPrompt(true);
+                }
+                else
+                {
+                    MessageBox.Show(
+                        @"Can't read memory of an open Guild Wars instance. Launcher will close.");
+                    Program.shouldClose = true;
+                }
             }
         }
 
@@ -277,30 +295,12 @@ public partial class MainForm : Form
 
     private async void ToolStripMenuItemUpdateAllClients_Click(object sender, EventArgs e)
     {
-        var pricipal = new WindowsPrincipal(WindowsIdentity.GetCurrent());
-        var hasAdministrativeRight = pricipal.IsInRole(WindowsBuiltInRole.Administrator);
-        if (!hasAdministrativeRight)
+        if (!AdminAccess.HasAdmin())
         {
-            // relaunch the application with admin rights
-            var fileName = Environment.ProcessPath;
-            var processInfo = new ProcessStartInfo
+            if (!AdminAccess.RestartAsAdminPrompt())
             {
-                Verb = "runas",
-                UseShellExecute = true,
-                FileName = fileName,
-                Arguments = "restart"
-            };
-
-            try
-            {
-                Application.Exit();
-                Process.Start(processInfo);
+                return;
             }
-            catch (Win32Exception)
-            {
-                // This will be thrown if the user cancels the prompt
-            }
-            return;
         }
         var clients = Program.accounts.Select(account => account.gwpath).Distinct();
 

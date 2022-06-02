@@ -42,6 +42,8 @@ public class GlobalSettings
 
 internal static class Program
 {
+    public static bool shouldClose = false;
+
     private const string GwlMutexName = "gwl_instance_mutex";
     public static AccountManager accounts = new();
     public static Thread mainthread = null!;
@@ -108,7 +110,7 @@ internal static class Program
         {
             var mainClosed = false;
             mainForm.FormClosed += (sender, a) => { mainClosed = true; };
-            while (!mainClosed)
+            while (!mainClosed && !shouldClose)
             {
                 while (mainForm.needtolaunch.Count > 0)
                 {
