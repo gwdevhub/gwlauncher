@@ -2,22 +2,21 @@
 
 public partial class ModManager : Form
 {
-    private readonly Account account;
-    public int Selected { get; set; }
-
+    private readonly Account _account;
+    
     public ModManager(Account account)
     {
-        this.account = account;
+        _account = account;
 
         InitializeComponent();
 
-        Text = $@"Mod Manager for {this.account.Name}";
+        Text = $@"Mod Manager for {_account.Name}";
     }
 
     private void RefreshUI()
     {
         listViewAvailableMods.Items.Clear();
-        foreach (var mod in account.mods)
+        foreach (var mod in _account.mods)
         {
             var name = Path.GetFileName(mod.fileName);
             var path = Path.GetDirectoryName(mod.fileName);
@@ -51,7 +50,7 @@ public partial class ModManager : Form
 
     private void listViewAvailableMods_ItemChecked(object sender, ItemCheckedEventArgs e)
     {
-        var mod = account.mods[e.Item.Index];
+        var mod = _account.mods[e.Item.Index];
         mod.active = e.Item.Checked;
         Program.accounts.Save();
     }
@@ -64,35 +63,34 @@ public partial class ModManager : Form
             Filter = @"Mod Files (*.dll;*.zip;*.tpf)|*.dll;*.zip;*.tpf|All files (*.*)|*.*"
         };
 
-        if (openFileDialog.ShowDialog() == DialogResult.OK)
+        if (openFileDialog.ShowDialog() != DialogResult.OK) return;
+        
+        var mod = new Mod
         {
-            var mod = new Mod
-            {
-                fileName = openFileDialog.FileName,
-                active = false
-            };
-            switch (openFileDialog.FileName.Split('.').Last())
-            {
-                case "dll":
-                    mod.type = ModType.kModTypeDLL;
-                    break;
-                case "zip":
-                case "tpf":
-                    mod.type = ModType.kModTypeTexmod;
-                    break;
-            }
-            account.mods.Add(mod);
-            Program.accounts.Save();
-            RefreshUI();
+            fileName = openFileDialog.FileName,
+            active = false
+        };
+        switch (openFileDialog.FileName.Split('.').Last())
+        {
+            case "dll":
+                mod.type = ModType.kModTypeDLL;
+                break;
+            case "zip":
+            case "tpf":
+                mod.type = ModType.kModTypeTexmod;
+                break;
         }
+        _account.mods.Add(mod);
+        Program.accounts.Save();
+        RefreshUI();
     }
 
     private void ToolStripMenuItemRemoveSelected_Click(object sender, EventArgs e)
     {
         Program.mutex.WaitOne();
         var selectedthing = listViewAvailableMods.SelectedIndices[0];
-        var selectedmod = account.mods[selectedthing];
-        account.mods.Remove(selectedmod);
+        var selectedmod = _account.mods[selectedthing];
+        _account.mods.Remove(selectedmod);
         Program.accounts.Save();
         RefreshUI();
         Program.mutex.ReleaseMutex();

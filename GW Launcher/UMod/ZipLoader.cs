@@ -40,27 +40,18 @@ public class ZipLoader
             {
                 var content = new byte[entry.UncompressedSize];
                 entry.Extract(new MemoryStream(content));
-
-                var curFileName = entry.FileName;
-                files[curFileName] = content;
+                files[entry.FileName] = content;
             }
         }
         else
         {
             using var stream = new FileStream(fileName, FileMode.Open);
-            var archive = new ZipArchive(stream);
+            var archive = new ZipFile(fileName);
             foreach (var entry in archive.Entries)
             {
-                MemoryStream tempS = new MemoryStream();
-                using var file = entry.Open();
-                {
-                    var fileData = new byte[entry.Length];
-                    var readBytes = file.Read(fileData, 0, (int)entry.Length);
-                    if (readBytes == entry.Length)
-                    {
-                        files.Add(entry.Name, fileData);
-                    }
-                }
+                var content = new byte[entry.UncompressedSize];
+                entry.Extract(new MemoryStream(content));
+                files[entry.FileName] = content;
             }
         }
 

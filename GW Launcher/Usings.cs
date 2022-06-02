@@ -5,5 +5,5 @@ global using System.Security.Cryptography;
 global using System.Text;
 global using GW_Launcher.Utilities;
 global using Ionic.Zip;
+global using System.Reflection;
 global using System.Diagnostics;
-global using System.IO.Compression;
