@@ -1,7 +1,4 @@
-﻿using System.ComponentModel;
-using System.Reflection;
-using System.Text.RegularExpressions;
-using GW_Launcher.Forms;
+﻿using GW_Launcher.Forms;
 
 namespace GW_Launcher;
 
@@ -183,9 +180,10 @@ internal static class Program
         var client = new Octokit.GitHubClient(new Octokit.ProductHeaderValue("GWLauncher"));
         IReadOnlyList<Octokit.Release> releases = await client.Repository.Release.GetAll("GregLando113", "gwlauncher");
 
-        if (!releases.Any()) return;
-
-        var tagName = Regex.Replace(releases[0].TagName, @"[^\d\.]", "");
+        if (!releases.Any(r => !r.Prerelease && !r.Draft)) return;
+        
+        var release = releases.First(r => !r.Prerelease && !r.Draft);
+        var tagName = Regex.Replace(release.TagName, @"[^\d\.]", "");
         var latestVersion = new Version(tagName);
         var minVersion = new Version("13.0");
         if (latestVersion.CompareTo(minVersion) <= 0) return;
