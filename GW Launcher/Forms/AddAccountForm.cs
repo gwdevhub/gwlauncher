@@ -71,10 +71,9 @@ namespace GW_Launcher.Forms
         private void ButtonMods_Click(object sender, EventArgs e)
         {
             Program.mutex.WaitOne();
-            if (string.IsNullOrEmpty(account.email)) return;
-
             var modForm = new ModManager(account);
             modForm.Show();
+            Program.mutex.ReleaseMutex();
         }
 
         private void CheckBoxDatFix_CheckedChanged(object sender, EventArgs e)
