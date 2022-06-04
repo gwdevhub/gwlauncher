@@ -143,7 +143,7 @@ internal class MulticlientPatch
             texsToLoad.AddRange(textures);
         }
 
-        dllsToLoad.AddRange(mods.Where(mod => mod.type == ModType.kModTypeDLL && System.IO.File.Exists(mod.fileName)).Select(mod => mod.fileName));
+        dllsToLoad.AddRange(mods.Where(mod => mod.type == ModType.kModTypeDLL && mod.active && System.IO.File.Exists(mod.fileName)).Select(mod => mod.fileName));
         texsToLoad.AddRange(mods.Where(mod => mod.type == ModType.kModTypeTexmod && mod.active && System.IO.File.Exists(mod.fileName)).Select(mod => mod.fileName));
         if (texsToLoad.Count > 0)
         {

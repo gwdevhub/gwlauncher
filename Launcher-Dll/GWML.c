@@ -70,7 +70,7 @@ __declspec(dllexport) BOOL MCPatch(HANDLE hProcess) {
 
     BYTE* mcpatch = NULL;
 
-    if (!ReadProcessMemory(hProcess, (void*)g_moduleBase, g_gwdata, 0x48D000, NULL)) {
+    if (!ReadProcessMemory(hProcess, g_moduleBase, g_gwdata, 0x48D000, NULL)) {
         return FALSE;
     }
 

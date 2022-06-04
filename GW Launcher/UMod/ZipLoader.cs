@@ -18,10 +18,7 @@ public class ZipLoader
     {
         Entries = new ReadOnlyDictionary<string, byte[]>(new Dictionary<string, byte[]>());
         var ext = Path.GetExtension(fileName);
-        if (ext == ".tpf")
-        {
-            IsTpfEncrypted = true;
-        }
+        var IsTpfEncrypted = ext == ".tpf";
         var files = new Dictionary<string, byte[]>();
         var contents = new Dictionary<string, byte[]>();
 
@@ -85,14 +82,22 @@ public class ZipLoader
                 files.Remove(filename, out var content);
                 if (content == null) continue;
 
-                var splits = filename.Split('.', '_');
-                if (splits.Length != 4) continue;
-                if (splits[0] != "GW" || splits[1] != "exe") continue;
-                var address = splits[2];
-                if (address.Length == 10)
+                var name = filename;
+                while (name.Contains('_'))
                 {
-                    contents[address] = content;
+                    var firstIndex = name.LastIndexOf('_');
+                    name = ++firstIndex >= filename.Length - 1 ? filename : filename[firstIndex..];
                 }
+
+                if (name.Contains('.'))
+                {
+                    var lastIndex = name.LastIndexOf('.');
+                    name = name[..lastIndex];
+                }
+                // 0x18F22DA3
+                var crc = name;
+
+                contents[crc] = content;
             }
             Entries = contents;
         }
@@ -100,6 +105,4 @@ public class ZipLoader
     }
 
     public IReadOnlyDictionary<string, byte[]> Entries { get; }
-
-    public bool IsTpfEncrypted { get; set; }
 }

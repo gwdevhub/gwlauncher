@@ -151,7 +151,6 @@ public class uModTexClient : IDisposable
         var success = SendAll();
         if (success)
         {
-            _bundles.ForEach(b => b.Dispose());
             _bundles.Clear();
         }
 
