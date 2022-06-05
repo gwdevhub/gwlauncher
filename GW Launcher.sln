@@ -3,8 +3,6 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.32112.339
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Launcher-Dll", "Launcher-Dll\Launcher-Dll.vcxproj", "{5B14128A-090A-4125-B5B2-239A5D737CCA}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GW Launcher", "GW Launcher\GW Launcher.csproj", "{D5834DAB-6827-4F24-A6DC-BF8A7543D643}"
 EndProject
 Global
@@ -13,10 +11,6 @@ Global
 		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{5B14128A-090A-4125-B5B2-239A5D737CCA}.Debug|x86.ActiveCfg = Debug|Win32
-		{5B14128A-090A-4125-B5B2-239A5D737CCA}.Debug|x86.Build.0 = Debug|Win32
-		{5B14128A-090A-4125-B5B2-239A5D737CCA}.Release|x86.ActiveCfg = Release|Win32
-		{5B14128A-090A-4125-B5B2-239A5D737CCA}.Release|x86.Build.0 = Release|Win32
 		{D5834DAB-6827-4F24-A6DC-BF8A7543D643}.Debug|x86.ActiveCfg = Debug|x86
 		{D5834DAB-6827-4F24-A6DC-BF8A7543D643}.Debug|x86.Build.0 = Debug|x86
 		{D5834DAB-6827-4F24-A6DC-BF8A7543D643}.Release|x86.ActiveCfg = Release|x86

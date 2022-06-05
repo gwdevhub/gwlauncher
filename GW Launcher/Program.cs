@@ -79,9 +79,7 @@ internal static class Program
         var location = Path.GetDirectoryName(AppContext.BaseDirectory);
         if (location != null)
         {
-            // overwrite files
-            var filename = Path.Combine(location, "GWML.dll");
-            File.WriteAllBytes(filename, Properties.Resources.GWML);
+            // dump correct version of umod d3d9.dll
             var filenameumod = Path.Combine(location, "d3d9.dll");
             try
             {

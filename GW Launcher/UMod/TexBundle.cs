@@ -22,7 +22,7 @@ public class TexBundle
         foreach (var (crc, value) in loader.Entries)
         {
             TexDef def;
-            def.crcHash = Convert.ToUInt32(crc, 16);
+            def.crcHash = (uint)Convert.ToUInt64(crc, 16);
             def.fileData = value;
 
             defs.Add(def);
