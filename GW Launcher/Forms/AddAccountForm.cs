@@ -20,7 +20,6 @@ namespace GW_Launcher.Forms
             account.password = textBoxPassword.Text;
             account.character = textBoxCharacter.Text;
             account.gwpath = textBoxPath.Text;
-            account.datfix = checkBoxDatFix.Checked;
             account.elevated = checkBoxElevated.Checked;
             account.extraargs = textBoxExtraArguments.Text;
             
@@ -35,7 +34,6 @@ namespace GW_Launcher.Forms
             textBoxPassword.Text = account.password;
             textBoxCharacter.Text = account.character;
             textBoxPath.Text = account.gwpath;
-            checkBoxDatFix.Checked = account.datfix;
             checkBoxElevated.Checked = account.elevated;
             textBoxExtraArguments.Text = account.extraargs;
         }
@@ -74,14 +72,6 @@ namespace GW_Launcher.Forms
             var modForm = new ModManager(account);
             modForm.Show();
             Program.mutex.ReleaseMutex();
-        }
-
-        private void CheckBoxDatFix_CheckedChanged(object sender, EventArgs e)
-        {
-            if (checkBoxDatFix.Checked)
-            {
-                MessageBox.Show(@"This is a legacy feature that will likely lead to issues. Only enable this is you know what you're doing.");
-            }
         }
     }
 }

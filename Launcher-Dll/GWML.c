@@ -4,7 +4,6 @@
 #include <sddl.h>
 #include <winsafer.h>
 
-#define GWML_NO_DATFIX				1
 #define GWML_KEEP_SUSPENDED 		2
 #define GWML_ELEVATED               8
 
@@ -23,11 +22,11 @@ PBYTE GetProcessModuleBase(HANDLE process)
         NTSTATUS
         NTAPI
         NtQueryInformationProcess_t(
-            IN HANDLE               ProcessHandle,
-            IN PROCESS_INFORMATION_CLASS ProcessInformationClass,
-            OUT PVOID               ProcessInformation,
-            IN ULONG                ProcessInformationLength,
-            OUT PULONG              ReturnLength);
+            IN HANDLE                       ProcessHandle,
+            IN PROCESS_INFORMATION_CLASS    ProcessInformationClass,
+            OUT PVOID                       ProcessInformation,
+            IN ULONG                        ProcessInformationLength,
+            OUT PULONG                      ReturnLength);
 
     struct PEB
     {
@@ -75,8 +74,8 @@ __declspec(dllexport) BOOL MCPatch(HANDLE hProcess) {
     }
 
     for (DWORD i = 0; i < 0x48D000; ++i) {
-        if (!memcmp(g_gwdata + i, sig_patch, sizeof(sig_patch))) {
-            mcpatch = (BYTE*)(g_moduleBase + i - 0x1A);
+        if (!memcmp(g_gwdata + i, sig_patch, sizeof sig_patch)) {
+            mcpatch = g_moduleBase + i - 0x1A;
             break;
         }
     }
@@ -93,109 +92,8 @@ __declspec(dllexport) BOOL MCPatch(HANDLE hProcess) {
     return TRUE;
 }
 
-const unsigned char payload[] = {
-    0x51,                                   // | PUSH ECX  
-    0x52,                                   // | PUSH EDX                                       
-    0x50,                                   // | PUSH EAX                                       
-    0x3E, 0x8B, 0x4C, 0x24, 0x10,                         // | MOV ECX, DWORD PTR DS:[ESP + 10]               
-    0x33, 0xD2,                                 // | XOR EDX, EDX                                   
-    0x33, 0xC0,                                 // | XOR EAX, EAX                                   
-    0x3E, 0x66, 0x8B, 0x04, 0x11,                          // | MOV AX, WORD PTR DS:[ECX + EDX]                
-    0x66, 0x83, 0xF8, 0x00,                           // | CMP AX, 0                                      
-    0x74, 0x05,                                // | JE <gwml.getbackslash>                         
-    0x83, 0xC2, 0x02,                              // | ADD EDX, 2                                     
-    0xEB, 0xF0,                                // | JMP <gwml.getlen>                              
-    0x83, 0xEA, 0x02,                              // | SUB EDX, 2                                     
-    0x3E, 0x66, 0x8B, 0x04, 0x11,                          // | MOV AX, WORD PTR DS:[ECX + EDX]                
-    0x66, 0x83, 0xF8, 0x5C,                           // | CMP AX, 5C                                     
-    0x74, 0x02,                                // | JE <gwml.checkifdat>                           
-    0xEB, 0xF0,                                // | JMP <gwml.getbackslash>                        
-    0x83, 0xC2, 0x02,                              // | ADD EDX, 2                                     
-    0x3E, 0x66, 0x8B, 0x04, 0x11,                          // | MOV AX, WORD PTR DS:[ECX + EDX]                
-    0x66, 0x83, 0xF8, 0x47,                           // | CMP AX, 47                                     
-    0x75, 0x66,                                // | JNE <gwml.exitwithoutset>                      
-    0x83, 0xC2, 0x02,                              // | ADD EDX, 2                                     
-    0x3E, 0x66, 0x8B, 0x04, 0x11,                          // | MOV AX, WORD PTR DS:[ECX + EDX]                
-    0x66, 0x83, 0xF8, 0x77,                           // | CMP AX, 77                                     
-    0x75, 0x58,                                // | JNE <gwml.exitwithoutset>                      
-    0x83, 0xC2, 0x02,                              // | ADD EDX, 2                                     
-    0x3E, 0x66, 0x8B, 0x04, 0x11,                          // | MOV AX, WORD PTR DS:[ECX + EDX]                
-    0x66, 0x83, 0xF8, 0x2E,                           // | CMP AX, 2E                                     
-    0x75, 0x4A,                                // | JNE <gwml.exitwithoutset>                      
-    0x83, 0xC2, 0x02,                              // | ADD EDX, 2                                     
-    0x3E, 0x66, 0x8B, 0x04, 0x11,                          // | MOV AX, WORD PTR DS:[ECX + EDX]                
-    0x66, 0x83, 0xF8, 0x64,                           // | CMP AX, 64                                     
-    0x75, 0x3C,                                // | JNE <gwml.exitwithoutset>                      
-    0x83, 0xC2, 0x02,                              // | ADD EDX, 2                                     
-    0x3E, 0x66, 0x8B, 0x04, 0x11,                          // | MOV AX, WORD PTR DS:[ECX + EDX]                
-    0x66, 0x83, 0xF8, 0x61,                           // | CMP AX, 61                                     
-    0x75, 0x2E,                                // | JNE <gwml.exitwithoutset>                      
-    0x83, 0xC2, 0x02,                              // | ADD EDX, 2                                     
-    0x3E, 0x66, 0x8B, 0x04, 0x11,                          // | MOV AX, WORD PTR DS:[ECX + EDX]                
-    0x66, 0x83, 0xF8, 0x74,                           // | CMP AX, 74                                     
-    0x75, 0x20,                                // | JNE <gwml.exitwithoutset>                      
-    0x58,                                   // | POP EAX                                        
-    0x5A,                                   // | POP EDX                                        
-    0x59,                                   // | POP ECX                                        
-    0x36, 0xC7, 0x44, 0x24, 0x08, 0x00, 0x00, 0x00, 0x80,                // | MOV DWORD PTR SS:[ESP + 8], 80000000           
-    0x36, 0xC7, 0x44, 0x24, 0x0C, 0x03, 0x00, 0x00, 0x00,                // | MOV DWORD PTR SS:[ESP + C], 3                  
-    0x36, 0xC7, 0x44, 0x24, 0x18, 0x01, 0x00, 0x00, 0x00,                // | MOV DWORD PTR SS:[ESP + 18], 1                 
-    0xEB, 0x03,                                // | JMP <gwml.end>
-    0x58,                                   // | POP EAX                                        
-    0x5A,                                   // | POP EDX                                        
-    0x59,       // | POP ECX
-    0x55,
-    0x8B, 0xEC,
-    0x81, 0xEC, 0x14, 0x01, 0x00, 0x00,
-    0xE9
-};
-
-#define ENCODE_REL(from,to) (uintptr_t)((uintptr_t)(to) - (uintptr_t)(from) - 5)
-
-__declspec(dllexport) BOOL DATFix(HANDLE hProcess)
-{
-    const BYTE sig_datfix[] = { 0x8B, 0x4D, 0x18, 0x8B, 0x55, 0x1C, 0x8B };
-
-    BYTE* datfix = NULL;
-
-    for (DWORD i = 0; i < 0x48D000; ++i) {
-        if (!memcmp(g_gwdata + i, sig_datfix, sizeof(sig_datfix))) {
-            datfix = (BYTE*)(g_moduleBase + i - 0x1A);
-            break;
-        }
-    }
-
-    void* asmbuffer = VirtualAllocEx(hProcess, NULL,
-        sizeof(payload) + 0x20,
-        MEM_COMMIT | MEM_RESERVE,
-        PAGE_EXECUTE_READWRITE);
-
-    // dump detour into internal mem
-    ASSERT(WriteProcessMemory(hProcess, asmbuffer, (void*)payload, sizeof(payload), NULL));
-
-    // write return to ofunc
-    void* asmend = (char*)asmbuffer + sizeof(payload);
-
-
-
-    DWORD rva_payload = ENCODE_REL((char*)asmbuffer + sizeof(payload) - 1, (uintptr_t)datfix + 9);
-    ASSERT(WriteProcessMemory(hProcess, (void*)asmend, &rva_payload, sizeof(rva_payload), NULL));
-
-    // write jmp to detour
-    BYTE jmpencoding[5] = { 0xE9, 0, 0, 0, 0 };
-    *(DWORD*)(jmpencoding + 1) = ENCODE_REL(datfix, asmbuffer);
-    ASSERT(WriteProcessMemory(hProcess, datfix, jmpencoding, sizeof(jmpencoding), NULL));
-
-    return TRUE;
-}
-
 __declspec(dllexport) DWORD LaunchClient(LPCWSTR path, LPCWSTR args, DWORD flags, DWORD* out_hThread)
 {
-#if 0
-    AllocConsole();
-    freopen("CONOUT$", "w", stdout);
-#endif
-
     WCHAR commandLine[0x100];
     swprintf(commandLine, 0x100, L"\"%s\" %s", path, args);
 
@@ -264,16 +162,7 @@ __declspec(dllexport) DWORD LaunchClient(LPCWSTR path, LPCWSTR args, DWORD flags
         CloseHandle(procinfo.hProcess);
         MCERROR("MCPatch");
     }
-
-    if ((flags & GWML_NO_DATFIX) == 0) {
-        if (!DATFix(procinfo.hProcess)) {
-            ResumeThread(procinfo.hThread);
-            CloseHandle(procinfo.hThread);
-            CloseHandle(procinfo.hProcess);
-            MCERROR("DATFix");
-        }
-    }
-
+    
     if (out_hThread != NULL)
         *out_hThread = (DWORD)procinfo.hThread;
 
