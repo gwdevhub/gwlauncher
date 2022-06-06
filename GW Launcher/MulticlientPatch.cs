@@ -5,10 +5,10 @@ namespace GW_Launcher;
 
 internal class MulticlientPatch
 {
-    
     private static IntPtr GetProcessModuleBase(IntPtr process)
     {
-        if (WinApi.NtQueryInformationProcess(process, PROCESSINFOCLASS.ProcessBasicInformation, out var pbi, Marshal.SizeOf(typeof(PROCESS_BASIC_INFORMATION)), out _) != 0)
+        if (WinApi.NtQueryInformationProcess(process, PROCESSINFOCLASS.ProcessBasicInformation, out var pbi,
+                Marshal.SizeOf(typeof(PROCESS_BASIC_INFORMATION)), out _) != 0)
         {
             return IntPtr.Zero;
         }
@@ -22,7 +22,7 @@ internal class MulticlientPatch
 
         PEB peb = new()
         {
-            ImageBaseAddress = (IntPtr)BitConverter.ToInt32(buffer, 8)
+            ImageBaseAddress = (IntPtr) BitConverter.ToInt32(buffer, 8)
         };
 
         return peb.ImageBaseAddress + 0x1000;
@@ -72,7 +72,7 @@ internal class MulticlientPatch
         var pId = LaunchClient(path, args, account.elevated, out var hThread);
         Debug.Assert(pId != 0, "pId != 0");
         var process = Process.GetProcessById(pId);
-        
+
         if (!McPatch(process.Handle))
         {
             Debug.WriteLine("McPatch");
@@ -213,9 +213,9 @@ internal class MulticlientPatch
             cb = Marshal.SizeOf(typeof(STARTUPINFO))
         };
         var saProcess = new SECURITY_ATTRIBUTES();
-        saProcess.nLength = (uint)Marshal.SizeOf(saProcess);
+        saProcess.nLength = (uint) Marshal.SizeOf(saProcess);
         var saThread = new SECURITY_ATTRIBUTES();
-        saThread.nLength = (uint)Marshal.SizeOf(saThread);
+        saThread.nLength = (uint) Marshal.SizeOf(saThread);
 
         var lastDirectory = Directory.GetCurrentDirectory();
         Directory.SetCurrentDirectory(Path.GetDirectoryName(path)!);
@@ -248,7 +248,8 @@ internal class MulticlientPatch
                 Debug.WriteLine("ConvertStringSidToSid");
             }
 
-            if (!WinSafer.SetTokenInformation(hRestrictedToken, TOKEN_INFORMATION_CLASS.TokenIntegrityLevel, ref tml, (uint)Marshal.SizeOf(tml) + WinSafer.GetLengthSid(tml.Label.Sid)))
+            if (!WinSafer.SetTokenInformation(hRestrictedToken, TOKEN_INFORMATION_CLASS.TokenIntegrityLevel, ref tml,
+                    (uint) Marshal.SizeOf(tml) + WinSafer.GetLengthSid(tml.Label.Sid)))
             {
                 WinApi.LocalFree(tml.Label.Sid);
                 WinApi.CloseHandle(hRestrictedToken);
@@ -257,7 +258,7 @@ internal class MulticlientPatch
 
 
             if (!WinSafer.CreateProcessAsUser(hRestrictedToken, null!, commandLine, ref saProcess,
-                    ref saProcess, false, (uint)CreationFlags.CreateSuspended, IntPtr.Zero,
+                    ref saProcess, false, (uint) CreationFlags.CreateSuspended, IntPtr.Zero,
                     null!, ref startinfo, out procinfo))
             {
                 var error = Marshal.GetLastWin32Error();
@@ -271,7 +272,7 @@ internal class MulticlientPatch
         else
         {
             if (!WinApi.CreateProcess(null!, commandLine, ref saProcess,
-                    ref saThread, false, (uint)CreationFlags.CreateSuspended, IntPtr.Zero,
+                    ref saThread, false, (uint) CreationFlags.CreateSuspended, IntPtr.Zero,
                     null!, ref startinfo, out procinfo))
             {
                 var error = Marshal.GetLastWin32Error();
@@ -288,5 +289,4 @@ internal class MulticlientPatch
         hThread = procinfo.hThread;
         return procinfo.dwProcessId;
     }
-
 }

@@ -146,7 +146,7 @@ public class GWCAMemory
             out _
         );
 
-        var ret = (T)Marshal.PtrToStructure(buffer, typeof(T))!;
+        var ret = (T) Marshal.PtrToStructure(buffer, typeof(T))!;
         Marshal.FreeHGlobal(buffer);
 
         return ret;

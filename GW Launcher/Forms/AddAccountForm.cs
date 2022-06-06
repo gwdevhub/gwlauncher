@@ -1,5 +1,4 @@
-﻿using GW_Launcher.Classes;
-using Microsoft.Win32;
+﻿using Microsoft.Win32;
 
 namespace GW_Launcher.Forms;
 
@@ -23,7 +22,7 @@ public partial class AddAccountForm : Form
         account.gwpath = textBoxPath.Text;
         account.elevated = checkBoxElevated.Checked;
         account.extraargs = textBoxExtraArguments.Text;
-            
+
         finished = true;
         Close();
     }
@@ -43,23 +42,26 @@ public partial class AddAccountForm : Form
     {
         var openFileDialog = new OpenFileDialog();
 
-        var pathdefault = (string?)Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\ArenaNet\\Guild Wars", "Path", null);
+        var pathdefault =
+            (string?) Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\ArenaNet\\Guild Wars", "Path", null);
         if (pathdefault == null)
         {
-            pathdefault = (string?)Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\ArenaNet\\Guild Wars", "Path", null);
+            pathdefault = (string?) Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\ArenaNet\\Guild Wars",
+                "Path", null);
             if (pathdefault == null)
+            {
                 MessageBox.Show(@"pathdefault = null, gw not installed?");
+            }
         }
 
         openFileDialog.InitialDirectory = pathdefault;
         openFileDialog.Filter = "Guild Wars|Gw.exe";
         openFileDialog.RestoreDirectory = true;
 
-        if(openFileDialog.ShowDialog() == DialogResult.OK)
+        if (openFileDialog.ShowDialog() == DialogResult.OK)
         {
             textBoxPath.Text = openFileDialog.FileName;
         }
-
     }
 
     private void ButtonTogglePasswordVisibility_Click(object sender, EventArgs e)

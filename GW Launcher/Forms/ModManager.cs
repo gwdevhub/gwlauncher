@@ -1,11 +1,9 @@
-﻿using GW_Launcher.Classes;
-
-namespace GW_Launcher.Forms;
+﻿namespace GW_Launcher.Forms;
 
 public partial class ModManager : Form
 {
     private readonly Account _account;
-    
+
     public ModManager(Account account)
     {
         _account = account;
@@ -24,10 +22,11 @@ public partial class ModManager : Form
         {
             var name = Path.GetFileName(mod.fileName);
             var path = Path.GetDirectoryName(mod.fileName);
-            var item = new ListViewItem(new string[] {
-                        name,
-                        path ?? string.Empty
-                    }, mod.fileName)
+            var item = new ListViewItem(new[]
+            {
+                name,
+                path ?? string.Empty
+            }, mod.fileName)
             {
                 Checked = mod.active
             };
@@ -68,10 +67,18 @@ public partial class ModManager : Form
             Multiselect = true
         };
 
-        if (openFileDialog.ShowDialog() != DialogResult.OK) return;
+        if (openFileDialog.ShowDialog() != DialogResult.OK)
+        {
+            return;
+        }
+
         foreach (var fileName in openFileDialog.FileNames)
         {
-            if (_account.mods.Any(m => Path.GetFileName(m.fileName) == Path.GetFileName(fileName))) continue;
+            if (_account.mods.Any(m => Path.GetFileName(m.fileName) == Path.GetFileName(fileName)))
+            {
+                continue;
+            }
+
             var mod = new Mod
             {
                 fileName = fileName,
@@ -103,7 +110,7 @@ public partial class ModManager : Form
         {
             _account.mods.RemoveAt(index);
         }
-        
+
         Program.accounts.Save();
         RefreshUI();
         Program.mutex.ReleaseMutex();

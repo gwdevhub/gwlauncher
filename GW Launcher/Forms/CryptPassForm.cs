@@ -2,18 +2,20 @@
 
 public partial class CryptPassForm : Form
 {
-    public byte[] Password { get; private set; }
-
     public CryptPassForm()
     {
         Password = Array.Empty<byte>();
         InitializeComponent();
     }
 
+    public byte[] Password { get; private set; }
+
     private void Finish()
     {
         if (textBoxPassword.Text == "")
+        {
             return;
+        }
 
         var sha = SHA256.Create();
         Password = sha.ComputeHash(Encoding.UTF8.GetBytes(textBoxPassword.Text));

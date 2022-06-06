@@ -27,7 +27,8 @@ internal static class WinApi
         IntPtr lpBaseAddress, byte[] lpBuffer, int dwSize, out IntPtr lpNumberOfBytesWritten);
 
     [DllImport("ntdll.dll", SetLastError = true, CallingConvention = CallingConvention.Winapi)]
-    internal static extern int NtQueryInformationProcess(IntPtr hProcess, PROCESSINFOCLASS pic, out PROCESS_BASIC_INFORMATION pbi, int cb, out int pSize);
+    internal static extern int NtQueryInformationProcess(IntPtr hProcess, PROCESSINFOCLASS pic,
+        out PROCESS_BASIC_INFORMATION pbi, int cb, out int pSize);
 }
 
 internal static class WinSafer
@@ -44,7 +45,8 @@ internal static class WinSafer
     public static extern bool SaferCloseLevel(IntPtr levelHandle);
 
     [DllImport("advapi32.dll", SetLastError = true, CallingConvention = CallingConvention.Winapi)]
-    public static extern bool SetTokenInformation(IntPtr tokenHandle, TOKEN_INFORMATION_CLASS tokenInformationokenInformationClass,
+    public static extern bool SetTokenInformation(IntPtr tokenHandle,
+        TOKEN_INFORMATION_CLASS tokenInformationokenInformationClass,
         ref TOKEN_MANDATORY_LABEL tokenInformation, uint tokenInformationLength);
 
     [DllImport("advapi32.dll", SetLastError = true, CallingConvention = CallingConvention.Winapi)]
@@ -132,7 +134,7 @@ internal enum TOKEN_INFORMATION_CLASS : uint
 }
 
 [Flags]
-enum CreationFlags : uint
+internal enum CreationFlags : uint
 {
     CreateSuspended = 0x00000004,
     DetachedProcess = 0x00000008,
@@ -183,11 +185,11 @@ internal struct STARTUPINFO
 [StructLayout(LayoutKind.Sequential)]
 internal struct PEB
 {
-    byte InheritedAddressSpace;
-    byte ReadImageFileExecOptions;
-    byte BeingDebugged;
-    byte BitField;
-    IntPtr Mutant;
+    private readonly byte InheritedAddressSpace;
+    private readonly byte ReadImageFileExecOptions;
+    private readonly byte BeingDebugged;
+    private readonly byte BitField;
+    private readonly IntPtr Mutant;
     internal IntPtr ImageBaseAddress;
 }
 
@@ -209,12 +211,12 @@ internal enum PROCESSINFOCLASS : uint
 [StructLayout(LayoutKind.Sequential)]
 internal struct PROCESS_BASIC_INFORMATION
 {
-    IntPtr Reserved1;
+    private readonly IntPtr Reserved1;
     internal IntPtr PebBaseAddress;
-    IntPtr Reserved2;
-    IntPtr Reserved3;
-    UIntPtr UniqueProcessId;
-    IntPtr Reserved4;
+    private readonly IntPtr Reserved2;
+    private readonly IntPtr Reserved3;
+    private readonly UIntPtr UniqueProcessId;
+    private readonly IntPtr Reserved4;
 }
 
 [StructLayout(LayoutKind.Sequential)]

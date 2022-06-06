@@ -1,4 +1,5 @@
 ﻿namespace GW_Launcher.Classes;
+
 public enum ModType
 {
     kModTypeTexmod,
@@ -7,7 +8,7 @@ public enum ModType
 
 public class Mod
 {
-    public ModType type;
-    public string fileName = "";
     public bool active;
+    public string fileName = "";
+    public ModType type;
 }
