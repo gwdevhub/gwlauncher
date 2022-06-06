@@ -11,14 +11,13 @@
 *   Load dll plugins and texmods (see below)
 *   Open source
 
-### Installation
-
 * * *
 
 1.  Click [download](https://github.com/GregLando113/gwlauncher/releases) below.
-2.  Select the most recent revision executable. The regular version requires the [.NET 6 Desktop Runtime (x86)](https://dotnet.microsoft.com/en-us/download/dotnet/6.0).
-3.  Put the executable in its own folder! It will create three files (Settings.json, Accounts.json, GWML.dll) in the same location you put the executable when you launch it.
+2.  Select the latest release.
+3.  Put the executable in its own folder! It will create files (Settings.json, Accounts.json, d3d9.dll) in the same location when you launch it.
 4.  Run the executable.
+5.  If you do not have the [.NET 6 Desktop Runtime (x86)](https://dotnet.microsoft.com/en-us/download/dotnet/6.0) installed, it will prompt you to download it.
 
 ### Usage
 
@@ -79,7 +78,7 @@ There are three settings that you can change in the file Settings.json:
 If you create a folder named "plugins", the launcher will load all .dll's or shortcuts (.lnk) to .dll's inside this folder on launch.  
 Dll's placed in `gwlauncher/plugins` folder will load for every instance, dll's in the `<gw-installation-path>/plugins` folder will only load for accounts launched from that path.  
 Alternatively there is also a GUI to select plugins for specific accounts when you edit the account.
-If you need certain dll's to be loaded before the game would regularly load them (think of d3d9.dll), you may put them in a `preload` folder inside the plugin folders.
+If you need certain dll's to be loaded before the game would regularly load them (think of d3d9.dll), you may put them in a `plugins/preload` folder (inside the plugin folders).
 
 Similarly, all .tpf or .zip files will be loaded as TexMod files. This means that you do not have to use uMod anymore, if you only want basic TexMod functionality.  
 Plugins are loaded in the alphabetical order of their filename. Textures that are already replaced by 1_FirstTexmod.tpf cannot be replaced by subsequent 2_SecondTexmod.tpf, so make sure your texmods are named in ascending alphabetical order.

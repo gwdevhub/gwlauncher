@@ -172,18 +172,18 @@ internal class MulticlientPatch
         return -1;
     }
 
-    private static bool McPatch(IntPtr handle)
+    private static bool McPatch(IntPtr processHandle)
     {
-        Debug.Assert(handle != IntPtr.Zero, "handle != IntPtr.Zero");
+        Debug.Assert(processHandle != IntPtr.Zero, "processHandle != IntPtr.Zero");
         byte[] sigPatch =
         {
             0x56, 0x57, 0x68, 0x00, 0x01, 0x00, 0x00, 0x89, 0x85, 0xF4, 0xFE, 0xFF, 0xFF, 0xC7, 0x00, 0x00, 0x00, 0x00,
             0x00
         };
-        var moduleBase = GetProcessModuleBase(handle);
+        var moduleBase = GetProcessModuleBase(processHandle);
         var gwdata = new byte[0x48D000];
 
-        if (!WinApi.ReadProcessMemory(handle, moduleBase, gwdata, gwdata.Length, out _))
+        if (!WinApi.ReadProcessMemory(processHandle, moduleBase, gwdata, gwdata.Length, out _))
         {
             return false;
         }
@@ -199,7 +199,7 @@ internal class MulticlientPatch
 
         byte[] payload = {0x31, 0xC0, 0x90, 0xC3};
 
-        return WinApi.WriteProcessMemory(handle, mcpatch, payload, payload.Length, out _);
+        return WinApi.WriteProcessMemory(processHandle, mcpatch, payload, payload.Length, out _);
     }
 
     private static int LaunchClient(string path, string args, bool elevated, out IntPtr hThread)
@@ -240,8 +240,7 @@ internal class MulticlientPatch
             // Set the token to medium integrity.
 
             TOKEN_MANDATORY_LABEL tml;
-            const int SE_GROUP_INTEGRITY = 0x20;
-            tml.Label.Attributes = SE_GROUP_INTEGRITY;
+            tml.Label.Attributes = 0x20; // SE_GROUP_INTEGRITY
             if (!WinSafer.ConvertStringSidToSid("S-1-16-8192", out tml.Label.Sid))
             {
                 WinApi.CloseHandle(hRestrictedToken);
@@ -255,7 +254,6 @@ internal class MulticlientPatch
                 WinApi.CloseHandle(hRestrictedToken);
                 return 0;
             }
-
 
             if (!WinSafer.CreateProcessAsUser(hRestrictedToken, null!, commandLine, ref saProcess,
                     ref saProcess, false, (uint) CreationFlags.CreateSuspended, IntPtr.Zero,
