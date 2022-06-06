@@ -88,7 +88,6 @@ internal class MulticlientPatch
         }
 
         var args = $"-email \"{account.email}\" -password \"{account.password}\" -character \"{character}\" {account.extraargs}";
-        var elevated = account.elevated;
 
         PatchRegistry(path);
 
@@ -96,7 +95,7 @@ internal class MulticlientPatch
 
         Directory.SetCurrentDirectory(Path.GetDirectoryName(path)!);
 
-        var process = elevated ? Process.Start("explorer.exe", path) : Process.Start(path, args);
+        var process = account.elevated ? Process.Start(path, args) : RunAsDesktopUser(path, args);
 
         process.Suspend();
 
@@ -150,14 +149,14 @@ internal class MulticlientPatch
         try
         {
             var regSrc = Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\ArenaNet\\Guild Wars", "Src", null);
-            if (regSrc != null && (string) regSrc != Path.GetFullPath(path))
+            if (regSrc != null && (string)regSrc != Path.GetFullPath(path))
             {
                 Registry.SetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\ArenaNet\\Guild Wars", "Src", Path.GetFullPath(path));
                 Registry.SetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\ArenaNet\\Guild Wars", "Path", Path.GetFullPath(path));
             }
 
             regSrc = Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\ArenaNet\\Guild Wars", "Src", null);
-            if (regSrc == null || (string) regSrc == Path.GetFullPath(path)) return;
+            if (regSrc == null || (string)regSrc == Path.GetFullPath(path)) return;
             Registry.SetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\ArenaNet\\Guild Wars", "Src",
                 Path.GetFullPath(path));
             Registry.SetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\ArenaNet\\Guild Wars", "Path",
@@ -224,89 +223,175 @@ internal class MulticlientPatch
 
         var mcpatch = moduleBase + idx - 0x1A;
 
-        byte[] payload = {0x31, 0xC0, 0x90, 0xC3};
+        byte[] payload = { 0x31, 0xC0, 0x90, 0xC3 };
 
         return WinApi.WriteProcessMemory(process.Handle, mcpatch, payload, payload.Length, out var bytesWritten);
     }
 
-    /*
-    __declspec(dllexport) DWORD LaunchClient(LPCWSTR path, LPCWSTR args, DWORD flags, DWORD* out_hThread)
-{
-    WCHAR commandLine[0x100];
-    swprintf(commandLine, 0x100, L"\"%s\" %s", path, args);
+    #region Interop
 
+    private struct TOKEN_PRIVILEGES
+    {
+        public UInt32 PrivilegeCount;
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 1)]
+        public LUID_AND_ATTRIBUTES[] Privileges;
+    }
 
-    STARTUPINFOW startinfo = { 0 };
-    PROCESS_INFORMATION procinfo = { 0 };
+    [StructLayout(LayoutKind.Sequential, Pack = 4)]
+    private struct LUID_AND_ATTRIBUTES
+    {
+        public LUID Luid;
+        public UInt32 Attributes;
+    }
 
-    WCHAR last_directory[MAX_PATH];
-    GetCurrentDirectoryW(MAX_PATH, last_directory);
-    WCHAR* trial = wcsstr(path, L"Gw.exe");
-    trial[0] = L'\0';
-    SetCurrentDirectoryW(path);
+    [StructLayout(LayoutKind.Sequential)]
+    private struct LUID
+    {
+        public uint LowPart;
+        public int HighPart;
+    }
 
-    if (!(flags & GWML_ELEVATED)) {
-        SAFER_LEVEL_HANDLE hLevel = NULL;
-        if (!SaferCreateLevel(SAFER_SCOPEID_USER, SAFER_LEVELID_NORMALUSER, SAFER_LEVEL_OPEN, &hLevel, NULL))
+    [Flags]
+    private enum ProcessAccessFlags : uint
+    {
+        All = 0x001F0FFF,
+        Terminate = 0x00000001,
+        CreateThread = 0x00000002,
+        VirtualMemoryOperation = 0x00000008,
+        VirtualMemoryRead = 0x00000010,
+        VirtualMemoryWrite = 0x00000020,
+        DuplicateHandle = 0x00000040,
+        CreateProcess = 0x000000080,
+        SetQuota = 0x00000100,
+        SetInformation = 0x00000200,
+        QueryInformation = 0x00000400,
+        QueryLimitedInformation = 0x00001000,
+        Synchronize = 0x00100000
+    }
+
+    private enum SECURITY_IMPERSONATION_LEVEL
+    {
+        SecurityAnonymous,
+        SecurityIdentification,
+        SecurityImpersonation,
+        SecurityDelegation
+    }
+
+    private enum TOKEN_TYPE
+    {
+        TokenPrimary = 1,
+        TokenImpersonation
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct PROCESS_INFORMATION
+    {
+        public IntPtr hProcess;
+        public IntPtr hThread;
+        public int dwProcessId;
+        public int dwThreadId;
+    }
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    private struct STARTUPINFO
+    {
+        public Int32 cb;
+        public string lpReserved;
+        public string lpDesktop;
+        public string lpTitle;
+        public Int32 dwX;
+        public Int32 dwY;
+        public Int32 dwXSize;
+        public Int32 dwYSize;
+        public Int32 dwXCountChars;
+        public Int32 dwYCountChars;
+        public Int32 dwFillAttribute;
+        public Int32 dwFlags;
+        public Int16 wShowWindow;
+        public Int16 cbReserved2;
+        public IntPtr lpReserved2;
+        public IntPtr hStdInput;
+        public IntPtr hStdOutput;
+        public IntPtr hStdError;
+    }
+    #endregion
+
+    private Process RunAsUser(string path, string args, uint flag)
+    {
+        
+        STARTUPINFOW startinfo = { 0 };
+        PROCESS_INFORMATION procinfo = { 0 };
+
+        WCHAR last_directory[MAX_PATH];
+        GetCurrentDirectoryW(MAX_PATH, last_directory);
+        WCHAR* trial = wcsstr(path, L"Gw.exe");
+        trial[0] = L'\0';
+        SetCurrentDirectoryW(path);
+
+        if (!(flags & GWML_ELEVATED))
         {
-            MCERROR("SaferCreateLevel");
-        }
+            SAFER_LEVEL_HANDLE hLevel = NULL;
+            if (!SaferCreateLevel(SAFER_SCOPEID_USER, SAFER_LEVELID_NORMALUSER, SAFER_LEVEL_OPEN, &hLevel, NULL))
+            {
+                MCERROR("SaferCreateLevel");
+            }
 
-        HANDLE hRestrictedToken = NULL;
-        if (!SaferComputeTokenFromLevel(hLevel, NULL, &hRestrictedToken, 0, NULL))
-        {
+            HANDLE hRestrictedToken = NULL;
+            if (!SaferComputeTokenFromLevel(hLevel, NULL, &hRestrictedToken, 0, NULL))
+            {
+                SaferCloseLevel(hLevel);
+                MCERROR("SaferComputeTokenFromLevel");
+            }
+
             SaferCloseLevel(hLevel);
-            MCERROR("SaferComputeTokenFromLevel");
-        }
 
-        SaferCloseLevel(hLevel);
+            // Set the token to medium integrity.
 
-        // Set the token to medium integrity.
+            TOKEN_MANDATORY_LABEL tml = { 0 };
+            tml.Label.Attributes = SE_GROUP_INTEGRITY;
+            if (!ConvertStringSidToSid(TEXT("S-1-16-8192"), &(tml.Label.Sid)))
+            {
+                CloseHandle(hRestrictedToken);
+                MCERROR("ConvertStringSidToSid");
+            }
 
-        TOKEN_MANDATORY_LABEL tml = { 0 };
-        tml.Label.Attributes = SE_GROUP_INTEGRITY;
-        if (!ConvertStringSidToSid(TEXT("S-1-16-8192"), &(tml.Label.Sid)))
-        {
+            if (!SetTokenInformation(hRestrictedToken, TokenIntegrityLevel, &tml, sizeof(tml) + GetLengthSid(tml.Label.Sid)))
+            {
+                LocalFree(tml.Label.Sid);
+                CloseHandle(hRestrictedToken);
+                return FALSE;
+            }
+
+            if (!CreateProcessAsUserW(hRestrictedToken, NULL, commandLine, NULL, NULL, FALSE, CREATE_SUSPENDED, NULL, NULL, &startinfo, &procinfo))
+            {
+                MCERROR("CreateProcessAsUserW");
+            }
+
             CloseHandle(hRestrictedToken);
-            MCERROR("ConvertStringSidToSid");
         }
-
-        if (!SetTokenInformation(hRestrictedToken, TokenIntegrityLevel, &tml, sizeof(tml) + GetLengthSid(tml.Label.Sid)))
+        else
         {
-            LocalFree(tml.Label.Sid);
-            CloseHandle(hRestrictedToken);
-            return FALSE;
+            if (!CreateProcessW(NULL, commandLine, NULL, NULL, FALSE, CREATE_SUSPENDED, NULL, NULL, &startinfo, &procinfo))
+                MCERROR("CreateProcessW");
         }
 
-        if (!CreateProcessAsUserW(hRestrictedToken, NULL, commandLine, NULL, NULL, FALSE, CREATE_SUSPENDED , NULL, NULL, &startinfo, &procinfo)) {
-            MCERROR("CreateProcessAsUserW");
+        SetCurrentDirectoryW(last_directory);
+        trial[0] = L'G';
+
+        g_moduleBase = GetProcessModuleBase(procinfo.hProcess);
+
+        if (!MCPatch(procinfo.hProcess))
+        {
+            ResumeThread(procinfo.hThread);
+            CloseHandle(procinfo.hThread);
+            CloseHandle(procinfo.hProcess);
+            MCERROR("MCPatch");
         }
 
-        CloseHandle(hRestrictedToken);
-    }
-    else {
-        if (!CreateProcessW(NULL, commandLine, NULL, NULL, FALSE, CREATE_SUSPENDED, NULL, NULL, &startinfo, &procinfo))
-            MCERROR("CreateProcessW");
-    }
+        if (out_hThread != NULL)
+            *out_hThread = (uint)procinfo.hThread;
 
-    SetCurrentDirectoryW(last_directory);
-    trial[0] = L'G';
-
-    g_moduleBase = GetProcessModuleBase(procinfo.hProcess);
-
-    if (!MCPatch(procinfo.hProcess)) {
-        ResumeThread(procinfo.hThread);
-        CloseHandle(procinfo.hThread);
         CloseHandle(procinfo.hProcess);
-        MCERROR("MCPatch");
+        return procinfo.dwProcessId;
     }
-    
-    if (out_hThread != NULL)
-        *out_hThread = (DWORD)procinfo.hThread;
-
-    CloseHandle(procinfo.hProcess);
-    return procinfo.dwProcessId;
-}
-     *
-     */
 }

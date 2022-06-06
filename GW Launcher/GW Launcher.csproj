@@ -10,8 +10,8 @@
     <StartupObject>GW_Launcher.Program</StartupObject>
     <ApplicationIcon>Resources\gw-icon.ico</ApplicationIcon>
     <BaseOutputPath>..\</BaseOutputPath>
-    <Platforms>x86</Platforms>
-    <PlatformTarget>x86</PlatformTarget>
+    <Platforms>x86;AnyCPU</Platforms>
+    <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugType>portable</DebugType>
     <AssemblyVersion>13.0</AssemblyVersion>
     <FileVersion>13.0</FileVersion>
@@ -22,7 +22,15 @@
     <WarningLevel>5</WarningLevel>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <WarningLevel>5</WarningLevel>
+  </PropertyGroup>
+
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'">
+    <WarningLevel>5</WarningLevel>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <WarningLevel>5</WarningLevel>
   </PropertyGroup>
 

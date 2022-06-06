@@ -1,6 +1,7 @@
 # Build directories
 Debug/
 Release/
+Publish/
 packages/
 .vs/
 /GW Launcher/obj
