@@ -78,7 +78,6 @@ There are three settings that you can change in the file Settings.json:
 If you create a folder named "plugins", the launcher will load all .dll's or shortcuts (.lnk) to .dll's inside this folder on launch.  
 Dll's placed in `gwlauncher/plugins` folder will load for every instance, dll's in the `<gw-installation-path>/plugins` folder will only load for accounts launched from that path.  
 Alternatively there is also a GUI to select plugins for specific accounts when you edit the account.
-If you need certain dll's to be loaded before the game would regularly load them (think of d3d9.dll), you may put them in a `plugins/preload` folder (inside the plugin folders).
 
 Similarly, all .tpf or .zip files will be loaded as TexMod files. This means that you do not have to use uMod anymore, if you only want basic TexMod functionality.  
 Plugins are loaded in the alphabetical order of their filename. Textures that are already replaced by 1_FirstTexmod.tpf cannot be replaced by subsequent 2_SecondTexmod.tpf, so make sure your texmods are named in ascending alphabetical order.
