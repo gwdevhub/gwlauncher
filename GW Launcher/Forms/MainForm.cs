@@ -5,7 +5,6 @@ namespace GW_Launcher.Forms;
 
 public partial class MainForm : Form
 {
-    private int heightofgui = 143;
     public Queue<int> needtolaunch;
 
     private bool rightClickOpen;
@@ -21,13 +20,9 @@ public partial class MainForm : Form
 
     private void RefreshUI()
     {
-        if (Program.accounts.Length > 4)
-        {
-            heightofgui = 143 + 17 * (Program.accounts.Length - 4);
-            SetBounds(Location.X, Location.Y, Size.Width, heightofgui);
-        }
-
+        var padding = Width - listViewAccounts.Width;
         listViewAccounts.Items.Clear();
+
 
         // Run through already open GW clients to see if accounts are already active.
         foreach (var process in Process.GetProcessesByName("Gw"))
@@ -83,6 +78,23 @@ public partial class MainForm : Form
                 "gw-icon"
             ));
         }
+
+        listViewAccounts.Columns[1].AutoResize(ColumnHeaderAutoResizeStyle.ColumnContent);
+        listViewAccounts.Columns[0].Width = -2;
+        Width = listViewAccounts.Columns[0].Width + listViewAccounts.Columns[1].Width + 5 + padding;
+
+        var minWidth = Width - padding - listViewAccounts.Columns[1].Width - 5;
+        listViewAccounts.Columns[0].Width = Math.Max(minWidth, listViewAccounts.Columns[0].Width);
+
+        if (listViewAccounts.Items.Count <= 4)
+        {
+            return;
+        }
+
+        var itemHeight = listViewAccounts.GetItemRect(0).Height;
+        var minHeight = 100 + itemHeight * listViewAccounts.Items.Count;
+
+        Height = Math.Max(Height, minHeight);
     }
 
     public void SetActive(int index, bool active)
@@ -104,7 +116,6 @@ public partial class MainForm : Form
         Visible = false;
         // Initialize things
         var imageList = new ImageList();
-        needtolaunch = new Queue<int>();
         imageList.Images.Add("gw-icon", Resources.gw_icon);
         listViewAccounts.SmallImageList = imageList;
         RefreshUI();
@@ -243,18 +254,6 @@ public partial class MainForm : Form
 
     private void NotifyIcon_MouseClick(object sender, MouseEventArgs e)
     {
-        if (e.Button == MouseButtons.Right)
-        {
-            if (rightClickOpen)
-            {
-                Visible = false;
-                rightClickOpen = false;
-                return;
-            }
-
-            rightClickOpen = true;
-        }
-
         var isVisible = (Point p) =>
         {
             return Screen.AllScreens.Any(s =>
@@ -303,7 +302,7 @@ public partial class MainForm : Form
             var process = Process.Start(client, "-image");
             var taskCompletionSource = new TaskCompletionSource<object>();
             process.EnableRaisingEvents = true;
-            process.Exited += (sender, args) => taskCompletionSource.TrySetResult(null!);
+            process.Exited += (_, _) => taskCompletionSource.TrySetResult(null!);
             if (cancellationToken != default)
             {
                 cancellationToken.Register(taskCompletionSource.SetCanceled);

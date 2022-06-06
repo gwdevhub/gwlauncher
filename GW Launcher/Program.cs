@@ -75,13 +75,16 @@ internal static class Program
             {
                 while (mainForm.needtolaunch.Count > 0)
                 {
+                    mutex.WaitOne();
                     var i = mainForm.needtolaunch.Dequeue();
                     var account = accounts[i];
-                    if (account.active && account.process != null &&
-                        account.process.process.MainWindowHandle != IntPtr.Zero)
+                    switch (account.active)
                     {
-                        SetForegroundWindow(account.process.process.MainWindowHandle);
-                        continue;
+                        case true when account.process != null && account.process.process.MainWindowHandle != IntPtr.Zero:
+                            SetForegroundWindow(account.process.process.MainWindowHandle);
+                            continue;
+                        case true:
+                            continue;
                     }
 
                     var memory = MulticlientPatch.LaunchClient(account);
@@ -113,8 +116,9 @@ internal static class Program
                     {
                         SetWindowText(memory.process.MainWindowHandle, account.Name);
                     }
+                    mutex.ReleaseMutex();
 
-                    Thread.Sleep(5000);
+                    Thread.Sleep(3000);
                 }
 
                 mutex.WaitOne();
