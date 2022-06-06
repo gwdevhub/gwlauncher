@@ -1,11 +1,33 @@
 ﻿using GW_Launcher.uMod;
 using Microsoft.Win32;
-using IWshRuntimeLibrary;
 
 namespace GW_Launcher;
 
 internal class MulticlientPatch
 {
+    private static IntPtr GetProcessModuleBase(IntPtr process)
+    {
+        if (WinApi.NtQueryInformationProcess(process, PROCESSINFOCLASS.ProcessBasicInformation, out var pbi,
+                Marshal.SizeOf(typeof(PROCESS_BASIC_INFORMATION)), out _) != 0)
+        {
+            return IntPtr.Zero;
+        }
+
+        var buffer = new byte[Marshal.SizeOf(typeof(PEB))];
+
+        if (!WinApi.ReadProcessMemory(process, pbi.PebBaseAddress, buffer, Marshal.SizeOf(typeof(PEB)), out _))
+        {
+            return IntPtr.Zero;
+        }
+
+        PEB peb = new()
+        {
+            ImageBaseAddress = (IntPtr) BitConverter.ToInt32(buffer, 8)
+        };
+
+        return peb.ImageBaseAddress + 0x1000;
+    }
+
     public static GWCAMemory LaunchClient(Account account)
     {
         var path = account.gwpath;
@@ -15,7 +37,7 @@ internal class MulticlientPatch
             character = account.character;
         }
 
-        if (GetTexmods(account.gwpath, account.mods).Any())
+        if (ModManager.GetTexmods(account.gwpath, account.mods).Any())
         {
             Task.Run(() =>
             {
@@ -24,7 +46,8 @@ internal class MulticlientPatch
                 {
                     Thread.Sleep(200);
                 }
-                foreach (var tex in GetTexmods(path, account.mods))
+
+                foreach (var tex in ModManager.GetTexmods(path, account.mods))
                 {
                     if (Program.shouldClose)
                     {
@@ -34,48 +57,67 @@ internal class MulticlientPatch
 
                     texClient.AddFile(tex);
                 }
+
                 texClient.Send();
 
                 GC.Collect(2, GCCollectionMode.Optimized); // force garbage collection
             });
         }
 
-        var args = $" -email \"{account.email}\" -password \"{account.password}\" -character \"{character}\" {account.extraargs}";
-        var datfix = account.datfix;
-        var nologin = false;
-        var elevated = account.elevated;
+        var args =
+            $"-email \"{account.email}\" -password \"{account.password}\" -character \"{character}\" {account.extraargs}";
 
         PatchRegistry(path);
 
-        var dwPid = NativeMethods.LaunchClient(path, args,
-            (int)GWML_FLAGS.KEEP_SUSPENDED | (datfix ? 0 : (int)GWML_FLAGS.NO_DATFIX) |
-            (nologin ? (int)GWML_FLAGS.NO_LOGIN : 0) | (elevated ? (int)GWML_FLAGS.ELEVATED : 0), out var hThread);
-        var proc = Process.GetProcessById((int)dwPid);
-        var memory = new GWCAMemory(proc);
+        var pId = LaunchClient(path, args, account.elevated, out var hThread);
+        Debug.Assert(pId != 0, "pId != 0");
+        var process = Process.GetProcessById(pId);
 
-        foreach (var dll in GetDlls(path, account.mods))
+        if (!McPatch(process.Handle))
+        {
+            Debug.WriteLine("McPatch");
+        }
+
+        var memory = new GWCAMemory(process);
+
+        // make sure umod d3d9.dll is loaded BEFORE the game loads the original d3d9.dll
+        foreach (var dll in ModManager.GetPreloadDlls(path, account.mods))
+        {
+            memory.LoadModule(dll, false);
+        }
+
+        if (hThread != IntPtr.Zero)
+        {
+            WinApi.ResumeThread(hThread);
+            WinApi.CloseHandle(hThread);
+        }
+
+        foreach (var dll in ModManager.GetDlls(path, account.mods))
         {
             memory.LoadModule(dll);
         }
 
-        NativeMethods.ResumeThread(hThread);
-        NativeMethods.CloseHandle(hThread);
-
         return memory;
     }
 
-    public static GWCAMemory LaunchClient(string path)
+    internal static GWCAMemory LaunchClient(string path)
     {
         PatchRegistry(path);
 
-        var dwPid = NativeMethods.LaunchClient(path, "", 0, out var hThread);
-        var proc = Process.GetProcessById((int)dwPid);
-        var mem = new GWCAMemory(proc);
+        var lastDirectory = Directory.GetCurrentDirectory();
 
-        NativeMethods.ResumeThread(hThread);
-        NativeMethods.CloseHandle(hThread);
+        Directory.SetCurrentDirectory(Path.GetDirectoryName(path)!);
 
-        return mem;
+        var process = Process.Start("explorer.exe", path);
+
+        process.Suspend();
+
+        Directory.SetCurrentDirectory(lastDirectory);
+
+        McPatch(process.Handle);
+        process.Resume();
+
+        return new GWCAMemory(process);
     }
 
     private static void PatchRegistry(string path)
@@ -83,105 +125,168 @@ internal class MulticlientPatch
         try
         {
             var regSrc = Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\ArenaNet\\Guild Wars", "Src", null);
-            if (regSrc != null && (string)regSrc != Path.GetFullPath(path))
+            if (regSrc != null && (string) regSrc != Path.GetFullPath(path))
             {
                 Registry.SetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\ArenaNet\\Guild Wars", "Src", Path.GetFullPath(path));
                 Registry.SetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\ArenaNet\\Guild Wars", "Path", Path.GetFullPath(path));
             }
 
             regSrc = Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\ArenaNet\\Guild Wars", "Src", null);
-            if (regSrc != null && (string)regSrc != Path.GetFullPath(path))
+            if (regSrc == null || (string) regSrc == Path.GetFullPath(path))
             {
-                Registry.SetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\ArenaNet\\Guild Wars", "Src",
-                    Path.GetFullPath(path));
-                Registry.SetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\ArenaNet\\Guild Wars", "Path",
-                    Path.GetFullPath(path));
+                return;
             }
+
+            Registry.SetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\ArenaNet\\Guild Wars", "Src",
+                Path.GetFullPath(path));
+            Registry.SetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\ArenaNet\\Guild Wars", "Path",
+                Path.GetFullPath(path));
         }
         catch (UnauthorizedAccessException)
         {
-
+            Debug.WriteLine("PatchRegistry");
         }
     }
 
-    private static IOrderedEnumerable<string> GetDlls(string path, IReadOnlyCollection<Mod> mods)
+    private static int SearchBytes(IReadOnlyList<byte> haystack, IReadOnlyList<byte> needle)
     {
-        return GetMods(path, mods).Item1;
-    }
-
-    private static IOrderedEnumerable<string> GetTexmods(string path, IReadOnlyCollection<Mod> mods)
-    {
-        return GetMods(path, mods).Item2;
-    }
-    private static Tuple<IOrderedEnumerable<string>, IOrderedEnumerable<string>> GetMods(string path, IReadOnlyCollection<Mod> mods)
-    {
-        var directory = Directory.GetCurrentDirectory() + "\\plugins";
-        var dllsToLoad = new List<string>();
-        var texsToLoad = new List<string>();
-        if (Directory.Exists(directory))
+        var len = needle.Count;
+        var limit = haystack.Count - len;
+        for (var i = 0; i <= limit; i++)
         {
-            var links = Directory.GetFiles(directory, "*.lnk");
-            var files = Directory.GetFiles(directory, "*.dll");
-            var dlllinks = links.Select(GetShortcutPath).Where(l => l.EndsWith(".dll")).ToArray();
-            var textures = Directory.GetFiles(directory, "*").Where(t => t.EndsWith(".tpf") || t.EndsWith(".zip"));
+            var k = 0;
+            for (; k < len; k++)
+            {
+                if (needle[k] != haystack[i + k])
+                {
+                    break;
+                }
+            }
 
-            dllsToLoad.AddRange(files);
-            dllsToLoad.AddRange(dlllinks);
-            texsToLoad.AddRange(textures);
+            if (k == len)
+            {
+                return i;
+            }
         }
 
-        directory = Path.GetDirectoryName(path) + "\\plugins";
-        if (Directory.Exists(directory))
+        return -1;
+    }
+
+    private static bool McPatch(IntPtr handle)
+    {
+        Debug.Assert(handle != IntPtr.Zero, "handle != IntPtr.Zero");
+        byte[] sigPatch =
         {
-            var links = Directory.GetFiles(directory, "*.lnk");
-            var files = Directory.GetFiles(directory, "*.dll");
-            var dlllinks = links.Select(GetShortcutPath).Where(l => l.EndsWith(".dll")).ToArray();
-            var textures = Directory.GetFiles(directory, "*").Where(t => t.EndsWith(".tpf") || t.EndsWith(".zip"));
+            0x56, 0x57, 0x68, 0x00, 0x01, 0x00, 0x00, 0x89, 0x85, 0xF4, 0xFE, 0xFF, 0xFF, 0xC7, 0x00, 0x00, 0x00, 0x00,
+            0x00
+        };
+        var moduleBase = GetProcessModuleBase(handle);
+        var gwdata = new byte[0x48D000];
 
-            dllsToLoad.AddRange(dlllinks);
-            dllsToLoad.AddRange(files);
-            texsToLoad.AddRange(textures);
-        }
-
-        dllsToLoad.AddRange(mods.Where(mod => mod.type == ModType.kModTypeDLL && System.IO.File.Exists(mod.fileName)).Select(mod => mod.fileName));
-        texsToLoad.AddRange(mods.Where(mod => mod.type == ModType.kModTypeTexmod && mod.active && System.IO.File.Exists(mod.fileName)).Select(mod => mod.fileName));
-        if (texsToLoad.Count > 0)
+        if (!WinApi.ReadProcessMemory(handle, moduleBase, gwdata, gwdata.Length, out _))
         {
-            dllsToLoad.RemoveAll(p => Path.GetFileName(p) == "d3d9.dll"); // don't load any other d3d9.dll
-            dllsToLoad.Add(Path.Combine(Directory.GetCurrentDirectory(), "d3d9.dll")); // load d3d9.dll for umod
+            return false;
         }
 
-        return Tuple.Create(
-            dllsToLoad.Distinct().OrderByDescending(p => Path.GetFileName(p) == "d3d9.dll").ThenBy(Path.GetFileName),
-            texsToLoad.Distinct().OrderBy(Path.GetFileName)
-        );
+        var idx = SearchBytes(gwdata, sigPatch);
+
+        if (idx == -1)
+        {
+            return false;
+        }
+
+        var mcpatch = moduleBase + idx - 0x1A;
+
+        byte[] payload = {0x31, 0xC0, 0x90, 0xC3};
+
+        return WinApi.WriteProcessMemory(handle, mcpatch, payload, payload.Length, out _);
     }
 
-    private enum GWML_FLAGS
+    private static int LaunchClient(string path, string args, bool elevated, out IntPtr hThread)
     {
-        NO_DATFIX = 1,
-        KEEP_SUSPENDED = 2,
-        NO_LOGIN = 4,
-        ELEVATED = 8
-    }
+        var commandLine = $"\"{path}\" {args}";
+        hThread = IntPtr.Zero;
 
-    private static string GetShortcutPath(string path)
-    {
-        var shell = new WshShell();
-        var lnk = (IWshShortcut)shell.CreateShortcut(path);
+        PROCESS_INFORMATION procinfo;
+        STARTUPINFO startinfo = new()
+        {
+            cb = Marshal.SizeOf(typeof(STARTUPINFO))
+        };
+        var saProcess = new SECURITY_ATTRIBUTES();
+        saProcess.nLength = (uint) Marshal.SizeOf(saProcess);
+        var saThread = new SECURITY_ATTRIBUTES();
+        saThread.nLength = (uint) Marshal.SizeOf(saThread);
 
-        return lnk.TargetPath;
-    }
+        var lastDirectory = Directory.GetCurrentDirectory();
+        Directory.SetCurrentDirectory(Path.GetDirectoryName(path)!);
 
-    internal static class NativeMethods
-    {
-        [DllImport("GWML.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        public static extern uint LaunchClient(string client, string args, int flags, out IntPtr thread);
+        if (!elevated)
+        {
+            if (!WinSafer.SaferCreateLevel(SaferLevelScope.User, SaferLevel.NormalUser, SaferOpen.Open, out var hLevel,
+                    IntPtr.Zero))
+            {
+                Debug.WriteLine("SaferCreateLevel");
+                return 0;
+            }
 
-        [DllImport("Kernel32.dll", CallingConvention = CallingConvention.Winapi)]
-        public static extern uint ResumeThread(IntPtr hThread);
+            if (!WinSafer.SaferComputeTokenFromLevel(hLevel, IntPtr.Zero, out var hRestrictedToken, 0, IntPtr.Zero))
+            {
+                Debug.WriteLine("SaferComputeTokenFromLevel");
+                return 0;
+            }
 
-        [DllImport("Kernel32.dll", CallingConvention = CallingConvention.Winapi)]
-        public static extern uint CloseHandle(IntPtr handle);
+            WinSafer.SaferCloseLevel(hLevel);
+
+            // Set the token to medium integrity.
+
+            TOKEN_MANDATORY_LABEL tml;
+            const int SE_GROUP_INTEGRITY = 0x20;
+            tml.Label.Attributes = SE_GROUP_INTEGRITY;
+            if (!WinSafer.ConvertStringSidToSid("S-1-16-8192", out tml.Label.Sid))
+            {
+                WinApi.CloseHandle(hRestrictedToken);
+                Debug.WriteLine("ConvertStringSidToSid");
+            }
+
+            if (!WinSafer.SetTokenInformation(hRestrictedToken, TOKEN_INFORMATION_CLASS.TokenIntegrityLevel, ref tml,
+                    (uint) Marshal.SizeOf(tml) + WinSafer.GetLengthSid(tml.Label.Sid)))
+            {
+                WinApi.LocalFree(tml.Label.Sid);
+                WinApi.CloseHandle(hRestrictedToken);
+                return 0;
+            }
+
+
+            if (!WinSafer.CreateProcessAsUser(hRestrictedToken, null!, commandLine, ref saProcess,
+                    ref saProcess, false, (uint) CreationFlags.CreateSuspended, IntPtr.Zero,
+                    null!, ref startinfo, out procinfo))
+            {
+                var error = Marshal.GetLastWin32Error();
+                Debug.WriteLine($"CreateProcessAsUser {error}");
+                WinApi.CloseHandle(procinfo.hThread);
+                return 0;
+            }
+
+            WinApi.CloseHandle(hRestrictedToken);
+        }
+        else
+        {
+            if (!WinApi.CreateProcess(null!, commandLine, ref saProcess,
+                    ref saThread, false, (uint) CreationFlags.CreateSuspended, IntPtr.Zero,
+                    null!, ref startinfo, out procinfo))
+            {
+                var error = Marshal.GetLastWin32Error();
+                Debug.WriteLine($"CreateProcess {error}");
+                WinApi.ResumeThread(procinfo.hThread);
+                WinApi.CloseHandle(procinfo.hThread);
+                return 0;
+            }
+        }
+
+        Directory.SetCurrentDirectory(lastDirectory);
+
+        WinApi.CloseHandle(procinfo.hProcess);
+        hThread = procinfo.hThread;
+        return procinfo.dwProcessId;
     }
 }

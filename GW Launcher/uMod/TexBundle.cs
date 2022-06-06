@@ -5,10 +5,11 @@ internal struct TexDef
     public uint crcHash;
     public byte[] fileData;
 }
+
 public class TexBundle
 {
-    public string name;
     internal List<TexDef> defs = new();
+    public string name;
 
     public TexBundle(string filePath)
     {
@@ -19,21 +20,10 @@ public class TexBundle
     public void Load(string filePath)
     {
         var loader = new ZipLoader(filePath);
-        foreach (var (key, value) in loader.Entries)
+        foreach (var (crc, value) in loader.Entries)
         {
-            // 0x18F22DA3
-            var crc = key;
-            switch (crc.Length)
-            {
-                case < 10:
-                    continue;
-                case > 10:
-                    crc = crc[..10];
-                    break;
-            }
-
             TexDef def;
-            def.crcHash = Convert.ToUInt32(crc, 16);
+            def.crcHash = (uint) Convert.ToUInt64(crc, 16);
             def.fileData = value;
 
             defs.Add(def);

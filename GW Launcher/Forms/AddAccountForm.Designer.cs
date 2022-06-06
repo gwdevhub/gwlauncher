@@ -35,7 +35,6 @@
             this.labelPassword = new System.Windows.Forms.Label();
             this.textBoxCharacter = new System.Windows.Forms.TextBox();
             this.labelCharacter = new System.Windows.Forms.Label();
-            this.checkBoxDatFix = new System.Windows.Forms.CheckBox();
             this.buttonDone = new System.Windows.Forms.Button();
             this.labelPath = new System.Windows.Forms.Label();
             this.textBoxPath = new System.Windows.Forms.TextBox();
@@ -103,18 +102,6 @@
             this.labelCharacter.Size = new System.Drawing.Size(35, 15);
             this.labelCharacter.TabIndex = 5;
             this.labelCharacter.Text = "Char:";
-            // 
-            // checkBoxDatFix
-            // 
-            this.checkBoxDatFix.AutoSize = true;
-            this.checkBoxDatFix.Location = new System.Drawing.Point(13, 194);
-            this.checkBoxDatFix.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
-            this.checkBoxDatFix.Name = "checkBoxDatFix";
-            this.checkBoxDatFix.Size = new System.Drawing.Size(113, 19);
-            this.checkBoxDatFix.TabIndex = 6;
-            this.checkBoxDatFix.Text = "Apply .dat Patch";
-            this.checkBoxDatFix.UseVisualStyleBackColor = true;
-            this.checkBoxDatFix.CheckedChanged += new System.EventHandler(this.CheckBoxDatFix_CheckedChanged);
             // 
             // buttonDone
             // 
@@ -189,7 +176,7 @@
             // checkBoxElevated
             // 
             this.checkBoxElevated.AutoSize = true;
-            this.checkBoxElevated.Location = new System.Drawing.Point(13, 223);
+            this.checkBoxElevated.Location = new System.Drawing.Point(70, 195);
             this.checkBoxElevated.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             this.checkBoxElevated.Name = "checkBoxElevated";
             this.checkBoxElevated.Size = new System.Drawing.Size(94, 19);
@@ -232,7 +219,7 @@
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.AutoSize = true;
             this.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
-            this.ClientSize = new System.Drawing.Size(251, 271);
+            this.ClientSize = new System.Drawing.Size(251, 249);
             this.Controls.Add(this.buttonMods);
             this.Controls.Add(this.checkBoxElevated);
             this.Controls.Add(this.buttonTogglePasswordVisibility);
@@ -242,7 +229,6 @@
             this.Controls.Add(this.textBoxPath);
             this.Controls.Add(this.labelPath);
             this.Controls.Add(this.buttonDone);
-            this.Controls.Add(this.checkBoxDatFix);
             this.Controls.Add(this.labelCharacter);
             this.Controls.Add(this.textBoxCharacter);
             this.Controls.Add(this.labelPassword);
@@ -273,7 +259,6 @@
         private System.Windows.Forms.Label labelPassword;
         private System.Windows.Forms.TextBox textBoxCharacter;
         private System.Windows.Forms.Label labelCharacter;
-        private System.Windows.Forms.CheckBox checkBoxDatFix;
         private System.Windows.Forms.Button buttonDone;
         private System.Windows.Forms.Label labelPath;
         private System.Windows.Forms.TextBox textBoxPath;

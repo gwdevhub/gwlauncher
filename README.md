@@ -5,11 +5,11 @@
 
 * * *
 
-*   Able to add accounts to a list in order to quickly launch them on demand.
-*   Active column shows what accounts are currently loaded in.
-*   Client window title renamed at launch to match the character name. (helps with organization)
-*   ".dat Patch" allows you to run multiple clients off of one installation. (Side effects occur when using this, see below for details)
-*   Open source.
+*   Able to add accounts to a list in order to quickly launch them on demand
+*   Active column shows what accounts are currently loaded in
+*   Client window title renamed at launch to match the title or character name
+*	Load dll plugins and texmods (see below
+*   Open source
 
 ### Installation
 
@@ -66,18 +66,6 @@ Right click the Main Launcher Window to reveal a context menu, then select _Edit
 
 This format is fairly straight forward, modify the account info of the selected account, then save the file and re-launch GW Launcher.exe.
 
-#### About the .dat patch
-
-The dat patch as stated above will allow you to run as many clients as you want off of one installation, however there are negative side effects of the clients patched. These effects include:
-
-*   Inventory item icons have a chance of never appearing (empty slot), however the quantity number will always appear.
-*   Screenshots cannot be taken. (Guild Wars will just create an empty .jpg file in screens)
-*   Templates cannot be saved. (Again only an empty file will be produced)
-*   Game updates will fail to update, will cause a hang come updates. (Run the Guild Wars client normally to update in order to fix this)
-*   If the game crashes, there is no chance of a reconnect to be possible.
-
-There may be more side effects, however these are the effects I have seen. The general problem is that any process involving writing to Gw.dat will fail. It is generally advised *not* to tick the .dat patch.
-
 ### Settings
 
 There are three settings that you can change in the file Settings.json:
@@ -88,7 +76,10 @@ There are three settings that you can change in the file Settings.json:
 
 #### GW Plugins (.dll or .tpf)
 
-If you create a folder named "plugins", the launcher will load all .dll's or shortcuts (.lnk) to .dll's inside this folder on launch. Dll's placed in `gwlauncher/plugins` folder will load for every instance, dll's in the `<gw-installation-path>/plugins` folder will only load for accounts launched from that path. Alternatively there is also a GUI to select plugins for specific accounts when you edit the account.
+If you create a folder named "plugins", the launcher will load all .dll's or shortcuts (.lnk) to .dll's inside this folder on launch.  
+Dll's placed in `gwlauncher/plugins` folder will load for every instance, dll's in the `<gw-installation-path>/plugins` folder will only load for accounts launched from that path.  
+Alternatively there is also a GUI to select plugins for specific accounts when you edit the account.
+If you need certain dll's to be loaded before the game would regularly load them (think of d3d9.dll), you may put them in a `preload` folder inside the plugin folders.
 
 Similarly, all .tpf or .zip files will be loaded as TexMod files. This means that you do not have to use uMod anymore, if you only want basic TexMod functionality.  
 Plugins are loaded in the alphabetical order of their filename. Textures that are already replaced by 1_FirstTexmod.tpf cannot be replaced by subsequent 2_SecondTexmod.tpf, so make sure your texmods are named in ascending alphabetical order.

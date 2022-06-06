@@ -1,18 +1,25 @@
 ﻿using GW_Launcher.Forms;
 
-namespace GW_Launcher;
+namespace GW_Launcher.Utilities;
 
 public class AccountManager : IEnumerable<Account>, IDisposable
 {
     private readonly SymmetricAlgorithm _crypt = Aes.Create();
     private readonly string _filePath = "Accounts.json";
-    private readonly byte[] _salsaIv = { 0xc8, 0x93, 0x48, 0x45, 0xcf, 0xa0, 0xfa, 0x85, 0xc8, 0x93, 0x48, 0x45, 0xcf, 0xa0, 0xfa, 0x85 };
-    private byte[]? _cryptPass;
+
+    private readonly byte[] _salsaIv =
+        {0xc8, 0x93, 0x48, 0x45, 0xcf, 0xa0, 0xfa, 0x85, 0xc8, 0x93, 0x48, 0x45, 0xcf, 0xa0, 0xfa, 0x85};
+
     private List<Account> _accounts = new();
+    private byte[]? _cryptPass;
 
     public AccountManager(string? filePath = null)
     {
-        if (filePath == null) return;
+        if (filePath == null)
+        {
+            return;
+        }
+
         _filePath = filePath;
         Load(filePath);
     }
@@ -31,15 +38,14 @@ public class AccountManager : IEnumerable<Account>, IDisposable
 
     public Account? this[string email]
     {
-        get
-        {
-            return _accounts.Find(account => account.email == email);
-        }
+        get => _accounts.Find(account => account.email == email);
         set
         {
             var index = _accounts.FindIndex(account => account.email == email);
             if (index != -1 && value != null)
+            {
                 this[index] = value;
+            }
         }
     }
 
@@ -51,7 +57,7 @@ public class AccountManager : IEnumerable<Account>, IDisposable
 
     IEnumerator<Account> IEnumerable<Account>.GetEnumerator()
     {
-        return ((IEnumerable<Account>)_accounts).GetEnumerator();
+        return ((IEnumerable<Account>) _accounts).GetEnumerator();
     }
 
     IEnumerator IEnumerable.GetEnumerator()
@@ -71,6 +77,7 @@ public class AccountManager : IEnumerable<Account>, IDisposable
         filePath ??= _filePath;
 
         if (!Program.settings.Encrypt)
+        {
             try
             {
                 var text = File.ReadAllText(filePath);
@@ -82,6 +89,7 @@ public class AccountManager : IEnumerable<Account>, IDisposable
                 File.WriteAllText(filePath, "[]");
                 _accounts.Clear();
             }
+        }
         else
         {
             Debug.Assert(_cryptPass != null, nameof(_cryptPass) + " != null");
@@ -126,6 +134,7 @@ public class AccountManager : IEnumerable<Account>, IDisposable
         {
             account.mods = new List<Mod>();
         }
+
         foreach (var account in _accounts)
         {
             account.active = false;

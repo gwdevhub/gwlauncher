@@ -6,16 +6,17 @@ internal static class AdminAccess
 {
     public static bool HasAdmin()
     {
-
         var pricipal = new WindowsPrincipal(WindowsIdentity.GetCurrent());
         var hasAdministrativeRight = pricipal.IsInRole(WindowsBuiltInRole.Administrator);
         return hasAdministrativeRight;
-
     }
 
     public static bool RestartAsAdminPrompt(bool force = false)
     {
-        if (HasAdmin()) return false;
+        if (HasAdmin())
+        {
+            return false;
+        }
 
         // relaunch the application with admin rights
         var fileName = Environment.ProcessPath;
@@ -48,6 +49,5 @@ internal static class AdminAccess
         }
 
         return true;
-
     }
 }
