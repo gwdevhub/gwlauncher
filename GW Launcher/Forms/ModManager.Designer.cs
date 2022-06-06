@@ -29,8 +29,8 @@ partial class ModManager
     private void InitializeComponent()
     {
             this.components = new System.ComponentModel.Container();
-            System.Windows.Forms.ListViewGroup listViewGroup1 = new System.Windows.Forms.ListViewGroup("Texture Mods", System.Windows.Forms.HorizontalAlignment.Left);
-            System.Windows.Forms.ListViewGroup listViewGroup2 = new System.Windows.Forms.ListViewGroup("DLLs", System.Windows.Forms.HorizontalAlignment.Left);
+            System.Windows.Forms.ListViewGroup ListViewGroupTextureMod = new System.Windows.Forms.ListViewGroup("Texture Mods", System.Windows.Forms.HorizontalAlignment.Left);
+            System.Windows.Forms.ListViewGroup listViewGroupDLL = new System.Windows.Forms.ListViewGroup("DLLs", System.Windows.Forms.HorizontalAlignment.Left);
             this.contextMenuStrip = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.toolStripMenuItemAddMod = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripMenuItemRemoveSelected = new System.Windows.Forms.ToolStripMenuItem();
@@ -81,13 +81,13 @@ partial class ModManager
             this.listViewAvailableMods.ContextMenuStrip = this.contextMenuStrip;
             this.listViewAvailableMods.Dock = System.Windows.Forms.DockStyle.Fill;
             this.listViewAvailableMods.FullRowSelect = true;
-            listViewGroup1.Header = "Texture Mods";
-            listViewGroup1.Name = "ListViewGroupTextureMod";
-            listViewGroup2.Header = "DLLs";
-            listViewGroup2.Name = "listViewGroupDLL";
+            ListViewGroupTextureMod.Header = "Texture Mods";
+            ListViewGroupTextureMod.Name = "ListViewGroupTextureMod";
+            listViewGroupDLL.Header = "DLLs";
+            listViewGroupDLL.Name = "listViewGroupDLL";
             this.listViewAvailableMods.Groups.AddRange(new System.Windows.Forms.ListViewGroup[] {
-            listViewGroup1,
-            listViewGroup2});
+            ListViewGroupTextureMod,
+            listViewGroupDLL});
             this.listViewAvailableMods.Location = new System.Drawing.Point(0, 0);
             this.listViewAvailableMods.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             this.listViewAvailableMods.Name = "listViewAvailableMods";
