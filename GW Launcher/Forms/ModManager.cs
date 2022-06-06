@@ -51,10 +51,11 @@ public partial class ModManager : Form
         RefreshUI();
     }
 
-    private void listViewAvailableMods_ItemChecked(object sender, ItemCheckedEventArgs e)
+    private void ListViewAvailableMods_ItemChecked(object sender, ItemCheckedEventArgs e)
     {
         var mod = _account.mods[e.Item.Index];
         mod.active = e.Item.Checked;
+        Refresh();
         Program.accounts.Save();
     }
 
@@ -82,8 +83,9 @@ public partial class ModManager : Form
             var mod = new Mod
             {
                 fileName = fileName,
-                active = false
+                active = true
             };
+
             switch (openFileDialog.FileName.Split('.').Last())
             {
                 case "dll":
@@ -114,5 +116,59 @@ public partial class ModManager : Form
         Program.accounts.Save();
         RefreshUI();
         Program.mutex.ReleaseMutex();
+    }
+
+    private void ListViewAvailableMods_DrawColumnHeader(object sender, DrawListViewColumnHeaderEventArgs e)
+    {
+        if (e.ColumnIndex == 0)
+        {
+            e.DrawBackground();
+            bool value = true;
+
+            if (_account.mods.Any(a => a.active == false))
+            {
+                value = false;
+            }
+
+            CheckBoxRenderer.DrawCheckBox(e.Graphics,
+                new Point(e.Bounds.Left + 4, e.Bounds.Top + 4),
+                value ? System.Windows.Forms.VisualStyles.CheckBoxState.CheckedNormal :
+                System.Windows.Forms.VisualStyles.CheckBoxState.UncheckedNormal);
+        }
+        else
+        {
+            e.DrawDefault = true;
+        }
+    }
+
+    private void ListViewAvailableMods_DrawItem(object sender, DrawListViewItemEventArgs e)
+    {
+        e.DrawDefault = true;
+    }
+
+    private void ListViewAvailableMods_DrawSubItem(object sender, DrawListViewSubItemEventArgs e)
+    {
+        e.DrawDefault = true;
+    }
+
+    private void ListViewAvailableMods_ColumnClick(object sender, ColumnClickEventArgs e)
+    {
+        if (e.Column == 0)
+        {
+            bool value = false;
+
+            if (_account.mods.Any(a => a.active == false))
+            {
+                value = true;
+            }
+
+            listViewAvailableMods.Columns[e.Column].Tag = value;
+            foreach (ListViewItem item in listViewAvailableMods.Items)
+            {
+                item.Checked = value;
+            }
+
+            listViewAvailableMods.Invalidate();
+        }
     }
 }

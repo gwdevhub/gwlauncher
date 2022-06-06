@@ -73,9 +73,9 @@ internal static class Program
             mainForm.FormClosed += (_, _) => { shouldClose = true; };
             while (!shouldClose)
             {
-                while (mainForm.needtolaunch.Count > 0)
+                while (mainForm.needTolaunch.Count > 0)
                 {
-                    var i = mainForm.needtolaunch.Dequeue();
+                    var i = mainForm.needTolaunch.Dequeue();
                     var account = accounts[i];
                     if (account.active && account.process != null &&
                         account.process.process.MainWindowHandle != IntPtr.Zero)

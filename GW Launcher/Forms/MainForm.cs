@@ -6,7 +6,7 @@ namespace GW_Launcher.Forms;
 public partial class MainForm : Form
 {
     private int heightofgui = 143;
-    public Queue<int> needtolaunch;
+    public Queue<int> needTolaunch;
 
     private bool rightClickOpen;
 
@@ -15,7 +15,7 @@ public partial class MainForm : Form
     public MainForm()
     {
         InitializeComponent();
-        needtolaunch = new Queue<int>();
+        needTolaunch = new Queue<int>();
         selectedItems = new ListView.SelectedIndexCollection(listViewAccounts);
     }
 
@@ -104,7 +104,7 @@ public partial class MainForm : Form
         Visible = false;
         // Initialize things
         var imageList = new ImageList();
-        needtolaunch = new Queue<int>();
+        needTolaunch = new Queue<int>();
         imageList.Images.Add("gw-icon", Resources.gw_icon);
         listViewAccounts.SmallImageList = imageList;
         RefreshUI();
@@ -119,7 +119,7 @@ public partial class MainForm : Form
             return;
         }
 
-        needtolaunch.Enqueue(selectedItems[0]);
+        needTolaunch.Enqueue(selectedItems[0]);
     }
 
     private void ToolStripMenuItemLaunchSelected_Click(object sender, EventArgs e)
@@ -132,7 +132,7 @@ public partial class MainForm : Form
 
         foreach (int selectedItem in selectedItems)
         {
-            needtolaunch.Enqueue(selectedItem);
+            needTolaunch.Enqueue(selectedItem);
         }
     }
 
