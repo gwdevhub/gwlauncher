@@ -7,42 +7,7 @@ namespace GW_Launcher;
 
 internal class MulticlientPatch
 {
-    [StructLayout(LayoutKind.Sequential)]
-    private struct PEB
-    {
-        byte InheritedAddressSpace;
-        byte ReadImageFileExecOptions;
-        byte BeingDebugged;
-        byte BitField;
-        IntPtr Mutant;
-        internal IntPtr ImageBaseAddress;
-    }
-
-    private enum PROCESSINFOCLASS : uint
-    {
-        ProcessBasicInformation = 0x00,
-        ProcessDebugPort = 0x07,
-        ProcessExceptionPort = 0x08,
-        ProcessAccessToken = 0x09,
-        ProcessWow64Information = 0x1A,
-        ProcessImageFileName = 0x1B,
-        ProcessDebugObjectHandle = 0x1E,
-        ProcessDebugFlags = 0x1F,
-        ProcessExecuteFlags = 0x22,
-        ProcessInstrumentationCallback = 0x28,
-        MaxProcessInfoClass = 0x64
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct PROCESS_BASIC_INFORMATION
-    {
-        IntPtr Reserved1;
-        internal IntPtr PebBaseAddress;
-        IntPtr Reserved2;
-        IntPtr Reserved3;
-        UIntPtr UniqueProcessId;
-        IntPtr Reserved4;
-    }
+    
     private static IntPtr GetProcessModuleBase(IntPtr process)
     {
         if (WinApi.NtQueryInformationProcess(process, PROCESSINFOCLASS.ProcessBasicInformation, out var pbi, Marshal.SizeOf(typeof(PROCESS_BASIC_INFORMATION)), out _) != 0)
@@ -106,10 +71,9 @@ internal class MulticlientPatch
 
         PatchRegistry(path);
 
-        var pId = WinLauncher.RunAsUser(path, args, account.elevated, out var hThread);
+        var pId = WinLauncher.LaunchClient(path, args, account.elevated, out var hThread);
         Debug.Assert(pId != 0, "pId != 0");
         var process = Process.GetProcessById(pId);
-        //process.Suspend();
         
         if (!McPatch(process.Handle))
         {
@@ -124,9 +88,11 @@ internal class MulticlientPatch
             memory.LoadModule(dll, false);
         }
 
-        WinApi.ResumeThread(hThread);
-        WinApi.CloseHandle(hThread);
-        //process.Resume();
+        if (hThread != IntPtr.Zero)
+        {
+            WinApi.ResumeThread(hThread);
+            WinApi.CloseHandle(hThread);
+        }
 
         foreach (var dll in ModManager.GetDlls(path, account.mods).Where(d => Path.GetFileName(d) != "d3d9.dll"))
         {
@@ -236,26 +202,6 @@ internal class MulticlientPatch
         byte[] payload = {0x31, 0xC0, 0x90, 0xC3};
 
         return WinApi.WriteProcessMemory(handle, mcpatch, payload, payload.Length, out _);
-    }
-
-    private static class WinApi
-    {
-        [DllImport("kernel32.dll", CallingConvention = CallingConvention.Winapi)]
-        internal static extern uint ResumeThread(IntPtr hThread);
-
-        [DllImport("kernel32.dll", CallingConvention = CallingConvention.Winapi)]
-        internal static extern uint CloseHandle(IntPtr handle);
-
-        [DllImport("kernel32.dll", CallingConvention = CallingConvention.Winapi)]
-        internal static extern bool ReadProcessMemory(IntPtr hProcess,
-            IntPtr lpBaseAddress, [Out] byte[] lpBuffer, int dwSize, out IntPtr lpNumberOfBytesRead);
-
-        [DllImport("kernel32.dll", CallingConvention = CallingConvention.Winapi)]
-        internal static extern bool WriteProcessMemory(IntPtr hProcess,
-            IntPtr lpBaseAddress, byte[] lpBuffer, int dwSize, out IntPtr lpNumberOfBytesWritten);
-
-        [DllImport("ntdll.dll", SetLastError = true, CallingConvention = CallingConvention.Winapi)]
-        internal static extern int NtQueryInformationProcess(IntPtr hProcess, PROCESSINFOCLASS pic, out PROCESS_BASIC_INFORMATION pbi, int cb, out int pSize);
     }
 
 }

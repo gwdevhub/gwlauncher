@@ -1,36 +1,7 @@
 ﻿namespace GW_Launcher.Utilities;
 internal class WinLauncher
 {
-    private enum SaferLevel : uint
-    {
-        Disallowed = 0,
-        Untrusted = 0x1000,
-        Constrained = 0x10000,
-        NormalUser = 0x20000,
-        FullyTrusted = 0x40000
-    }
-
-    private enum SaferLevelScope : uint
-    {
-        Machine = 1,
-        User = 2
-    }
-
-    private enum SaferOpen : uint
-    {
-        Open = 1
-    }
-
-    private enum SaferTokenBehaviour : uint
-    {
-        Default = 0x0,
-        NullIfEqual = 0x1,
-        CompareOnly = 0x2,
-        MakeInert = 0x4,
-        WantFlags = 0x8
-    }
-
-    internal static int RunAsUser(string path, string args, bool elevated, out IntPtr hThread)
+    internal static int LaunchClient(string path, string args, bool elevated, out IntPtr hThread)
     {
         var commandLine = $"\"{path}\" {args}";
         hThread = IntPtr.Zero;
@@ -103,6 +74,7 @@ internal class WinLauncher
             {
                 var error = Marshal.GetLastWin32Error();
                 Debug.WriteLine($"CreateProcess {error}");
+                WinApi.ResumeThread(procinfo.hThread);
                 WinApi.CloseHandle(procinfo.hThread);
                 return 0;
             }
@@ -113,118 +85,5 @@ internal class WinLauncher
         WinApi.CloseHandle(procinfo.hProcess);
         hThread = procinfo.hThread;
         return procinfo.dwProcessId;
-    }
-
-    private static class WinApi
-    {
-        [DllImport("Kernel32.dll", CallingConvention = CallingConvention.Winapi)]
-        internal static extern uint CloseHandle(IntPtr handle);
-
-        [DllImport("Kernel32.dll", CallingConvention = CallingConvention.Winapi)]
-        internal static extern bool CreateProcess(
-            string lpApplicationName, string lpCommandLine, ref SECURITY_ATTRIBUTES lpProcessAttributes,
-            ref SECURITY_ATTRIBUTES lpThreadAttributes, bool bInheritHandles, uint dwCreationFlags,
-            IntPtr lpEnvironment, string lpCurrentDirectory, [In] ref STARTUPINFO lpStartupInfo,
-            out PROCESS_INFORMATION lpProcessInformation);
-    }
-
-    private static class WinSafer
-    {
-        [DllImport("advapi32.dll", SetLastError = true, CallingConvention = CallingConvention.Winapi)]
-        public static extern bool SaferCreateLevel(SaferLevelScope scopeId, SaferLevel levelId, SaferOpen openFlags,
-            out IntPtr levelHandle, IntPtr reserved);
-
-        [DllImport("advapi32.dll", SetLastError = true, CallingConvention = CallingConvention.Winapi)]
-        public static extern bool SaferComputeTokenFromLevel(IntPtr levelHandle, IntPtr inAccessToken,
-            out IntPtr outAccessToken, SaferTokenBehaviour flags, IntPtr lpReserved);
-
-        [DllImport("advapi32.dll", SetLastError = true, CallingConvention = CallingConvention.Winapi)]
-        public static extern bool SaferCloseLevel(IntPtr levelHandle);
-
-
-        [DllImport("advapi32.dll", SetLastError = true, CallingConvention = CallingConvention.Winapi)]
-        internal static extern bool CreateProcessAsUser(
-            IntPtr hToken,
-            string lpApplicationName,
-            string lpCommandLine,
-            ref SECURITY_ATTRIBUTES lpProcessAttributes,
-            ref SECURITY_ATTRIBUTES lpThreadAttributes,
-            bool bInheritHandles,
-            uint dwCreationFlags,
-            IntPtr lpEnvironment,
-            string lpCurrentDirectory,
-            ref STARTUPINFO lpStartupInfo,
-            out PROCESS_INFORMATION lpProcessInformation);
-    }
-
-    [Flags]
-    enum CreationFlags : uint
-    {
-        CreateSuspended = 0x00000004,
-        DetachedProcess = 0x00000008,
-        CreateNoWindow = 0x08000000,
-        ExtendedStartupInfoPresent = 0x00080000
-    }
-
-    private struct TOKEN_PRIVILEGES
-    {
-        public uint PrivilegeCount;
-
-        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 1)]
-        public LUID_AND_ATTRIBUTES[] Privileges;
-    }
-
-    [StructLayout(LayoutKind.Sequential, Pack = 4)]
-    private struct LUID_AND_ATTRIBUTES
-    {
-        public readonly LUID Luid;
-        public readonly uint Attributes;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct LUID
-    {
-        public readonly uint LowPart;
-        public readonly int HighPart;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    internal struct SECURITY_ATTRIBUTES
-    {
-        public uint nLength;
-        public IntPtr lpSecurityDescriptor;
-        public bool bInheritHandle;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    internal struct PROCESS_INFORMATION
-    {
-        public IntPtr hProcess;
-        public IntPtr hThread;
-        public int dwProcessId;
-        public int dwThreadId;
-    }
-
-    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-    internal struct STARTUPINFO
-    {
-        public int cb;
-        public string lpReserved;
-        public string lpDesktop;
-        public string lpTitle;
-        public int dwX;
-        public int dwY;
-        public int dwXSize;
-        public int dwYSize;
-        public int dwXCountChars;
-        public int dwYCountChars;
-        public int dwFillAttribute;
-        public int dwFlags;
-        public short wShowWindow;
-        public short cbReserved2;
-        public IntPtr lpReserved2;
-        public IntPtr hStdInput;
-        public IntPtr hStdOutput;
-        public IntPtr hStdError;
     }
 }

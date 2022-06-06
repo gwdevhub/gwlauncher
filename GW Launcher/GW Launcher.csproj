@@ -35,6 +35,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="Utilities\WinApi.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <COMReference Include="IWshRuntimeLibrary">
       <WrapperTool>tlbimp</WrapperTool>
       <VersionMinor>0</VersionMinor>

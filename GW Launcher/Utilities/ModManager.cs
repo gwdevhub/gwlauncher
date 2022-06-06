@@ -1,5 +1,4 @@
-﻿using GW_Launcher.Classes;
-using IWshRuntimeLibrary;
+﻿using IWshRuntimeLibrary;
 
 namespace GW_Launcher.Utilities;
 
@@ -78,6 +77,7 @@ internal class ModManager
         texsToLoad.AddRange(mods
             .Where(mod => mod.type == ModType.kModTypeTexmod && mod.active && System.IO.File.Exists(mod.fileName))
             .Select(mod => mod.fileName));
+
         if (texsToLoad.Count > 0)
         {
             dllsToLoad.RemoveAll(p => Path.GetFileName(p) == "d3d9.dll"); // don't load any other d3d9.dll

@@ -1,4 +1,5 @@
-﻿global using GW_Launcher.Utilities;
+﻿global using GW_Launcher.Classes;
+global using GW_Launcher.Utilities;
 global using System.Collections;
 global using System.Collections.ObjectModel;
 global using System.ComponentModel;
