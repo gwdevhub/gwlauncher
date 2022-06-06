@@ -81,14 +81,15 @@ internal class MulticlientPatch
             return memory;
         }
 
-        while (!texClient.IsReady() && !Program.shouldClose)
+        var timeout = 0;
+        while (!texClient.IsReady() && !Program.shouldClose && timeout++ < 50)
         {
             Thread.Sleep(200);
         }
 
         foreach (var tex in ModManager.GetTexmods(path, account.mods))
         {
-            if (Program.shouldClose)
+            if (Program.shouldClose || timeout >= 50)
             {
                 texClient.Dispose();
             }
