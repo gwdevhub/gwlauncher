@@ -109,7 +109,7 @@ internal class MulticlientPatch
         var memory = new GWCAMemory(process);
 
         // make sure umod d3d9.dll is loaded BEFORE the game loads the original d3d9.dll
-        foreach (var dll in ModManager.GetDlls(path, account.mods).Where(d => Path.GetFileName(d) == "d3d9.dll"))
+        foreach (var dll in ModManager.GetPreloadDlls(path, account.mods))
         {
             memory.LoadModule(dll, false);
         }
