@@ -228,4 +228,85 @@ internal class MulticlientPatch
 
         return WinApi.WriteProcessMemory(process.Handle, mcpatch, payload, payload.Length, out var bytesWritten);
     }
+
+    /*
+    __declspec(dllexport) DWORD LaunchClient(LPCWSTR path, LPCWSTR args, DWORD flags, DWORD* out_hThread)
+{
+    WCHAR commandLine[0x100];
+    swprintf(commandLine, 0x100, L"\"%s\" %s", path, args);
+
+
+    STARTUPINFOW startinfo = { 0 };
+    PROCESS_INFORMATION procinfo = { 0 };
+
+    WCHAR last_directory[MAX_PATH];
+    GetCurrentDirectoryW(MAX_PATH, last_directory);
+    WCHAR* trial = wcsstr(path, L"Gw.exe");
+    trial[0] = L'\0';
+    SetCurrentDirectoryW(path);
+
+    if (!(flags & GWML_ELEVATED)) {
+        SAFER_LEVEL_HANDLE hLevel = NULL;
+        if (!SaferCreateLevel(SAFER_SCOPEID_USER, SAFER_LEVELID_NORMALUSER, SAFER_LEVEL_OPEN, &hLevel, NULL))
+        {
+            MCERROR("SaferCreateLevel");
+        }
+
+        HANDLE hRestrictedToken = NULL;
+        if (!SaferComputeTokenFromLevel(hLevel, NULL, &hRestrictedToken, 0, NULL))
+        {
+            SaferCloseLevel(hLevel);
+            MCERROR("SaferComputeTokenFromLevel");
+        }
+
+        SaferCloseLevel(hLevel);
+
+        // Set the token to medium integrity.
+
+        TOKEN_MANDATORY_LABEL tml = { 0 };
+        tml.Label.Attributes = SE_GROUP_INTEGRITY;
+        if (!ConvertStringSidToSid(TEXT("S-1-16-8192"), &(tml.Label.Sid)))
+        {
+            CloseHandle(hRestrictedToken);
+            MCERROR("ConvertStringSidToSid");
+        }
+
+        if (!SetTokenInformation(hRestrictedToken, TokenIntegrityLevel, &tml, sizeof(tml) + GetLengthSid(tml.Label.Sid)))
+        {
+            LocalFree(tml.Label.Sid);
+            CloseHandle(hRestrictedToken);
+            return FALSE;
+        }
+
+        if (!CreateProcessAsUserW(hRestrictedToken, NULL, commandLine, NULL, NULL, FALSE, CREATE_SUSPENDED , NULL, NULL, &startinfo, &procinfo)) {
+            MCERROR("CreateProcessAsUserW");
+        }
+
+        CloseHandle(hRestrictedToken);
+    }
+    else {
+        if (!CreateProcessW(NULL, commandLine, NULL, NULL, FALSE, CREATE_SUSPENDED, NULL, NULL, &startinfo, &procinfo))
+            MCERROR("CreateProcessW");
+    }
+
+    SetCurrentDirectoryW(last_directory);
+    trial[0] = L'G';
+
+    g_moduleBase = GetProcessModuleBase(procinfo.hProcess);
+
+    if (!MCPatch(procinfo.hProcess)) {
+        ResumeThread(procinfo.hThread);
+        CloseHandle(procinfo.hThread);
+        CloseHandle(procinfo.hProcess);
+        MCERROR("MCPatch");
+    }
+    
+    if (out_hThread != NULL)
+        *out_hThread = (DWORD)procinfo.hThread;
+
+    CloseHandle(procinfo.hProcess);
+    return procinfo.dwProcessId;
+}
+     *
+     */
 }
