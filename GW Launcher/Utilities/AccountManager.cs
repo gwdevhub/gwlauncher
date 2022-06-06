@@ -1,7 +1,7 @@
 ﻿using GW_Launcher.Classes;
 using GW_Launcher.Forms;
 
-namespace GW_Launcher;
+namespace GW_Launcher.Utilities;
 
 public class AccountManager : IEnumerable<Account>, IDisposable
 {

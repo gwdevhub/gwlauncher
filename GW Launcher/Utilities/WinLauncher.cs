@@ -30,7 +30,7 @@ internal class WinLauncher
         WantFlags = 0x8
     }
 
-    internal static Process? RunAsUser(string path, string args, bool elevated, out IntPtr hThread)
+    internal static int RunAsUser(string path, string args, bool elevated, out IntPtr hThread)
     {
         var commandLine = $"\"{path}\" {args}";
         hThread = IntPtr.Zero;
@@ -46,8 +46,7 @@ internal class WinLauncher
         saThread.nLength = (uint)Marshal.SizeOf(saThread);
 
         var lastDirectory = Directory.GetCurrentDirectory();
-        var newDirectory = Path.GetDirectoryName(path);
-        Directory.SetCurrentDirectory(newDirectory);
+        Directory.SetCurrentDirectory(Path.GetDirectoryName(path)!);
 
         if (!elevated)
         {
@@ -55,13 +54,13 @@ internal class WinLauncher
                     IntPtr.Zero))
             {
                 Debug.WriteLine("SaferCreateLevel");
-                return null;
+                return 0;
             }
 
             if (!WinSafer.SaferComputeTokenFromLevel(hLevel, IntPtr.Zero, out var hRestrictedToken, 0, IntPtr.Zero))
             {
                 Debug.WriteLine("SaferComputeTokenFromLevel");
-                return null;
+                return 0;
             }
 
             WinSafer.SaferCloseLevel(hLevel);
@@ -84,37 +83,36 @@ internal class WinLauncher
             //}
 
 
-            if (!WinSafer.CreateProcessAsUser(hRestrictedToken, string.Empty, commandLine, ref saProcess,
-                    ref saProcess, false, 0x00000004 /*CREATE_SUSPENDED*/, IntPtr.Zero,
-                    string.Empty, ref startinfo, out procinfo))
+            if (!WinSafer.CreateProcessAsUser(hRestrictedToken, null!, commandLine, ref saProcess,
+                    ref saProcess, false, (uint)CreationFlags.CreateSuspended, IntPtr.Zero,
+                    null!, ref startinfo, out procinfo))
             {
                 var error = Marshal.GetLastWin32Error();
                 Debug.WriteLine($"CreateProcessAsUser {error}");
-                return null;
+                WinApi.CloseHandle(procinfo.hThread);
+                return 0;
             }
 
             WinApi.CloseHandle(hRestrictedToken);
         }
         else
         {
-            if (!WinApi.CreateProcess(string.Empty, commandLine, ref saProcess,
-                    ref saThread, false, 0x00000004 /*CREATE_SUSPENDED*/, IntPtr.Zero,
-                    string.Empty, ref startinfo, out procinfo))
+            if (!WinApi.CreateProcess(null!, commandLine, ref saProcess,
+                    ref saThread, false, (uint)CreationFlags.CreateSuspended, IntPtr.Zero,
+                    null!, ref startinfo, out procinfo))
             {
                 var error = Marshal.GetLastWin32Error();
                 Debug.WriteLine($"CreateProcess {error}");
-                return null;
+                WinApi.CloseHandle(procinfo.hThread);
+                return 0;
             }
         }
 
         Directory.SetCurrentDirectory(lastDirectory);
 
-        hThread = procinfo.hThread;
-        var process = Process.GetProcessById(procinfo.dwProcessId);
-
-        WinApi.CloseHandle(procinfo.hThread);
         WinApi.CloseHandle(procinfo.hProcess);
-        return process;
+        hThread = procinfo.hThread;
+        return procinfo.dwProcessId;
     }
 
     private static class WinApi
@@ -122,7 +120,7 @@ internal class WinLauncher
         [DllImport("Kernel32.dll", CallingConvention = CallingConvention.Winapi)]
         internal static extern uint CloseHandle(IntPtr handle);
 
-        [DllImport("kernel32.dll")]
+        [DllImport("Kernel32.dll", CallingConvention = CallingConvention.Winapi)]
         internal static extern bool CreateProcess(
             string lpApplicationName, string lpCommandLine, ref SECURITY_ATTRIBUTES lpProcessAttributes,
             ref SECURITY_ATTRIBUTES lpThreadAttributes, bool bInheritHandles, uint dwCreationFlags,
@@ -157,6 +155,15 @@ internal class WinLauncher
             string lpCurrentDirectory,
             ref STARTUPINFO lpStartupInfo,
             out PROCESS_INFORMATION lpProcessInformation);
+    }
+
+    [Flags]
+    enum CreationFlags : uint
+    {
+        CreateSuspended = 0x00000004,
+        DetachedProcess = 0x00000008,
+        CreateNoWindow = 0x08000000,
+        ExtendedStartupInfoPresent = 0x00080000
     }
 
     private struct TOKEN_PRIVILEGES

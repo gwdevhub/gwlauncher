@@ -11,7 +11,7 @@
     <ApplicationIcon>Resources\gw-icon.ico</ApplicationIcon>
     <BaseOutputPath>..\</BaseOutputPath>
     <Platforms>x86;AnyCPU</Platforms>
-    <PlatformTarget>AnyCPU</PlatformTarget>
+    <PlatformTarget>x86</PlatformTarget>
     <DebugType>portable</DebugType>
     <AssemblyVersion>13.0</AssemblyVersion>
     <FileVersion>13.0</FileVersion>
@@ -33,15 +33,6 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <WarningLevel>5</WarningLevel>
   </PropertyGroup>
-
-  <ItemGroup>
-    <Compile Include="Classes\Account.cs" />
-    <Compile Include="Classes\AccountMods.cs" />
-    <Compile Include="Classes\GlobalSettings.cs" />
-    <Compile Include="Memory\GWCAMemory.cs" />
-    <Compile Include="Memory\GWMemory.cs" />
-    <Compile Include="Memory\ProcessExtension.cs" />
-  </ItemGroup>
 
   <ItemGroup>
     <COMReference Include="IWshRuntimeLibrary">
