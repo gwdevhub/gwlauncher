@@ -8,7 +8,7 @@
 *   Able to add accounts to a list in order to quickly launch them on demand
 *   Active column shows what accounts are currently loaded in
 *   Client window title renamed at launch to match the title or character name
-*	Load dll plugins and texmods (see below
+*   Load dll plugins and texmods (see below)
 *   Open source
 
 ### Installation
