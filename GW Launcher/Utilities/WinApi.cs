@@ -15,6 +15,9 @@ internal static class WinApi
     [DllImport("kernel32.dll", CallingConvention = CallingConvention.Winapi)]
     internal static extern uint CloseHandle(IntPtr handle);
 
+    [DllImport("kernel32.dll", SetLastError = true)]
+    internal static extern IntPtr LocalFree(IntPtr hMem);
+
     [DllImport("kernel32.dll", CallingConvention = CallingConvention.Winapi)]
     internal static extern bool ReadProcessMemory(IntPtr hProcess,
         IntPtr lpBaseAddress, [Out] byte[] lpBuffer, int dwSize, out IntPtr lpNumberOfBytesRead);
@@ -39,6 +42,16 @@ internal static class WinSafer
 
     [DllImport("advapi32.dll", SetLastError = true, CallingConvention = CallingConvention.Winapi)]
     public static extern bool SaferCloseLevel(IntPtr levelHandle);
+
+    [DllImport("advapi32.dll", SetLastError = true, CallingConvention = CallingConvention.Winapi)]
+    public static extern bool SetTokenInformation(IntPtr tokenHandle, TOKEN_INFORMATION_CLASS tokenInformationokenInformationClass,
+        ref TOKEN_MANDATORY_LABEL tokenInformation, uint tokenInformationLength);
+
+    [DllImport("advapi32.dll", SetLastError = true, CallingConvention = CallingConvention.Winapi)]
+    public static extern bool ConvertStringSidToSid(string stringSid, out IntPtr ptrSid);
+
+    [DllImport("advapi32.dll")]
+    internal static extern uint GetLengthSid(IntPtr pSid);
 
 
     [DllImport("advapi32.dll", SetLastError = true, CallingConvention = CallingConvention.Winapi)]
@@ -83,6 +96,39 @@ internal enum SaferTokenBehaviour : uint
     CompareOnly = 0x2,
     MakeInert = 0x4,
     WantFlags = 0x8
+}
+
+internal enum TOKEN_INFORMATION_CLASS : uint
+{
+    TokenUser = 1,
+    TokenGroups,
+    TokenPrivileges,
+    TokenOwner,
+    TokenPrimaryGroup,
+    TokenDefaultDacl,
+    TokenSource,
+    TokenType,
+    TokenImpersonationLevel,
+    TokenStatistics,
+    TokenRestrictedSids,
+    TokenSessionId,
+    TokenGroupsAndPrivileges,
+    TokenSessionReference,
+    TokenSandBoxInert,
+    TokenAuditPolicy,
+    TokenOrigin,
+    TokenElevationType,
+    TokenLinkedToken,
+    TokenElevation,
+    TokenHasRestrictions,
+    TokenAccessInformation,
+    TokenVirtualizationAllowed,
+    TokenVirtualizationEnabled,
+    TokenIntegrityLevel,
+    TokenUiAccess,
+    TokenMandatoryPolicy,
+    TokenLogonSid,
+    MaxTokenInfoClass
 }
 
 [Flags]
@@ -169,4 +215,24 @@ internal struct PROCESS_BASIC_INFORMATION
     IntPtr Reserved3;
     UIntPtr UniqueProcessId;
     IntPtr Reserved4;
+}
+
+[StructLayout(LayoutKind.Sequential)]
+internal struct SID_AND_ATTRIBUTES
+{
+    public IntPtr Sid;
+    public int Attributes;
+}
+
+[StructLayout(LayoutKind.Sequential)]
+internal struct SID_IDENTIFIER_AUTHORITY
+{
+    [MarshalAs(UnmanagedType.ByValArray, SizeConst = 6)]
+    public byte[] Value;
+}
+
+[StructLayout(LayoutKind.Sequential)]
+internal struct TOKEN_MANDATORY_LABEL
+{
+    public SID_AND_ATTRIBUTES Label;
 }

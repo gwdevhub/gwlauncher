@@ -1,6 +1,4 @@
-﻿using GW_Launcher.Memory;
-
-namespace GW_Launcher.Classes;
+﻿namespace GW_Launcher.Classes;
 
 public class Account
 {

@@ -1,6 +1,4 @@
-﻿using GW_Launcher.Classes;
-using GW_Launcher.Memory;
-using GW_Launcher.uMod;
+﻿using GW_Launcher.uMod;
 using Microsoft.Win32;
 
 namespace GW_Launcher;
@@ -71,7 +69,7 @@ internal class MulticlientPatch
 
         PatchRegistry(path);
 
-        var pId = WinLauncher.LaunchClient(path, args, account.elevated, out var hThread);
+        var pId = LaunchClient(path, args, account.elevated, out var hThread);
         Debug.Assert(pId != 0, "pId != 0");
         var process = Process.GetProcessById(pId);
         
@@ -94,7 +92,7 @@ internal class MulticlientPatch
             WinApi.CloseHandle(hThread);
         }
 
-        foreach (var dll in ModManager.GetDlls(path, account.mods).Where(d => Path.GetFileName(d) != "d3d9.dll"))
+        foreach (var dll in ModManager.GetDlls(path, account.mods))
         {
             memory.LoadModule(dll);
         }
@@ -176,7 +174,7 @@ internal class MulticlientPatch
 
     private static bool McPatch(IntPtr handle)
     {
-        //Debug.Assert(process.MainModule != null, "process.MainModule != null");
+        Debug.Assert(handle != IntPtr.Zero, "handle != IntPtr.Zero");
         byte[] sigPatch =
         {
             0x56, 0x57, 0x68, 0x00, 0x01, 0x00, 0x00, 0x89, 0x85, 0xF4, 0xFE, 0xFF, 0xFF, 0xC7, 0x00, 0x00, 0x00, 0x00,
@@ -202,6 +200,93 @@ internal class MulticlientPatch
         byte[] payload = {0x31, 0xC0, 0x90, 0xC3};
 
         return WinApi.WriteProcessMemory(handle, mcpatch, payload, payload.Length, out _);
+    }
+
+    private static int LaunchClient(string path, string args, bool elevated, out IntPtr hThread)
+    {
+        var commandLine = $"\"{path}\" {args}";
+        hThread = IntPtr.Zero;
+
+        PROCESS_INFORMATION procinfo;
+        STARTUPINFO startinfo = new()
+        {
+            cb = Marshal.SizeOf(typeof(STARTUPINFO))
+        };
+        var saProcess = new SECURITY_ATTRIBUTES();
+        saProcess.nLength = (uint)Marshal.SizeOf(saProcess);
+        var saThread = new SECURITY_ATTRIBUTES();
+        saThread.nLength = (uint)Marshal.SizeOf(saThread);
+
+        var lastDirectory = Directory.GetCurrentDirectory();
+        Directory.SetCurrentDirectory(Path.GetDirectoryName(path)!);
+
+        if (!elevated)
+        {
+            if (!WinSafer.SaferCreateLevel(SaferLevelScope.User, SaferLevel.NormalUser, SaferOpen.Open, out var hLevel,
+                    IntPtr.Zero))
+            {
+                Debug.WriteLine("SaferCreateLevel");
+                return 0;
+            }
+
+            if (!WinSafer.SaferComputeTokenFromLevel(hLevel, IntPtr.Zero, out var hRestrictedToken, 0, IntPtr.Zero))
+            {
+                Debug.WriteLine("SaferComputeTokenFromLevel");
+                return 0;
+            }
+
+            WinSafer.SaferCloseLevel(hLevel);
+
+            // Set the token to medium integrity.
+
+            TOKEN_MANDATORY_LABEL tml;
+            const int SE_GROUP_INTEGRITY = 0x20;
+            tml.Label.Attributes = SE_GROUP_INTEGRITY;
+            if (!WinSafer.ConvertStringSidToSid("S-1-16-8192", out tml.Label.Sid))
+            {
+                WinApi.CloseHandle(hRestrictedToken);
+                Debug.WriteLine("ConvertStringSidToSid");
+            }
+
+            if (!WinSafer.SetTokenInformation(hRestrictedToken, TOKEN_INFORMATION_CLASS.TokenIntegrityLevel, ref tml, (uint)Marshal.SizeOf(tml) + WinSafer.GetLengthSid(tml.Label.Sid)))
+            {
+                WinApi.LocalFree(tml.Label.Sid);
+                WinApi.CloseHandle(hRestrictedToken);
+                return 0;
+            }
+
+
+            if (!WinSafer.CreateProcessAsUser(hRestrictedToken, null!, commandLine, ref saProcess,
+                    ref saProcess, false, (uint)CreationFlags.CreateSuspended, IntPtr.Zero,
+                    null!, ref startinfo, out procinfo))
+            {
+                var error = Marshal.GetLastWin32Error();
+                Debug.WriteLine($"CreateProcessAsUser {error}");
+                WinApi.CloseHandle(procinfo.hThread);
+                return 0;
+            }
+
+            WinApi.CloseHandle(hRestrictedToken);
+        }
+        else
+        {
+            if (!WinApi.CreateProcess(null!, commandLine, ref saProcess,
+                    ref saThread, false, (uint)CreationFlags.CreateSuspended, IntPtr.Zero,
+                    null!, ref startinfo, out procinfo))
+            {
+                var error = Marshal.GetLastWin32Error();
+                Debug.WriteLine($"CreateProcess {error}");
+                WinApi.ResumeThread(procinfo.hThread);
+                WinApi.CloseHandle(procinfo.hThread);
+                return 0;
+            }
+        }
+
+        Directory.SetCurrentDirectory(lastDirectory);
+
+        WinApi.CloseHandle(procinfo.hProcess);
+        hThread = procinfo.hThread;
+        return procinfo.dwProcessId;
     }
 
 }
