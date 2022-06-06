@@ -5,11 +5,11 @@
 
 * * *
 
-*   Able to add accounts to a list in order to quickly launch them on demand.
-*   Active column shows what accounts are currently loaded in.
-*   Client window title renamed at launch to match the character name. (helps with organization)
-*   ".dat Patch" allows you to run multiple clients off of one installation. (Side effects occur when using this, see below for details)
-*   Open source.
+*   Able to add accounts to a list in order to quickly launch them on demand
+*   Active column shows what accounts are currently loaded in
+*   Client window title renamed at launch to match the title or character name
+*	Load dll plugins and texmods (see below
+*   Open source
 
 ### Installation
 
@@ -65,18 +65,6 @@ Right click the Main Launcher Window to reveal a context menu, then select _Edit
 </pre>
 
 This format is fairly straight forward, modify the account info of the selected account, then save the file and re-launch GW Launcher.exe.
-
-#### About the .dat patch
-
-The dat patch as stated above will allow you to run as many clients as you want off of one installation, however there are negative side effects of the clients patched. These effects include:
-
-*   Inventory item icons have a chance of never appearing (empty slot), however the quantity number will always appear.
-*   Screenshots cannot be taken. (Guild Wars will just create an empty .jpg file in screens)
-*   Templates cannot be saved. (Again only an empty file will be produced)
-*   Game updates will fail to update, will cause a hang come updates. (Run the Guild Wars client normally to update in order to fix this)
-*   If the game crashes, there is no chance of a reconnect to be possible.
-
-There may be more side effects, however these are the effects I have seen. The general problem is that any process involving writing to Gw.dat will fail. It is generally advised *not* to tick the .dat patch.
 
 ### Settings
 
