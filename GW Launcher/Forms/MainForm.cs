@@ -23,7 +23,6 @@ public partial class MainForm : Form
         var padding = Width - listViewAccounts.Width;
         listViewAccounts.Items.Clear();
 
-
         // Run through already open GW clients to see if accounts are already active.
         foreach (var process in Process.GetProcessesByName("Gw"))
         {
