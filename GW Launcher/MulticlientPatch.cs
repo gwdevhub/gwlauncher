@@ -37,30 +37,14 @@ internal class MulticlientPatch
             character = account.character;
         }
 
+        uModTexClient? texClient = null;
+
         if (ModManager.GetTexmods(account.gwpath, account.mods).Any())
         {
+            texClient = new uModTexClient();
             Task.Run(() =>
             {
-                using var texClient = new uModTexClient();
-                while (!texClient.IsReady() && !Program.shouldClose)
-                {
-                    Thread.Sleep(200);
-                }
-
-                foreach (var tex in ModManager.GetTexmods(path, account.mods))
-                {
-                    if (Program.shouldClose)
-                    {
-                        texClient.Dispose();
-                        return;
-                    }
-
-                    texClient.AddFile(tex);
-                }
-
-                texClient.Send();
-
-                GC.Collect(2, GCCollectionMode.Optimized); // force garbage collection
+                
             });
         }
 
@@ -81,9 +65,9 @@ internal class MulticlientPatch
         var memory = new GWCAMemory(process);
 
         // make sure umod d3d9.dll is loaded BEFORE the game loads the original d3d9.dll
-        foreach (var dll in ModManager.GetPreloadDlls(path, account.mods))
+        foreach (var dll in ModManager.GetDlls(path, account.mods))
         {
-            memory.LoadModule(dll, false);
+            memory.LoadModule(dll);
         }
 
         if (hThread != IntPtr.Zero)
@@ -92,10 +76,29 @@ internal class MulticlientPatch
             WinApi.CloseHandle(hThread);
         }
 
-        foreach (var dll in ModManager.GetDlls(path, account.mods))
+        if (texClient == null)
         {
-            memory.LoadModule(dll);
+            return memory;
         }
+
+        while (!texClient.IsReady() && !Program.shouldClose)
+        {
+            Thread.Sleep(200);
+        }
+
+        foreach (var tex in ModManager.GetTexmods(path, account.mods))
+        {
+            if (Program.shouldClose)
+            {
+                texClient.Dispose();
+            }
+
+            texClient.AddFile(tex);
+        }
+
+        texClient.Send();
+
+        GC.Collect(2, GCCollectionMode.Optimized); // force garbage collection
 
         return memory;
     }

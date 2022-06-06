@@ -103,7 +103,7 @@ public class GWCAMemory
         uint dwProtect);
 
     [DllImport("kernel32.dll", SetLastError = true, ExactSpelling = true)]
-    private static extern IntPtr VirtualFreeEx(
+    private static extern bool VirtualFreeEx(
         IntPtr hProcess,
         IntPtr lpAddress,
         uint dwSize,
@@ -362,7 +362,7 @@ public class GWCAMemory
     ///     Inject module into process using LoadLibrary CRT method.
     /// </summary>
     /// <returns>bool if injection was sucessful</returns>
-    public LoadModuleResult LoadModule(string modulepath, bool wait = true)
+    public LoadModuleResult LoadModule(string modulepath)
     {
         var modulefullpath = Path.GetFullPath(modulepath);
 
@@ -401,12 +401,7 @@ public class GWCAMemory
         {
             return LoadModuleResult.REMOTE_THREAD_NOT_SPAWNED;
         }
-
-        if (!wait)
-        {
-            return LoadModuleResult.SUCCESSFUL;
-        }
-
+        
         var threadResult = WaitForSingleObject(hThread, 5000u);
         if (threadResult is 0x102 or 0xFFFFFFFF /* WAIT_FAILED */)
         {
@@ -419,9 +414,7 @@ public class GWCAMemory
         }
 
         var memoryFreeResult = VirtualFreeEx(process.Handle, hStringBuffer, 0, 0x8000 /* MEM_RELEASE */);
-        return memoryFreeResult == IntPtr.Zero
-            ? LoadModuleResult.MEMORY_NOT_DEALLOCATED
-            : LoadModuleResult.SUCCESSFUL;
+        return memoryFreeResult ? LoadModuleResult.SUCCESSFUL : LoadModuleResult.MEMORY_NOT_DEALLOCATED;
     }
 
     #endregion
