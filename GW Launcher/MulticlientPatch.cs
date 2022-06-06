@@ -102,16 +102,25 @@ internal class MulticlientPatch
 
         Directory.SetCurrentDirectory(lastDirectory);
 
-        MCPatch(process);
-        
+        if (!McPatch(process))
+        {
+        }
+
         var memory = new GWCAMemory(process);
 
-        foreach (var dll in ModManager.GetDlls(path, account.mods))
+        // make sure umod d3d9.dll is loaded BEFORE the game loads the original d3d9.dll
+        foreach (var dll in ModManager.GetDlls(path, account.mods).Where(d => Path.GetFileName(d) == "d3d9.dll"))
+        {
+            memory.LoadModule(dll, false);
+        }
+
+        process.Resume();
+
+        foreach (var dll in ModManager.GetDlls(path, account.mods).Where(d => Path.GetFileName(d) != "d3d9.dll"))
         {
             memory.LoadModule(dll);
         }
 
-        process.Resume();
 
         return memory;
     }
@@ -130,7 +139,7 @@ internal class MulticlientPatch
 
         Directory.SetCurrentDirectory(lastDirectory);
 
-        MCPatch(process);
+        McPatch(process);
         process.Resume();
 
         return new GWCAMemory(process);
@@ -192,7 +201,7 @@ internal class MulticlientPatch
         return -1;
     }
 
-    private static bool MCPatch(Process process)
+    private static bool McPatch(Process process)
     {
         Debug.Assert(process.MainModule != null, "process.MainModule != null");
         byte[] sigPatch =
@@ -203,7 +212,7 @@ internal class MulticlientPatch
         var moduleBase = process.MainModule.BaseAddress;
         var gwdata = new byte[0x48D000];
 
-        if (!WinApi.ReadProcessMemory(process.Handle, moduleBase, gwdata, 0x48D000, out var bytesRead))
+        if (!WinApi.ReadProcessMemory(process.Handle, moduleBase, gwdata, gwdata.Length, out var bytesRead))
         {
             return false;
         }

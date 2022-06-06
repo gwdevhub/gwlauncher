@@ -333,17 +333,11 @@ public class GWCAMemory
     /// <summary>
     /// Inject module into process using LoadLibrary CRT method.
     /// </summary>
-    /// <param name="modulepath">Relative gwpath to module to load.</param>
-    /// <returns>bool on if injection was sucessful</returns>
+    /// <returns>bool if injection was sucessful</returns>
     ///
-    public LOADMODULERESULT LoadModule(string modulepath)
-    {
-        return LoadModule(modulepath, out _);
-    }
-    public LOADMODULERESULT LoadModule(string modulepath, out IntPtr module)
+    public LOADMODULERESULT LoadModule(string modulepath, bool wait = true)
     {
         var modulefullpath = Path.GetFullPath(modulepath);
-        module = IntPtr.Zero;
 
         if (!File.Exists(modulefullpath))
         {
@@ -380,25 +374,22 @@ public class GWCAMemory
             return LOADMODULERESULT.REMOTE_THREAD_NOT_SPAWNED;
         }
 
-        var ThreadResult = WaitForSingleObject(hThread, 5000);
-        if (ThreadResult == 0x102 /* WAIT_TIMEOUT */ || ThreadResult == 0xFFFFFFFF /* WAIT_FAILED */)
+        if (!wait) return LOADMODULERESULT.SUCCESSFUL;
+
+        var threadResult = WaitForSingleObject(hThread, 5000u);
+        if (threadResult is 0x102 or 0xFFFFFFFF /* WAIT_FAILED */)
         {
             return LOADMODULERESULT.REMOTE_THREAD_DID_NOT_FINISH;
         }
 
-        if (GetExitCodeThread(hThread, out module) == 0)
+        if (GetExitCodeThread(hThread, out _) == 0)
         {
             return LOADMODULERESULT.REMOTE_THREAD_DID_NOT_FINISH;
         }
 
+        var memoryFreeResult = VirtualFreeEx(process.Handle, hStringBuffer, 0, 0x8000 /* MEM_RELEASE */);
+        return memoryFreeResult == IntPtr.Zero ? LOADMODULERESULT.MEMORY_NOT_DEALLOCATED : LOADMODULERESULT.SUCCESSFUL;
 
-        var MemoryFreeResult = VirtualFreeEx(process.Handle, hStringBuffer, 0, 0x8000 /* MEM_RELEASE */);
-        if (MemoryFreeResult == IntPtr.Zero)
-        {
-            return LOADMODULERESULT.MEMORY_NOT_DEALLOCATED;
-        }
-
-        return LOADMODULERESULT.SUCCESSFUL;
     }
     #endregion
 
