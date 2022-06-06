@@ -1,4 +1,6 @@
-﻿using GW_Launcher.Forms;
+﻿using GW_Launcher.Classes;
+using GW_Launcher.Forms;
+using GW_Launcher.Memory;
 
 namespace GW_Launcher;
 

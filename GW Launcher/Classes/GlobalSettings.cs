@@ -1,4 +1,4 @@
-﻿namespace GW_Launcher.Utilities;
+﻿namespace GW_Launcher.Classes;
 
 public class GlobalSettings
 {

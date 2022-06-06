@@ -1,4 +1,5 @@
-﻿using Microsoft.Win32;
+﻿using GW_Launcher.Classes;
+using Microsoft.Win32;
 
 namespace GW_Launcher.Forms;
 

@@ -1,4 +1,4 @@
-﻿namespace GW_Launcher;
+﻿namespace GW_Launcher.Classes;
 public enum ModType
 {
     kModTypeTexmod,

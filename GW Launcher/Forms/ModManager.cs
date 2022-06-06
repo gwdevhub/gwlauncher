@@ -1,4 +1,6 @@
-﻿namespace GW_Launcher.Forms;
+﻿using GW_Launcher.Classes;
+
+namespace GW_Launcher.Forms;
 
 public partial class ModManager : Form
 {

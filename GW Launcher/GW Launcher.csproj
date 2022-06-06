@@ -35,6 +35,15 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="Classes\Account.cs" />
+    <Compile Include="Classes\AccountMods.cs" />
+    <Compile Include="Classes\GlobalSettings.cs" />
+    <Compile Include="Memory\GWCAMemory.cs" />
+    <Compile Include="Memory\GWMemory.cs" />
+    <Compile Include="Memory\ProcessExtension.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <COMReference Include="IWshRuntimeLibrary">
       <WrapperTool>tlbimp</WrapperTool>
       <VersionMinor>0</VersionMinor>
