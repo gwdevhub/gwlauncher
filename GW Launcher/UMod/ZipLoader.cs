@@ -26,7 +26,11 @@ public class ZipLoader
         {
             using var file = new uModFile(fileName);
             var fileContent = file.GetContent();
-            if (fileContent == null) return;
+            if (fileContent == null)
+            {
+                return;
+            }
+
             using var memoryStream = new MemoryStream(fileContent);
             using var archive = ZipFile.Read(memoryStream);
             var password = Encoding.Latin1.GetString(_tpfPassword);
@@ -60,13 +64,23 @@ public class ZipLoader
             foreach (var line in lines)
             {
                 var splits = line.Split('|');
-                if (splits.Length != 2) continue;
+                if (splits.Length != 2)
+                {
+                    continue;
+                }
 
                 var addrstr = splits[0];
                 var path = splits[1];
-                while (path[0] == '.' && (path[1] == '/' || path[1] == '\\') || path[0] == '/' || path[0] == '\\') path = path.Remove(0, 1);
+                while (path[0] == '.' && (path[1] == '/' || path[1] == '\\') || path[0] == '/' || path[0] == '\\')
+                {
+                    path = path.Remove(0, 1);
+                }
 
-                if (!files.ContainsKey(path)) continue;
+                if (!files.ContainsKey(path))
+                {
+                    continue;
+                }
+
                 files.Remove(path, out var content);
                 Debug.Assert(content != null, nameof(content) + " != null");
                 contents[addrstr] = content;
@@ -80,7 +94,10 @@ public class ZipLoader
             {
                 // GW.EXE_0x12345678.dds
                 files.Remove(filename, out var content);
-                if (content == null) continue;
+                if (content == null)
+                {
+                    continue;
+                }
 
                 var name = filename;
                 while (name.Contains('_'))
@@ -94,13 +111,16 @@ public class ZipLoader
                     var lastIndex = name.LastIndexOf('.');
                     name = name[..lastIndex];
                 }
+
                 // 0x18F22DA3
                 var crc = name;
 
                 contents[crc] = content;
             }
+
             Entries = contents;
         }
+
         GC.Collect();
     }
 

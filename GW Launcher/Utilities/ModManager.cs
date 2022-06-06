@@ -8,6 +8,7 @@ internal class ModManager
     {
         return GetMods(path, mods).Item1;
     }
+
     public static IOrderedEnumerable<string> GetDlls(string path, IReadOnlyCollection<Mod> mods)
     {
         return GetMods(path, mods).Item2;
@@ -17,7 +18,9 @@ internal class ModManager
     {
         return GetMods(path, mods).Item3;
     }
-    private static Tuple<IOrderedEnumerable<string>, IOrderedEnumerable<string>, IOrderedEnumerable<string>> GetMods(string path, IReadOnlyCollection<Mod> mods)
+
+    private static Tuple<IOrderedEnumerable<string>, IOrderedEnumerable<string>, IOrderedEnumerable<string>>
+        GetMods(string path, IReadOnlyCollection<Mod> mods)
     {
         var directory = Path.Combine(Directory.GetCurrentDirectory(), "plugins");
         var dllsToLoad = new List<string>();
@@ -34,6 +37,7 @@ internal class ModManager
             dllsToLoad.AddRange(dlllinks);
             texsToLoad.AddRange(textures);
         }
+
         if (Directory.Exists(Path.Combine(directory, "preload")))
         {
             var links = Directory.GetFiles(directory, "*.lnk");
@@ -56,6 +60,7 @@ internal class ModManager
             dllsToLoad.AddRange(files);
             texsToLoad.AddRange(textures);
         }
+
         if (Directory.Exists(Path.Combine(directory, "preload")))
         {
             var links = Directory.GetFiles(directory, "*.lnk");
@@ -66,8 +71,12 @@ internal class ModManager
             dllsToPreload.AddRange(dlllinks);
         }
 
-        dllsToLoad.AddRange(mods.Where(mod => mod.type == ModType.kModTypeDLL && mod.active && System.IO.File.Exists(mod.fileName)).Select(mod => mod.fileName));
-        texsToLoad.AddRange(mods.Where(mod => mod.type == ModType.kModTypeTexmod && mod.active && System.IO.File.Exists(mod.fileName)).Select(mod => mod.fileName));
+        dllsToLoad.AddRange(mods
+            .Where(mod => mod.type == ModType.kModTypeDLL && mod.active && System.IO.File.Exists(mod.fileName))
+            .Select(mod => mod.fileName));
+        texsToLoad.AddRange(mods
+            .Where(mod => mod.type == ModType.kModTypeTexmod && mod.active && System.IO.File.Exists(mod.fileName))
+            .Select(mod => mod.fileName));
         if (texsToLoad.Count > 0)
         {
             dllsToLoad.RemoveAll(p => Path.GetFileName(p) == "d3d9.dll"); // don't load any other d3d9.dll
@@ -85,7 +94,7 @@ internal class ModManager
     private static string GetShortcutPath(string path)
     {
         var shell = new WshShell();
-        var lnk = (IWshShortcut)shell.CreateShortcut(path);
+        var lnk = (IWshShortcut) shell.CreateShortcut(path);
 
         return lnk.TargetPath;
     }

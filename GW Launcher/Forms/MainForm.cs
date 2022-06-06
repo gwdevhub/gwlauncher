@@ -1,6 +1,4 @@
-﻿using System.ComponentModel;
-using System.Security.Principal;
-using Microsoft.Win32;
+﻿using Microsoft.Win32;
 
 namespace GW_Launcher.Forms;
 
@@ -38,8 +36,8 @@ public partial class MainForm : Form
             try
             {
                 var memory = new GWCAMemory(process);
-                GWMem.FindAddressesIfNeeded(memory);
-                var email = memory.ReadWString(GWMem.EmailAddPtr, 64);
+                GWMemory.FindAddressesIfNeeded(memory);
+                var email = memory.ReadWString(GWMemory.EmailAddPtr, 64);
                 foreach (var account in Program.accounts)
                 {
                     if (email != account.email) continue;
@@ -262,7 +260,7 @@ public partial class MainForm : Form
         Activate();
     }
 
-    private Task RunClientUpdateAsync(string client, CancellationToken cancellationToken = default)
+    private static Task RunClientUpdateAsync(string client, CancellationToken cancellationToken = default)
     {
         try
         {

@@ -46,20 +46,20 @@ public class uModTexClient : IDisposable
 {
     private const int SMALL_PIPE_SIZE = 1 << 10;
     private const int BIG_PIPE_SIZE = 1 << 24;
-    private readonly NamedPipeServerStream _pipeReceive;
-    private readonly NamedPipeServerStream _pipeSend;
 
     private readonly List<TexBundle> _bundles = new();
-    private readonly Queue<byte[]> _packets = new();
     private readonly HashSet<uint> _hashes = new();
-    
-    private bool _disposed;
+    private readonly Queue<byte[]> _packets = new();
+    private readonly NamedPipeServerStream _pipeReceive;
+    private readonly NamedPipeServerStream _pipeSend;
     private bool _connected;
+
+    private bool _disposed;
 
     public uModTexClient()
     {
         var sid = new SecurityIdentifier(WellKnownSidType.WorldSid, null);
-        var account = (NTAccount)sid.Translate(typeof(NTAccount));
+        var account = (NTAccount) sid.Translate(typeof(NTAccount));
         var rule = new PipeAccessRule(
             account.ToString(),
             PipeAccessRights.FullControl,
@@ -81,28 +81,28 @@ public class uModTexClient : IDisposable
         {
             var buf = new byte[SMALL_PIPE_SIZE];
             var num = _pipeReceive.Read(buf);
-            if (num <= 2) return;
+            if (num <= 2)
+            {
+                return;
+            }
+
             // ReSharper disable once UnusedVariable
             var gameName = Encoding.Default.GetString(buf);
 
             if (!_pipeSend.IsConnected)
             {
-                _pipeSend.BeginWaitForConnection(iar =>
-                {
-                    _connected = true;
-                }, null);
+                _pipeSend.BeginWaitForConnection(iar => { _connected = true; }, null);
             }
         }, null);
     }
 
-    ~uModTexClient()
-    {
-        Dispose();
-    }
-
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+        {
+            return;
+        }
+
         _bundles.Clear();
         _packets.Clear();
         _pipeSend.Dispose();
@@ -110,20 +110,38 @@ public class uModTexClient : IDisposable
         _disposed = true;
     }
 
+    ~uModTexClient()
+    {
+        Dispose();
+    }
+
     public void AddFile(string filePath)
     {
-        if (_disposed) return;
+        if (_disposed)
+        {
+            return;
+        }
+
         var bundle = new TexBundle(filePath);
         _bundles.Add(bundle);
     }
 
     public bool Send()
     {
-        if (_disposed) return false;
+        if (_disposed)
+        {
+            return false;
+        }
+
         foreach (var tex in _bundles.SelectMany(bundle => bundle.defs))
         {
-            if (_hashes.Contains(tex.crcHash)) continue; // do not send previously loaded textures
-            if (_packets.Select(l => l.Length).Sum() + 2 * Marshal.SizeOf(typeof(Msg)) + tex.fileData.Length > BIG_PIPE_SIZE)
+            if (_hashes.Contains(tex.crcHash))
+            {
+                continue; // do not send previously loaded textures
+            }
+
+            if (_packets.Select(l => l.Length).Sum() + 2 * Marshal.SizeOf(typeof(Msg)) + tex.fileData.Length >
+                BIG_PIPE_SIZE)
             {
                 var loadmoreMsg = new Msg
                 {
@@ -138,11 +156,12 @@ public class uModTexClient : IDisposable
                     return false;
                 }
             }
+
             var msg = new Msg
             {
                 hash = tex.crcHash,
                 msg = MsgControl.CONTROL_ADD_TEXTURE_DATA,
-                value = (uint)tex.fileData.Length
+                value = (uint) tex.fileData.Length
             };
             _hashes.Add(tex.crcHash);
             AddMessage(msg, tex.fileData);
@@ -161,7 +180,7 @@ public class uModTexClient : IDisposable
     {
         var packet = new byte[12 + data.Length];
 
-        var buf = BitConverter.GetBytes((uint)msg.msg);
+        var buf = BitConverter.GetBytes((uint) msg.msg);
         buf.CopyTo(packet, 0);
         buf = BitConverter.GetBytes(msg.value);
         buf.CopyTo(packet, 4);
@@ -175,7 +194,10 @@ public class uModTexClient : IDisposable
 
     private bool SendAll()
     {
-        if (!_pipeSend.IsConnected || !_pipeSend.CanWrite) return false;
+        if (!_pipeSend.IsConnected || !_pipeSend.CanWrite)
+        {
+            return false;
+        }
 
         var buffer = _packets.SelectMany(b => b).ToArray();
         try
@@ -206,5 +228,4 @@ public class uModTexClient : IDisposable
     {
         return _connected;
     }
-    
 }

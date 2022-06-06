@@ -96,8 +96,8 @@ internal static class Program
                     account.process = memory;
 
                     mainForm.SetActive(i, true);
-                    GWMem.FindAddressesIfNeeded(memory);
-                    while (memory.Read<ushort>(GWMem.CharnamePtr) == 0 && timelock++ < 60)
+                    GWMemory.FindAddressesIfNeeded(memory);
+                    while (memory.Read<ushort>(GWMemory.CharnamePtr) == 0 && timelock++ < 60)
                     {
                         Thread.Sleep(1000);
                         memory.process.Refresh();

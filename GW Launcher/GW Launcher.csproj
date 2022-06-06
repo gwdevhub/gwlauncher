@@ -67,4 +67,8 @@
     <Folder Include="Properties\PublishProfiles\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include=".editorconfig" />
+  </ItemGroup>
+
 </Project>

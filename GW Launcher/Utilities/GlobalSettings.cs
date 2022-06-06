@@ -1,18 +1,19 @@
 ﻿namespace GW_Launcher.Utilities;
+
 public class GlobalSettings
 {
-    public bool Encrypt { get; set; }
-
-    public bool CheckForUpdates { get; set; }
-
-    public bool AutoUpdate { get; set; }
-
     private GlobalSettings()
     {
         Encrypt = true;
         CheckForUpdates = true;
         AutoUpdate = false;
     }
+
+    public bool Encrypt { get; set; }
+
+    public bool CheckForUpdates { get; set; }
+
+    public bool AutoUpdate { get; set; }
 
     public void Save(string path = "Settings.json")
     {
@@ -29,10 +30,14 @@ public class GlobalSettings
         catch (FileNotFoundException)
         {
             var settings = new GlobalSettings();
-            var result = MessageBox.Show(@"Would you like to encrypt the account info?", @"Encryption", MessageBoxButtons.YesNo);
-            if (result == DialogResult.No) { settings.Encrypt = false; }
+            var result = MessageBox.Show(@"Would you like to encrypt the account info?", @"Encryption",
+                MessageBoxButtons.YesNo);
+            if (result == DialogResult.No)
+            {
+                settings.Encrypt = false;
+            }
+
             return settings;
         }
-
     }
 }

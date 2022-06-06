@@ -5,10 +5,11 @@ internal struct TexDef
     public uint crcHash;
     public byte[] fileData;
 }
+
 public class TexBundle
 {
-    public string name;
     internal List<TexDef> defs = new();
+    public string name;
 
     public TexBundle(string filePath)
     {
@@ -22,7 +23,7 @@ public class TexBundle
         foreach (var (crc, value) in loader.Entries)
         {
             TexDef def;
-            def.crcHash = (uint)Convert.ToUInt64(crc, 16);
+            def.crcHash = (uint) Convert.ToUInt64(crc, 16);
             def.fileData = value;
 
             defs.Add(def);
