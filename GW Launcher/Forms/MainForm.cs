@@ -7,15 +7,15 @@ public partial class MainForm : Form
 {
     public Queue<int> needtolaunch;
 
-    private bool rightClickOpen;
+    private bool _keepOpen;
 
-    private ListView.SelectedIndexCollection selectedItems;
+    private ListView.SelectedIndexCollection _selectedItems;
 
     public MainForm()
     {
         InitializeComponent();
         needtolaunch = new Queue<int>();
-        selectedItems = new ListView.SelectedIndexCollection(listViewAccounts);
+        _selectedItems = new ListView.SelectedIndexCollection(listViewAccounts);
     }
 
     private void RefreshUI()
@@ -134,13 +134,13 @@ public partial class MainForm : Form
 
     private void ToolStripMenuItemLaunchSelected_Click(object sender, EventArgs e)
     {
-        selectedItems = listViewAccounts.SelectedIndices;
-        if (selectedItems.Count == 0)
+        _selectedItems = listViewAccounts.SelectedIndices;
+        if (_selectedItems.Count == 0)
         {
             return;
         }
 
-        foreach (int selectedItem in selectedItems)
+        foreach (int selectedItem in _selectedItems)
         {
             needtolaunch.Enqueue(selectedItem);
         }
@@ -207,18 +207,18 @@ public partial class MainForm : Form
     private void ToolStripMenuItemEditSelected_Click(object sender, EventArgs e)
     {
         Program.mutex.WaitOne();
-        selectedItems = listViewAccounts.SelectedIndices;
-        if (selectedItems.Count == 0 && listViewAccounts.FocusedItem == null)
+        _selectedItems = listViewAccounts.SelectedIndices;
+        if (_selectedItems.Count == 0 && listViewAccounts.FocusedItem == null)
         {
             return;
         }
 
-        int? index = selectedItems.Contains(listViewAccounts.FocusedItem.Index)
+        int? index = _selectedItems.Contains(listViewAccounts.FocusedItem.Index)
             ? listViewAccounts.FocusedItem.Index
             : null;
-        if (index == null && selectedItems.Count > 0)
+        if (index == null && _selectedItems.Count > 0)
         {
-            index = selectedItems[0];
+            index = _selectedItems[0];
         }
 
         if (index == null)
@@ -245,7 +245,7 @@ public partial class MainForm : Form
 
     private void MainForm_Deactivate(object sender, EventArgs e)
     {
-        if (!rightClickOpen)
+        if (!_keepOpen)
         {
             Visible = false;
         }
@@ -253,6 +253,15 @@ public partial class MainForm : Form
 
     private void NotifyIcon_MouseClick(object sender, MouseEventArgs e)
     {
+        if (e.Button == MouseButtons.Right && Visible == false)
+        {
+            _keepOpen = true;
+        }
+        else
+        {
+            _keepOpen = false;
+        }
+
         var isVisible = (Point p) =>
         {
             return Screen.AllScreens.Any(s =>
