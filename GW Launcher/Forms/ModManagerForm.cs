@@ -1,10 +1,10 @@
 ﻿namespace GW_Launcher.Forms;
 
-public partial class ModManager : Form
+public partial class ModManagerForm : Form
 {
     private readonly Account _account;
 
-    public ModManager(Account account)
+    public ModManagerForm(Account account)
     {
         _account = account;
 

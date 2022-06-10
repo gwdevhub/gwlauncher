@@ -42,6 +42,7 @@ public struct Msg
     public uint hash;
 }
 
+// ReSharper disable once InconsistentNaming
 public class uModTexClient : IDisposable
 {
     private const int SMALL_PIPE_SIZE = 1 << 10;
@@ -53,7 +54,7 @@ public class uModTexClient : IDisposable
     private readonly NamedPipeServerStream _pipeReceive;
     private readonly NamedPipeServerStream _pipeSend;
     private IAsyncResult _receiveResult;
-    private IAsyncResult _sendResult;
+    private IAsyncResult? _sendResult;
     private bool _receiveConnected;
     private bool _sendConnected;
 
@@ -95,9 +96,14 @@ public class uModTexClient : IDisposable
 
             if (!_pipeSend.IsConnected)
             {
-                _pipeSend.BeginWaitForConnection(iar => { _sendConnected = true; }, null);
+                _sendResult = _pipeSend.BeginWaitForConnection(iar => { _sendConnected = true; }, null);
             }
         }, null);
+    }
+
+    ~uModTexClient()
+    {
+        Dispose();
     }
 
     public void Dispose()
@@ -113,7 +119,7 @@ public class uModTexClient : IDisposable
         }
         else if (!_sendConnected)
         {
-            _pipeSend.EndWaitForConnection(_sendResult);
+            _pipeSend.EndWaitForConnection(_sendResult!);
         }
 
         _bundles.Clear();
@@ -121,11 +127,6 @@ public class uModTexClient : IDisposable
         _pipeSend.Dispose();
         _pipeReceive.Dispose();
         _disposed = true;
-    }
-
-    ~uModTexClient()
-    {
-        Dispose();
     }
 
     public void AddFile(string filePath)
@@ -183,6 +184,10 @@ public class uModTexClient : IDisposable
         var success = SendAll();
         if (success)
         {
+            foreach (var bundle in _bundles)
+            {
+                bundle.Dispose();
+            }
             _bundles.Clear();
         }
 

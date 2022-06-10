@@ -1,6 +1,5 @@
-﻿using GW_Launcher.Classes;
-using GW_Launcher.Forms;
-using GW_Launcher.Memory;
+﻿using GW_Launcher.Forms;
+using ModManagerForm = GW_Launcher.Forms.ModManagerForm;
 
 namespace GW_Launcher;
 
@@ -62,6 +61,12 @@ internal static class Program
         {
             MessageBox.Show(@"Couldn't load account information, GW Launcher will close.");
             return;
+        }
+
+        var isPipeRunning = Directory.GetFiles(@"\\.\pipe\", @"Game2uMod").Any();
+        if (isPipeRunning && accounts.Any(a => ModManager.GetTexmods(a.gwpath, a.mods).Any()))
+        {
+            MessageBox.Show(@"uMod may be running in the background. Textures may not load.");
         }
 
         using var mainForm = new MainForm();

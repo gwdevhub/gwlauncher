@@ -1,6 +1,6 @@
 ﻿namespace GW_Launcher.Forms;
 
-partial class ModManager
+partial class ModManagerForm
 {
     /// <summary>
     /// Required designer variable.

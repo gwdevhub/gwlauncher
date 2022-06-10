@@ -2,7 +2,7 @@
 
 namespace GW_Launcher.Utilities;
 
-internal class ModManager
+public class ModManager
 {
     public static IOrderedEnumerable<string> GetDlls(string path, IReadOnlyCollection<Mod> mods)
     {
