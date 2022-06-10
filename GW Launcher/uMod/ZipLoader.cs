@@ -2,7 +2,7 @@
 
 namespace GW_Launcher.uMod;
 
-public class ZipLoader
+public class ZipLoader : IDisposable
 {
     private readonly byte[] _tpfPassword =
     {
@@ -16,13 +16,9 @@ public class ZipLoader
 
     public ZipLoader(string fileName)
     {
-        Entries = new ReadOnlyDictionary<string, byte[]>(new Dictionary<string, byte[]>());
-        var ext = Path.GetExtension(fileName);
-        var IsTpfEncrypted = ext == ".tpf";
         var files = new Dictionary<string, byte[]>();
-        var contents = new Dictionary<string, byte[]>();
 
-        if (IsTpfEncrypted)
+        if (Path.GetExtension(fileName) == ".tpf")
         {
             using var file = new uModFile(fileName);
             var fileContent = file.GetContent();
@@ -47,7 +43,7 @@ public class ZipLoader
         else
         {
             using var stream = new FileStream(fileName, FileMode.Open);
-            var archive = new ZipFile(fileName);
+            using var archive = new ZipFile(fileName);
             foreach (var entry in archive.Entries)
             {
                 var content = new byte[entry.UncompressedSize];
@@ -83,10 +79,8 @@ public class ZipLoader
 
                 files.Remove(path, out var content);
                 Debug.Assert(content != null, nameof(content) + " != null");
-                contents[addrstr] = content;
+                _contents[addrstr] = content;
             }
-
-            Entries = contents;
         }
         else
         {
@@ -115,14 +109,16 @@ public class ZipLoader
                 // 0x18F22DA3
                 var crc = name;
 
-                contents[crc] = content;
+                _contents[crc] = content;
             }
-
-            Entries = contents;
         }
-
-        GC.Collect();
     }
 
-    public IReadOnlyDictionary<string, byte[]> Entries { get; }
+    private readonly Dictionary<string, byte[]> _contents = new();
+    public IReadOnlyDictionary<string, byte[]> Entries => _contents;
+
+    public void Dispose()
+    {
+        _contents.Clear();
+    }
 }

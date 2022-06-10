@@ -1,6 +1,5 @@
-﻿using GW_Launcher.Classes;
-using GW_Launcher.Forms;
-using GW_Launcher.Memory;
+﻿using GW_Launcher.Forms;
+using ModManagerForm = GW_Launcher.Forms.ModManagerForm;
 
 namespace GW_Launcher;
 
@@ -64,6 +63,12 @@ internal static class Program
             return;
         }
 
+        var isPipeRunning = Directory.GetFiles(@"\\.\pipe\", @"Game2uMod").Any();
+        if (isPipeRunning && accounts.Any(a => ModManager.GetTexmods(a.gwpath, a.mods).Any()))
+        {
+            MessageBox.Show(@"uMod may be running in the background. Textures may not load.");
+        }
+
         using var mainForm = new MainForm();
         mainForm.Location = new Point(-1000, -1000);
         mainForm.FormClosing += (sender, e) => { settings.Save(); };
@@ -75,13 +80,16 @@ internal static class Program
             {
                 while (mainForm.needtolaunch.Count > 0)
                 {
+                    mutex.WaitOne();
                     var i = mainForm.needtolaunch.Dequeue();
                     var account = accounts[i];
-                    if (account.active && account.process != null &&
-                        account.process.process.MainWindowHandle != IntPtr.Zero)
+                    switch (account.active)
                     {
-                        SetForegroundWindow(account.process.process.MainWindowHandle);
-                        continue;
+                        case true when account.process != null && account.process.process.MainWindowHandle != IntPtr.Zero:
+                            SetForegroundWindow(account.process.process.MainWindowHandle);
+                            continue;
+                        case true:
+                            continue;
                     }
 
                     var memory = MulticlientPatch.LaunchClient(account);
@@ -113,8 +121,9 @@ internal static class Program
                     {
                         SetWindowText(memory.process.MainWindowHandle, account.Name);
                     }
+                    mutex.ReleaseMutex();
 
-                    Thread.Sleep(5000);
+                    Thread.Sleep(3000);
                 }
 
                 mutex.WaitOne();

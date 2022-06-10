@@ -63,7 +63,7 @@
             this.textBoxEmail.Location = new System.Drawing.Point(70, 42);
             this.textBoxEmail.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             this.textBoxEmail.Name = "textBoxEmail";
-            this.textBoxEmail.Size = new System.Drawing.Size(168, 23);
+            this.textBoxEmail.Size = new System.Drawing.Size(203, 23);
             this.textBoxEmail.TabIndex = 1;
             // 
             // textBoxPassword
@@ -72,7 +72,7 @@
             this.textBoxPassword.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             this.textBoxPassword.Name = "textBoxPassword";
             this.textBoxPassword.PasswordChar = '*';
-            this.textBoxPassword.Size = new System.Drawing.Size(135, 23);
+            this.textBoxPassword.Size = new System.Drawing.Size(168, 23);
             this.textBoxPassword.TabIndex = 2;
             // 
             // labelPassword
@@ -90,7 +90,7 @@
             this.textBoxCharacter.Location = new System.Drawing.Point(70, 100);
             this.textBoxCharacter.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             this.textBoxCharacter.Name = "textBoxCharacter";
-            this.textBoxCharacter.Size = new System.Drawing.Size(168, 23);
+            this.textBoxCharacter.Size = new System.Drawing.Size(203, 23);
             this.textBoxCharacter.TabIndex = 4;
             // 
             // labelCharacter
@@ -105,7 +105,7 @@
             // 
             // buttonDone
             // 
-            this.buttonDone.Location = new System.Drawing.Point(163, 220);
+            this.buttonDone.Location = new System.Drawing.Point(198, 191);
             this.buttonDone.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             this.buttonDone.Name = "buttonDone";
             this.buttonDone.Size = new System.Drawing.Size(75, 23);
@@ -130,12 +130,12 @@
             this.textBoxPath.Location = new System.Drawing.Point(70, 133);
             this.textBoxPath.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             this.textBoxPath.Name = "textBoxPath";
-            this.textBoxPath.Size = new System.Drawing.Size(135, 23);
+            this.textBoxPath.Size = new System.Drawing.Size(168, 23);
             this.textBoxPath.TabIndex = 9;
             // 
             // buttonDialogPath
             // 
-            this.buttonDialogPath.Location = new System.Drawing.Point(213, 133);
+            this.buttonDialogPath.Location = new System.Drawing.Point(248, 133);
             this.buttonDialogPath.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             this.buttonDialogPath.Name = "buttonDialogPath";
             this.buttonDialogPath.Size = new System.Drawing.Size(25, 23);
@@ -159,12 +159,12 @@
             this.textBoxExtraArguments.Location = new System.Drawing.Point(70, 162);
             this.textBoxExtraArguments.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             this.textBoxExtraArguments.Name = "textBoxExtraArguments";
-            this.textBoxExtraArguments.Size = new System.Drawing.Size(168, 23);
+            this.textBoxExtraArguments.Size = new System.Drawing.Size(203, 23);
             this.textBoxExtraArguments.TabIndex = 13;
             // 
             // buttonTogglePasswordVisibility
             // 
-            this.buttonTogglePasswordVisibility.Location = new System.Drawing.Point(213, 71);
+            this.buttonTogglePasswordVisibility.Location = new System.Drawing.Point(248, 71);
             this.buttonTogglePasswordVisibility.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             this.buttonTogglePasswordVisibility.Name = "buttonTogglePasswordVisibility";
             this.buttonTogglePasswordVisibility.Size = new System.Drawing.Size(25, 23);
@@ -176,7 +176,7 @@
             // checkBoxElevated
             // 
             this.checkBoxElevated.AutoSize = true;
-            this.checkBoxElevated.Location = new System.Drawing.Point(70, 195);
+            this.checkBoxElevated.Location = new System.Drawing.Point(13, 194);
             this.checkBoxElevated.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             this.checkBoxElevated.Name = "checkBoxElevated";
             this.checkBoxElevated.Size = new System.Drawing.Size(94, 19);
@@ -186,7 +186,7 @@
             // 
             // buttonMods
             // 
-            this.buttonMods.Location = new System.Drawing.Point(163, 191);
+            this.buttonMods.Location = new System.Drawing.Point(115, 190);
             this.buttonMods.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             this.buttonMods.Name = "buttonMods";
             this.buttonMods.Size = new System.Drawing.Size(75, 23);
@@ -210,7 +210,7 @@
             this.textBoxTitle.Location = new System.Drawing.Point(70, 13);
             this.textBoxTitle.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             this.textBoxTitle.Name = "textBoxTitle";
-            this.textBoxTitle.Size = new System.Drawing.Size(168, 23);
+            this.textBoxTitle.Size = new System.Drawing.Size(203, 23);
             this.textBoxTitle.TabIndex = 1;
             // 
             // AddAccountForm
@@ -219,7 +219,7 @@
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.AutoSize = true;
             this.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
-            this.ClientSize = new System.Drawing.Size(251, 249);
+            this.ClientSize = new System.Drawing.Size(285, 226);
             this.Controls.Add(this.buttonMods);
             this.Controls.Add(this.checkBoxElevated);
             this.Controls.Add(this.buttonTogglePasswordVisibility);
@@ -237,7 +237,6 @@
             this.Controls.Add(this.label1);
             this.Controls.Add(this.textBoxEmail);
             this.Controls.Add(this.labelEmail);
-            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             this.MinimumSize = new System.Drawing.Size(267, 0);

@@ -42,6 +42,7 @@ public struct Msg
     public uint hash;
 }
 
+// ReSharper disable once InconsistentNaming
 public class uModTexClient : IDisposable
 {
     private const int SMALL_PIPE_SIZE = 1 << 10;
@@ -52,7 +53,10 @@ public class uModTexClient : IDisposable
     private readonly Queue<byte[]> _packets = new();
     private readonly NamedPipeServerStream _pipeReceive;
     private readonly NamedPipeServerStream _pipeSend;
-    private bool _connected;
+    private IAsyncResult _receiveResult;
+    private IAsyncResult? _sendResult;
+    private bool _receiveConnected;
+    private bool _sendConnected;
 
     private bool _disposed;
 
@@ -77,10 +81,11 @@ public class uModTexClient : IDisposable
             NamedPipeServerStream.MaxAllowedServerInstances,
             PipeTransmissionMode.Byte, PipeOptions.None, BIG_PIPE_SIZE, BIG_PIPE_SIZE, securityPipe);
 
-        _pipeReceive.BeginWaitForConnection(ear =>
+        _receiveResult = _pipeReceive.BeginWaitForConnection(ear =>
         {
             var buf = new byte[SMALL_PIPE_SIZE];
             var num = _pipeReceive.Read(buf);
+            _receiveConnected = true;
             if (num <= 2)
             {
                 return;
@@ -91,9 +96,14 @@ public class uModTexClient : IDisposable
 
             if (!_pipeSend.IsConnected)
             {
-                _pipeSend.BeginWaitForConnection(iar => { _connected = true; }, null);
+                _sendResult = _pipeSend.BeginWaitForConnection(iar => { _sendConnected = true; }, null);
             }
         }, null);
+    }
+
+    ~uModTexClient()
+    {
+        Dispose();
     }
 
     public void Dispose()
@@ -103,16 +113,20 @@ public class uModTexClient : IDisposable
             return;
         }
 
+        if (!_receiveConnected)
+        {
+            _pipeReceive.EndWaitForConnection(_receiveResult);
+        }
+        else if (!_sendConnected)
+        {
+            _pipeSend.EndWaitForConnection(_sendResult!);
+        }
+
         _bundles.Clear();
         _packets.Clear();
         _pipeSend.Dispose();
         _pipeReceive.Dispose();
         _disposed = true;
-    }
-
-    ~uModTexClient()
-    {
-        Dispose();
     }
 
     public void AddFile(string filePath)
@@ -170,6 +184,10 @@ public class uModTexClient : IDisposable
         var success = SendAll();
         if (success)
         {
+            foreach (var bundle in _bundles)
+            {
+                bundle.Dispose();
+            }
             _bundles.Clear();
         }
 
@@ -226,6 +244,6 @@ public class uModTexClient : IDisposable
 
     public bool IsReady()
     {
-        return _connected;
+        return _receiveConnected && _sendConnected;
     }
 }

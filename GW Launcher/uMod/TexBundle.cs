@@ -19,7 +19,7 @@ public class TexBundle
 
     public void Load(string filePath)
     {
-        var loader = new ZipLoader(filePath);
+        using var loader = new ZipLoader(filePath);
         foreach (var (crc, value) in loader.Entries)
         {
             TexDef def;

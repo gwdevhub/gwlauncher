@@ -22,7 +22,7 @@ internal class MulticlientPatch
 
         PEB peb = new()
         {
-            ImageBaseAddress = (IntPtr) BitConverter.ToInt32(buffer, 8)
+            ImageBaseAddress = (IntPtr)BitConverter.ToInt32(buffer, 8)
         };
 
         return peb.ImageBaseAddress + 0x1000;
@@ -37,30 +37,14 @@ internal class MulticlientPatch
             character = account.character;
         }
 
+        uModTexClient? texClient = null;
+
         if (ModManager.GetTexmods(account.gwpath, account.mods).Any())
         {
+            texClient = new uModTexClient();
             Task.Run(() =>
             {
-                using var texClient = new uModTexClient();
-                while (!texClient.IsReady() && !Program.shouldClose)
-                {
-                    Thread.Sleep(200);
-                }
 
-                foreach (var tex in ModManager.GetTexmods(path, account.mods))
-                {
-                    if (Program.shouldClose)
-                    {
-                        texClient.Dispose();
-                        return;
-                    }
-
-                    texClient.AddFile(tex);
-                }
-
-                texClient.Send();
-
-                GC.Collect(2, GCCollectionMode.Optimized); // force garbage collection
             });
         }
 
@@ -81,9 +65,9 @@ internal class MulticlientPatch
         var memory = new GWCAMemory(process);
 
         // make sure umod d3d9.dll is loaded BEFORE the game loads the original d3d9.dll
-        foreach (var dll in ModManager.GetPreloadDlls(path, account.mods))
+        foreach (var dll in ModManager.GetDlls(path, account.mods))
         {
-            memory.LoadModule(dll, false);
+            memory.LoadModule(dll);
         }
 
         if (hThread != IntPtr.Zero)
@@ -92,9 +76,31 @@ internal class MulticlientPatch
             WinApi.CloseHandle(hThread);
         }
 
-        foreach (var dll in ModManager.GetDlls(path, account.mods))
+        if (texClient != null)
         {
-            memory.LoadModule(dll);
+            Task.Run(() =>
+            {
+                var timeout = 0;
+                while (!texClient.IsReady() && !Program.shouldClose && timeout++ < 50)
+                {
+                    Thread.Sleep(200);
+                }
+
+                foreach (var tex in ModManager.GetTexmods(path, account.mods))
+                {
+                    if (Program.shouldClose || timeout >= 50)
+                    {
+                        texClient.Dispose();
+                    }
+
+                    texClient.AddFile(tex);
+                }
+
+                texClient.Send();
+                texClient.Dispose();
+
+                GC.Collect(2, GCCollectionMode.Optimized); // force garbage collection
+            });
         }
 
         return memory;
@@ -125,14 +131,14 @@ internal class MulticlientPatch
         try
         {
             var regSrc = Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\ArenaNet\\Guild Wars", "Src", null);
-            if (regSrc != null && (string) regSrc != Path.GetFullPath(path))
+            if (regSrc != null && (string)regSrc != Path.GetFullPath(path))
             {
                 Registry.SetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\ArenaNet\\Guild Wars", "Src", Path.GetFullPath(path));
                 Registry.SetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\ArenaNet\\Guild Wars", "Path", Path.GetFullPath(path));
             }
 
             regSrc = Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\ArenaNet\\Guild Wars", "Src", null);
-            if (regSrc == null || (string) regSrc == Path.GetFullPath(path))
+            if (regSrc == null || (string)regSrc == Path.GetFullPath(path))
             {
                 return;
             }
@@ -172,18 +178,18 @@ internal class MulticlientPatch
         return -1;
     }
 
-    private static bool McPatch(IntPtr handle)
+    private static bool McPatch(IntPtr processHandle)
     {
-        Debug.Assert(handle != IntPtr.Zero, "handle != IntPtr.Zero");
+        Debug.Assert(processHandle != IntPtr.Zero, "processHandle != IntPtr.Zero");
         byte[] sigPatch =
         {
             0x56, 0x57, 0x68, 0x00, 0x01, 0x00, 0x00, 0x89, 0x85, 0xF4, 0xFE, 0xFF, 0xFF, 0xC7, 0x00, 0x00, 0x00, 0x00,
             0x00
         };
-        var moduleBase = GetProcessModuleBase(handle);
+        var moduleBase = GetProcessModuleBase(processHandle);
         var gwdata = new byte[0x48D000];
 
-        if (!WinApi.ReadProcessMemory(handle, moduleBase, gwdata, gwdata.Length, out _))
+        if (!WinApi.ReadProcessMemory(processHandle, moduleBase, gwdata, gwdata.Length, out _))
         {
             return false;
         }
@@ -197,9 +203,9 @@ internal class MulticlientPatch
 
         var mcpatch = moduleBase + idx - 0x1A;
 
-        byte[] payload = {0x31, 0xC0, 0x90, 0xC3};
+        byte[] payload = { 0x31, 0xC0, 0x90, 0xC3 };
 
-        return WinApi.WriteProcessMemory(handle, mcpatch, payload, payload.Length, out _);
+        return WinApi.WriteProcessMemory(processHandle, mcpatch, payload, payload.Length, out _);
     }
 
     private static int LaunchClient(string path, string args, bool elevated, out IntPtr hThread)
@@ -213,9 +219,9 @@ internal class MulticlientPatch
             cb = Marshal.SizeOf(typeof(STARTUPINFO))
         };
         var saProcess = new SECURITY_ATTRIBUTES();
-        saProcess.nLength = (uint) Marshal.SizeOf(saProcess);
+        saProcess.nLength = (uint)Marshal.SizeOf(saProcess);
         var saThread = new SECURITY_ATTRIBUTES();
-        saThread.nLength = (uint) Marshal.SizeOf(saThread);
+        saThread.nLength = (uint)Marshal.SizeOf(saThread);
 
         var lastDirectory = Directory.GetCurrentDirectory();
         Directory.SetCurrentDirectory(Path.GetDirectoryName(path)!);
@@ -240,8 +246,7 @@ internal class MulticlientPatch
             // Set the token to medium integrity.
 
             TOKEN_MANDATORY_LABEL tml;
-            const int SE_GROUP_INTEGRITY = 0x20;
-            tml.Label.Attributes = SE_GROUP_INTEGRITY;
+            tml.Label.Attributes = 0x20; // SE_GROUP_INTEGRITY
             if (!WinSafer.ConvertStringSidToSid("S-1-16-8192", out tml.Label.Sid))
             {
                 WinApi.CloseHandle(hRestrictedToken);
@@ -249,16 +254,15 @@ internal class MulticlientPatch
             }
 
             if (!WinSafer.SetTokenInformation(hRestrictedToken, TOKEN_INFORMATION_CLASS.TokenIntegrityLevel, ref tml,
-                    (uint) Marshal.SizeOf(tml) + WinSafer.GetLengthSid(tml.Label.Sid)))
+                    (uint)Marshal.SizeOf(tml) + WinSafer.GetLengthSid(tml.Label.Sid)))
             {
                 WinApi.LocalFree(tml.Label.Sid);
                 WinApi.CloseHandle(hRestrictedToken);
                 return 0;
             }
 
-
             if (!WinSafer.CreateProcessAsUser(hRestrictedToken, null!, commandLine, ref saProcess,
-                    ref saProcess, false, (uint) CreationFlags.CreateSuspended, IntPtr.Zero,
+                    ref saProcess, false, (uint)CreationFlags.CreateSuspended, IntPtr.Zero,
                     null!, ref startinfo, out procinfo))
             {
                 var error = Marshal.GetLastWin32Error();
@@ -272,7 +276,7 @@ internal class MulticlientPatch
         else
         {
             if (!WinApi.CreateProcess(null!, commandLine, ref saProcess,
-                    ref saThread, false, (uint) CreationFlags.CreateSuspended, IntPtr.Zero,
+                    ref saThread, false, (uint)CreationFlags.CreateSuspended, IntPtr.Zero,
                     null!, ref startinfo, out procinfo))
             {
                 var error = Marshal.GetLastWin32Error();

@@ -43,13 +43,12 @@ public class uModFile : IDisposable
 
         XORed = false;
 
-        var dat = new FileStream(FileName, FileMode.Open);
+        using var dat = new FileStream(FileName, FileMode.Open);
         FileLen = dat.Length;
 
         FileInMemory = new byte[FileLen];
 
         var result = dat.Read(FileInMemory, 0, (int) FileLen);
-        dat.Close();
 
         if (result != FileLen)
         {
