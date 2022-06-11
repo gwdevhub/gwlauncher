@@ -73,7 +73,7 @@ public partial class AddAccountForm : Form
     {
         Program.mutex.WaitOne();
         var modForm = new ModManagerForm(account);
-        modForm.Show();
+        modForm.ShowDialog();
         Program.mutex.ReleaseMutex();
     }
 }

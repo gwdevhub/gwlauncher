@@ -148,9 +148,9 @@ public partial class MainForm : Form
 
     private void ToolStripMenuItemAddNew_Click(object sender, EventArgs e)
     {
-        Program.mutex.WaitOne();
-        var gui = new AddAccountForm();
+        using var gui = new AddAccountForm();
         gui.ShowDialog();
+        Program.mutex.WaitOne();
         var account = gui.account;
         if (account.email != null)
         {
@@ -206,7 +206,6 @@ public partial class MainForm : Form
 
     private void ToolStripMenuItemEditSelected_Click(object sender, EventArgs e)
     {
-        Program.mutex.WaitOne();
         _selectedItems = listViewAccounts.SelectedIndices;
         if (_selectedItems.Count == 0 && listViewAccounts.FocusedItem == null)
         {
@@ -227,13 +226,15 @@ public partial class MainForm : Form
         }
 
         var account = Program.accounts[(int) index];
-        var addAccountForm = new AddAccountForm
+        using var addAccountForm = new AddAccountForm
         {
             Text = @"Modify Account",
             account = account
         };
 
         addAccountForm.ShowDialog();
+        Program.mutex.WaitOne();
+
         if (addAccountForm.finished)
         {
             Program.accounts[(int) index] = addAccountForm.account;
