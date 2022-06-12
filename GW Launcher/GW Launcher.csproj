@@ -15,22 +15,15 @@
 		<DebugType>portable</DebugType>
 		<AssemblyVersion>13.1</AssemblyVersion>
 		<FileVersion>13.1</FileVersion>
-		<Copyright>2015-2022 GregLando113</Copyright>
+		<Copyright>2015-2022 GregLando113 &amp; DubbleClick</Copyright>
+		<EnforceCodeStyleInBuild>True</EnforceCodeStyleInBuild>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'">
 		<WarningLevel>5</WarningLevel>
 	</PropertyGroup>
 
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-		<WarningLevel>5</WarningLevel>
-	</PropertyGroup>
-
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'">
-		<WarningLevel>5</WarningLevel>
-	</PropertyGroup>
-
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
 		<WarningLevel>5</WarningLevel>
 	</PropertyGroup>
 

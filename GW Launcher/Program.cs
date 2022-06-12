@@ -1,5 +1,4 @@
 ﻿using GW_Launcher.Forms;
-using ModManagerForm = GW_Launcher.Forms.ModManagerForm;
 
 namespace GW_Launcher;
 
@@ -232,6 +231,8 @@ internal static class Program
             return;
         }
 
+        mutex.WaitOne();
+
         var uri = new Uri(asset.BrowserDownloadUrl);
         var httpClient = new HttpClient();
         await using (var s = await httpClient.GetStreamAsync(uri))
@@ -241,7 +242,8 @@ internal static class Program
         }
 
         shouldClose = true;
-        if (!mainthread.Join(10000)) return;
+        if (!mainthread.Join(5000)) return;
+        mutex.Close();
 
         File.Move(currentName, oldName);
 
