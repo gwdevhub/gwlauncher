@@ -84,6 +84,11 @@ internal static class Program
                     if (!mutexAcquired) break;
                     var i = mainForm.needtolaunch.Dequeue();
                     var account = accounts[i];
+                    if (!File.Exists(account.gwpath))
+                    {
+                        MessageBox.Show(@"Path to the Guild Wars executable incorrect, aborting launch.");
+                        continue;
+                    }
                     switch (account.active)
                     {
                         case true when account.process != null && account.process.process.MainWindowHandle != IntPtr.Zero:
@@ -94,6 +99,11 @@ internal static class Program
                     }
 
                     var memory = MulticlientPatch.LaunchClient(account);
+                    if (memory == null)
+                    {
+                        MessageBox.Show(@"Failed to launch account.");
+                        continue;
+                    }
 
                     uint timelock = 0;
                     while (timelock++ < 10 && (memory.process.MainWindowHandle == IntPtr.Zero ||
