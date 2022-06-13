@@ -241,8 +241,6 @@ internal static class Program
             return;
         }
 
-        mutex.WaitOne();
-
         var uri = new Uri(asset.BrowserDownloadUrl);
         var httpClient = new HttpClient();
         await using (var s = await httpClient.GetStreamAsync(uri))
@@ -251,9 +249,11 @@ internal static class Program
             await s.CopyToAsync(fs);
         }
 
+        mutex.WaitOne();
         shouldClose = true;
         if (!mainthread.Join(5000)) return;
         mutex.Close();
+        gwlMutex?.Close();
 
         File.Move(currentName, oldName);
 
