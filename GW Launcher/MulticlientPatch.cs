@@ -28,7 +28,7 @@ internal class MulticlientPatch
         return peb.ImageBaseAddress + 0x1000;
     }
 
-    public static GWCAMemory LaunchClient(Account account)
+    public static GWCAMemory? LaunchClient(Account account)
     {
         var path = account.gwpath;
         var character = " ";
@@ -42,10 +42,6 @@ internal class MulticlientPatch
         if (ModManager.GetTexmods(account.gwpath, account.mods).Any())
         {
             texClient = new uModTexClient();
-            Task.Run(() =>
-            {
-
-            });
         }
 
         var args =
@@ -54,7 +50,10 @@ internal class MulticlientPatch
         PatchRegistry(path);
 
         var pId = LaunchClient(path, args, account.elevated, out var hThread);
-        Debug.Assert(pId != 0, "pId != 0");
+        if (pId == 0)
+        {
+            return null;
+        }
         var process = Process.GetProcessById(pId);
 
         if (!McPatch(process.Handle))
@@ -63,8 +62,7 @@ internal class MulticlientPatch
         }
 
         var memory = new GWCAMemory(process);
-
-        // make sure umod d3d9.dll is loaded BEFORE the game loads the original d3d9.dll
+        
         foreach (var dll in ModManager.GetDlls(path, account.mods))
         {
             memory.LoadModule(dll);

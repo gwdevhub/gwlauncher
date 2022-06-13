@@ -53,18 +53,20 @@ public partial class ModManagerForm : Form
 
     private void ListViewAvailableMods_ItemChecked(object sender, ItemCheckedEventArgs e)
     {
+        Program.mutex.WaitOne();
         var mod = _account.mods[e.Item.Index];
         mod.active = e.Item.Checked;
         Refresh();
         Program.accounts.Save();
+        Program.mutex.ReleaseMutex();
     }
 
     private void ToolStripMenuItemAddMod_Click(object sender, EventArgs e)
     {
         var openFileDialog = new OpenFileDialog
         {
-            Title = @"Select Mod File to Use",
-            Filter = @"Mod Files (*.dll;*.zip;*.tpf)|*.dll;*.zip;*.tpf|All files (*.*)|*.*",
+            Title = @"Select mod files to Use",
+            Filter = @"Mod files (*.dll;*.zip;*.tpf)",
             Multiselect = true
         };
 
@@ -72,6 +74,8 @@ public partial class ModManagerForm : Form
         {
             return;
         }
+
+        Program.mutex.WaitOne();
 
         foreach (var fileName in openFileDialog.FileNames)
         {
@@ -102,6 +106,8 @@ public partial class ModManagerForm : Form
 
         Program.accounts.Save();
         RefreshUI();
+
+        Program.mutex.ReleaseMutex();
     }
 
     private void ToolStripMenuItemRemoveSelected_Click(object sender, EventArgs e)
@@ -123,17 +129,12 @@ public partial class ModManagerForm : Form
         if (e.ColumnIndex == 0)
         {
             e.DrawBackground();
-            bool value = true;
-
-            if (_account.mods.Any(a => a.active == false))
-            {
-                value = false;
-            }
+            var allActive = _account.mods.All(a => a.active);
 
             CheckBoxRenderer.DrawCheckBox(e.Graphics,
                 new Point(e.Bounds.Left + 4, e.Bounds.Top + 4),
-                value ? System.Windows.Forms.VisualStyles.CheckBoxState.CheckedNormal :
-                System.Windows.Forms.VisualStyles.CheckBoxState.UncheckedNormal);
+                allActive ? System.Windows.Forms.VisualStyles.CheckBoxState.CheckedNormal :
+                    System.Windows.Forms.VisualStyles.CheckBoxState.UncheckedNormal);
         }
         else
         {
@@ -153,22 +154,16 @@ public partial class ModManagerForm : Form
 
     private void ListViewAvailableMods_ColumnClick(object sender, ColumnClickEventArgs e)
     {
-        if (e.Column == 0)
+        if (e.Column != 0) return;
+
+        var value = _account.mods.Any(a => a.active == false);
+
+        listViewAvailableMods.Columns[e.Column].Tag = value;
+        foreach (ListViewItem item in listViewAvailableMods.Items)
         {
-            bool value = false;
-
-            if (_account.mods.Any(a => a.active == false))
-            {
-                value = true;
-            }
-
-            listViewAvailableMods.Columns[e.Column].Tag = value;
-            foreach (ListViewItem item in listViewAvailableMods.Items)
-            {
-                item.Checked = value;
-            }
-
-            listViewAvailableMods.Invalidate();
+            item.Checked = value;
         }
+
+        listViewAvailableMods.Invalidate();
     }
 }

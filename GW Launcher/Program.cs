@@ -1,5 +1,4 @@
 ﻿using GW_Launcher.Forms;
-using ModManagerForm = GW_Launcher.Forms.ModManagerForm;
 
 namespace GW_Launcher;
 
@@ -71,18 +70,25 @@ internal static class Program
 
         using var mainForm = new MainForm();
         mainForm.Location = new Point(-1000, -1000);
-        mainForm.FormClosing += (sender, e) => { settings.Save(); };
+        mainForm.FormClosing += (_, _) => { settings.Save(); };
 
         mainthread = new Thread(() =>
         {
             mainForm.FormClosed += (_, _) => { shouldClose = true; };
             while (!shouldClose)
             {
-                while (mainForm.needtolaunch.Count > 0)
+                bool mutexAcquired;
+                while (mainForm.needtolaunch.Any())
                 {
-                    mutex.WaitOne();
+                    mutexAcquired = mutex.WaitOne(1000);
+                    if (!mutexAcquired) break;
                     var i = mainForm.needtolaunch.Dequeue();
                     var account = accounts[i];
+                    if (!File.Exists(account.gwpath))
+                    {
+                        MessageBox.Show(@"Path to the Guild Wars executable incorrect, aborting launch.");
+                        continue;
+                    }
                     switch (account.active)
                     {
                         case true when account.process != null && account.process.process.MainWindowHandle != IntPtr.Zero:
@@ -93,6 +99,11 @@ internal static class Program
                     }
 
                     var memory = MulticlientPatch.LaunchClient(account);
+                    if (memory == null)
+                    {
+                        MessageBox.Show(@"Failed to launch account.");
+                        continue;
+                    }
 
                     uint timelock = 0;
                     while (timelock++ < 10 && (memory.process.MainWindowHandle == IntPtr.Zero ||
@@ -126,9 +137,10 @@ internal static class Program
                     Thread.Sleep(3000);
                 }
 
-                mutex.WaitOne();
+                mutexAcquired = mutex.WaitOne(1000);
+                if (!mutexAcquired) continue;
 
-                for (var i = 0; i < accounts.Length; ++i)
+                for (var i = 0; i < accounts.Length; i++)
                 {
                     if (!accounts[i].active)
                     {
@@ -205,7 +217,7 @@ internal static class Program
         {
             var msgBoxResult = MessageBox.Show(
                 $@"New version {tagName} available online. Visit page?",
-                @"Update",
+                @"GW Launcher",
                 MessageBoxButtons.YesNo,
                 MessageBoxIcon.Information,
                 MessageBoxDefaultButton.Button2);
@@ -236,6 +248,12 @@ internal static class Program
             await using var fs = new FileStream(newName, FileMode.Create);
             await s.CopyToAsync(fs);
         }
+
+        mutex.WaitOne();
+        shouldClose = true;
+        if (!mainthread.Join(5000)) return;
+        mutex.Close();
+        gwlMutex?.Close();
 
         File.Move(currentName, oldName);
 

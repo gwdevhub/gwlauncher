@@ -105,6 +105,7 @@
             // 
             // buttonDone
             // 
+            this.buttonDone.DialogResult = System.Windows.Forms.DialogResult.OK;
             this.buttonDone.Location = new System.Drawing.Point(198, 191);
             this.buttonDone.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             this.buttonDone.Name = "buttonDone";
@@ -186,7 +187,7 @@
             // 
             // buttonMods
             // 
-            this.buttonMods.Location = new System.Drawing.Point(115, 190);
+            this.buttonMods.Location = new System.Drawing.Point(115, 191);
             this.buttonMods.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             this.buttonMods.Name = "buttonMods";
             this.buttonMods.Size = new System.Drawing.Size(75, 23);
