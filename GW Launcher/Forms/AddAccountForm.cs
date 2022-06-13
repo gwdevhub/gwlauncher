@@ -71,9 +71,7 @@ public partial class AddAccountForm : Form
 
     private void ButtonMods_Click(object sender, EventArgs e)
     {
-        Program.mutex.WaitOne();
-        var modForm = new ModManagerForm(account);
+        using var modForm = new ModManagerForm(account);
         modForm.ShowDialog();
-        Program.mutex.ReleaseMutex();
     }
 }

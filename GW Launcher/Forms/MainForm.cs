@@ -149,7 +149,7 @@ public partial class MainForm : Form
     private void ToolStripMenuItemAddNew_Click(object sender, EventArgs e)
     {
         using var gui = new AddAccountForm();
-        gui.ShowDialog();
+        if (gui.ShowDialog() is not (DialogResult.Yes or DialogResult.OK)) return;
         Program.mutex.WaitOne();
         var account = gui.account;
         if (account.email != null)
@@ -186,7 +186,7 @@ public partial class MainForm : Form
                 "Path", null);
             if (pathdefault == null)
             {
-                MessageBox.Show(@"pathdefault = null, gw not installed?");
+                MessageBox.Show(@"Couldn't find a default installation of Guild Wars, is it installed?");
             }
         }
 
