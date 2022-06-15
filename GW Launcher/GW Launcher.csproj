@@ -13,8 +13,8 @@
 		<Platforms>x86;AnyCPU</Platforms>
 		<PlatformTarget>x86</PlatformTarget>
 		<DebugType>portable</DebugType>
-		<AssemblyVersion>13.2</AssemblyVersion>
-		<FileVersion>13.2</FileVersion>
+		<AssemblyVersion>13.3</AssemblyVersion>
+		<FileVersion>13.3</FileVersion>
 		<Copyright>2015-2022 GregLando113 &amp; DubbleClick</Copyright>
 		<EnforceCodeStyleInBuild>True</EnforceCodeStyleInBuild>
 	</PropertyGroup>

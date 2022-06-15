@@ -65,8 +65,8 @@ public partial class ModManagerForm : Form
     {
         var openFileDialog = new OpenFileDialog
         {
-            Title = @"Select mod files to Use",
-            Filter = @"Mod files (*.dll;*.zip;*.tpf)",
+            Title = @"Select mod files to use",
+            Filter = @"Mod files (*.dll;*.zip;*.tpf)|",
             Multiselect = true
         };
 
