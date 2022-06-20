@@ -10,7 +10,7 @@ internal static class Program
     public static Thread mainthread = null!;
     public static Mutex mutex = new();
     public static Mutex? gwlMutex;
-    public static GlobalSettings settings = GlobalSettings.Load();
+    public static GlobalSettings settings = null!;
 
     [DllImport("user32.dll", EntryPoint = "SetWindowText", CharSet = CharSet.Unicode)]
     private static extern bool SetWindowText(IntPtr hwnd, string lpString);
@@ -55,10 +55,13 @@ internal static class Program
         try
         {
             accounts = new AccountManager("Accounts.json");
+            settings = GlobalSettings.Load();
+            settings.Save();
         }
         catch (Exception)
         {
-            MessageBox.Show(@"Couldn't load account information, GW Launcher will close.");
+            MessageBox.Show(@"Couldn't load account information or settings, there might be an error in the .json.
+GW Launcher will close.");
             return;
         }
 
@@ -69,8 +72,6 @@ internal static class Program
         }
 
         using var mainForm = new MainForm();
-        mainForm.Location = new Point(-1000, -1000);
-        mainForm.FormClosing += (_, _) => { settings.Save(); };
 
         mainthread = new Thread(() =>
         {
