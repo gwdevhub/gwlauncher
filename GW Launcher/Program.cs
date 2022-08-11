@@ -10,7 +10,7 @@ internal static class Program
     public static Thread mainthread = null!;
     public static Mutex mutex = new();
     public static Mutex? gwlMutex;
-    public static GlobalSettings settings = null!;
+    public static GlobalSettings settings = GlobalSettings.Load();
 
     [DllImport("user32.dll", EntryPoint = "SetWindowText", CharSet = CharSet.Unicode)]
     private static extern bool SetWindowText(IntPtr hwnd, string lpString);
@@ -29,13 +29,12 @@ internal static class Program
         {
             return;
         }
+        gwlMutex = new Mutex(true, GwlMutexName);
 
         if (settings.CheckForUpdates)
         {
             Task.Run(CheckGitHubNewerVersion);
         }
-
-        gwlMutex = new Mutex(true, GwlMutexName);
 
         var location = Path.GetDirectoryName(AppContext.BaseDirectory);
         if (location != null)
@@ -55,13 +54,13 @@ internal static class Program
         try
         {
             accounts = new AccountManager("Accounts.json");
-            settings = GlobalSettings.Load();
             settings.Save();
         }
         catch (Exception)
         {
-            MessageBox.Show(@"Couldn't load account information or settings, there might be an error in the .json.
+            MessageBox.Show(@"Couldn't load account information, there might be an error in the .json.
 GW Launcher will close.");
+            gwlMutex.Close();
             return;
         }
 
@@ -135,7 +134,7 @@ GW Launcher will close.");
                     }
                     mutex.ReleaseMutex();
 
-                    Thread.Sleep(3000);
+                    Thread.Sleep(1000);
                 }
 
                 mutexAcquired = mutex.WaitOne(1000);
