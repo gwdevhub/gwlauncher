@@ -8,6 +8,7 @@ public partial class MainForm : Form
     public Queue<int> needtolaunch;
 
     private bool _keepOpen;
+    private bool _allowVisible = false;
 
     private ListView.SelectedIndexCollection _selectedItems;
 
@@ -16,6 +17,16 @@ public partial class MainForm : Form
         InitializeComponent();
         needtolaunch = new Queue<int>();
         _selectedItems = new ListView.SelectedIndexCollection(listViewAccounts);
+    }
+
+    protected override void SetVisibleCore(bool value)
+    {
+        if (!_allowVisible)
+        {
+            value = false;
+            if (!this.IsHandleCreated) CreateHandle();
+        }
+        base.SetVisibleCore(value);
     }
 
     private void RefreshUI()
@@ -254,6 +265,7 @@ public partial class MainForm : Form
 
     private void NotifyIcon_MouseClick(object sender, MouseEventArgs e)
     {
+        _allowVisible = true;
         if (e.Button == MouseButtons.Right && Visible == false)
         {
             _keepOpen = true;
