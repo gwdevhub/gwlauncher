@@ -29,13 +29,12 @@ internal static class Program
         {
             return;
         }
+        gwlMutex = new Mutex(true, GwlMutexName);
 
         if (settings.CheckForUpdates)
         {
             Task.Run(CheckGitHubNewerVersion);
         }
-
-        gwlMutex = new Mutex(true, GwlMutexName);
 
         var location = Path.GetDirectoryName(AppContext.BaseDirectory);
         if (location != null)
@@ -55,10 +54,13 @@ internal static class Program
         try
         {
             accounts = new AccountManager("Accounts.json");
+            settings.Save();
         }
         catch (Exception)
         {
-            MessageBox.Show(@"Couldn't load account information, GW Launcher will close.");
+            MessageBox.Show(@"Couldn't load account information, there might be an error in the .json.
+GW Launcher will close.");
+            gwlMutex.Close();
             return;
         }
 
@@ -69,8 +71,6 @@ internal static class Program
         }
 
         using var mainForm = new MainForm();
-        mainForm.Location = new Point(-1000, -1000);
-        mainForm.FormClosing += (_, _) => { settings.Save(); };
 
         mainthread = new Thread(() =>
         {
@@ -134,7 +134,7 @@ internal static class Program
                     }
                     mutex.ReleaseMutex();
 
-                    Thread.Sleep(3000);
+                    Thread.Sleep(1000);
                 }
 
                 mutexAcquired = mutex.WaitOne(1000);

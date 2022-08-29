@@ -3,6 +3,7 @@ Debug/
 Release/
 Publish/
 packages/
+Publish/
 .vs/
 /GW Launcher/obj
 *exe
