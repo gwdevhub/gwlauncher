@@ -62,7 +62,7 @@ internal class MulticlientPatch
         }
 
         var memory = new GWCAMemory(process);
-        
+
         foreach (var dll in ModManager.GetDlls(path, account.mods))
         {
             memory.LoadModule(dll);
