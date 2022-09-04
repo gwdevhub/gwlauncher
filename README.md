@@ -1,9 +1,9 @@
 
 ### [Releases/Download](https://github.com/GregLando113/gwlauncher/releases)
 
-### Overview
-
 * * *
+
+### Overview
 
 *   Able to add accounts to a list in order to quickly launch them on demand
 *   Active column shows what accounts are currently loaded in
@@ -19,9 +19,9 @@
 4.  Run the executable.
 5.  If you do not have the [.NET 6 Desktop Runtime (x86)](https://dotnet.microsoft.com/en-us/download/dotnet/6.0) installed, it will prompt you to download it.
 
-### Usage
-
 * * *
+
+### Usage
 
 #### Add an Account
 
@@ -62,13 +62,17 @@ Right click the account list to reveal a context menu, then select _Edit Selecte
 
 This format is fairly straight forward, modify the account info of the selected account, save the file and right-click -> Refresh Accounts.
 
+* * *
+
 ### Settings
 
-There are three settings that you can change in the file Settings.json:
+There are three settings that you can change in the file Settings.json (open with a text editor like Notepad):
 
 *	Encrypt: bool, if GW Launcher will ask you for a password and encrypt your account info.
 *	CheckForUpdates: bool, if GW Launcher should check for new releases, default true
 *	AutoUpdate: bool, if GW Launcher should automatically update, default false
+
+* * *
 
 ### GW Plugins (.dll or .tpf)
 
@@ -79,4 +83,4 @@ Alternatively there is also a GUI to select plugins for specific accounts when y
 Similarly, all .tpf or .zip files will be loaded as TexMod files. This means that you do not have to use uMod anymore, if you only want basic TexMod functionality.  
 Plugins are loaded in the alphabetical order of their filename. Textures that are already replaced by `1_FirstTexmod.tpf` cannot be replaced by subsequent `2_SecondTexmod.tpf`, so make sure your texmods are named in ascending alphabetical order.
 
-*Important*: Currently the r44 version of uMod is used for performance reasons. This means that you can only load textures created with TexMod or uMod v1. TexMods created with r49 or higher will not load and may break things.
+**Important**: Currently the r44 version of uMod is used for performance reasons. This means that you can only load textures created with TexMod or uMod v1. TexMods created with r49 or higher will not load and may break things.
