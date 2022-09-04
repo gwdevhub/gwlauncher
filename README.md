@@ -70,7 +70,7 @@ There are three settings that you can change in the file Settings.json:
 *	CheckForUpdates: bool, if GW Launcher should check for new releases, default true
 *	AutoUpdate: bool, if GW Launcher should automatically update, default false
 
-#### GW Plugins (.dll or .tpf)
+### GW Plugins (.dll or .tpf)
 
 If you create a folder named "plugins", the launcher will load all .dll's or shortcuts (.lnk) to .dll's inside this folder on launch.  
 Dll's placed in `gwlauncher/plugins` folder will load for every instance, dll's in the `<gw-installation-path>/plugins` folder will only load for accounts launched from that path.  
@@ -78,3 +78,5 @@ Alternatively there is also a GUI to select plugins for specific accounts when y
 
 Similarly, all .tpf or .zip files will be loaded as TexMod files. This means that you do not have to use uMod anymore, if you only want basic TexMod functionality.  
 Plugins are loaded in the alphabetical order of their filename. Textures that are already replaced by `1_FirstTexmod.tpf` cannot be replaced by subsequent `2_SecondTexmod.tpf`, so make sure your texmods are named in ascending alphabetical order.
+
+*Important*: Currently the r44 version of uMod is used for performance reasons. This means that you can only load textures created with TexMod or uMod v1. TexMods created with r49 or higher will not load and may break things.
