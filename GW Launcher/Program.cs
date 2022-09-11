@@ -54,12 +54,25 @@ internal static class Program
         try
         {
             accounts = new AccountManager("Accounts.json");
-            settings.Save();
         }
-        catch (Exception)
+        catch (Exception e)
         {
             MessageBox.Show(@"Couldn't load account information, there might be an error in the .json.
-GW Launcher will close.");
+GW Launcher will close.
+" + e.Message);
+            gwlMutex.Close();
+            return;
+        }
+
+        try
+        {
+            settings.Save();
+        }
+        catch (Exception e)
+        {
+            MessageBox.Show(@"Couldn't save settings to Settings.json.
+GW Launcher will close.
+" + e.Message);
             gwlMutex.Close();
             return;
         }
