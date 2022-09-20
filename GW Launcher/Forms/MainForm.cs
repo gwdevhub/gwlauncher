@@ -300,11 +300,10 @@ public partial class MainForm : Form
             _keepOpen = false;
         }
 
-        var isVisible = (Point p) =>
+        bool IsVisible(Point p)
         {
-            return Screen.AllScreens.Any(s =>
-                p.X < s.Bounds.Right && p.X > s.Bounds.Left && p.Y > s.Bounds.Top && p.Y < s.Bounds.Bottom);
-        };
+            return Screen.AllScreens.Any(s => p.X < s.Bounds.Right && p.X > s.Bounds.Left && p.Y > s.Bounds.Top && p.Y < s.Bounds.Bottom);
+        }
 
         var position = Cursor.Position;
 
@@ -318,12 +317,12 @@ public partial class MainForm : Form
             position.Y += 25;
         }
 
-        if (!isVisible(position))
+        if (!IsVisible(position))
         {
             position.Y = Cursor.Position.Y;
         }
 
-        if (!isVisible(position))
+        if (!IsVisible(position))
         {
             position.X = Screen.PrimaryScreen.Bounds.Width / 2;
             position.Y = Screen.PrimaryScreen.Bounds.Height / 2;

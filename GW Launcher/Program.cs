@@ -262,7 +262,9 @@ GW Launcher will close.");
 
         mutex.WaitOne();
         shouldClose = true;
-        if (!mainthread.Join(5000)) return;
+        if (mainthread.ThreadState == System.Threading.ThreadState.Running &&
+            !mainthread.Join(5000))
+            return;
         mutex.Close();
         gwlMutex?.Close();
 
