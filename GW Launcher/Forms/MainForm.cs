@@ -1,5 +1,6 @@
 ﻿using GW_Launcher.Properties;
 using Microsoft.Win32;
+using System.Security.Cryptography;
 
 namespace GW_Launcher.Forms;
 
@@ -12,11 +13,43 @@ public partial class MainForm : Form
 
     private ListView.SelectedIndexCollection _selectedItems;
 
+    private static MainForm? instance = null;
+
     public MainForm()
     {
         InitializeComponent();
         needtolaunch = new Queue<int>();
         _selectedItems = new ListView.SelectedIndexCollection(listViewAccounts);
+        instance = this;
+    }
+    protected override void OnFormClosing(FormClosingEventArgs e)
+    {
+        instance = null;
+        base.OnFormClosing(e);
+    }
+    public static void OnAccountSaved(Account account)
+    {
+        bool found = false;
+        Program.mutex.WaitOne();
+        for (int index = 0; index < Program.accounts.Length; index++)
+        {
+            if (Program.accounts[index].guid == account.guid)
+            {
+                Program.accounts[index] = account;
+                Program.accounts.Save();
+                found = true;
+                break;
+            }
+        }
+        if(!found)
+        {
+            Program.accounts.Add(account);
+        }
+        Program.mutex.ReleaseMutex();
+        if (instance != null)
+        {
+            instance.RefreshUI();
+        }
     }
 
     protected override void SetVisibleCore(bool value)
@@ -244,15 +277,7 @@ public partial class MainForm : Form
         };
 
         addAccountForm.ShowDialog();
-        Program.mutex.WaitOne();
 
-        if (addAccountForm.finished)
-        {
-            Program.accounts[(int) index] = addAccountForm.account;
-            RefreshUI();
-        }
-
-        Program.mutex.ReleaseMutex();
     }
 
     private void MainForm_Deactivate(object sender, EventArgs e)

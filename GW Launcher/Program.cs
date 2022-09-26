@@ -10,6 +10,7 @@ internal static class Program
     public static Thread mainthread = null!;
     public static Mutex mutex = new();
     public static Mutex? gwlMutex;
+    private static bool gotMutex = false;
     public static GlobalSettings settings = GlobalSettings.Load();
 
     [DllImport("user32.dll", EntryPoint = "SetWindowText", CharSet = CharSet.Unicode)]
@@ -90,11 +91,11 @@ GW Launcher will close.
             mainForm.FormClosed += (_, _) => { shouldClose = true; };
             while (!shouldClose)
             {
-                bool mutexAcquired;
+                UnlockMutex();
                 while (mainForm.needtolaunch.Any())
                 {
-                    mutexAcquired = mutex.WaitOne(1000);
-                    if (!mutexAcquired) break;
+                    UnlockMutex();
+                    if (!LockMutex()) break;
                     var i = mainForm.needtolaunch.Dequeue();
                     var account = accounts[i];
                     if (!File.Exists(account.gwpath))
@@ -145,13 +146,11 @@ GW Launcher will close.
                     {
                         SetWindowText(memory.process.MainWindowHandle, account.Name);
                     }
-                    mutex.ReleaseMutex();
+                    
 
                     Thread.Sleep(1000);
                 }
-
-                mutexAcquired = mutex.WaitOne(1000);
-                if (!mutexAcquired) continue;
+                if (!LockMutex()) continue;
 
                 for (var i = 0; i < accounts.Length; i++)
                 {
@@ -170,7 +169,7 @@ GW Launcher will close.
                     mainForm.SetActive(i, false);
                 }
 
-                mutex.ReleaseMutex();
+                UnlockMutex();
 
                 Thread.Sleep(1000);
             }
@@ -178,7 +177,19 @@ GW Launcher will close.
         Application.Run(mainForm);
     }
 
-
+    private static bool LockMutex()
+    {
+        gotMutex = gotMutex || mutex.WaitOne(1000);
+        return gotMutex;
+    }
+    private static void UnlockMutex()
+    {
+        if(gotMutex)
+        {
+            mutex.ReleaseMutex();
+            gotMutex = false;
+        }
+    }
     private static async Task CheckGitHubNewerVersion()
     {
         const string oldName = ".old.exe";

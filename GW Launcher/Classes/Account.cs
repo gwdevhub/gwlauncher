@@ -22,6 +22,8 @@ public class Account
 
     public string title = "";
 
+    public Guid guid = Guid.NewGuid();
+
     public string Name
     {
         get
