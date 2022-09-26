@@ -5,7 +5,6 @@ namespace GW_Launcher.Forms;
 public partial class AddAccountForm : Form
 {
     public Account account;
-    public bool finished;
 
     public AddAccountForm()
     {
@@ -50,10 +49,10 @@ public partial class AddAccountForm : Form
         var openFileDialog = new OpenFileDialog();
 
         var pathdefault =
-            (string?) Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\ArenaNet\\Guild Wars", "Path", null);
+            (string?)Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\ArenaNet\\Guild Wars", "Path", null);
         if (pathdefault == null)
         {
-            pathdefault = (string?) Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\ArenaNet\\Guild Wars",
+            pathdefault = (string?)Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\ArenaNet\\Guild Wars",
                 "Path", null);
             if (pathdefault == null)
             {

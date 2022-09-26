@@ -120,5 +120,6 @@ public class ZipLoader : IDisposable
     public void Dispose()
     {
         _contents.Clear();
+        GC.SuppressFinalize(this);
     }
 }

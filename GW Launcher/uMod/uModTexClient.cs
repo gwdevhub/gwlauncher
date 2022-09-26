@@ -53,7 +53,7 @@ public class uModTexClient : IDisposable
     private readonly Queue<byte[]> _packets = new();
     private readonly NamedPipeServerStream _pipeReceive;
     private readonly NamedPipeServerStream _pipeSend;
-    private IAsyncResult _receiveResult;
+    private readonly IAsyncResult _receiveResult;
     private IAsyncResult? _sendResult;
     private bool _receiveConnected;
     private bool _sendConnected;
@@ -81,7 +81,7 @@ public class uModTexClient : IDisposable
             NamedPipeServerStream.MaxAllowedServerInstances,
             PipeTransmissionMode.Byte, PipeOptions.None, BIG_PIPE_SIZE, BIG_PIPE_SIZE, securityPipe);
 
-        _receiveResult = _pipeReceive.BeginWaitForConnection(ear =>
+        _receiveResult = _pipeReceive.BeginWaitForConnection(_ =>
         {
             var buf = new byte[SMALL_PIPE_SIZE];
             var num = _pipeReceive.Read(buf);
@@ -92,11 +92,14 @@ public class uModTexClient : IDisposable
             }
 
             // ReSharper disable once UnusedVariable
-            var gameName = Encoding.Default.GetString(buf);
+            var gameName = Encoding.Latin1.GetString(buf);
 
             if (!_pipeSend.IsConnected)
             {
-                _sendResult = _pipeSend.BeginWaitForConnection(iar => { _sendConnected = true; }, null);
+                _sendResult = _pipeSend.BeginWaitForConnection(_ =>
+                {
+                    _sendConnected = true;
+                }, null);
             }
         }, null);
     }
@@ -127,6 +130,7 @@ public class uModTexClient : IDisposable
         _pipeSend.Dispose();
         _pipeReceive.Dispose();
         _disposed = true;
+        GC.SuppressFinalize(this);
     }
 
     public void AddFile(string filePath)

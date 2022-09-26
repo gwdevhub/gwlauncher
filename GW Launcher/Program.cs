@@ -10,7 +10,7 @@ internal static class Program
     public static Thread mainthread = null!;
     public static Mutex mutex = new();
     public static Mutex? gwlMutex;
-    private static bool gotMutex = false;
+    private static bool _gotMutex;
     public static GlobalSettings settings = GlobalSettings.Load();
 
     [DllImport("user32.dll", EntryPoint = "SetWindowText", CharSet = CharSet.Unicode)]
@@ -146,7 +146,7 @@ GW Launcher will close.
                     {
                         SetWindowText(memory.process.MainWindowHandle, account.Name);
                     }
-                    
+
 
                     Thread.Sleep(1000);
                 }
@@ -179,15 +179,15 @@ GW Launcher will close.
 
     private static bool LockMutex()
     {
-        gotMutex = gotMutex || mutex.WaitOne(1000);
-        return gotMutex;
+        _gotMutex = _gotMutex || mutex.WaitOne(1000);
+        return _gotMutex;
     }
     private static void UnlockMutex()
     {
-        if(gotMutex)
+        if (_gotMutex)
         {
             mutex.ReleaseMutex();
-            gotMutex = false;
+            _gotMutex = false;
         }
     }
     private static async Task CheckGitHubNewerVersion()

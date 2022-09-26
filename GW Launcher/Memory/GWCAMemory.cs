@@ -56,7 +56,6 @@ public class GWCAMemory
 
     // GwProcess we will use
     public Process process { get; }
-    public bool HasExited => process.HasExited;
 
     // Scan variables.
     private IntPtr scan_start;
@@ -111,9 +110,6 @@ public class GWCAMemory
 
     [DllImport("kernel32.dll", CharSet = CharSet.Ansi, ExactSpelling = true, SetLastError = true)]
     private static extern IntPtr GetProcAddress(IntPtr hModule, string procName);
-
-    [DllImport("kernel32.dll")]
-    private static extern IntPtr LoadLibrary(string dllToLoad);
 
     [DllImport("kernel32.dll", SetLastError = true)]
     private static extern uint WaitForSingleObject(IntPtr hHandle, uint dwMilliseconds);
@@ -401,7 +397,7 @@ public class GWCAMemory
         {
             return LoadModuleResult.REMOTE_THREAD_NOT_SPAWNED;
         }
-        
+
         var threadResult = WaitForSingleObject(hThread, 5000u);
         if (threadResult is 0x102 or 0xFFFFFFFF /* WAIT_FAILED */)
         {

@@ -1,6 +1,5 @@
 ﻿using GW_Launcher.Properties;
 using Microsoft.Win32;
-using System.Security.Cryptography;
 
 namespace GW_Launcher.Forms;
 
@@ -9,47 +8,41 @@ public partial class MainForm : Form
     public Queue<int> needtolaunch;
 
     private bool _keepOpen;
-    private bool _allowVisible = false;
+    private bool _allowVisible;
 
     private ListView.SelectedIndexCollection _selectedItems;
 
-    private static MainForm? instance = null;
+    private static MainForm? _instance;
 
     public MainForm()
     {
         InitializeComponent();
         needtolaunch = new Queue<int>();
         _selectedItems = new ListView.SelectedIndexCollection(listViewAccounts);
-        instance = this;
+        _instance = this;
     }
+
     protected override void OnFormClosing(FormClosingEventArgs e)
     {
-        instance = null;
+        _instance = null;
         base.OnFormClosing(e);
     }
+
     public static void OnAccountSaved(Account account)
     {
-        bool found = false;
         Program.mutex.WaitOne();
-        for (int index = 0; index < Program.accounts.Length; index++)
+        var found = Program.accounts[account.guid];
+        if (found != null)
         {
-            if (Program.accounts[index].guid == account.guid)
-            {
-                Program.accounts[index] = account;
-                Program.accounts.Save();
-                found = true;
-                break;
-            }
+            Program.accounts[account.guid] = account;
         }
-        if(!found)
+        else
         {
             Program.accounts.Add(account);
         }
+        Program.accounts.Save();
         Program.mutex.ReleaseMutex();
-        if (instance != null)
-        {
-            instance.RefreshUI();
-        }
+        _instance?.RefreshUI();
     }
 
     protected override void SetVisibleCore(bool value)
@@ -223,10 +216,10 @@ public partial class MainForm : Form
     private void ToolStripMenuItemLaunchGWInstance_Click(object sender, EventArgs e)
     {
         var pathdefault =
-            (string?) Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\ArenaNet\\Guild Wars", "Path", null);
+            (string?)Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\ArenaNet\\Guild Wars", "Path", null);
         if (pathdefault == null)
         {
-            pathdefault = (string?) Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\ArenaNet\\Guild Wars",
+            pathdefault = (string?)Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\ArenaNet\\Guild Wars",
                 "Path", null);
             if (pathdefault == null)
             {
@@ -269,7 +262,7 @@ public partial class MainForm : Form
             return;
         }
 
-        var account = Program.accounts[(int) index];
+        var account = Program.accounts[(int)index];
         using var addAccountForm = new AddAccountForm
         {
             Text = @"Modify Account",
@@ -360,7 +353,7 @@ public partial class MainForm : Form
 
             return taskCompletionSource.Task;
         }
-        catch (Win32Exception e) when ((uint) e.ErrorCode == 0x80004005)
+        catch (Win32Exception e) when ((uint)e.ErrorCode == 0x80004005)
         {
             return Task.CompletedTask;
         }
