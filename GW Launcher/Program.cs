@@ -85,10 +85,10 @@ GW Launcher will close.
         }
 
         using var mainForm = new MainForm();
+        mainForm.FormClosed += (_, _) => { shouldClose = true; };
 
         mainthread = new Thread(() =>
         {
-            mainForm.FormClosed += (_, _) => { shouldClose = true; };
             while (!shouldClose)
             {
                 UnlockMutex();
@@ -105,7 +105,8 @@ GW Launcher will close.
                     }
                     switch (account.active)
                     {
-                        case true when account.process != null && account.process.process.MainWindowHandle != IntPtr.Zero:
+                        case true when account.process != null &&
+                                       account.process.process.MainWindowHandle != IntPtr.Zero:
                             SetForegroundWindow(account.process.process.MainWindowHandle);
                             continue;
                         case true:
@@ -119,7 +120,7 @@ GW Launcher will close.
                         continue;
                     }
 
-                    uint timelock = 0;
+                    var timelock = 0;
                     while (timelock++ < 10 && (memory.process.MainWindowHandle == IntPtr.Zero ||
                                                !memory.process.WaitForInputIdle(1000)))
                     {
@@ -147,11 +148,11 @@ GW Launcher will close.
                         SetWindowText(memory.process.MainWindowHandle, account.Name);
                     }
 
-
+                    UnlockMutex();
                     Thread.Sleep(1000);
                 }
-                if (!LockMutex()) continue;
 
+                if (!LockMutex()) continue;
                 for (var i = 0; i < accounts.Length; i++)
                 {
                     if (!accounts[i].active)
@@ -168,7 +169,6 @@ GW Launcher will close.
                     accounts[i].process = null;
                     mainForm.SetActive(i, false);
                 }
-
                 UnlockMutex();
 
                 Thread.Sleep(1000);
@@ -179,16 +179,15 @@ GW Launcher will close.
 
     private static bool LockMutex()
     {
-        _gotMutex = _gotMutex || mutex.WaitOne(1000);
+        if (_gotMutex) return true;
+        _gotMutex = mutex.WaitOne(1000);
         return _gotMutex;
     }
     private static void UnlockMutex()
     {
-        if (_gotMutex)
-        {
-            mutex.ReleaseMutex();
-            _gotMutex = false;
-        }
+        if (!_gotMutex) return;
+        mutex.ReleaseMutex();
+        _gotMutex = false;
     }
     private static async Task CheckGitHubNewerVersion()
     {
