@@ -1,12 +1,13 @@
 ﻿using GW_Launcher.Properties;
 using Microsoft.Win32;
+using System;
 using System.Security.Cryptography;
 
 namespace GW_Launcher.Forms;
 
 public partial class MainForm : Form
 {
-    public Queue<int> needtolaunch;
+    
 
     private bool _keepOpen;
     private bool _allowVisible = false;
@@ -18,7 +19,6 @@ public partial class MainForm : Form
     public MainForm()
     {
         InitializeComponent();
-        needtolaunch = new Queue<int>();
         _selectedItems = new ListView.SelectedIndexCollection(listViewAccounts);
         instance = this;
     }
@@ -162,7 +162,6 @@ public partial class MainForm : Form
         imageList.Images.Add("gw-icon", Resources.gw_icon);
         listViewAccounts.SmallImageList = imageList;
         RefreshUI();
-        Program.mainthread.Start();
     }
 
     private void ListViewAccounts_MouseDoubleClick(object sender, MouseEventArgs e)
@@ -172,8 +171,7 @@ public partial class MainForm : Form
         {
             return;
         }
-
-        needtolaunch.Enqueue(selectedItems[0]);
+        Program.LaunchAccount(selectedItems[0]);
     }
 
     private void ToolStripMenuItemLaunchSelected_Click(object sender, EventArgs e)
@@ -186,7 +184,7 @@ public partial class MainForm : Form
 
         foreach (int selectedItem in _selectedItems)
         {
-            needtolaunch.Enqueue(selectedItem);
+            Program.LaunchAccount(selectedItem);
         }
     }
 
@@ -278,6 +276,24 @@ public partial class MainForm : Form
 
         addAccountForm.ShowDialog();
 
+    }
+
+    private void ToolStripMenuItemCreateShortcut_Click(object sender, EventArgs e)
+    {
+        _selectedItems = listViewAccounts.SelectedIndices;
+        if (_selectedItems.Count == 0 && listViewAccounts.FocusedItem == null)
+        {
+            return;
+        }
+        var account = Program.accounts[_selectedItems[0]];
+        var shell = new IWshRuntimeLibrary.WshShell();
+        string shortcutAddress = Environment.GetFolderPath(Environment.SpecialFolder.Desktop) + @"\" + account.Name + ".lnk";
+        IWshRuntimeLibrary.IWshShortcut shortcut = shell.CreateShortcut(shortcutAddress);
+        shortcut.Description = "GW Launcher shortcut for " + account.Name;
+        shortcut.WorkingDirectory = Path.GetDirectoryName(Application.ExecutablePath);
+        shortcut.Arguments = "-launch \"" + account.Name + "\"";
+        shortcut.TargetPath = Application.ExecutablePath;
+        shortcut.Save();
     }
 
     private void MainForm_Deactivate(object sender, EventArgs e)

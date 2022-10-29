@@ -37,6 +37,7 @@ partial class MainForm
             this.toolStripMenuItemRefreshAccounts = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator3 = new System.Windows.Forms.ToolStripSeparator();
             this.toolStripMenuItemAddNew = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripMenuItemCreateShortcut = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripMenuItemEditSelected = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripMenuItemRemoveSelected = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripMenuItemLaunchSelected = new System.Windows.Forms.ToolStripMenuItem();
@@ -81,6 +82,7 @@ partial class MainForm
             this.toolStripSeparator3,
             this.toolStripMenuItemAddNew,
             this.toolStripMenuItemEditSelected,
+            this.toolStripMenuItemCreateShortcut,
             this.toolStripMenuItemRemoveSelected,
             this.toolStripMenuItemLaunchSelected,
             this.toolStripSeparator1,
@@ -115,6 +117,13 @@ partial class MainForm
             this.toolStripMenuItemEditSelected.Size = new System.Drawing.Size(210, 22);
             this.toolStripMenuItemEditSelected.Text = "Edit Selected";
             this.toolStripMenuItemEditSelected.Click += new System.EventHandler(this.ToolStripMenuItemEditSelected_Click);
+            // 
+            // toolStripMenuItemCreateShortcut
+            // 
+            this.toolStripMenuItemCreateShortcut.Name = "toolStripMenuItemCreateShortcut";
+            this.toolStripMenuItemCreateShortcut.Size = new System.Drawing.Size(210, 22);
+            this.toolStripMenuItemCreateShortcut.Text = "Create Desktop Shortcut";
+            this.toolStripMenuItemCreateShortcut.Click += new System.EventHandler(this.ToolStripMenuItemCreateShortcut_Click);
             // 
             // toolStripMenuItemRemoveSelected
             // 
@@ -190,6 +199,7 @@ partial class MainForm
     private System.Windows.Forms.ToolStripMenuItem toolStripMenuItemLaunchGWInstance;
     private System.Windows.Forms.ToolStripMenuItem toolStripMenuItemRefreshAccounts;
     private System.Windows.Forms.ToolStripMenuItem toolStripMenuItemEditSelected;
+    private System.Windows.Forms.ToolStripMenuItem toolStripMenuItemCreateShortcut;
     private System.Windows.Forms.ToolStripSeparator toolStripSeparator1;
     private System.Windows.Forms.ToolStripMenuItem toolStripMenuItemLaunchSelected;
     private System.Windows.Forms.NotifyIcon notifyIcon;

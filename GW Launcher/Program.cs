@@ -1,17 +1,22 @@
 ﻿using GW_Launcher.Forms;
-
 namespace GW_Launcher;
 
 internal static class Program
 {
     private const string GwlMutexName = "gwl_instance_mutex";
-    public static bool shouldClose;
+    public static volatile bool shouldClose = false;
+    public static volatile bool mainThreadRunning = false;
     public static AccountManager accounts = new();
     public static Thread mainthread = null!;
     public static Mutex mutex = new();
     public static Mutex? gwlMutex;
+    private static MainForm? mainForm;
     private static bool gotMutex = false;
     public static GlobalSettings settings = GlobalSettings.Load();
+
+    private static Queue<int> needtolaunch = new Queue<int>();
+
+    private static string command_arg_launch_account_name = "Demia Frelluis";
 
     [DllImport("user32.dll", EntryPoint = "SetWindowText", CharSet = CharSet.Unicode)]
     private static extern bool SetWindowText(IntPtr hwnd, string lpString);
@@ -23,67 +28,37 @@ internal static class Program
     [STAThread]
     internal static void Main()
     {
-        Application.EnableVisualStyles();
-        Application.SetCompatibleTextRenderingDefault(false);
-
-        if (Mutex.TryOpenExisting(GwlMutexName, out gwlMutex))
+        if (!ParseCommandLineArgs())
         {
-            return;
+            Cleanup();
+            return; // Error message already displayed
         }
-        gwlMutex = new Mutex(true, GwlMutexName);
+        if(!LoadAccountsJson())
+        {
+            Cleanup();
+            return; // Error message already displayed
+        }
 
         if (settings.CheckForUpdates)
         {
             Task.Run(CheckGitHubNewerVersion);
         }
 
-        var location = Path.GetDirectoryName(AppContext.BaseDirectory);
-        if (location != null)
-        {
-            // dump correct version of umod d3d9.dll
-            var filenameumod = Path.Combine(location, "d3d9.dll");
-            try
-            {
-                File.WriteAllBytes(filenameumod, Properties.Resources.d3d9);
-            }
-            catch (Exception)
-            {
-                // use the file that already exists
-            }
-        }
+        CreateUmodD3d9Dll();
 
-        try
-        {
-            accounts = new AccountManager("Accounts.json");
-            settings.Save();
-        }
-        catch (Exception)
-        {
-            MessageBox.Show(@"Couldn't load account information, there might be an error in the .json.
-GW Launcher will close.");
-            gwlMutex.Close();
-            return;
-        }
-
-        var isPipeRunning = Directory.GetFiles(@"\\.\pipe\", @"Game2uMod").Any();
-        if (isPipeRunning && accounts.Any(a => ModManager.GetTexmods(a.gwpath, a.mods).Any()))
-        {
-            MessageBox.Show(@"uMod may be running in the background. Textures may not load.");
-        }
-
-        using var mainForm = new MainForm();
-
+        settings.Save();
+        mainThreadRunning = true;
         mainthread = new Thread(() =>
         {
-            mainForm.FormClosed += (_, _) => { shouldClose = true; };
+            
             while (!shouldClose)
             {
                 UnlockMutex();
-                while (mainForm.needtolaunch.Any())
+                while (needtolaunch.Any())
                 {
                     UnlockMutex();
                     if (!LockMutex()) break;
-                    var i = mainForm.needtolaunch.Dequeue();
+                    var i = needtolaunch.Dequeue();
                     var account = accounts[i];
                     if (!File.Exists(account.gwpath))
                     {
@@ -121,7 +96,8 @@ GW Launcher will close.");
 
                     account.process = memory;
 
-                    mainForm.SetActive(i, true);
+                    if(mainForm != null)
+                        mainForm.SetActive(i, true);
                     GWMemory.FindAddressesIfNeeded(memory);
                     while (memory.Read<ushort>(GWMemory.CharnamePtr) == 0 && timelock++ < 60)
                     {
@@ -153,15 +129,130 @@ GW Launcher will close.");
                     }
 
                     accounts[i].process = null;
-                    mainForm.SetActive(i, false);
+                    if(mainForm != null)
+                        mainForm.SetActive(i, false);
                 }
 
                 UnlockMutex();
 
                 Thread.Sleep(1000);
             }
+            mainThreadRunning = false;
         });
+
+        mainthread.Start();
+
+
+        if (command_arg_launch_account_name.Length > 0)
+        {
+            if(!LaunchAccount(command_arg_launch_account_name))
+            {
+                MessageBox.Show(@"Failed to launch account " + command_arg_launch_account_name);
+            }
+            Cleanup();
+            return;
+        }
+        // Only try to create and grab the mutex if we're in the main program
+        if (!InitialiseGWLauncherMutex())
+        {
+            Cleanup();
+            return; // Error message already displayed
+        }
+
+        // Main application
+        Application.EnableVisualStyles();
+        Application.SetCompatibleTextRenderingDefault(false);
+        mainForm = new MainForm();
+        mainForm.FormClosed += (_, _) => { shouldClose = true; };
         Application.Run(mainForm);
+    }
+    public static bool LaunchAccount(int index)
+    {
+        if (index < 0 || accounts.Length <= index)
+            return false;
+        needtolaunch.Enqueue(index);
+        return true;
+    }
+    public static bool LaunchAccount(string name)
+    {
+        return LaunchAccount(accounts.FindByName(name));
+    }
+    private static void Cleanup()
+    {
+        while (needtolaunch.Count > 0)
+            Thread.Sleep(16);
+        shouldClose = true;
+        while (mainThreadRunning)
+            Thread.Sleep(16);
+        if(gwlMutex != null)
+        {
+            gwlMutex.Close();
+            gwlMutex = null;
+        }
+    }
+    private static bool ParseCommandLineArgs()
+    {
+        var args = Environment.GetCommandLineArgs();
+        for(var i=1;i<args.Length;i++)
+        {
+            switch(args[i])
+            {
+                case "-launch":
+                    i++;
+                    if(i >= args.Length)
+                    {
+                        MessageBox.Show(@"No value for command line argument -launch");
+                        return false;
+                    }
+                    command_arg_launch_account_name = args[i];
+                    break;
+            }
+        }
+        return true;
+    }
+    private static bool InitialiseGWLauncherMutex()
+    {
+        // Check to see if another instance is running
+        if (Mutex.TryOpenExisting(GwlMutexName, out gwlMutex))
+        {
+            //MessageBox.Show(@"GW Launcher already running. GW Launcher will close.");
+            return false;
+        }
+        gwlMutex = new Mutex(true, GwlMutexName);
+        return true;
+    }
+    private static bool LoadAccountsJson()
+    {
+        // Load accounts
+        try
+        {
+            accounts = new AccountManager("Accounts.json");
+            return true;
+        }
+        catch (Exception)
+        {
+            MessageBox.Show(@"Couldn't load account information, there might be an error in the .json.
+GW Launcher will close.");
+            
+            return false;
+        }
+    }
+    private static void CreateUmodD3d9Dll()
+    {
+        var location = Path.GetDirectoryName(AppContext.BaseDirectory);
+        if (location != null)
+        {
+            // dump correct version of umod d3d9.dll
+            var filenameumod = Path.Combine(location, "d3d9.dll");
+            try
+            {
+                File.WriteAllBytes(filenameumod, Properties.Resources.d3d9);
+            }
+            catch (Exception)
+            {
+                // use the file that already exists
+            }
+        }
     }
 
     private static bool LockMutex()

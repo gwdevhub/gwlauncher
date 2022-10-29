@@ -41,6 +41,10 @@ internal class MulticlientPatch
 
         if (ModManager.GetTexmods(account.gwpath, account.mods).Any())
         {
+            if (Directory.GetFiles(@"\\.\pipe\", @"Game2uMod").Any())
+            {
+                MessageBox.Show(@"uMod may be running in the background. Textures may not load.");
+            }
             texClient = new uModTexClient();
         }
 
@@ -76,29 +80,26 @@ internal class MulticlientPatch
 
         if (texClient != null)
         {
-            Task.Run(() =>
+            var timeout = 0;
+            while (!texClient.IsReady() && timeout++ < 50)
             {
-                var timeout = 0;
-                while (!texClient.IsReady() && !Program.shouldClose && timeout++ < 50)
+                Thread.Sleep(200);
+            }
+
+            foreach (var tex in ModManager.GetTexmods(path, account.mods))
+            {
+                if (timeout >= 50)
                 {
-                    Thread.Sleep(200);
+                    texClient.Dispose();
                 }
 
-                foreach (var tex in ModManager.GetTexmods(path, account.mods))
-                {
-                    if (Program.shouldClose || timeout >= 50)
-                    {
-                        texClient.Dispose();
-                    }
+                texClient.AddFile(tex);
+            }
 
-                    texClient.AddFile(tex);
-                }
+            texClient.Send();
+            texClient.Dispose();
 
-                texClient.Send();
-                texClient.Dispose();
-
-                GC.Collect(2, GCCollectionMode.Optimized); // force garbage collection
-            });
+            GC.Collect(2, GCCollectionMode.Optimized); // force garbage collection
         }
 
         return memory;

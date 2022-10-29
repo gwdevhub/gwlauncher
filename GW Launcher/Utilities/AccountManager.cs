@@ -160,7 +160,14 @@ public class AccountManager : IEnumerable<Account>, IDisposable
             File.WriteAllBytes(filePath, cryptBytes);
         }
     }
-
+    public int FindByName(string name)
+    {
+        for(var i=0;i<_accounts.LongCount();i++) {
+            if (_accounts[i].Name == name)
+                return i;
+        }
+        return -1;
+    }
     public void Add(Account account)
     {
         _accounts.Add(account);
