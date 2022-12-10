@@ -8,15 +8,41 @@ public partial class MainForm : Form
     public Queue<int> needtolaunch;
 
     private bool _keepOpen;
-    private bool _allowVisible = false;
+    private bool _allowVisible;
 
     private ListView.SelectedIndexCollection _selectedItems;
+
+    private static MainForm? _instance;
 
     public MainForm()
     {
         InitializeComponent();
         needtolaunch = new Queue<int>();
         _selectedItems = new ListView.SelectedIndexCollection(listViewAccounts);
+        _instance = this;
+    }
+
+    protected override void OnFormClosing(FormClosingEventArgs e)
+    {
+        _instance = null;
+        base.OnFormClosing(e);
+    }
+
+    public static void OnAccountSaved(Account account)
+    {
+        Program.mutex.WaitOne();
+        var found = Program.accounts[account.guid];
+        if (found != null)
+        {
+            Program.accounts[account.guid] = account;
+        }
+        else
+        {
+            Program.accounts.Add(account);
+        }
+        Program.accounts.Save();
+        Program.mutex.ReleaseMutex();
+        _instance?.RefreshUI();
     }
 
     protected override void SetVisibleCore(bool value)
@@ -190,10 +216,10 @@ public partial class MainForm : Form
     private void ToolStripMenuItemLaunchGWInstance_Click(object sender, EventArgs e)
     {
         var pathdefault =
-            (string?) Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\ArenaNet\\Guild Wars", "Path", null);
+            (string?)Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\ArenaNet\\Guild Wars", "Path", null);
         if (pathdefault == null)
         {
-            pathdefault = (string?) Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\ArenaNet\\Guild Wars",
+            pathdefault = (string?)Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\ArenaNet\\Guild Wars",
                 "Path", null);
             if (pathdefault == null)
             {
@@ -236,7 +262,7 @@ public partial class MainForm : Form
             return;
         }
 
-        var account = Program.accounts[(int) index];
+        var account = Program.accounts[(int)index];
         using var addAccountForm = new AddAccountForm
         {
             Text = @"Modify Account",
@@ -244,15 +270,7 @@ public partial class MainForm : Form
         };
 
         addAccountForm.ShowDialog();
-        Program.mutex.WaitOne();
 
-        if (addAccountForm.finished)
-        {
-            Program.accounts[(int) index] = addAccountForm.account;
-            RefreshUI();
-        }
-
-        Program.mutex.ReleaseMutex();
     }
 
     private void MainForm_Deactivate(object sender, EventArgs e)
@@ -275,11 +293,10 @@ public partial class MainForm : Form
             _keepOpen = false;
         }
 
-        var isVisible = (Point p) =>
+        bool IsVisible(Point p)
         {
-            return Screen.AllScreens.Any(s =>
-                p.X < s.Bounds.Right && p.X > s.Bounds.Left && p.Y > s.Bounds.Top && p.Y < s.Bounds.Bottom);
-        };
+            return Screen.AllScreens.Any(s => p.X < s.Bounds.Right && p.X > s.Bounds.Left && p.Y > s.Bounds.Top && p.Y < s.Bounds.Bottom);
+        }
 
         var position = Cursor.Position;
 
@@ -293,12 +310,12 @@ public partial class MainForm : Form
             position.Y += 25;
         }
 
-        if (!isVisible(position))
+        if (!IsVisible(position))
         {
             position.Y = Cursor.Position.Y;
         }
 
-        if (!isVisible(position))
+        if (!IsVisible(position))
         {
             position.X = Screen.PrimaryScreen.Bounds.Width / 2;
             position.Y = Screen.PrimaryScreen.Bounds.Height / 2;
@@ -336,7 +353,7 @@ public partial class MainForm : Form
 
             return taskCompletionSource.Task;
         }
-        catch (Win32Exception e) when ((uint) e.ErrorCode == 0x80004005)
+        catch (Win32Exception e) when ((uint)e.ErrorCode == 0x80004005)
         {
             return Task.CompletedTask;
         }

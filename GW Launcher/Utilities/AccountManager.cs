@@ -49,6 +49,19 @@ public class AccountManager : IEnumerable<Account>, IDisposable
         }
     }
 
+    public Account? this[Guid guid]
+    {
+        get => _accounts.Find(account => account.guid == guid);
+        set
+        {
+            var index = _accounts.FindIndex(account => account.guid == guid);
+            if (index != -1 && value != null)
+            {
+                this[index] = value;
+            }
+        }
+    }
+
     void IDisposable.Dispose()
     {
         GC.SuppressFinalize(this);
@@ -111,7 +124,7 @@ public class AccountManager : IEnumerable<Account>, IDisposable
                 }
                 catch (Exception)
                 {
-                    var result = MessageBox.Show("Incorrect password.\n Restart launcher and try again.",
+                    MessageBox.Show("Incorrect password.\n Restart launcher and try again.",
                         @"GW Launcher - Invalid Password");
                     throw new Exception("Wrong password");
                 }
@@ -130,14 +143,17 @@ public class AccountManager : IEnumerable<Account>, IDisposable
             }
         }
 
-        foreach (var account in _accounts.Where(account => account.mods == null))
-        {
-            account.mods = new List<Mod>();
-        }
-
         foreach (var account in _accounts)
         {
             account.active = false;
+            if (account.guid == null)
+            {
+                account.guid = Guid.NewGuid();
+            }
+            if (account.mods == null)
+            {
+                account.mods = new List<Mod>();
+            }
         }
     }
 

@@ -5,16 +5,24 @@ namespace GW_Launcher.Forms;
 public partial class AddAccountForm : Form
 {
     public Account account;
-    public bool finished;
 
     public AddAccountForm()
     {
         account = new Account();
         InitializeComponent();
     }
-
+    protected override void OnFormClosing(FormClosingEventArgs e)
+    {
+        SaveAccount();
+        base.OnFormClosing(e);
+    }
     private void ButtonDone_Click(object sender, EventArgs e)
     {
+        SaveAccount();
+    }
+    private void SaveAccount()
+    {
+
         account.title = textBoxTitle.Text;
         account.email = textBoxEmail.Text;
         account.password = textBoxPassword.Text;
@@ -22,9 +30,7 @@ public partial class AddAccountForm : Form
         account.gwpath = textBoxPath.Text;
         account.elevated = checkBoxElevated.Checked;
         account.extraargs = textBoxExtraArguments.Text;
-
-        finished = true;
-        Close();
+        MainForm.OnAccountSaved(account);
     }
 
     private void AddAccountForm_Load(object sender, EventArgs e)
@@ -43,10 +49,10 @@ public partial class AddAccountForm : Form
         var openFileDialog = new OpenFileDialog();
 
         var pathdefault =
-            (string?) Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\ArenaNet\\Guild Wars", "Path", null);
+            (string?)Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\ArenaNet\\Guild Wars", "Path", null);
         if (pathdefault == null)
         {
-            pathdefault = (string?) Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\ArenaNet\\Guild Wars",
+            pathdefault = (string?)Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\ArenaNet\\Guild Wars",
                 "Path", null);
             if (pathdefault == null)
             {

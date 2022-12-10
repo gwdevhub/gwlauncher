@@ -10,6 +10,7 @@ internal static class Program
     public static Thread mainthread = null!;
     public static Mutex mutex = new();
     public static Mutex? gwlMutex;
+    private static bool _gotMutex;
     public static GlobalSettings settings = GlobalSettings.Load();
 
     [DllImport("user32.dll", EntryPoint = "SetWindowText", CharSet = CharSet.Unicode)]
@@ -54,12 +55,25 @@ internal static class Program
         try
         {
             accounts = new AccountManager("Accounts.json");
-            settings.Save();
         }
-        catch (Exception)
+        catch (Exception e)
         {
             MessageBox.Show(@"Couldn't load account information, there might be an error in the .json.
-GW Launcher will close.");
+GW Launcher will close.
+" + e.Message);
+            gwlMutex.Close();
+            return;
+        }
+
+        try
+        {
+            settings.Save();
+        }
+        catch (Exception e)
+        {
+            MessageBox.Show(@"Couldn't save settings to Settings.json.
+GW Launcher will close.
+" + e.Message);
             gwlMutex.Close();
             return;
         }
@@ -71,17 +85,17 @@ GW Launcher will close.");
         }
 
         using var mainForm = new MainForm();
+        mainForm.FormClosed += (_, _) => { shouldClose = true; };
 
         mainthread = new Thread(() =>
         {
-            mainForm.FormClosed += (_, _) => { shouldClose = true; };
             while (!shouldClose)
             {
-                bool mutexAcquired;
+                UnlockMutex();
                 while (mainForm.needtolaunch.Any())
                 {
-                    mutexAcquired = mutex.WaitOne(1000);
-                    if (!mutexAcquired) break;
+                    UnlockMutex();
+                    if (!LockMutex()) break;
                     var i = mainForm.needtolaunch.Dequeue();
                     var account = accounts[i];
                     if (!File.Exists(account.gwpath))
@@ -91,7 +105,8 @@ GW Launcher will close.");
                     }
                     switch (account.active)
                     {
-                        case true when account.process != null && account.process.process.MainWindowHandle != IntPtr.Zero:
+                        case true when account.process != null &&
+                                       account.process.process.MainWindowHandle != IntPtr.Zero:
                             SetForegroundWindow(account.process.process.MainWindowHandle);
                             continue;
                         case true:
@@ -105,7 +120,7 @@ GW Launcher will close.");
                         continue;
                     }
 
-                    uint timelock = 0;
+                    var timelock = 0;
                     while (timelock++ < 10 && (memory.process.MainWindowHandle == IntPtr.Zero ||
                                                !memory.process.WaitForInputIdle(1000)))
                     {
@@ -132,14 +147,12 @@ GW Launcher will close.");
                     {
                         SetWindowText(memory.process.MainWindowHandle, account.Name);
                     }
-                    mutex.ReleaseMutex();
 
+                    UnlockMutex();
                     Thread.Sleep(1000);
                 }
 
-                mutexAcquired = mutex.WaitOne(1000);
-                if (!mutexAcquired) continue;
-
+                if (!LockMutex()) continue;
                 for (var i = 0; i < accounts.Length; i++)
                 {
                     if (!accounts[i].active)
@@ -156,8 +169,7 @@ GW Launcher will close.");
                     accounts[i].process = null;
                     mainForm.SetActive(i, false);
                 }
-
-                mutex.ReleaseMutex();
+                UnlockMutex();
 
                 Thread.Sleep(1000);
             }
@@ -165,7 +177,18 @@ GW Launcher will close.");
         Application.Run(mainForm);
     }
 
-
+    private static bool LockMutex()
+    {
+        if (_gotMutex) return true;
+        _gotMutex = mutex.WaitOne(1000);
+        return _gotMutex;
+    }
+    private static void UnlockMutex()
+    {
+        if (!_gotMutex) return;
+        mutex.ReleaseMutex();
+        _gotMutex = false;
+    }
     private static async Task CheckGitHubNewerVersion()
     {
         const string oldName = ".old.exe";
@@ -251,7 +274,9 @@ GW Launcher will close.");
 
         mutex.WaitOne();
         shouldClose = true;
-        if (!mainthread.Join(5000)) return;
+        if (mainthread.ThreadState == System.Threading.ThreadState.Running &&
+            !mainthread.Join(5000))
+            return;
         mutex.Close();
         gwlMutex?.Close();
 
