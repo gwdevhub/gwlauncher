@@ -17,9 +17,9 @@ public class GWCAMemory
 
     public Tuple<IntPtr, int> GetImageBase()
     {
-        var name = process.ProcessName;
         try
         {
+            var name = process.ProcessName;
             var modules = process.Modules;
             foreach (ProcessModule module in modules)
             {
@@ -30,7 +30,7 @@ public class GWCAMemory
                 }
             }
         }
-        catch (Win32Exception)
+        catch (Exception)
         {
         }
 
