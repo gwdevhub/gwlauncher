@@ -298,16 +298,17 @@ public partial class MainForm : Form
             return Screen.AllScreens.Any(s => p.X < s.Bounds.Right && p.X > s.Bounds.Left && p.Y > s.Bounds.Top && p.Y < s.Bounds.Bottom);
         }
 
-        var position = Cursor.Position;
+        var rect = NotifyIconHelper.GetIconRect(notifyIcon);
+        var position = new Point(rect.Left, rect.Top);
 
         position.X -= Width / 2;
         if (position.Y > SystemInformation.VirtualScreen.Height / 2)
         {
-            position.Y -= 25 + Height;
+            position.Y -= 5 + Height;
         }
         else
         {
-            position.Y += 25;
+            position.Y += 5;
         }
 
         if (!IsVisible(position))
