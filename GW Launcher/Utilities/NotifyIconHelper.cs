@@ -1,9 +1,4 @@
-﻿using System;
-using System.Reflection;
-using System.Windows.Forms;
-using System.Runtime.InteropServices;
-
-namespace GW_Launcher.Utilities;
+﻿namespace GW_Launcher.Utilities;
 
 sealed class NotifyIconHelper
 {
@@ -45,21 +40,21 @@ sealed class NotifyIconHelper
     [DllImport("shell32.dll", SetLastError = true)]
     private static extern int Shell_NotifyIconGetRect([In] ref NOTIFYICONIDENTIFIER identifier, [Out] out RECT iconLocation);
 
-    private static readonly FieldInfo windowField = typeof(NotifyIcon).GetField("window", BindingFlags.NonPublic | BindingFlags.Instance);
+    private static readonly FieldInfo? WindowField = typeof(NotifyIcon).GetField("window", BindingFlags.NonPublic | BindingFlags.Instance);
     private static IntPtr GetHandle(NotifyIcon icon)
     {
-        if (windowField == null) throw new InvalidOperationException("[Useful error message]");
-        NativeWindow window = windowField.GetValue(icon) as NativeWindow;
+        if (WindowField == null) throw new InvalidOperationException("[Useful error message]");
+        NativeWindow? window = WindowField.GetValue(icon) as NativeWindow;
 
         if (window == null) throw new InvalidOperationException("[Useful error message]");  // should not happen?
         return window.Handle;
     }
 
-    private static readonly FieldInfo idField = typeof(NotifyIcon).GetField("id", BindingFlags.NonPublic | BindingFlags.Instance);
+    private static readonly FieldInfo? IdField = typeof(NotifyIcon).GetField("id", BindingFlags.NonPublic | BindingFlags.Instance);
     private static int GetId(NotifyIcon icon)
     {
-        if (idField == null) throw new InvalidOperationException("[Useful error message]");
-        return Convert.ToInt32(idField.GetValue(icon));
+        if (IdField == null) throw new InvalidOperationException("[Useful error message]");
+        return Convert.ToInt32(IdField.GetValue(icon));
     }
 
 }

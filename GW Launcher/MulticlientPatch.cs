@@ -81,18 +81,17 @@ internal class MulticlientPatch
             Task.Run(() =>
             {
                 var timeout = 0;
-                while (!texClient.IsReady() && !Program.shouldClose && timeout++ < 50)
+                while (!texClient.IsReady() && !Program.shouldClose && timeout++ < 10)
                 {
                     Thread.Sleep(200);
                 }
 
                 foreach (var tex in ModManager.GetTexmods(path, account.mods))
                 {
-                    if (Program.shouldClose || timeout >= 50)
+                    if (Program.shouldClose || timeout >= 10)
                     {
-                        texClient.Dispose();
+                        break;
                     }
-
                     texClient.AddFile(tex);
                 }
 

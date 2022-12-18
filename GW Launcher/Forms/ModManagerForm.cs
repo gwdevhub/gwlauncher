@@ -75,7 +75,7 @@ public partial class ModManagerForm : Form
             return;
         }
 
-        Program.mutex.WaitOne();
+        if (!Program.mutex.WaitOne(10000)) return;
 
         foreach (var fileName in openFileDialog.FileNames)
         {
@@ -112,7 +112,7 @@ public partial class ModManagerForm : Form
 
     private void ToolStripMenuItemRemoveSelected_Click(object sender, EventArgs e)
     {
-        Program.mutex.WaitOne();
+        if (!Program.mutex.WaitOne(10000)) return;
         var list = listViewAvailableMods.SelectedIndices.Cast<int>().ToList().OrderByDescending(i => i);
         foreach (var index in list)
         {

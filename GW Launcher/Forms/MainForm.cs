@@ -335,10 +335,28 @@ public partial class MainForm : Form
             var tmpfile = Path.GetDirectoryName(client) + Path.DirectorySeparatorChar + "Gw.tmp";
             if (File.Exists(tmpfile))
             {
-                File.Delete(tmpfile);
+                try
+                {
+                    File.Delete(tmpfile);
+                }
+                catch (Exception)
+                {
+                    // ignored
+                }
             }
 
-            var process = Process.Start(client, "-image");
+            Process process = new()
+            {
+                StartInfo = new ProcessStartInfo()
+                {
+                    FileName = client,
+                    Arguments = "-image",
+                    UseShellExecute = true,
+                    Verb = "runas"
+                }
+            };
+            process.Start();
+
             var taskCompletionSource = new TaskCompletionSource<object>();
             process.EnableRaisingEvents = true;
             process.Exited += (_, _) => taskCompletionSource.TrySetResult(null!);
@@ -349,7 +367,14 @@ public partial class MainForm : Form
 
             if (File.Exists(tmpfile))
             {
-                File.Delete(tmpfile);
+                try
+                {
+                    File.Delete(tmpfile);
+                }
+                catch (Exception)
+                {
+                    // ignored
+                }
             }
 
             return taskCompletionSource.Task;
@@ -362,20 +387,13 @@ public partial class MainForm : Form
 
     private async void ToolStripMenuItemUpdateAllClients_Click(object sender, EventArgs e)
     {
-        if (!AdminAccess.HasAdmin())
-        {
-            if (!AdminAccess.RestartAsAdminPrompt())
-            {
-                return;
-            }
-        }
-
         var clients = Program.accounts.Select(account => account.gwpath).Distinct();
 
         foreach (var client in clients)
         {
             await RunClientUpdateAsync(client);
         }
+        MessageBox.Show(@"Updated!");
     }
 
     private delegate void SetActiveUICallback(int index, bool active);

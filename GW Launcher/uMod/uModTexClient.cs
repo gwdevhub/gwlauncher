@@ -171,7 +171,7 @@ public class uModTexClient : IDisposable
                 if (!SendAll())
                 {
                     MessageBox.Show(@"Failed to send textures");
-                    return false;
+                    break;
                 }
             }
 
