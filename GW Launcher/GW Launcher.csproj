@@ -2,7 +2,7 @@
 
 	<PropertyGroup>
 		<OutputType>WinExe</OutputType>
-		<TargetFramework>net6.0-windows</TargetFramework>
+		<TargetFramework>net7.0-windows</TargetFramework>
 		<RootNamespace>GW_Launcher</RootNamespace>
 		<Nullable>enable</Nullable>
 		<UseWindowsForms>true</UseWindowsForms>
@@ -20,11 +20,11 @@
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'">
-		<WarningLevel>5</WarningLevel>
+		<WarningLevel>7</WarningLevel>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'">
-		<WarningLevel>5</WarningLevel>
+		<WarningLevel>7</WarningLevel>
 	</PropertyGroup>
 
 	<ItemGroup>

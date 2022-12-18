@@ -5,16 +5,12 @@ sealed class NotifyIconHelper
 
     public static Rectangle GetIconRect(NotifyIcon icon)
     {
-        RECT rect = new RECT();
-        NOTIFYICONIDENTIFIER notifyIcon = new NOTIFYICONIDENTIFIER();
-
+        var notifyIcon = new NOTIFYICONIDENTIFIER();
         notifyIcon.cbSize = Marshal.SizeOf(notifyIcon);
-        //use hWnd and id of NotifyIcon instead of guid is needed
         notifyIcon.hWnd = GetHandle(icon);
         notifyIcon.uID = GetId(icon);
 
-        int hresult = Shell_NotifyIconGetRect(ref notifyIcon, out rect);
-        //rect now has the position and size of icon
+        Shell_NotifyIconGetRect(ref notifyIcon, out var rect);
 
         return new Rectangle(rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top);
     }
@@ -22,38 +18,38 @@ sealed class NotifyIconHelper
     [StructLayout(LayoutKind.Sequential)]
     private struct RECT
     {
-        public readonly Int32 left;
-        public readonly Int32 top;
-        public readonly Int32 right;
-        public readonly Int32 bottom;
+        public readonly int left;
+        public readonly int top;
+        public readonly int right;
+        public readonly int bottom;
     }
 
     [StructLayout(LayoutKind.Sequential)]
     private struct NOTIFYICONIDENTIFIER
     {
-        public Int32 cbSize;
+        public int cbSize;
         public IntPtr hWnd;
-        public Int32 uID;
-        public readonly Guid guidItem;
+        public int uID;
+        private readonly Guid guidItem;
     }
 
     [DllImport("shell32.dll", SetLastError = true)]
     private static extern int Shell_NotifyIconGetRect([In] ref NOTIFYICONIDENTIFIER identifier, [Out] out RECT iconLocation);
 
-    private static readonly FieldInfo? WindowField = typeof(NotifyIcon).GetField("window", BindingFlags.NonPublic | BindingFlags.Instance);
+    private static readonly FieldInfo? WindowField = typeof(NotifyIcon).GetField("_window", BindingFlags.NonPublic | BindingFlags.Instance);
     private static IntPtr GetHandle(NotifyIcon icon)
     {
-        if (WindowField == null) throw new InvalidOperationException("[Useful error message]");
+        if (WindowField == null) throw new InvalidOperationException("Can't find property _window of NotifyIcon");
         NativeWindow? window = WindowField.GetValue(icon) as NativeWindow;
 
         if (window == null) throw new InvalidOperationException("[Useful error message]");  // should not happen?
         return window.Handle;
     }
 
-    private static readonly FieldInfo? IdField = typeof(NotifyIcon).GetField("id", BindingFlags.NonPublic | BindingFlags.Instance);
+    private static readonly FieldInfo? IdField = typeof(NotifyIcon).GetField("_id", BindingFlags.NonPublic | BindingFlags.Instance);
     private static int GetId(NotifyIcon icon)
     {
-        if (IdField == null) throw new InvalidOperationException("[Useful error message]");
+        if (IdField == null) throw new InvalidOperationException("Can't find property _id of NotifyIcon");
         return Convert.ToInt32(IdField.GetValue(icon));
     }
 
