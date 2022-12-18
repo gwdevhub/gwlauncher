@@ -393,7 +393,8 @@ public partial class MainForm : Form
         {
             await RunClientUpdateAsync(client);
         }
-        MessageBox.Show(@"Updated!");
+
+        Show();
     }
 
     private delegate void SetActiveUICallback(int index, bool active);
