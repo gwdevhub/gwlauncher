@@ -249,7 +249,7 @@ public partial class MainForm : Form
             return;
         }
 
-        int? index = _selectedItems.Contains(listViewAccounts.FocusedItem.Index)
+        int? index = listViewAccounts.FocusedItem != null && _selectedItems.Contains(listViewAccounts.FocusedItem.Index)
             ? listViewAccounts.FocusedItem.Index
             : null;
         if (index == null && _selectedItems.Count > 0)
@@ -318,6 +318,7 @@ public partial class MainForm : Form
 
         if (!IsVisible(position))
         {
+            Debug.Assert(Screen.PrimaryScreen != null, "Screen.PrimaryScreen != null");
             position.X = Screen.PrimaryScreen.Bounds.Width / 2;
             position.Y = Screen.PrimaryScreen.Bounds.Height / 2;
         }
