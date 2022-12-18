@@ -121,7 +121,7 @@ GW Launcher will close.
                     }
 
                     var timelock = 0;
-                    while (timelock++ < 10 && (memory.process.MainWindowHandle == IntPtr.Zero ||
+                    while (timelock++ < 5 && (memory.process.MainWindowHandle == IntPtr.Zero ||
                                                !memory.process.WaitForInputIdle(1000)))
                     {
                         Thread.Sleep(1000);
@@ -137,7 +137,7 @@ GW Launcher will close.
 
                     mainForm.SetActive(i, true);
                     GWMemory.FindAddressesIfNeeded(memory);
-                    while (memory.Read<ushort>(GWMemory.CharnamePtr) == 0 && timelock++ < 60)
+                    while (memory.Read<ushort>(GWMemory.CharnamePtr) == 0 && timelock++ < 5)
                     {
                         Thread.Sleep(1000);
                         memory.process.Refresh();
@@ -173,6 +173,7 @@ GW Launcher will close.
 
                 Thread.Sleep(1000);
             }
+            Application.Exit();
         });
         Application.Run(mainForm);
     }
