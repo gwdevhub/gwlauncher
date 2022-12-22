@@ -48,9 +48,8 @@ internal class MulticlientPatch
             texClient = new uModTexClient();
         }
 
-        var args =
-            $"-email \"{account.email}\" -password \"{account.password}\" -character \"{character}\" {account.extraargs}";
-
+        var args = $"-email \"{account.email}\" -password \"{account.password}\" -character \"{character}\" {account.extraargs}";
+        //var args = $"-email \"{account.email}\" -password \"{account.password}\" {account.extraargs}";
         PatchRegistry(path);
 
         var pId = LaunchClient(path, args, account.elevated, out var hThread);

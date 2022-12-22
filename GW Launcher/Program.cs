@@ -16,7 +16,7 @@ internal static class Program
 
     private static Queue<int> needtolaunch = new Queue<int>();
 
-    private static string command_arg_launch_account_name = "Demia Frelluis";
+    private static string command_arg_launch_account_name = "";
 
     [DllImport("user32.dll", EntryPoint = "SetWindowText", CharSet = CharSet.Unicode)]
     private static extern bool SetWindowText(IntPtr hwnd, string lpString);
@@ -54,7 +54,7 @@ internal static class Program
             while (!shouldClose)
             {
                 UnlockMutex();
-                while (needtolaunch.Any())
+                if (needtolaunch.Any())
                 {
                     UnlockMutex();
                     if (!LockMutex()) break;
