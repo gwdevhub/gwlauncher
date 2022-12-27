@@ -98,7 +98,8 @@ public partial class MainForm : Form
                 {
                     MessageBox.Show(
                         @"There is a running Guild Wars instance with a higher privilege level than GW Launcher currently has. Attempting to restart as Admin.");
-                    AdminAccess.RestartAsAdminPrompt(true);
+                    if (!AdminAccess.RestartAsAdminPrompt(true))
+                        return;
                 }
                 else
                 {
