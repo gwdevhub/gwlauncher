@@ -59,6 +59,7 @@ public partial class MainForm : Form
     {
         var padding = Width - listViewAccounts.Width;
         listViewAccounts.Items.Clear();
+        bool askedForAdmin = false;
 
         // Run through already open GW clients to see if accounts are already active.
         foreach (var process in Process.GetProcessesByName("Gw"))
@@ -87,13 +88,19 @@ public partial class MainForm : Form
             }
             catch (Win32Exception)
             {
-                if (!AdminAccess.HasAdmin())
+                if (!AdminAccess.HasAdmin() && !askedForAdmin)
                 {
-                    MessageBox.Show(
-                        @"There is a running Guild Wars instance with a higher privilege level than GW Launcher currently has. Attempting to restart as Admin.");
-                    AdminAccess.RestartAsAdminPrompt(true);
+                    DialogResult dialogResult = MessageBox.Show(
+                        @"There is a running Guild Wars instance with a higher privilege level than GW Launcher currently has. Do you want to restart as admin?", "", MessageBoxButtons.YesNo);
+                    
+                    if (dialogResult == DialogResult.Yes)
+                    {
+                        AdminAccess.RestartAsAdminPrompt(true);
+                    }
+
+                    askedForAdmin = true;
                 }
-                else
+                else if (AdminAccess.HasAdmin())
                 {
                     MessageBox.Show(
                         @"Can't read memory of an open Guild Wars instance. Launcher will close.");
