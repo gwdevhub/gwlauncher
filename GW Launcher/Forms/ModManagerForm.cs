@@ -79,7 +79,7 @@ public partial class ModManagerForm : Form
 
         foreach (var fileName in openFileDialog.FileNames)
         {
-            if (_account.mods.Any(m => Path.GetFileName(m.fileName) == Path.GetFileName(fileName)))
+            if (_account.mods.Any(m => Path.GetFullPath(m.fileName) == Path.GetFullPath(fileName)))
             {
                 continue;
             }
