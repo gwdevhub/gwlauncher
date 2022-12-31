@@ -324,7 +324,7 @@ public partial class MainForm : Form
         var position = Cursor.Position;
 
         position.X -= Width / 2;
-        if (position.Y > SystemInformation.VirtualScreen.Height / 2)
+        if (position.Y > Screen.FromPoint(Cursor.Position).WorkingArea.Height / 2)
         {
             position.Y -= 25 + Height;
         }
