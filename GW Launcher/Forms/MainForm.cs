@@ -303,7 +303,7 @@ public partial class MainForm : Form
         var position = new Point(rect.Left, rect.Top);
 
         position.X -= Width / 2;
-        if (position.Y > SystemInformation.VirtualScreen.Height / 2)
+        if (position.Y > Screen.FromPoint(Cursor.Position).WorkingArea.Height / 2)
         {
             position.Y -= 5 + Height;
         }
