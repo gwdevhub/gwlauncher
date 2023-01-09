@@ -1,4 +1,6 @@
 ﻿using GW_Launcher.Forms;
+using System;
+
 namespace GW_Launcher;
 
 internal static class Program
@@ -60,49 +62,69 @@ internal static class Program
                     if (!LockMutex()) break;
                     var i = needtolaunch.Dequeue();
                     var account = accounts[i];
+                    GWCAMemory? memory = null;
                     if (!File.Exists(account.gwpath))
                     {
                         MessageBox.Show(@"Path to the Guild Wars executable incorrect, aborting launch.");
                         continue;
                     }
-                    switch (account.active)
+                    if(account.active && account.process != null)
                     {
-                        case true when account.process != null && account.process.process.MainWindowHandle != IntPtr.Zero:
-                            SetForegroundWindow(account.process.process.MainWindowHandle);
-                            continue;
-                        case true:
-                            continue;
+                        memory = account.process;
                     }
-
-                    var memory = MulticlientPatch.LaunchClient(account);
-                    if (memory == null)
+                    if(memory == null)
                     {
+                        memory = MulticlientPatch.LaunchClient(account);
+                    }
+                    if (memory == null) {
                         MessageBox.Show(@"Failed to launch account.");
                         continue;
                     }
 
-                    uint timelock = 0;
-                    while (timelock++ < 10 && (memory.process.MainWindowHandle == IntPtr.Zero ||
-                                               !memory.process.WaitForInputIdle(1000)))
-                    {
-                        Thread.Sleep(1000);
+                    uint timeout = 0;
+                    bool ok = false;
+
+                    for(timeout = 0; timeout < 10 && !ok; timeout++) {
+                        ok = memory.process.MainWindowHandle != IntPtr.Zero;
+                        if(!ok) Thread.Sleep(1000);
                         memory.process.Refresh();
                     }
-
-                    if (timelock >= 10)
-                    {
+                    if(!ok) {
+                        MessageBox.Show(@"Failed to wait for MainWindowHandle after " +timeout +" seconds.");
+                        memory.process.Kill();
                         continue;
                     }
+
+                    for (timeout = 0; timeout < 10 && !ok; timeout++)
+                    {
+                        ok = memory.process.WaitForInputIdle(1000);
+                        if (!ok) Thread.Sleep(1000);
+                        memory.process.Refresh();
+                    }
+                    if (!ok) {
+                        MessageBox.Show(@"Failed to wait for WaitForInputIdle after "+ timeout +" seconds.");
+                        memory.process.Kill();
+                        continue;
+                    }
+
+                    SetForegroundWindow(memory.process.MainWindowHandle);
 
                     account.process = memory;
 
                     if(mainForm != null)
                         mainForm.SetActive(i, true);
                     GWMemory.FindAddressesIfNeeded(memory);
-                    while (memory.Read<ushort>(GWMemory.CharnamePtr) == 0 && timelock++ < 60)
+                    for (timeout = 0; timeout < 20 && !ok; timeout++)
                     {
-                        Thread.Sleep(1000);
+                        ok = memory.Read<ushort>(GWMemory.CharnamePtr) != 0;
+                        if (!ok) Thread.Sleep(1000);
                         memory.process.Refresh();
+                    }
+                    if (!ok)
+                    {
+                        MessageBox.Show(@"Failed to wait for CharnamePtr after " + timeout + " seconds.");
+                        memory.process.Kill();
+                        continue;
                     }
 
                     if (memory.process.MainWindowTitle == "Guild Wars")

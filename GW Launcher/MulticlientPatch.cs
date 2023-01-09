@@ -1,5 +1,6 @@
 ﻿using GW_Launcher.uMod;
 using Microsoft.Win32;
+using static GW_Launcher.Memory.GWCAMemory;
 
 namespace GW_Launcher;
 
@@ -32,6 +33,9 @@ internal class MulticlientPatch
     {
         var path = account.gwpath;
         var character = " ";
+        var error = "";
+        Process? process = null;
+        GWCAMemory? memory = null;
         if (!string.IsNullOrEmpty(account.character))
         {
             character = account.character;
@@ -55,53 +59,80 @@ internal class MulticlientPatch
         var pId = LaunchClient(path, args, account.elevated, out var hThread);
         if (pId == 0)
         {
-            return null;
+            error = "Failed to run LaunchClient, last error = " + Marshal.GetLastWin32Error();
+            goto finish_launch;
         }
-        var process = Process.GetProcessById(pId);
-
+        process = Process.GetProcessById(pId);
         if (!McPatch(process.Handle))
         {
             Debug.WriteLine("McPatch");
         }
 
-        var memory = new GWCAMemory(process);
+        memory = new GWCAMemory(process);
 
         foreach (var dll in ModManager.GetDlls(path, account.mods))
         {
-            memory.LoadModule(dll);
+            var res = memory.LoadModule(dll);
+            if(res != LoadModuleResult.SUCCESSFUL)
+            {
+                error = "Failed to load dll " + dll + " - LoadModuleResult " + res + " last error = " + Marshal.GetLastWin32Error();
+                goto finish_launch;
+            }
         }
-
         if (hThread != IntPtr.Zero)
         {
-            WinApi.ResumeThread(hThread);
-            WinApi.CloseHandle(hThread);
+            var winapi_res = (int)WinApi.ResumeThread(hThread);
+            if(winapi_res == -1)
+            {
+                error = "Failed to run WinApi.ResumeThread, last error = " + Marshal.GetLastWin32Error();
+                goto finish_launch;
+            }
+            winapi_res = (int) WinApi.CloseHandle(hThread);
+            if (winapi_res == -1)
+            {
+                error = "Failed to run WinApi.CloseHandle, last error = " + Marshal.GetLastWin32Error();
+                goto finish_launch;
+            }
         }
 
         if (texClient != null)
         {
             var timeout = 0;
-            while (!texClient.IsReady() && timeout++ < 50)
+            bool ok = false;
+            for (timeout = 0; timeout < 10 && !ok; timeout++)
             {
-                Thread.Sleep(200);
+                ok = texClient.IsReady();
+                if (!ok) Thread.Sleep(1000);
+                memory.process.Refresh();
             }
+            if (!ok)
+            {
+                error = "Failed to wait for uMod Client after " + timeout + " seconds.";
+                goto finish_launch;
+            }
+            //texClient.Dispose();
 
             foreach (var tex in ModManager.GetTexmods(path, account.mods))
             {
-                if (timeout >= 50)
-                {
-                    texClient.Dispose();
-                }
-
                 texClient.AddFile(tex);
             }
 
             texClient.Send();
-            texClient.Dispose();
-
-            GC.Collect(2, GCCollectionMode.Optimized); // force garbage collection
         }
 
+        finish_launch:
+        if (error.Length > 0) {
+            // Error occurred
+            MessageBox.Show(error);
+            if (process != null)
+                process.Kill();
+            memory = null;
+        }
+        if (texClient != null)
+            texClient.Dispose();
+        GC.Collect(2, GCCollectionMode.Optimized); // force garbage collection
         return memory;
+
     }
 
     internal static GWCAMemory LaunchClient(string path)
