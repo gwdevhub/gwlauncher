@@ -186,14 +186,16 @@ public class uModTexClient : IDisposable
         }
 
         var success = SendAll();
-        if (success)
+        if (!success)
         {
-            foreach (var bundle in _bundles)
-            {
-                bundle.Dispose();
-            }
-            _bundles.Clear();
+            return success;
         }
+        
+        foreach (var bundle in _bundles)
+        {
+            bundle.Dispose();
+        }
+        _bundles.Clear();
 
         return success;
     }
@@ -229,9 +231,9 @@ public class uModTexClient : IDisposable
             _packets.Clear();
             Thread.Sleep(100);
         }
-        catch (Exception)
+        catch (Exception e)
         {
-            Program.shouldClose = true;
+            MessageBox.Show(e.ToString());
         }
 
         // TODO: this should work... find out why it doesn't and possibly fix umods d3d9.dll
