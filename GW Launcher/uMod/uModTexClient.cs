@@ -178,7 +178,8 @@ Textures with 64 bit hashes containing (0x1234567812345678) are not supported. P
                 AddMessage(loadmoreMsg, Array.Empty<byte>());
                 if (!SendAll())
                 {
-                    MessageBox.Show(@"Failed to send textures");
+                    MessageBox.Show(@"Failed to send textures, did the game perhaps restart when you launch it?
+Please manually update the guild wars instance and try again.");
                     break;
                 }
             }
