@@ -140,8 +140,16 @@ public class uModTexClient : IDisposable
             return;
         }
 
-        var bundle = new TexBundle(filePath);
-        _bundles.Add(bundle);
+        try
+        {
+            var bundle = new TexBundle(filePath);
+            _bundles.Add(bundle);
+        }
+        catch (OverflowException)
+        {
+            MessageBox.Show($@"Error adding bundle {filePath}.
+Textures with 64 bit hashes containing (0x1234567812345678) are not supported. Please only add texmods created with uMod r44 and under (0x12345678).");
+        }
     }
 
     public bool Send()
