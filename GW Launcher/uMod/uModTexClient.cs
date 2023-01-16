@@ -140,8 +140,16 @@ public class uModTexClient : IDisposable
             return;
         }
 
-        var bundle = new TexBundle(filePath);
-        _bundles.Add(bundle);
+        try
+        {
+            var bundle = new TexBundle(filePath);
+            _bundles.Add(bundle);
+        }
+        catch (OverflowException)
+        {
+            MessageBox.Show($@"Error adding bundle {filePath}.
+Textures with 64 bit hashes containing (0x1234567812345678) are not supported. Please only add texmods created with uMod r44 and under (0x12345678).");
+        }
     }
 
     public bool Send()
@@ -170,8 +178,9 @@ public class uModTexClient : IDisposable
                 AddMessage(loadmoreMsg, Array.Empty<byte>());
                 if (!SendAll())
                 {
-                    MessageBox.Show(@"Failed to send textures");
-                    return false;
+                    MessageBox.Show(@"Failed to send textures, did the game perhaps restart when you launch it?
+Please manually update the guild wars instance and try again.");
+                    break;
                 }
             }
 
@@ -186,14 +195,16 @@ public class uModTexClient : IDisposable
         }
 
         var success = SendAll();
-        if (success)
+        if (!success)
         {
-            foreach (var bundle in _bundles)
-            {
-                bundle.Dispose();
-            }
-            _bundles.Clear();
+            return success;
         }
+        
+        foreach (var bundle in _bundles)
+        {
+            bundle.Dispose();
+        }
+        _bundles.Clear();
 
         return success;
     }
@@ -229,9 +240,9 @@ public class uModTexClient : IDisposable
             _packets.Clear();
             Thread.Sleep(100);
         }
-        catch (Exception)
+        catch (Exception e)
         {
-            Program.shouldClose = true;
+            MessageBox.Show(e.ToString());
         }
 
         // TODO: this should work... find out why it doesn't and possibly fix umods d3d9.dll

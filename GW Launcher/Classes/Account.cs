@@ -29,7 +29,7 @@ public class Account
     public string title = "";
 
     [JsonIgnore]
-    public Guid guid = Guid.NewGuid();
+    public Guid? guid = Guid.NewGuid();
 
     public string Name
     {

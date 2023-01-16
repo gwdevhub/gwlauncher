@@ -31,11 +31,6 @@ internal class MulticlientPatch
     public static GWCAMemory? LaunchClient(Account account)
     {
         var path = account.gwpath;
-        var character = " ";
-        if (!string.IsNullOrEmpty(account.character))
-        {
-            character = account.character;
-        }
 
         uModTexClient? texClient = null;
 
@@ -45,7 +40,14 @@ internal class MulticlientPatch
         }
 
         var args =
-            $"-email \"{account.email}\" -password \"{account.password}\" -character \"{character}\" {account.extraargs}";
+            $"-email \"{account.email}\" -password \"{account.password}\"";
+        
+        if (!string.IsNullOrEmpty(account.character))
+        {
+            args += $" -character \"{account.character}\"";
+        }
+
+        args += $" {account.extraargs}";
 
         PatchRegistry(path);
 
@@ -79,18 +81,17 @@ internal class MulticlientPatch
             Task.Run(() =>
             {
                 var timeout = 0;
-                while (!texClient.IsReady() && !Program.shouldClose && timeout++ < 50)
+                while (!texClient.IsReady() && !Program.shouldClose && timeout++ < 10)
                 {
                     Thread.Sleep(200);
                 }
 
                 foreach (var tex in ModManager.GetTexmods(path, account.mods))
                 {
-                    if (Program.shouldClose || timeout >= 50)
+                    if (Program.shouldClose || timeout >= 10)
                     {
-                        texClient.Dispose();
+                        break;
                     }
-
                     texClient.AddFile(tex);
                 }
 

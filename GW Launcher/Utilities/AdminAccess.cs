@@ -15,7 +15,7 @@ internal static class AdminAccess
     {
         if (HasAdmin())
         {
-            return false;
+            return true;
         }
 
         // relaunch the application with admin rights
@@ -33,6 +33,7 @@ internal static class AdminAccess
             Program.shouldClose = true;
             Application.Exit();
             Process.Start(processInfo);
+            return false;
         }
         catch (Win32Exception)
         {
@@ -42,12 +43,7 @@ internal static class AdminAccess
                 Program.shouldClose = true;
                 Application.Exit();
             }
-            else
-            {
-                return false;
-            }
+            return true;
         }
-
-        return true;
     }
 }

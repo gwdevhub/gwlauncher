@@ -49,7 +49,7 @@ public class AccountManager : IEnumerable<Account>, IDisposable
         }
     }
 
-    public Account? this[Guid guid]
+    public Account? this[Guid? guid]
     {
         get => _accounts.Find(account => account.guid == guid);
         set
@@ -146,14 +146,8 @@ public class AccountManager : IEnumerable<Account>, IDisposable
         foreach (var account in _accounts)
         {
             account.active = false;
-            if (account.guid == null)
-            {
-                account.guid = Guid.NewGuid();
-            }
-            if (account.mods == null)
-            {
-                account.mods = new List<Mod>();
-            }
+            account.guid ??= Guid.NewGuid();
+            account.mods ??= new List<Mod>();
         }
     }
 

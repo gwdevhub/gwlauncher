@@ -75,11 +75,11 @@ public partial class ModManagerForm : Form
             return;
         }
 
-        Program.mutex.WaitOne();
+        if (!Program.mutex.WaitOne(10000)) return;
 
         foreach (var fileName in openFileDialog.FileNames)
         {
-            if (_account.mods.Any(m => Path.GetFileName(m.fileName) == Path.GetFileName(fileName)))
+            if (_account.mods.Any(m => Path.GetFullPath(m.fileName) == Path.GetFullPath(fileName)))
             {
                 continue;
             }
@@ -112,7 +112,7 @@ public partial class ModManagerForm : Form
 
     private void ToolStripMenuItemRemoveSelected_Click(object sender, EventArgs e)
     {
-        Program.mutex.WaitOne();
+        if (!Program.mutex.WaitOne(10000)) return;
         var list = listViewAvailableMods.SelectedIndices.Cast<int>().ToList().OrderByDescending(i => i);
         foreach (var index in list)
         {
