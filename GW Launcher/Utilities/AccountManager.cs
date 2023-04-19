@@ -137,7 +137,7 @@ public class AccountManager : IEnumerable<Account>, IDisposable
 
         foreach (var account in _accounts)
         {
-            account.active = false;
+            account.state = "Inactive";
         }
     }
 

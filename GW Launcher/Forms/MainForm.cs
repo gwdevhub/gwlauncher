@@ -87,7 +87,7 @@ public partial class MainForm : Form
                         continue;
                     }
 
-                    account.active = true;
+                    account.state = "Active";
                     account.process = memory;
                     break;
                 }
@@ -117,7 +117,7 @@ public partial class MainForm : Form
                 new[]
                 {
                     account.Name,
-                    account.active ? "Active" : "Inactive"
+                    account.state
                 },
                 "gw-icon"
             ));
@@ -141,17 +141,17 @@ public partial class MainForm : Form
         Height = Math.Max(Height, minHeight);
     }
 
-    public void SetActive(int index, bool active)
+    public void SetAccountState(int index, string state)
     {
         if (listViewAccounts.InvokeRequired)
         {
-            var callback = new SetActiveUICallback(SetActive);
-            Invoke(callback, index, active);
+            var callback = new SetActiveUICallback(SetAccountState);
+            Invoke(callback, index, state);
         }
         else
         {
-            Program.accounts[index].active = active;
-            listViewAccounts.Items[index].SubItems[1].Text = active ? "Active" : "Inactive";
+            Program.accounts[index].state = state;
+            listViewAccounts.Items[index].SubItems[1].Text = state;
         }
     }
 
@@ -172,7 +172,7 @@ public partial class MainForm : Form
         {
             return;
         }
-        Program.LaunchAccount(selectedItems[0]);
+        Program.QueueLaunch(selectedItems[0]);
     }
 
     private void ToolStripMenuItemLaunchSelected_Click(object sender, EventArgs e)
@@ -401,5 +401,5 @@ public partial class MainForm : Form
         }
     }
 
-    private delegate void SetActiveUICallback(int index, bool active);
+    private delegate void SetActiveUICallback(int index, string state);
 }

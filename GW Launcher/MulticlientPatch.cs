@@ -29,26 +29,24 @@ internal class MulticlientPatch
         return peb.ImageBaseAddress + 0x1000;
     }
 
-    public static GWCAMemory? LaunchClient(Account account)
+    public static string? LaunchClient(Account account, out GWCAMemory? memory_out)
     {
         var path = account.gwpath;
         var character = " ";
         var error = "";
         Process? process = null;
-        GWCAMemory? memory = null;
+        memory_out = null;
+        if (!File.Exists(path))
+            return $"Failed to find executable @ {path}";
         if (!string.IsNullOrEmpty(account.character))
-        {
             character = account.character;
-        }
 
         uModTexClient? texClient = null;
 
         if (ModManager.GetTexmods(account.gwpath, account.mods).Any())
         {
             if (Directory.GetFiles(@"\\.\pipe\", @"Game2uMod").Any())
-            {
                 MessageBox.Show(@"uMod may be running in the background. Textures may not load.");
-            }
             texClient = new uModTexClient();
         }
 
@@ -58,41 +56,36 @@ internal class MulticlientPatch
 
         var pId = LaunchClient(path, args, account.elevated, out var hThread);
         if (pId == 0)
-        {
-            error = "Failed to run LaunchClient, last error = " + Marshal.GetLastWin32Error();
-            goto finish_launch;
-        }
+            return "Failed to run LaunchClient, last error = " + Marshal.GetLastWin32Error();
         process = Process.GetProcessById(pId);
         if (!McPatch(process.Handle))
-        {
             Debug.WriteLine("McPatch");
+
+        GWCAMemory memory = new GWCAMemory(process);
+        if (Control.ModifierKeys.HasFlag(Keys.Shift))
+        {
+            DialogResult result = MessageBox.Show("Guild Wars is in a suspended state, plugins are not yet loaded.\n\nContinue?", "Launching paused", MessageBoxButtons.OKCancel);
+            if (result == DialogResult.Cancel)
+                return "Launch was cancelled";
         }
-
-        memory = new GWCAMemory(process);
-
         foreach (var dll in ModManager.GetDlls(path, account.mods))
         {
             var res = memory.LoadModule(dll);
             if(res != LoadModuleResult.SUCCESSFUL)
-            {
-                error = "Failed to load dll " + dll + " - LoadModuleResult " + res + " last error = " + Marshal.GetLastWin32Error();
-                goto finish_launch;
-            }
+                return "Failed to load dll " + dll + " - LoadModuleResult " + res + " last error = " + Marshal.GetLastWin32Error();
+        }
+        if (Control.ModifierKeys.HasFlag(Keys.Shift))
+        {
+            DialogResult result = MessageBox.Show("Guild Wars is in a suspended state, plugins have been loaded.\n\nContinue?", "Launching paused", MessageBoxButtons.OKCancel);
+            if (result == DialogResult.Cancel)
+                return "Launch was cancelled";
         }
         if (hThread != IntPtr.Zero)
         {
-            var winapi_res = (int)WinApi.ResumeThread(hThread);
-            if(winapi_res == -1)
-            {
-                error = "Failed to run WinApi.ResumeThread, last error = " + Marshal.GetLastWin32Error();
-                goto finish_launch;
-            }
-            winapi_res = (int) WinApi.CloseHandle(hThread);
-            if (winapi_res == -1)
-            {
-                error = "Failed to run WinApi.CloseHandle, last error = " + Marshal.GetLastWin32Error();
-                goto finish_launch;
-            }
+            if(WinApi.ResumeThread(hThread) == 0xfffffffe)
+                return "Failed to run WinApi.ResumeThread, last error = " + Marshal.GetLastWin32Error();
+            if ((int)WinApi.CloseHandle(hThread) == -1)
+                return "Failed to run WinApi.CloseHandle, last error = " + Marshal.GetLastWin32Error();
         }
 
         if (texClient != null)
@@ -126,12 +119,13 @@ internal class MulticlientPatch
             MessageBox.Show(error);
             if (process != null)
                 process.Kill();
-            memory = null;
         }
         if (texClient != null)
             texClient.Dispose();
         GC.Collect(2, GCCollectionMode.Optimized); // force garbage collection
-        return memory;
+
+        memory_out = memory;
+        return null;
 
     }
 

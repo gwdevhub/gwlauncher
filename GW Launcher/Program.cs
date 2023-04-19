@@ -1,5 +1,7 @@
 ﻿using GW_Launcher.Forms;
+using GW_Launcher.Memory;
 using System;
+using System.Xml.Linq;
 
 namespace GW_Launcher;
 
@@ -27,6 +29,109 @@ internal static class Program
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool SetForegroundWindow(IntPtr hWnd);
 
+    static bool IsProcessOpen(string name)
+    {
+        foreach (Process clsProcess in Process.GetProcesses()) {
+            if (clsProcess.ProcessName.Contains(name))
+                return true;
+        }
+        return false;
+    }
+
+    static bool WaitFor(Func<bool> test_func,uint timeout_ms = 10000)
+    {
+        uint elapsed = 0;
+        bool ok = test_func();
+
+        while(!ok)
+        {
+            if (elapsed > timeout_ms)
+                break;
+            Thread.Sleep(200);
+            elapsed += 200;
+            ok = test_func();
+        }
+        return ok;
+    }
+
+    internal static string? LaunchAccount(string account_name)
+    {
+        int found = accounts.FindByName(account_name);
+        if (found == -1)
+            return "Failed to find account for " + account_name;
+        return LaunchAccount(found);
+    }
+    static Account? GetAccountByIndex(int account_index)
+    {
+        return accounts[account_index];
+    }
+    static string GetAccountName(int account_index)
+    {
+        var account = GetAccountByIndex(account_index);
+        return account == null ? "" : account.Name;
+    }
+
+    internal static string? LaunchAccount(int account_index)
+    {
+        var account = GetAccountByIndex(account_index);
+        var previous_state = account.state;
+        mainForm?.SetAccountState(account_index, "Launching");
+        GWCAMemory? memory = null;
+        if (!File.Exists(account.gwpath))
+            return "Path to the Guild Wars executable incorrect, aborting launch.";
+        if (account.process != null)
+            memory = account.process;
+        if (memory == null)
+        {
+            if (IsProcessOpen(account.gwpath))
+                return "The Guild Wars executable at " + account.gwpath + " is already running";
+            var res = MulticlientPatch.LaunchClient(account, out memory);
+            if (res != null)
+                return res;
+        }
+        if (memory == null)
+            return "Failed to launch account.";
+
+        uint timeout = 10000;
+        bool ok = WaitFor(() => {
+            memory.process.Refresh();
+            return memory.process.MainWindowHandle != IntPtr.Zero;
+        }, timeout);
+        if (!ok)
+        {
+            memory.process.Kill();
+            return "Failed to wait for MainWindowHandle after " + (timeout / 1000) + " seconds.";
+        }
+        ok = WaitFor(() => {
+            memory.process.Refresh();
+            return memory.process.WaitForInputIdle(1000);
+        }, timeout);
+        if (!ok)
+        {
+            memory.process.Kill();
+            return "Failed to wait for WaitForInputIdle after " + (timeout / 1000) + " seconds.";
+        }
+
+        SetForegroundWindow(memory.process.MainWindowHandle);
+
+        account.process = memory;
+
+        GWMemory.FindAddressesIfNeeded(memory);
+        ok = WaitFor(() => {
+            return memory.Read<ushort>(GWMemory.CharnamePtr) != 0;
+        }, timeout);
+        if (!ok)
+        {
+            memory.process.Kill();
+            return "Failed to wait for CharnamePtr after " + (timeout / 1000) + " seconds.";
+        }
+
+        if (memory.process.MainWindowTitle == "Guild Wars")
+        {
+            SetWindowText(memory.process.MainWindowHandle, account.Name);
+        }
+        return null;
+    }
     [STAThread]
     internal static void Main()
     {
@@ -58,101 +163,35 @@ internal static class Program
                 UnlockMutex();
                 if (needtolaunch.Any())
                 {
-                    UnlockMutex();
                     if (!LockMutex()) break;
-                    var i = needtolaunch.Dequeue();
-                    var account = accounts[i];
-                    GWCAMemory? memory = null;
-                    if (!File.Exists(account.gwpath))
+                    var account_name = GetAccountName(needtolaunch.Dequeue());
+
+                    var res = LaunchAccount(account_name);
+                    UnlockMutex();
+                    if (res != null)
                     {
-                        MessageBox.Show(@"Path to the Guild Wars executable incorrect, aborting launch.");
-                        continue;
+                        MessageBox.Show(@"Failed to launch account " + account_name + "\n" + res);
                     }
-                    if(account.active && account.process != null)
-                    {
-                        memory = account.process;
-                    }
-                    if(memory == null)
-                    {
-                        memory = MulticlientPatch.LaunchClient(account);
-                    }
-                    if (memory == null) {
-                        MessageBox.Show(@"Failed to launch account.");
-                        continue;
-                    }
-
-                    uint timeout = 0;
-                    bool ok = false;
-
-                    for(timeout = 0; timeout < 10 && !ok; timeout++) {
-                        ok = memory.process.MainWindowHandle != IntPtr.Zero;
-                        if(!ok) Thread.Sleep(1000);
-                        memory.process.Refresh();
-                    }
-                    if(!ok) {
-                        MessageBox.Show(@"Failed to wait for MainWindowHandle after " +timeout +" seconds.");
-                        memory.process.Kill();
-                        continue;
-                    }
-
-                    for (timeout = 0; timeout < 10 && !ok; timeout++)
-                    {
-                        ok = memory.process.WaitForInputIdle(1000);
-                        if (!ok) Thread.Sleep(1000);
-                        memory.process.Refresh();
-                    }
-                    if (!ok) {
-                        MessageBox.Show(@"Failed to wait for WaitForInputIdle after "+ timeout +" seconds.");
-                        memory.process.Kill();
-                        continue;
-                    }
-
-                    SetForegroundWindow(memory.process.MainWindowHandle);
-
-                    account.process = memory;
-
-                    if(mainForm != null)
-                        mainForm.SetActive(i, true);
-                    GWMemory.FindAddressesIfNeeded(memory);
-                    for (timeout = 0; timeout < 20 && !ok; timeout++)
-                    {
-                        ok = memory.Read<ushort>(GWMemory.CharnamePtr) != 0;
-                        if (!ok) Thread.Sleep(1000);
-                        memory.process.Refresh();
-                    }
-                    if (!ok)
-                    {
-                        MessageBox.Show(@"Failed to wait for CharnamePtr after " + timeout + " seconds.");
-                        memory.process.Kill();
-                        continue;
-                    }
-
-                    if (memory.process.MainWindowTitle == "Guild Wars")
-                    {
-                        SetWindowText(memory.process.MainWindowHandle, account.Name);
-                    }
-                    
-
-                    Thread.Sleep(1000);
                 }
+                
                 if (!LockMutex()) continue;
 
-                for (var i = 0; i < accounts.Length; i++)
+                for (var i = 0; mainForm != null && i < accounts.Length; i++)
                 {
-                    if (!accounts[i].active)
-                    {
-                        continue;
-                    }
-
+                    var state = "Inactive";
                     var gwcaMemory = accounts[i].process;
-                    if (gwcaMemory != null && !gwcaMemory.process.HasExited)
+                    if (gwcaMemory != null && gwcaMemory.process != null && !gwcaMemory.process.HasExited)
                     {
-                        continue;
+                        state = "Active";
                     }
-
-                    accounts[i].process = null;
-                    if(mainForm != null)
-                        mainForm.SetActive(i, false);
+                    if (state != "Active" && accounts[i].process != null)
+                    {
+                        accounts[i].process = null;
+                    }
+                    if (accounts[i].state != state)
+                    {
+                        mainForm?.SetAccountState(i, state);
+                    }
                 }
 
                 UnlockMutex();
@@ -167,9 +206,10 @@ internal static class Program
 
         if (command_arg_launch_account_name.Length > 0)
         {
-            if(!LaunchAccount(command_arg_launch_account_name))
+            var res = LaunchAccount(command_arg_launch_account_name);
+            if (res != null)
             {
-                MessageBox.Show(@"Failed to launch account " + command_arg_launch_account_name);
+                MessageBox.Show(@"Failed to launch account " + command_arg_launch_account_name+"\n"+ res);
             }
             Cleanup();
             return;
@@ -188,16 +228,16 @@ internal static class Program
         mainForm.FormClosed += (_, _) => { shouldClose = true; };
         Application.Run(mainForm);
     }
-    public static bool LaunchAccount(int index)
+    public static bool QueueLaunch(int index)
     {
         if (index < 0 || accounts.Length <= index)
             return false;
         needtolaunch.Enqueue(index);
         return true;
     }
-    public static bool LaunchAccount(string name)
+    public static bool QueueLaunch(string name)
     {
-        return LaunchAccount(accounts.FindByName(name));
+        return QueueLaunch(accounts.FindByName(name));
     }
     private static void Cleanup()
     {

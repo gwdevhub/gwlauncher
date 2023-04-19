@@ -2,7 +2,7 @@
 
 public class Account
 {
-    [JsonIgnore] public bool active;
+    [JsonIgnore] public string state = "Inactive";
 
     [JsonRequired] public string character = "";
 
