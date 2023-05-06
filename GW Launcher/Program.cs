@@ -161,7 +161,7 @@ GW Launcher will close.
                     }
 
                     var gwcaMemory = accounts[i].process;
-                    if (gwcaMemory != null && !gwcaMemory.process.HasExited)
+                    if (gwcaMemory is {process.HasExited: false})
                     {
                         continue;
                     }
