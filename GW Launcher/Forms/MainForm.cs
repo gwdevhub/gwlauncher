@@ -187,17 +187,7 @@ public partial class MainForm : Form
     private void ToolStripMenuItemAddNew_Click(object sender, EventArgs e)
     {
         using var gui = new AddAccountForm();
-        if (gui.ShowDialog() is not (DialogResult.Yes or DialogResult.OK)) return;
-        Program.mutex.WaitOne();
-        var account = gui.account;
-        if (account.email != null)
-        {
-            Program.accounts.Add(account);
-            Program.accounts.Save();
-            RefreshUI();
-        }
-
-        Program.mutex.ReleaseMutex();
+        gui.ShowDialog();
     }
 
     private void ToolStripMenuItemRemoveSelected_Click(object sender, EventArgs e)
