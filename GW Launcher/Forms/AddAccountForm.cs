@@ -18,7 +18,6 @@ public partial class AddAccountForm : Form
     }
     private void SaveAccount()
     {
-
         account.title = textBoxTitle.Text;
         account.email = textBoxEmail.Text;
         account.password = textBoxPassword.Text;
