@@ -50,7 +50,7 @@ public partial class MainForm : Form
         if (!_allowVisible)
         {
             value = false;
-            if (!this.IsHandleCreated) CreateHandle();
+            if (!IsHandleCreated) CreateHandle();
         }
         base.SetVisibleCore(value);
     }
@@ -275,14 +275,7 @@ public partial class MainForm : Form
     private void NotifyIcon_MouseClick(object sender, MouseEventArgs e)
     {
         _allowVisible = true;
-        if (e.Button == MouseButtons.Right && Visible == false)
-        {
-            _keepOpen = true;
-        }
-        else
-        {
-            _keepOpen = false;
-        }
+        _keepOpen = e.Button == MouseButtons.Right && Visible == false;
 
         bool IsVisible(Point p)
         {
@@ -291,6 +284,8 @@ public partial class MainForm : Form
 
         var rect = NotifyIconHelper.GetIconRect(notifyIcon);
         var position = new Point(rect.Left, rect.Top);
+
+        RefreshUI();
 
         position.X -= Width / 2;
         if (position.Y > Screen.FromPoint(Cursor.Position).WorkingArea.Height / 2)
