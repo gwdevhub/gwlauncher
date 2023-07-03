@@ -13,8 +13,8 @@
 		<Platforms>x86;AnyCPU</Platforms>
 		<PlatformTarget>x86</PlatformTarget>
 		<DebugType>portable</DebugType>
-		<AssemblyVersion>13.9</AssemblyVersion>
-		<FileVersion>13.9</FileVersion>
+		<AssemblyVersion>13.10</AssemblyVersion>
+		<FileVersion>13.10</FileVersion>
 		<Copyright>2015-2023 GregLando113</Copyright>
 		<EnforceCodeStyleInBuild>True</EnforceCodeStyleInBuild>
 	</PropertyGroup>
@@ -45,7 +45,7 @@
 
 	<ItemGroup>
 		<PackageReference Include="DotNetZip" Version="1.16.0" />
-		<PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
 		<PackageReference Include="Octokit" Version="0.51.0" />
 	</ItemGroup>
 

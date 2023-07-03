@@ -137,16 +137,28 @@ GW Launcher will close.
 
                     mainForm.SetActive(i, true);
                     GWMemory.FindAddressesIfNeeded(memory);
-                    while (memory.Read<ushort>(GWMemory.CharnamePtr) == 0 && timelock++ < 5)
-                    {
-                        Thread.Sleep(1000);
-                        memory.process.Refresh();
-                    }
 
-                    if (memory.process.MainWindowTitle == "Guild Wars")
+                    Task.Run(() =>
                     {
-                        SetWindowText(memory.process.MainWindowHandle, account.Name);
-                    }
+                        try
+                        {
+                            while (memory.Read<ushort>(GWMemory.CharnamePtr) == 0 && timelock++ < 5 ||
+                                   memory.process.MainWindowTitle != "Guild Wars")
+                            {
+                                Thread.Sleep(1000);
+                                memory.process.Refresh();
+                            }
+
+                            if (memory.process.MainWindowTitle == "Guild Wars")
+                            {
+                                SetWindowText(memory.process.MainWindowHandle, account.Name);
+                            }
+                        }
+                        catch (InvalidOperationException)
+                        {
+                            
+                        }
+                    });
 
                     UnlockMutex();
                     Thread.Sleep(1000);
