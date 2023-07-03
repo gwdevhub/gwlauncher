@@ -148,6 +148,8 @@ GW Launcher will close.
                                 Thread.Sleep(1000);
                                 memory.process.Refresh();
                             }
+                            Thread.Sleep(2000);
+                            memory.process.Refresh();
 
                             if (memory.process.MainWindowTitle == "Guild Wars")
                             {
