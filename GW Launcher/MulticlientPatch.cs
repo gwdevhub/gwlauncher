@@ -39,8 +39,7 @@ internal class MulticlientPatch
             texClient = new uModTexClient();
         }
 
-        var args =
-            $"-email \"{account.email}\" -password \"{account.password}\"";
+        var args = $"-email \"{account.email}\" -password \"{account.password}\"";
 
         if (!string.IsNullOrEmpty(account.character))
         {
