@@ -54,16 +54,16 @@ public class uModTexClient : IDisposable
     private readonly NamedPipeServerStream _pipeReceive;
     private readonly NamedPipeServerStream _pipeSend;
     private readonly IAsyncResult _receiveResult;
-    private IAsyncResult? _sendResult;
-    private bool _receiveConnected;
-    private bool _sendConnected;
 
     private bool _disposed;
+    private bool _receiveConnected;
+    private bool _sendConnected;
+    private IAsyncResult? _sendResult;
 
     public uModTexClient()
     {
         var sid = new SecurityIdentifier(WellKnownSidType.WorldSid, null);
-        var account = (NTAccount) sid.Translate(typeof(NTAccount));
+        var account = (NTAccount)sid.Translate(typeof(NTAccount));
         var rule = new PipeAccessRule(
             account.ToString(),
             PipeAccessRights.FullControl,
@@ -96,17 +96,9 @@ public class uModTexClient : IDisposable
 
             if (!_pipeSend.IsConnected)
             {
-                _sendResult = _pipeSend.BeginWaitForConnection(_ =>
-                {
-                    _sendConnected = true;
-                }, null);
+                _sendResult = _pipeSend.BeginWaitForConnection(_ => { _sendConnected = true; }, null);
             }
         }, null);
-    }
-
-    ~uModTexClient()
-    {
-        Dispose();
     }
 
     public void Dispose()
@@ -131,6 +123,11 @@ public class uModTexClient : IDisposable
         _pipeReceive.Dispose();
         _disposed = true;
         GC.SuppressFinalize(this);
+    }
+
+    ~uModTexClient()
+    {
+        Dispose();
     }
 
     public void AddFile(string filePath)
@@ -188,7 +185,7 @@ Please manually update the guild wars instance and try again.");
             {
                 hash = tex.crcHash,
                 msg = MsgControl.CONTROL_ADD_TEXTURE_DATA,
-                value = (uint) tex.fileData.Length
+                value = (uint)tex.fileData.Length
             };
             _hashes.Add(tex.crcHash);
             AddMessage(msg, tex.fileData);
@@ -199,11 +196,12 @@ Please manually update the guild wars instance and try again.");
         {
             return success;
         }
-        
+
         foreach (var bundle in _bundles)
         {
             bundle.Dispose();
         }
+
         _bundles.Clear();
 
         return success;
@@ -213,7 +211,7 @@ Please manually update the guild wars instance and try again.");
     {
         var packet = new byte[12 + data.Length];
 
-        var buf = BitConverter.GetBytes((uint) msg.msg);
+        var buf = BitConverter.GetBytes((uint)msg.msg);
         buf.CopyTo(packet, 0);
         buf = BitConverter.GetBytes(msg.value);
         buf.CopyTo(packet, 4);

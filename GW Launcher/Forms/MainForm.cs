@@ -5,14 +5,13 @@ namespace GW_Launcher.Forms;
 
 public partial class MainForm : Form
 {
-    public Queue<int> needtolaunch;
-
-    private bool _keepOpen;
+    private static MainForm? _instance;
     private bool _allowVisible;
 
-    private ListView.SelectedIndexCollection _selectedItems;
+    private bool _keepOpen;
 
-    private static MainForm? _instance;
+    private ListView.SelectedIndexCollection _selectedItems;
+    public Queue<int> needtolaunch;
 
     public MainForm()
     {
@@ -40,6 +39,7 @@ public partial class MainForm : Form
         {
             Program.accounts.Add(account);
         }
+
         Program.accounts.Save();
         Program.mutex.ReleaseMutex();
         _instance?.RefreshUI();
@@ -50,8 +50,12 @@ public partial class MainForm : Form
         if (!_allowVisible)
         {
             value = false;
-            if (!IsHandleCreated) CreateHandle();
+            if (!IsHandleCreated)
+            {
+                CreateHandle();
+            }
         }
+
         base.SetVisibleCore(value);
     }
 
@@ -92,7 +96,9 @@ public partial class MainForm : Form
                     MessageBox.Show(
                         @"There is a running Guild Wars instance with a higher privilege level than GW Launcher currently has. Attempting to restart as Admin.");
                     if (!AdminAccess.RestartAsAdminPrompt(true))
+                    {
                         return;
+                    }
                 }
                 else
                 {
@@ -261,7 +267,6 @@ public partial class MainForm : Form
         };
 
         addAccountForm.ShowDialog();
-
     }
 
     private void MainForm_Deactivate(object sender, EventArgs e)
@@ -279,7 +284,8 @@ public partial class MainForm : Form
 
         bool IsVisible(Point p)
         {
-            return Screen.AllScreens.Any(s => p.X < s.Bounds.Right && p.X > s.Bounds.Left && p.Y > s.Bounds.Top && p.Y < s.Bounds.Bottom);
+            return Screen.AllScreens.Any(s =>
+                p.X < s.Bounds.Right && p.X > s.Bounds.Left && p.Y > s.Bounds.Top && p.Y < s.Bounds.Bottom);
         }
 
         var rect = NotifyIconHelper.GetIconRect(notifyIcon);
@@ -334,7 +340,7 @@ public partial class MainForm : Form
 
             Process process = new()
             {
-                StartInfo = new ProcessStartInfo()
+                StartInfo = new ProcessStartInfo
                 {
                     FileName = client,
                     Arguments = "-image",

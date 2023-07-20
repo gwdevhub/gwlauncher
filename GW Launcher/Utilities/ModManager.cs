@@ -1,4 +1,5 @@
 ﻿using IWshRuntimeLibrary;
+using File = System.IO.File;
 
 namespace GW_Launcher.Utilities;
 
@@ -46,10 +47,10 @@ public class ModManager
         }
 
         dllsToLoad.AddRange(mods
-            .Where(mod => mod.type == ModType.kModTypeDLL && mod.active && System.IO.File.Exists(mod.fileName))
+            .Where(mod => mod.type == ModType.kModTypeDLL && mod.active && File.Exists(mod.fileName))
             .Select(mod => mod.fileName));
         texsToLoad.AddRange(mods
-            .Where(mod => mod.type == ModType.kModTypeTexmod && mod.active && System.IO.File.Exists(mod.fileName))
+            .Where(mod => mod.type == ModType.kModTypeTexmod && mod.active && File.Exists(mod.fileName))
             .Select(mod => mod.fileName));
 
         if (texsToLoad.Count > 0)
@@ -58,7 +59,9 @@ public class ModManager
         }
 
         return Tuple.Create(
-            dllsToLoad.Distinct().OrderByDescending(dllpath => dllpath == Path.Combine(Directory.GetCurrentDirectory(), "d3d9.dll")).ThenBy(Path.GetFileName),
+            dllsToLoad.Distinct()
+                .OrderByDescending(dllpath => dllpath == Path.Combine(Directory.GetCurrentDirectory(), "d3d9.dll"))
+                .ThenBy(Path.GetFileName),
             texsToLoad.Distinct().OrderBy(Path.GetFileName)
         );
     }
@@ -66,7 +69,7 @@ public class ModManager
     private static string GetShortcutPath(string path)
     {
         var shell = new WshShell();
-        var lnk = (IWshShortcut) shell.CreateShortcut(path);
+        var lnk = (IWshShortcut)shell.CreateShortcut(path);
 
         return lnk.TargetPath;
     }

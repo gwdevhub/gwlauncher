@@ -4,6 +4,8 @@ namespace GW_Launcher.uMod;
 
 public class ZipLoader : IDisposable
 {
+    private readonly Dictionary<string, byte[]> _contents = new();
+
     private readonly byte[] _tpfPassword =
     {
         0x73, 0x2A, 0x63, 0x7D, 0x5F, 0x0A, 0xA6, 0xBD,
@@ -67,7 +69,7 @@ public class ZipLoader : IDisposable
 
                 var addrstr = splits[0];
                 var path = splits[1];
-                while (path[0] == '.' && (path[1] == '/' || path[1] == '\\') || path[0] == '/' || path[0] == '\\')
+                while ((path[0] == '.' && (path[1] == '/' || path[1] == '\\')) || path[0] == '/' || path[0] == '\\')
                 {
                     path = path.Remove(0, 1);
                 }
@@ -114,7 +116,6 @@ public class ZipLoader : IDisposable
         }
     }
 
-    private readonly Dictionary<string, byte[]> _contents = new();
     public IReadOnlyDictionary<string, byte[]> Entries => _contents;
 
     public void Dispose()

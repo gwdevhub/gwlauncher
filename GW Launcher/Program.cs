@@ -1,4 +1,9 @@
 ﻿using GW_Launcher.Forms;
+using GW_Launcher.Properties;
+using Octokit;
+using Application = System.Windows.Forms.Application;
+using FileMode = System.IO.FileMode;
+using ThreadState = System.Threading.ThreadState;
 
 namespace GW_Launcher;
 
@@ -30,6 +35,7 @@ internal static class Program
         {
             return;
         }
+
         gwlMutex = new Mutex(true, GwlMutexName);
 
         if (settings.CheckForUpdates)
@@ -44,7 +50,7 @@ internal static class Program
             var filenameumod = Path.Combine(location, "d3d9.dll");
             try
             {
-                File.WriteAllBytes(filenameumod, Properties.Resources.d3d9);
+                File.WriteAllBytes(filenameumod, Resources.d3d9);
             }
             catch (Exception)
             {
@@ -95,7 +101,11 @@ GW Launcher will close.
                 while (mainForm.needtolaunch.Any())
                 {
                     UnlockMutex();
-                    if (!LockMutex()) break;
+                    if (!LockMutex())
+                    {
+                        break;
+                    }
+
                     var i = mainForm.needtolaunch.Dequeue();
                     var account = accounts[i];
                     if (!File.Exists(account.gwpath))
@@ -103,6 +113,7 @@ GW Launcher will close.
                         MessageBox.Show(@"Path to the Guild Wars executable incorrect, aborting launch.");
                         continue;
                     }
+
                     switch (account.active)
                     {
                         case true when account.process != null &&
@@ -122,7 +133,7 @@ GW Launcher will close.
 
                     var timelock = 0;
                     while (timelock++ < 5 && (memory.process.MainWindowHandle == IntPtr.Zero ||
-                                               !memory.process.WaitForInputIdle(1000)))
+                                              !memory.process.WaitForInputIdle(1000)))
                     {
                         Thread.Sleep(1000);
                         memory.process.Refresh();
@@ -142,12 +153,13 @@ GW Launcher will close.
                     {
                         try
                         {
-                            while (memory.Read<ushort>(GWMemory.CharnamePtr) == 0 && timelock++ < 5 ||
+                            while ((memory.Read<ushort>(GWMemory.CharnamePtr) == 0 && timelock++ < 5) ||
                                    memory.process.MainWindowTitle != "Guild Wars")
                             {
                                 Thread.Sleep(1000);
                                 memory.process.Refresh();
                             }
+
                             Thread.Sleep(2000);
                             memory.process.Refresh();
 
@@ -158,7 +170,6 @@ GW Launcher will close.
                         }
                         catch (InvalidOperationException)
                         {
-                            
                         }
                     });
 
@@ -166,7 +177,11 @@ GW Launcher will close.
                     Thread.Sleep(1000);
                 }
 
-                if (!LockMutex()) continue;
+                if (!LockMutex())
+                {
+                    continue;
+                }
+
                 for (var i = 0; i < accounts.Length; i++)
                 {
                     if (!accounts[i].active)
@@ -175,7 +190,7 @@ GW Launcher will close.
                     }
 
                     var gwcaMemory = accounts[i].process;
-                    if (gwcaMemory is {process.HasExited: false})
+                    if (gwcaMemory is { process.HasExited: false })
                     {
                         continue;
                     }
@@ -183,10 +198,12 @@ GW Launcher will close.
                     accounts[i].process = null;
                     mainForm.SetActive(i, false);
                 }
+
                 UnlockMutex();
 
                 Thread.Sleep(1000);
             }
+
             Application.Exit();
         });
         Application.Run(mainForm);
@@ -194,16 +211,26 @@ GW Launcher will close.
 
     private static bool LockMutex()
     {
-        if (_gotMutex) return true;
+        if (_gotMutex)
+        {
+            return true;
+        }
+
         _gotMutex = mutex.WaitOne(1000);
         return _gotMutex;
     }
+
     private static void UnlockMutex()
     {
-        if (!_gotMutex) return;
+        if (!_gotMutex)
+        {
+            return;
+        }
+
         mutex.ReleaseMutex();
         _gotMutex = false;
     }
+
     private static async Task CheckGitHubNewerVersion()
     {
         const string oldName = ".old.exe";
@@ -215,7 +242,7 @@ GW Launcher will close.
         }
 
         //Get all releases from GitHub
-        var client = new Octokit.GitHubClient(new Octokit.ProductHeaderValue("GWLauncher"));
+        var client = new GitHubClient(new ProductHeaderValue("GWLauncher"));
         var releases = await client.Repository.Release.GetAll("GregLando113", "gwlauncher");
 
         if (!releases.Any(r => !r.Prerelease && !r.Draft))
@@ -289,9 +316,12 @@ GW Launcher will close.
 
         mutex.WaitOne();
         shouldClose = true;
-        if (mainthread.ThreadState == System.Threading.ThreadState.Running &&
+        if (mainthread.ThreadState == ThreadState.Running &&
             !mainthread.Join(5000))
+        {
             return;
+        }
+
         mutex.Close();
         gwlMutex?.Close();
 
