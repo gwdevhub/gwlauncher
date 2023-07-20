@@ -1,4 +1,6 @@
-﻿namespace GW_Launcher.Forms;
+﻿using System.Windows.Forms.VisualStyles;
+
+namespace GW_Launcher.Forms;
 
 public partial class ModManagerForm : Form
 {
@@ -75,7 +77,10 @@ public partial class ModManagerForm : Form
             return;
         }
 
-        if (!Program.mutex.WaitOne(10000)) return;
+        if (!Program.mutex.WaitOne(10000))
+        {
+            return;
+        }
 
         foreach (var fileName in openFileDialog.FileNames)
         {
@@ -112,7 +117,11 @@ public partial class ModManagerForm : Form
 
     private void ToolStripMenuItemRemoveSelected_Click(object sender, EventArgs e)
     {
-        if (!Program.mutex.WaitOne(10000)) return;
+        if (!Program.mutex.WaitOne(10000))
+        {
+            return;
+        }
+
         var list = listViewAvailableMods.SelectedIndices.Cast<int>().ToList().OrderByDescending(i => i);
         foreach (var index in list)
         {
@@ -133,8 +142,7 @@ public partial class ModManagerForm : Form
 
             CheckBoxRenderer.DrawCheckBox(e.Graphics,
                 new Point(e.Bounds.Left + 4, e.Bounds.Top + 4),
-                allActive ? System.Windows.Forms.VisualStyles.CheckBoxState.CheckedNormal :
-                    System.Windows.Forms.VisualStyles.CheckBoxState.UncheckedNormal);
+                allActive ? CheckBoxState.CheckedNormal : CheckBoxState.UncheckedNormal);
         }
         else
         {
@@ -154,7 +162,10 @@ public partial class ModManagerForm : Form
 
     private void ListViewAvailableMods_ColumnClick(object sender, ColumnClickEventArgs e)
     {
-        if (e.Column != 0) return;
+        if (e.Column != 0)
+        {
+            return;
+        }
 
         var value = _account.mods.Any(a => a.active == false);
 

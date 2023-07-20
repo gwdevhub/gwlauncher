@@ -8,7 +8,7 @@ public class AccountManager : IEnumerable<Account>, IDisposable
     private readonly string _filePath = "Accounts.json";
 
     private readonly byte[] _salsaIv =
-        {0xc8, 0x93, 0x48, 0x45, 0xcf, 0xa0, 0xfa, 0x85, 0xc8, 0x93, 0x48, 0x45, 0xcf, 0xa0, 0xfa, 0x85};
+        { 0xc8, 0x93, 0x48, 0x45, 0xcf, 0xa0, 0xfa, 0x85, 0xc8, 0x93, 0x48, 0x45, 0xcf, 0xa0, 0xfa, 0x85 };
 
     private List<Account> _accounts = new();
     private byte[]? _cryptPass;
@@ -70,7 +70,7 @@ public class AccountManager : IEnumerable<Account>, IDisposable
 
     IEnumerator<Account> IEnumerable<Account>.GetEnumerator()
     {
-        return ((IEnumerable<Account>) _accounts).GetEnumerator();
+        return ((IEnumerable<Account>)_accounts).GetEnumerator();
     }
 
     IEnumerator IEnumerable.GetEnumerator()

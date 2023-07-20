@@ -16,6 +16,7 @@ public partial class AddAccountForm : Form
     {
         SaveAccount();
     }
+
     private void SaveAccount()
     {
         account.title = textBoxTitle.Text;

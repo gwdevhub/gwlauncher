@@ -142,7 +142,7 @@ public class GWCAMemory
             out _
         );
 
-        var ret = (T) Marshal.PtrToStructure(buffer, typeof(T))!;
+        var ret = (T)Marshal.PtrToStructure(buffer, typeof(T))!;
         Marshal.FreeHGlobal(buffer);
 
         return ret;
@@ -186,7 +186,7 @@ public class GWCAMemory
             return "";
         }
 
-        var ret = Encoding.Unicode.GetString(rawbytes);
+        var ret = Encoding.Default.GetString(rawbytes);
         if (ret.Contains('\0'))
         {
             ret = ret[..ret.IndexOf('\0')];
@@ -283,7 +283,7 @@ public class GWCAMemory
     /// </summary>
     /// <param name="signature">Group of bytes to match</param>
     /// <param name="offset">Offset from matched sig to pointer.</param>
-    /// <returns>Address found if sucessful, IntPtr.Zero if not.</returns>
+    /// <returns>Address found if successful, IntPtr.Zero if not.</returns>
     public IntPtr ScanForPtr(byte[] signature, int offset = 0, bool readptr = false)
     {
         bool match;
@@ -305,7 +305,7 @@ public class GWCAMemory
             // For sig size... check for matching signature.
             for (var sig = 0; sig < sig_length; ++sig)
             {
-                if (memory_dump[scan + sig] != signature[sig])
+                if (memory_dump[scan + sig] != signature[sig] && signature[sig] != 0x00)
                 {
                     match = false;
                     break;

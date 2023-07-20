@@ -41,7 +41,7 @@ internal class MulticlientPatch
 
         var args =
             $"-email \"{account.email}\" -password \"{account.password}\"";
-        
+
         if (!string.IsNullOrEmpty(account.character))
         {
             args += $" -character \"{account.character}\"";
@@ -56,6 +56,7 @@ internal class MulticlientPatch
         {
             return null;
         }
+
         var process = Process.GetProcessById(pId);
 
         if (!McPatch(process.Handle))
@@ -92,6 +93,7 @@ internal class MulticlientPatch
                     {
                         break;
                     }
+
                     texClient.AddFile(tex);
                 }
 

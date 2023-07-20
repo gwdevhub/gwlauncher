@@ -48,7 +48,7 @@ public class uModFile : IDisposable
 
         FileInMemory = new byte[FileLen];
 
-        var result = dat.Read(FileInMemory, 0, (int) FileLen);
+        var result = dat.Read(FileInMemory, 0, (int)FileLen);
 
         if (result != FileLen)
         {
@@ -99,7 +99,7 @@ public class uModFile : IDisposable
             FileInMemory[i] ^= xorbytes[0];
         }
 
-        var pos = (int) FileLen - 1;
+        var pos = (int)FileLen - 1;
         while (pos > 0u && FileInMemory[pos] != 0)
         {
             pos--;
@@ -122,7 +122,7 @@ public class uModFile : IDisposable
 
         if (Loaded)
         {
-            return FileInMemory[..(Index) FileLen];
+            return FileInMemory[..(Index)FileLen];
         }
 
         var ret = ReadFile();
@@ -136,6 +136,6 @@ public class uModFile : IDisposable
             UnXOR();
         }
 
-        return FileInMemory[..(Index) FileLen];
+        return FileInMemory[..(Index)FileLen];
     }
 }
