@@ -13,8 +13,8 @@
         <Platforms>x86;AnyCPU</Platforms>
         <PlatformTarget>x86</PlatformTarget>
         <DebugType>portable</DebugType>
-        <AssemblyVersion>13.11</AssemblyVersion>
-        <FileVersion>13.11</FileVersion>
+        <AssemblyVersion>13.12</AssemblyVersion>
+        <FileVersion>13.12</FileVersion>
         <Copyright>2015-2023 GregLando113</Copyright>
         <EnforceCodeStyleInBuild>True</EnforceCodeStyleInBuild>
     </PropertyGroup>
@@ -40,13 +40,13 @@
     </ItemGroup>
 
     <ItemGroup>
-        <Content Include="Resources\gw-icon.ico"/>
+        <Content Include="Resources\gw-icon.ico" />
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="DotNetZip" Version="1.16.0"/>
-        <PackageReference Include="Newtonsoft.Json" Version="13.0.3"/>
-        <PackageReference Include="Octokit" Version="0.51.0"/>
+        <PackageReference Include="DotNetZip" Version="1.16.0" />
+        <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+        <PackageReference Include="Octokit" Version="0.51.0" />
     </ItemGroup>
 
     <ItemGroup>
@@ -65,11 +65,11 @@
     </ItemGroup>
 
     <ItemGroup>
-        <Folder Include="Properties\PublishProfiles\"/>
+        <Folder Include="Properties\PublishProfiles\" />
     </ItemGroup>
 
     <ItemGroup>
-        <None Include=".editorconfig"/>
+        <None Include=".editorconfig" />
     </ItemGroup>
 
 </Project>
