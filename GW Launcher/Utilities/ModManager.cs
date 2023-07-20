@@ -47,10 +47,10 @@ public class ModManager
         }
 
         dllsToLoad.AddRange(mods
-            .Where(mod => mod.type == ModType.kModTypeDLL && mod.active && File.Exists(mod.fileName))
+            .Where(mod => mod is { type: ModType.kModTypeDLL, active: true } && File.Exists(mod.fileName))
             .Select(mod => mod.fileName));
         texsToLoad.AddRange(mods
-            .Where(mod => mod.type == ModType.kModTypeTexmod && mod.active && File.Exists(mod.fileName))
+            .Where(mod => mod is { type: ModType.kModTypeTexmod, active: true } && File.Exists(mod.fileName))
             .Select(mod => mod.fileName));
 
         if (texsToLoad.Count > 0)

@@ -76,7 +76,7 @@ public partial class MainForm : Form
             {
                 var memory = new GWCAMemory(process);
                 GWMemory.FindAddressesIfNeeded(memory);
-                var email = memory.ReadWString(GWMemory.EmailAddPtr, 64);
+                var email = memory.ReadWString(GWMemory.EmailAddPtr, 64, Encoding.Default);
                 foreach (var account in Program.accounts)
                 {
                     if (email != account.email)

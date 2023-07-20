@@ -154,7 +154,7 @@ public class GWCAMemory
     /// <param name="address">Address of base to read from.</param>
     /// <param name="size">Amount of bytes to read from base.</param>
     /// <returns>bytes read.</returns>
-    public byte[]? ReadBytes(IntPtr address, int size)
+    private byte[] ReadBytes(IntPtr address, int size)
     {
         var buffer = Marshal.AllocHGlobal(size);
 
@@ -177,16 +177,18 @@ public class GWCAMemory
     /// </summary>
     /// <param name="address">Address of string base.</param>
     /// <param name="maxsize">Max possible known size of string.</param>
+    /// <param name="encoding">Encoding of the string to be read.</param>
     /// <returns>String found.</returns>
-    public string ReadWString(IntPtr address, int maxsize)
+    public string ReadWString(IntPtr address, int maxsize, Encoding? encoding = null)
     {
+        encoding ??= Encoding.Unicode;
         var rawbytes = ReadBytes(address, maxsize);
-        if (rawbytes == null)
+        if (rawbytes.Length == 0)
         {
             return "";
         }
 
-        var ret = Encoding.Default.GetString(rawbytes);
+        var ret = encoding.GetString(rawbytes);
         if (ret.Contains('\0'))
         {
             ret = ret[..ret.IndexOf('\0')];
@@ -286,9 +288,8 @@ public class GWCAMemory
     /// <returns>Address found if successful, IntPtr.Zero if not.</returns>
     public IntPtr ScanForPtr(byte[] signature, int offset = 0, bool readptr = false)
     {
-        bool match;
         var first = signature[0];
-        var sig_length = signature.Length;
+        var sigLength = signature.Length;
 
         // For start to end of scan range...
         for (var scan = 0; scan < scan_size; ++scan)
@@ -300,10 +301,10 @@ public class GWCAMemory
                 continue;
             }
 
-            match = true;
+            var match = true;
 
             // For sig size... check for matching signature.
-            for (var sig = 0; sig < sig_length; ++sig)
+            for (var sig = 0; sig < sigLength; ++sig)
             {
                 if (memory_dump[scan + sig] != signature[sig] && signature[sig] != 0x00)
                 {
