@@ -2,18 +2,14 @@
 
 public class GlobalSettings
 {
-    private GlobalSettings()
-    {
-        Encrypt = true;
-        CheckForUpdates = true;
-        AutoUpdate = false;
-    }
 
-    public bool Encrypt { get; set; }
+    public bool Encrypt { get; set; } = true;
 
-    public bool CheckForUpdates { get; set; }
+    public bool CheckForUpdates { get; set; } = true;
 
-    public bool AutoUpdate { get; set; }
+    public bool AutoUpdate { get; set; } = false;
+
+    public bool LaunchMinimized { get; set; } = false;
 
     public void Save(string path = "Settings.json")
     {

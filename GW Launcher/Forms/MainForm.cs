@@ -11,10 +11,20 @@ public partial class MainForm : Form
     private bool _keepOpen;
 
     private ListView.SelectedIndexCollection _selectedItems;
-    public Queue<int> needtolaunch;
+    public readonly Queue<int> needtolaunch;
 
-    public MainForm()
+    public MainForm(bool launchMinimized = false)
     {
+        if (!launchMinimized)
+        {
+            _allowVisible = true;
+            var position = new Point
+            {
+                X = Screen.PrimaryScreen.Bounds.Width / 2,
+                Y = Screen.PrimaryScreen.Bounds.Height / 2
+            };
+            Location = position;
+        }
         InitializeComponent();
         needtolaunch = new Queue<int>();
         _selectedItems = new ListView.SelectedIndexCollection(listViewAccounts);
