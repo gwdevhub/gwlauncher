@@ -13,10 +13,10 @@ internal static class Program
     public static bool shouldClose;
     public static AccountManager accounts = new();
     public static Thread mainthread = null!;
-    public static Mutex mutex = new();
-    public static Mutex? gwlMutex;
+    public static readonly Mutex mutex = new();
+    private static Mutex? _gwlMutex;
     private static bool _gotMutex;
-    public static GlobalSettings settings = GlobalSettings.Load();
+    public static readonly GlobalSettings settings = GlobalSettings.Load();
 
     [DllImport("user32.dll", EntryPoint = "SetWindowText", CharSet = CharSet.Unicode)]
     private static extern bool SetWindowText(IntPtr hwnd, string lpString);
@@ -31,12 +31,12 @@ internal static class Program
         Application.EnableVisualStyles();
         Application.SetCompatibleTextRenderingDefault(false);
 
-        if (Mutex.TryOpenExisting(GwlMutexName, out gwlMutex))
+        if (Mutex.TryOpenExisting(GwlMutexName, out _gwlMutex))
         {
             return;
         }
 
-        gwlMutex = new Mutex(true, GwlMutexName);
+        _gwlMutex = new Mutex(true, GwlMutexName);
 
         if (settings.CheckForUpdates)
         {
@@ -67,7 +67,7 @@ internal static class Program
             MessageBox.Show(@"Couldn't load account information, there might be an error in the .json.
 GW Launcher will close.
 " + e.Message);
-            gwlMutex.Close();
+            _gwlMutex.Close();
             return;
         }
 
@@ -80,7 +80,7 @@ GW Launcher will close.
             MessageBox.Show(@"Couldn't save settings to Settings.json.
 GW Launcher will close.
 " + e.Message);
-            gwlMutex.Close();
+            _gwlMutex.Close();
             return;
         }
 
@@ -90,7 +90,7 @@ GW Launcher will close.
             MessageBox.Show(@"uMod may be running in the background. Textures may not load.");
         }
 
-        using var mainForm = new MainForm();
+        using var mainForm = new MainForm(launchMinimized: settings.LaunchMinimized);
         mainForm.FormClosed += (_, _) => { shouldClose = true; };
 
         mainthread = new Thread(() =>
@@ -323,7 +323,7 @@ GW Launcher will close.
         }
 
         mutex.Close();
-        gwlMutex?.Close();
+        _gwlMutex?.Close();
 
         File.Move(currentName, oldName);
 
