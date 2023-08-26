@@ -2,27 +2,20 @@
 
 public class Account
 {
-    [JsonIgnore] public bool active;
-
     [JsonRequired] public string character = "";
-
-    public bool elevated;
-
     [JsonRequired] public string email = "";
-
-    public string extraargs = "";
-
-    [JsonIgnore] public Guid? guid = Guid.NewGuid();
-
     [JsonRequired] public string gwpath = "";
-
+    [JsonRequired] public string password = "";
+    public string extraargs = "";
+    public bool elevated = false;
+    public string title = "";
+    public bool usePluginFolderMods = true;
     public List<Mod> mods = new();
 
-    [JsonRequired] public string password = "";
-
+    [JsonIgnore] public bool active;
     [JsonIgnore] public GWCAMemory? process;
+    [JsonIgnore] public Guid? guid = Guid.NewGuid();
 
-    public string title = "";
 
     public string Name
     {

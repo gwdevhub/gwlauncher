@@ -5,51 +5,54 @@ namespace GW_Launcher.Utilities;
 
 public class ModManager
 {
-    public static IOrderedEnumerable<string> GetDlls(string path, IReadOnlyCollection<Mod> mods)
+    public static IOrderedEnumerable<string> GetDlls(string path, Account account)
     {
-        return GetMods(path, mods).Item1;
+        return GetMods(path, account).Item1;
     }
 
-    public static IOrderedEnumerable<string> GetTexmods(string path, IReadOnlyCollection<Mod> mods)
+    public static IOrderedEnumerable<string> GetTexmods(string path, Account account)
     {
-        return GetMods(path, mods).Item2;
+        return GetMods(path, account).Item2;
     }
 
     private static Tuple<IOrderedEnumerable<string>, IOrderedEnumerable<string>>
-        GetMods(string path, IReadOnlyCollection<Mod> mods)
+        GetMods(string path, Account account)
     {
-        var directory = Path.Combine(Directory.GetCurrentDirectory(), "plugins");
         var dllsToLoad = new List<string>();
         var texsToLoad = new List<string>();
-        if (Directory.Exists(directory))
+        if (account.usePluginFolderMods)
         {
-            var links = Directory.GetFiles(directory, "*.lnk");
-            var files = Directory.GetFiles(directory, "*.dll");
-            var dlllinks = links.Select(GetShortcutPath).Where(l => l.EndsWith(".dll")).ToArray();
-            var textures = Directory.GetFiles(directory, "*").Where(t => t.EndsWith(".tpf") || t.EndsWith(".zip"));
+            var directory = Path.Combine(Directory.GetCurrentDirectory(), "plugins");
+            if (Directory.Exists(directory))
+            {
+                var links = Directory.GetFiles(directory, "*.lnk");
+                var files = Directory.GetFiles(directory, "*.dll");
+                var dlllinks = links.Select(GetShortcutPath).Where(l => l.EndsWith(".dll")).ToArray();
+                var textures = Directory.GetFiles(directory, "*").Where(t => t.EndsWith(".tpf") || t.EndsWith(".zip"));
 
-            dllsToLoad.AddRange(files);
-            dllsToLoad.AddRange(dlllinks);
-            texsToLoad.AddRange(textures);
+                dllsToLoad.AddRange(files);
+                dllsToLoad.AddRange(dlllinks);
+                texsToLoad.AddRange(textures);
+            }
+
+            directory = Path.Combine(Path.GetDirectoryName(path)!, "plugins");
+            if (Directory.Exists(directory))
+            {
+                var links = Directory.GetFiles(directory, "*.lnk");
+                var files = Directory.GetFiles(directory, "*.dll");
+                var dlllinks = links.Select(GetShortcutPath).Where(l => l.EndsWith(".dll")).ToArray();
+                var textures = Directory.GetFiles(directory, "*").Where(t => t.EndsWith(".tpf") || t.EndsWith(".zip"));
+
+                dllsToLoad.AddRange(dlllinks);
+                dllsToLoad.AddRange(files);
+                texsToLoad.AddRange(textures);
+            }
         }
 
-        directory = Path.Combine(Path.GetDirectoryName(path)!, "plugins");
-        if (Directory.Exists(directory))
-        {
-            var links = Directory.GetFiles(directory, "*.lnk");
-            var files = Directory.GetFiles(directory, "*.dll");
-            var dlllinks = links.Select(GetShortcutPath).Where(l => l.EndsWith(".dll")).ToArray();
-            var textures = Directory.GetFiles(directory, "*").Where(t => t.EndsWith(".tpf") || t.EndsWith(".zip"));
-
-            dllsToLoad.AddRange(dlllinks);
-            dllsToLoad.AddRange(files);
-            texsToLoad.AddRange(textures);
-        }
-
-        dllsToLoad.AddRange(mods
+        dllsToLoad.AddRange(account.mods
             .Where(mod => mod is { type: ModType.kModTypeDLL, active: true } && File.Exists(mod.fileName))
             .Select(mod => mod.fileName));
-        texsToLoad.AddRange(mods
+        texsToLoad.AddRange(account.mods
             .Where(mod => mod is { type: ModType.kModTypeTexmod, active: true } && File.Exists(mod.fileName))
             .Select(mod => mod.fileName));
 
