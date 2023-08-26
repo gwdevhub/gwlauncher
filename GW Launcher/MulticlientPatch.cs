@@ -34,7 +34,7 @@ internal class MulticlientPatch
 
         uModTexClient? texClient = null;
 
-        if (ModManager.GetTexmods(account.gwpath, account.mods).Any())
+        if (ModManager.GetTexmods(account.gwpath, account).Any())
         {
             texClient = new uModTexClient();
         }
@@ -65,7 +65,7 @@ internal class MulticlientPatch
 
         var memory = new GWCAMemory(process);
 
-        foreach (var dll in ModManager.GetDlls(path, account.mods))
+        foreach (var dll in ModManager.GetDlls(path, account))
         {
             memory.LoadModule(dll);
         }
@@ -86,7 +86,7 @@ internal class MulticlientPatch
                     Thread.Sleep(200);
                 }
 
-                foreach (var tex in ModManager.GetTexmods(path, account.mods))
+                foreach (var tex in ModManager.GetTexmods(path, account))
                 {
                     if (Program.shouldClose || timeout >= 10)
                     {

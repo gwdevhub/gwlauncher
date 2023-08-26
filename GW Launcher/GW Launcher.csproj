@@ -13,8 +13,8 @@
         <Platforms>x86;AnyCPU</Platforms>
         <PlatformTarget>x86</PlatformTarget>
         <DebugType>portable</DebugType>
-        <AssemblyVersion>13.13</AssemblyVersion>
-        <FileVersion>13.13</FileVersion>
+        <AssemblyVersion>13.14</AssemblyVersion>
+        <FileVersion>13.14</FileVersion>
         <Copyright>2015-2023 GregLando113</Copyright>
         <EnforceCodeStyleInBuild>True</EnforceCodeStyleInBuild>
     </PropertyGroup>
@@ -25,6 +25,14 @@
 
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'">
         <WarningLevel>7</WarningLevel>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+      <WarningLevel>7</WarningLevel>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+      <WarningLevel>7</WarningLevel>
     </PropertyGroup>
 
     <ItemGroup>

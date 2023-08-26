@@ -85,7 +85,7 @@ GW Launcher will close.
         }
 
         var isPipeRunning = Directory.GetFiles(@"\\.\pipe\", @"Game2uMod").Any();
-        if (isPipeRunning && accounts.Any(a => ModManager.GetTexmods(a.gwpath, a.mods).Any()))
+        if (isPipeRunning && accounts.Any(a => ModManager.GetTexmods(a.gwpath, a).Any()))
         {
             MessageBox.Show(@"uMod may be running in the background. Textures may not load.");
         }
