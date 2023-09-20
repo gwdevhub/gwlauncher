@@ -99,15 +99,11 @@ public class uModFile : IDisposable
             FileInMemory[i] ^= xorbytes[0];
         }
 
-        var pos = (int)FileLen - 1;
-        while (pos > 0u && FileInMemory[pos] != 0)
-        {
-            pos--;
-        }
 
-        if (pos > 0u && pos < FileLen - 1)
+        var lastZero = Array.LastIndexOf(FileInMemory, (byte)0u);
+        if (lastZero > 0u && lastZero < FileLen - 1)
         {
-            FileLen = pos + 1;
+            FileLen = lastZero + 1;
         }
 
         XORed = true;
