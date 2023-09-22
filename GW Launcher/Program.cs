@@ -90,7 +90,7 @@ GW Launcher will close.
             MessageBox.Show(@"uMod may be running in the background. Textures may not load.");
         }
 
-        using var mainForm = new MainForm(launchMinimized: settings.LaunchMinimized);
+        using var mainForm = new MainForm(settings.LaunchMinimized);
         mainForm.FormClosed += (_, _) => { shouldClose = true; };
 
         mainthread = new Thread(() =>
