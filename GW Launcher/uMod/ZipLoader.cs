@@ -2,9 +2,10 @@
 
 namespace GW_Launcher.uMod;
 
-public class ZipLoader : IDisposable
+public class ZipLoader : IDisposable, IAsyncDisposable
 {
-    private readonly Dictionary<string, byte[]> _contents = new();
+    private readonly string _fileName;
+    private readonly Stream _stream;
 
     private readonly byte[] _tpfPassword =
     {
@@ -16,111 +17,170 @@ public class ZipLoader : IDisposable
         0x46, 0x6F
     };
 
+    private readonly List<TpfEntry> entryCache = new();
+    private readonly object lockObject = new();
+    private bool loaded;
+
     public ZipLoader(string fileName)
     {
-        var files = new Dictionary<string, byte[]>();
-
-        if (Path.GetExtension(fileName) == ".tpf")
+        _fileName = Path.GetFullPath(fileName);
+        if (!File.Exists(_fileName))
         {
-            using var file = new uModFile(fileName);
-            var fileContent = file.GetContent();
-            if (fileContent == null)
-            {
-                return;
-            }
-
-            using var memoryStream = new MemoryStream(fileContent);
-            using var archive = ZipFile.Read(memoryStream);
-            var password = Encoding.Latin1.GetString(_tpfPassword);
-            archive.Password = password;
-            archive.Encryption = EncryptionAlgorithm.None;
-
-            foreach (var entry in archive.Entries)
-            {
-                var content = new byte[entry.UncompressedSize];
-                entry.Extract(new MemoryStream(content));
-                files[entry.FileName] = content;
-            }
-        }
-        else
-        {
-            using var stream = new FileStream(fileName, FileMode.Open);
-            using var archive = new ZipFile(fileName);
-            foreach (var entry in archive.Entries)
-            {
-                var content = new byte[entry.UncompressedSize];
-                entry.Extract(new MemoryStream(content));
-                files[entry.FileName] = content;
-            }
+            throw new InvalidOperationException($"File does not exist: {_fileName}");
         }
 
-        if (files.ContainsKey("texmod.def"))
-        {
-            var texcontent = files["texmod.def"];
-            var text = Encoding.Default.GetString(texcontent);
-            var lines = text.Replace("\r", "").Split('\n');
-            foreach (var line in lines)
-            {
-                var splits = line.Split('|');
-                if (splits.Length != 2)
-                {
-                    continue;
-                }
+        var stream = new FileStream(_fileName, FileMode.Open);
 
-                var addrstr = splits[0];
-                var path = splits[1];
-                while ((path[0] == '.' && (path[1] == '/' || path[1] == '\\')) || path[0] == '/' || path[0] == '\\')
-                {
-                    path = path.Remove(0, 1);
-                }
-
-                if (!files.ContainsKey(path))
-                {
-                    continue;
-                }
-
-                files.Remove(path, out var content);
-                Debug.Assert(content != null, nameof(content) + " != null");
-                _contents[addrstr] = content;
-            }
-        }
-        else
-        {
-            foreach (var filename in files.Keys)
-            {
-                // GW.EXE_0x12345678.dds
-                files.Remove(filename, out var content);
-                if (content == null)
-                {
-                    continue;
-                }
-
-                var name = filename;
-                while (name.Contains('_'))
-                {
-                    var firstIndex = name.LastIndexOf('_');
-                    name = ++firstIndex >= filename.Length - 1 ? filename : filename[firstIndex..];
-                }
-
-                if (name.Contains('.'))
-                {
-                    var lastIndex = name.LastIndexOf('.');
-                    name = name[..lastIndex];
-                }
-
-                // 0x18F22DA3
-                var crc = name;
-
-                _contents[crc] = content;
-            }
-        }
+        _stream = Path.GetExtension(_fileName) == ".tpf" ? new XORStream(stream) : stream;
     }
 
-    public IReadOnlyDictionary<string, byte[]> Entries => _contents;
+    public async ValueTask DisposeAsync()
+    {
+        await _stream.DisposeAsync();
+    }
 
     public void Dispose()
     {
-        _contents.Clear();
-        GC.SuppressFinalize(this);
+        _stream.Dispose();
+    }
+
+    public Task<List<TpfEntry>> LoadAsync(CancellationToken cancellationToken = default)
+    {
+        /*
+         * Queue this job as a task, as parsing
+         * and extracting the tpf archive can take a lot of time.
+         * This way, the UI thread can stay responsive.
+         */
+        return Task.Run(() =>
+        {
+            /*
+             * Make sure that we parse the contents only once.
+             * If the content has already been parsed, return the cache.
+             */
+            while (!Monitor.TryEnter(lockObject))
+            {
+            }
+
+            if (!loaded)
+            {
+                entryCache.AddRange(GetContents());
+                loaded = true;
+            }
+
+            Monitor.Exit(lockObject);
+            return entryCache;
+        }, cancellationToken);
+    }
+
+    private IEnumerable<TpfEntry> GetContents()
+    {
+        /*
+         * Extract the tpf, obtaining a list of entries and streams.
+         * If the archive contains a texmod.def file, use that to obtain the
+         * definition of the tpf.
+         * Loop over the names and adjust them for uMod.
+         */
+        var files = new Dictionary<string, ZipEntry>(Path.GetExtension(_fileName) == ".tpf"
+            ? GetTpfContents().Select(tuple => new KeyValuePair<string, ZipEntry>(tuple.Name, tuple.ZipEntry))
+            : GetFileContents().Select(tuple => new KeyValuePair<string, ZipEntry>(tuple.Name, tuple.ZipEntry)));
+
+        if (!files.TryGetValue("texmod.def", out var texContentEntry))
+        {
+            return GetTextureContents(files).Select(tuple => new TpfEntry
+                { Name = tuple.Name, Entry = tuple.ZipEntry, CrcHash = Convert.ToUInt32(tuple.Name, 16) });
+        }
+
+        using var stream = texContentEntry.OpenReader();
+        using var reader = new StreamReader(stream, Encoding.Default);
+        var text = reader.ReadToEnd();
+        var lines = text.Replace("\r", "").Split('\n');
+        return GetTextureContents(files, lines).Select(
+            tuple => new TpfEntry
+                { Name = tuple.Name, Entry = tuple.ZipEntry, CrcHash = Convert.ToUInt32(tuple.Name, 16) }
+        );
+    }
+
+    private IEnumerable<(string Name, ZipEntry ZipEntry)> GetTpfContents()
+    {
+        using var archive = ZipFile.Read(_stream);
+        archive.Password = Encoding.Latin1.GetString(_tpfPassword);
+        archive.Encryption = EncryptionAlgorithm.None;
+
+        foreach (var entry in archive.Entries)
+        {
+            yield return (entry.FileName, entry);
+        }
+    }
+
+    private IEnumerable<(string Name, ZipEntry ZipEntry)> GetFileContents()
+    {
+        using var archive = ZipFile.Read(_stream);
+        foreach (var entry in archive.Entries)
+        {
+            yield return (entry.FileName, entry);
+        }
+    }
+
+    private static IEnumerable<(string Name, ZipEntry ZipEntry)> GetTextureContents(Dictionary<string, ZipEntry> files)
+    {
+        foreach (var file in files)
+        {
+            // GW.EXE_0x12345678.dds
+            var (fileName, content) = file;
+            if (content == null)
+            {
+                continue;
+            }
+
+            var name = fileName;
+            while (name.Contains('_'))
+            {
+                var firstIndex = name.LastIndexOf('_');
+                name = ++firstIndex >= fileName.Length - 1 ? fileName : fileName[firstIndex..];
+            }
+
+            if (name.Contains('.'))
+            {
+                var lastIndex = name.LastIndexOf('.');
+                name = name[..lastIndex];
+            }
+
+            // 0x18F22DA3
+            var crc = name;
+            yield return (crc, content);
+        }
+    }
+
+    private static IEnumerable<(string Name, ZipEntry ZipEntry)> GetTextureContents(Dictionary<string, ZipEntry> files,
+        IEnumerable<string> definition)
+    {
+        foreach (var line in definition)
+        {
+            var splits = line.Split('|');
+            if (splits.Length != 2)
+            {
+                continue;
+            }
+
+            var addrstr = splits[0];
+            var path = splits[1];
+            while ((path[0] == '.' && (path[1] == '/' || path[1] == '\\')) || path[0] == '/' || path[0] == '\\')
+            {
+                path = path.Remove(0, 1);
+            }
+
+            if (!files.ContainsKey(path))
+            {
+                continue;
+            }
+
+            files.Remove(path, out var content);
+            if (content is null)
+            {
+                continue;
+            }
+
+            yield return (addrstr, content);
+        }
     }
 }

@@ -37,6 +37,7 @@ internal class MulticlientPatch
         if (ModManager.GetTexmods(account.gwpath, account).Any())
         {
             texClient = new uModTexClient();
+            texClient.Initialize(CancellationToken.None);
         }
 
         var args = $"-email \"{account.email}\" -password \"{account.password}\"";
@@ -76,32 +77,32 @@ internal class MulticlientPatch
             WinApi.CloseHandle(hThread);
         }
 
-        if (texClient != null)
+        if (texClient == null)
         {
-            Task.Run(() =>
-            {
-                var timeout = 0;
-                while (!texClient.IsReady() && !Program.shouldClose && timeout++ < 10)
-                {
-                    Thread.Sleep(200);
-                }
-
-                foreach (var tex in ModManager.GetTexmods(path, account))
-                {
-                    if (Program.shouldClose || timeout >= 10)
-                    {
-                        break;
-                    }
-
-                    texClient.AddFile(tex);
-                }
-
-                texClient.Send();
-                texClient.Dispose();
-
-                GC.Collect(2, GCCollectionMode.Optimized); // force garbage collection
-            });
+            return memory;
         }
+
+        Task.Run(async () =>
+        {
+            var timeout = 0;
+            while (!texClient.Ready && !Program.shouldClose && timeout++ < 10)
+            {
+                Thread.Sleep(200);
+            }
+
+            foreach (var tex in ModManager.GetTexmods(path, account))
+            {
+                if (Program.shouldClose || timeout >= 10)
+                {
+                    break;
+                }
+
+                await texClient.AddFile(tex, CancellationToken.None);
+            }
+
+            await texClient.Send(new CancellationToken());
+            texClient.Dispose();
+        });
 
         return memory;
     }

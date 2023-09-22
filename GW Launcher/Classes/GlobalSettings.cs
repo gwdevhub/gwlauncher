@@ -2,7 +2,6 @@
 
 public class GlobalSettings
 {
-
     public bool Encrypt { get; set; } = true;
 
     public bool CheckForUpdates { get; set; } = true;
