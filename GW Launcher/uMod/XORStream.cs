@@ -36,7 +36,7 @@ internal sealed class XORStream : Stream
             innerStream.Position -= 2; //-1 for the ReadByte and -1 to go one position in the back
         }
 
-        var lastZeroPosition = innerStream.Position;
+        var lastZeroPosition = innerStream.Position - 1;
         innerStream.Position = 0;
         Length = lastZeroPosition;
     }
@@ -154,7 +154,7 @@ internal sealed class XORStream : Stream
          */
         if (position > originalStreamLength - 4)
         {
-            return (byte)(b ^ TPF_XOROdd);
+            return (byte)(b ^ TPF_XOREven);
         }
 
         return position % 2 == 0 ? (byte)(b ^ TPF_XOREven) : (byte)(b ^ TPF_XOROdd);

@@ -100,8 +100,18 @@ internal class MulticlientPatch
                 await texClient.AddFile(tex, CancellationToken.None);
             }
 
-            await texClient.Send(new CancellationToken());
-            texClient.Dispose();
+            try
+            {
+                await texClient.Send(new CancellationToken());
+                texClient.Dispose();
+            }
+            catch (Exception e)
+            {
+                MessageBox.Show("Error while sending textures to client: " + e.Message +
+                                "\n\nMake sure all your gw executables are up to date." +
+                                "\n\nIt might help to copy the main gw.exe into all your other folders.",
+                    "GW Launcher");
+            }
         });
 
         return memory;
