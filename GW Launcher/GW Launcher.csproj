@@ -13,8 +13,8 @@
         <Platforms>x86;AnyCPU</Platforms>
         <PlatformTarget>x86</PlatformTarget>
         <DebugType>portable</DebugType>
-        <AssemblyVersion>13.15</AssemblyVersion>
-        <FileVersion>13.15</FileVersion>
+        <AssemblyVersion>13.16</AssemblyVersion>
+        <FileVersion>13.16</FileVersion>
         <Copyright>2015-2023 GregLando113</Copyright>
         <EnforceCodeStyleInBuild>True</EnforceCodeStyleInBuild>
         <LangVersion>10</LangVersion>
