@@ -1,4 +1,4 @@
-﻿using GW_Launcher.uMod;
+﻿using System.Extensions;
 using Microsoft.Win32;
 
 namespace GW_Launcher;
@@ -32,12 +32,20 @@ internal class MulticlientPatch
     {
         var path = account.gwpath;
 
-        uModTexClient? texClient = null;
-
-        if (ModManager.GetTexmods(account.gwpath, account).Any())
+        var texmods = string.Join('\n', ModManager.GetTexmods(account.gwpath, account));
+        if (!texmods.IsNullOrEmpty())
         {
-            texClient = new uModTexClient();
-            texClient.Initialize(CancellationToken.None);
+            var modfile = Path.Combine(Path.GetDirectoryName(path)!, "modlist.txt");
+            try
+            {
+                File.WriteAllText(modfile, texmods);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                Debug.WriteLine("No permission to write into gw.exe directory.");
+                modfile = Path.Combine(Directory.GetCurrentDirectory(), "modlist.txt");
+                File.WriteAllText(modfile, texmods);
+            }
         }
 
         var args = $"-email \"{account.email}\" -password \"{account.password}\"";
@@ -76,43 +84,6 @@ internal class MulticlientPatch
             WinApi.ResumeThread(hThread);
             WinApi.CloseHandle(hThread);
         }
-
-        if (texClient == null)
-        {
-            return memory;
-        }
-
-        Task.Run(async () =>
-        {
-            var timeout = 0;
-            while (!texClient.Ready && !Program.shouldClose && timeout++ < 10)
-            {
-                Thread.Sleep(200);
-            }
-
-            foreach (var tex in ModManager.GetTexmods(path, account))
-            {
-                if (Program.shouldClose || timeout >= 10)
-                {
-                    break;
-                }
-
-                await texClient.AddFile(tex, CancellationToken.None);
-            }
-
-            try
-            {
-                await texClient.Send(new CancellationToken());
-                texClient.Dispose();
-            }
-            catch (Exception e)
-            {
-                MessageBox.Show("Error while sending textures to client: " + e.Message +
-                                "\n\nMake sure all your gw executables are up to date." +
-                                "\n\nIt might help to copy the main gw.exe into all your other folders.",
-                    "GW Launcher");
-            }
-        });
 
         return memory;
     }
@@ -192,8 +163,7 @@ internal class MulticlientPatch
     private static bool McPatch(IntPtr processHandle)
     {
         Debug.Assert(processHandle != IntPtr.Zero, "processHandle != IntPtr.Zero");
-        byte[] sigPatch =
-        {
+        byte[] sigPatch = {
             0x56, 0x57, 0x68, 0x00, 0x01, 0x00, 0x00, 0x89, 0x85, 0xF4, 0xFE, 0xFF, 0xFF, 0xC7, 0x00, 0x00, 0x00, 0x00,
             0x00
         };

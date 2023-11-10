@@ -1,5 +1,4 @@
 ﻿using GW_Launcher.Forms;
-using GW_Launcher.Properties;
 using Octokit;
 using Application = System.Windows.Forms.Application;
 using FileMode = System.IO.FileMode;
@@ -43,20 +42,7 @@ internal static class Program
             Task.Run(CheckGitHubNewerVersion);
         }
 
-        var location = Path.GetDirectoryName(AppContext.BaseDirectory);
-        if (location != null)
-        {
-            // dump correct version of umod d3d9.dll
-            var filenameumod = Path.Combine(location, "d3d9.dll");
-            try
-            {
-                File.WriteAllBytes(filenameumod, Resources.d3d9);
-            }
-            catch (Exception)
-            {
-                // use the file that already exists
-            }
-        }
+        Task.Run(CheckGitHubGModVersion);
 
         try
         {
@@ -82,12 +68,6 @@ GW Launcher will close.
 " + e.Message);
             _gwlMutex.Close();
             return;
-        }
-
-        var isPipeRunning = Directory.GetFiles(@"\\.\pipe\", @"Game2uMod").Any();
-        if (isPipeRunning && accounts.Any(a => ModManager.GetTexmods(a.gwpath, a).Any()))
-        {
-            MessageBox.Show(@"uMod may be running in the background. Textures may not load.");
         }
 
         using var mainForm = new MainForm(settings.LaunchMinimized);
@@ -340,5 +320,60 @@ GW Launcher will close.
         Application.Restart();
         Process.Start(processInfo);
         Environment.Exit(0);
+    }
+
+    private static async Task CheckGitHubGModVersion()
+    {
+        var location = Path.GetDirectoryName(AppContext.BaseDirectory);
+        var gmod = Path.Combine(location!, "gMod.dll");
+        //Get all releases from GitHub
+        var client = new GitHubClient(new ProductHeaderValue("gMod"));
+        var releases = await client.Repository.Release.GetAll("DubbleClick", "gMod");
+
+        if (!releases.Any(r => !r.Prerelease && !r.Draft))
+        {
+            return;
+        }
+
+        var release = releases.First(r => !r.Prerelease && !r.Draft);
+        var tagName = Regex.Replace(release.TagName, @"[^\d\.]", "");
+        var latestVersion = new Version(tagName);
+        var minVersion = new Version("1.5.2");
+        if (latestVersion.CompareTo(minVersion) <= 0)
+        {
+            return;
+        }
+
+        var strVersion = "1.0.0";
+        try
+        {
+            var fvi = FileVersionInfo.GetVersionInfo(gmod);
+            strVersion = fvi.FileVersion;
+        }
+        catch (FileNotFoundException)
+        {
+
+        }
+        var localVersion = new Version(strVersion);
+
+        var versionComparison = localVersion.CompareTo(latestVersion);
+        if (versionComparison >= 0)
+        {
+            return;
+        }
+
+        var latest = releases[0];
+
+        var asset = latest.Assets.First(a => a.Name == "gMod.dll");
+        if (asset == null)
+        {
+            return;
+        }
+
+        var uri = new Uri(asset.BrowserDownloadUrl);
+        var httpClient = new HttpClient();
+        await using var s = await httpClient.GetStreamAsync(uri);
+        await using var fs = new FileStream(gmod, FileMode.Create);
+        await s.CopyToAsync(fs);
     }
 }
