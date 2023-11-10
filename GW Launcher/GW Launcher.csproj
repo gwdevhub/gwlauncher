@@ -13,9 +13,9 @@
         <Platforms>x86;AnyCPU</Platforms>
         <PlatformTarget>x86</PlatformTarget>
         <DebugType>portable</DebugType>
-        <AssemblyVersion>13.16</AssemblyVersion>
-        <FileVersion>13.16</FileVersion>
-        <Copyright>2015-2023 GregLando113</Copyright>
+        <AssemblyVersion>14.0</AssemblyVersion>
+        <FileVersion>14.0</FileVersion>
+        <Copyright>2015-2023 GregLando113, DubbleClick</Copyright>
         <EnforceCodeStyleInBuild>True</EnforceCodeStyleInBuild>
         <LangVersion>10</LangVersion>
     </PropertyGroup>
