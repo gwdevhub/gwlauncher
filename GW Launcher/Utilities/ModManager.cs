@@ -58,12 +58,12 @@ public class ModManager
 
         if (texsToLoad.Count > 0)
         {
-            dllsToLoad.Add(Path.Combine(Directory.GetCurrentDirectory(), "d3d9.dll")); // load d3d9.dll for umod
+            dllsToLoad.Add(Path.Combine(Directory.GetCurrentDirectory(), "gMod.dll"));
         }
 
         return Tuple.Create(
             dllsToLoad.Distinct()
-                .OrderByDescending(dllpath => dllpath == Path.Combine(Directory.GetCurrentDirectory(), "d3d9.dll"))
+                .OrderByDescending(dllpath => dllpath == Path.Combine(Directory.GetCurrentDirectory(), "gMod.dll"))
                 .ThenBy(Path.GetFileName),
             texsToLoad.Distinct().OrderBy(Path.GetFileName)
         );
