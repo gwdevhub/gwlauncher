@@ -128,7 +128,7 @@ public partial class MainForm : Form
                     account.Name,
                     account.active ? "Active" : "Inactive"
                 },
-                "gw-icon"
+                "gwlauncher"
             ));
         }
 
@@ -169,7 +169,7 @@ public partial class MainForm : Form
         Visible = false;
         // Initialize things
         var imageList = new ImageList();
-        imageList.Images.Add("gw-icon", Resources.gw_icon);
+        imageList.Images.Add("gwlauncher", Resources.gwlauncher);
         listViewAccounts.SmallImageList = imageList;
         RefreshUI();
         Program.mainthread.Start();

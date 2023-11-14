@@ -62,9 +62,9 @@ namespace GW_Launcher.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
-        internal static System.Drawing.Bitmap gw_icon {
+        internal static System.Drawing.Bitmap gwlauncher {
             get {
-                object obj = ResourceManager.GetObject("gw-icon", resourceCulture);
+                object obj = ResourceManager.GetObject("gwlauncher", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }

@@ -8,7 +8,7 @@
         <UseWindowsForms>true</UseWindowsForms>
         <ImplicitUsings>enable</ImplicitUsings>
         <StartupObject>GW_Launcher.Program</StartupObject>
-        <ApplicationIcon>Resources\gw-icon.ico</ApplicationIcon>
+        <ApplicationIcon>Resources\gwlauncher.ico</ApplicationIcon>
         <BaseOutputPath>..\</BaseOutputPath>
         <Platforms>x86;AnyCPU</Platforms>
         <PlatformTarget>x86</PlatformTarget>
@@ -49,7 +49,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <Content Include="Resources\gw-icon.ico"/>
+        <Content Include="Resources\gwlauncher.ico"/>
     </ItemGroup>
 
     <ItemGroup>
@@ -80,6 +80,7 @@
 
     <ItemGroup>
         <None Include=".editorconfig"/>
+        <None Include="Resources\gwlauncher.ico" />
     </ItemGroup>
 
 </Project>

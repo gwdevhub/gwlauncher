@@ -344,15 +344,15 @@ GW Launcher will close.
             return;
         }
 
-        var strVersion = "1.0.0";
+        string strVersion;
         try
         {
             var fvi = FileVersionInfo.GetVersionInfo(gmod);
-            strVersion = fvi.FileVersion;
+            strVersion = fvi.FileVersion!;
         }
         catch (FileNotFoundException)
         {
-
+            strVersion = "1.0.0";
         }
         var localVersion = new Version(strVersion);
 
