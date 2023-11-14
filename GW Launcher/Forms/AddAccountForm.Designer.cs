@@ -1,4 +1,6 @@
-﻿namespace GW_Launcher.Forms
+﻿using GW_Launcher.Properties;
+
+namespace GW_Launcher.Forms
 {
     partial class AddAccountForm
     {
@@ -250,7 +252,7 @@
             Controls.Add(label1);
             Controls.Add(textBoxEmail);
             Controls.Add(labelEmail);
-            Icon = (Icon)resources.GetObject("$this.Icon");
+            Icon = (Icon)Resources.gwlauncher_ico;
             Margin = new Padding(4, 3, 4, 3);
             MinimumSize = new Size(267, 0);
             Name = "AddAccountForm";
