@@ -223,7 +223,7 @@ GW Launcher will close.
 
         //Get all releases from GitHub
         var client = new GitHubClient(new ProductHeaderValue("GWLauncher"));
-        var releases = await client.Repository.Release.GetAll("GregLando113", "gwlauncher");
+        var releases = await client.Repository.Release.GetAll("gwdevhub", "gwlauncher");
 
         if (!releases.Any(r => !r.Prerelease && !r.Draft))
         {
@@ -328,7 +328,7 @@ GW Launcher will close.
         var gmod = Path.Combine(location!, "gMod.dll");
         //Get all releases from GitHub
         var client = new GitHubClient(new ProductHeaderValue("gMod"));
-        var releases = await client.Repository.Release.GetAll("DubbleClick", "gMod");
+        var releases = await client.Repository.Release.GetAll("gwdevhub", "gMod");
 
         if (!releases.Any(r => !r.Prerelease && !r.Draft))
         {
@@ -344,15 +344,15 @@ GW Launcher will close.
             return;
         }
 
-        var strVersion = "1.0.0";
+        string strVersion;
         try
         {
             var fvi = FileVersionInfo.GetVersionInfo(gmod);
-            strVersion = fvi.FileVersion;
+            strVersion = fvi.FileVersion!;
         }
         catch (FileNotFoundException)
         {
-
+            strVersion = "1.0.0";
         }
         var localVersion = new Version(strVersion);
 
