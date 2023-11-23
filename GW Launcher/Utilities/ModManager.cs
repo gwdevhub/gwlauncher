@@ -63,7 +63,7 @@ public class ModManager
 
         return Tuple.Create(
             dllsToLoad.Distinct()
-                .OrderByDescending(dllpath => dllpath == Path.Combine(Directory.GetCurrentDirectory(), "gMod.dll"))
+                .OrderBy(dllpath => dllpath == Path.Combine(Directory.GetCurrentDirectory(), "gMod.dll"))
                 .ThenBy(Path.GetFileName),
             texsToLoad.Distinct().OrderBy(Path.GetFileName)
         );
