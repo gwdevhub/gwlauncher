@@ -11,7 +11,6 @@ public partial class MainForm : Form
     private bool _keepOpen;
 
     private ListView.SelectedIndexCollection _selectedItems;
-    public readonly Queue<int> needtolaunch;
 
     public MainForm(bool launchMinimized = false)
     {
@@ -26,7 +25,6 @@ public partial class MainForm : Form
             Location = position;
         }
         InitializeComponent();
-        needtolaunch = new Queue<int>();
         _selectedItems = new ListView.SelectedIndexCollection(listViewAccounts);
         _instance = this;
     }
@@ -114,7 +112,7 @@ public partial class MainForm : Form
                 {
                     MessageBox.Show(
                         @"Can't read memory of an open Guild Wars instance. Launcher will close.");
-                    Program.shouldClose = true;
+                    Program.Exit();
                 }
             }
         }
@@ -126,7 +124,7 @@ public partial class MainForm : Form
                 new[]
                 {
                     account.Name,
-                    account.active ? "Active" : "Inactive"
+                    account.state
                 },
                 "gwlauncher"
             ));
@@ -152,18 +150,22 @@ public partial class MainForm : Form
 
     public void SetActive(int index, bool active)
     {
+        SetAccountState(index, "Active");
+    }
+
+    public void SetAccountState(int index, string state)
+    {
         if (listViewAccounts.InvokeRequired)
         {
-            var callback = new SetActiveUICallback(SetActive);
-            Invoke(callback, index, active);
+            var callback = new SetActiveUICallback(SetAccountState);
+            Invoke(callback, index, state);
         }
         else
         {
-            Program.accounts[index].active = active;
-            listViewAccounts.Items[index].SubItems[1].Text = active ? "Active" : "Inactive";
+            Program.accounts[index].state = state;
+            listViewAccounts.Items[index].SubItems[1].Text = state;
         }
     }
-
     private void MainForm_Load(object sender, EventArgs e)
     {
         Visible = false;
@@ -182,8 +184,7 @@ public partial class MainForm : Form
         {
             return;
         }
-
-        needtolaunch.Enqueue(selectedItems[0]);
+        Program.QueueLaunch(selectedItems[0]);
     }
 
     private void ToolStripMenuItemLaunchSelected_Click(object sender, EventArgs e)
@@ -196,7 +197,7 @@ public partial class MainForm : Form
 
         foreach (int selectedItem in _selectedItems)
         {
-            needtolaunch.Enqueue(selectedItem);
+            Program.QueueLaunch(selectedItem);
         }
     }
 
@@ -400,5 +401,23 @@ public partial class MainForm : Form
         Show();
     }
 
-    private delegate void SetActiveUICallback(int index, bool active);
+    private void ToolStripMenuItemCreateShortcut_Click(object sender, EventArgs e)
+    {
+        _selectedItems = listViewAccounts.SelectedIndices;
+        if (_selectedItems.Count == 0 && listViewAccounts.FocusedItem == null)
+        {
+            return;
+        }
+        var account = Program.accounts[_selectedItems[0]];
+        var shell = new IWshRuntimeLibrary.WshShell();
+        string shortcutAddress = Environment.GetFolderPath(Environment.SpecialFolder.Desktop) + @"\" + account.Name + ".lnk";
+        IWshRuntimeLibrary.IWshShortcut shortcut = shell.CreateShortcut(shortcutAddress);
+        shortcut.Description = "GW Launcher shortcut for " + account.Name;
+        shortcut.WorkingDirectory = Path.GetDirectoryName(Application.ExecutablePath);
+        shortcut.Arguments = "-launch \"" + account.Name + "\"";
+        shortcut.TargetPath = Application.ExecutablePath;
+        shortcut.Save();
+    }
+
+    private delegate void SetActiveUICallback(int index, string state);
 }

@@ -13,6 +13,7 @@ public class Account
     public List<Mod> mods = new();
 
     [JsonIgnore] public bool active;
+    [JsonIgnore] public string state = "Inactive";
     [JsonIgnore] public GWCAMemory? process;
     [JsonIgnore] public Guid? guid = Guid.NewGuid();
 
@@ -34,4 +35,5 @@ public class Account
             return !string.IsNullOrEmpty(email) ? email : character;
         }
     }
+
 }

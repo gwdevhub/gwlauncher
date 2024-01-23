@@ -40,6 +40,7 @@ partial class MainForm
         toolStripSeparator3 = new ToolStripSeparator();
         toolStripMenuItemAddNew = new ToolStripMenuItem();
         toolStripMenuItemEditSelected = new ToolStripMenuItem();
+        toolStripMenuItemCreateShortcut = new ToolStripMenuItem();
         toolStripMenuItemRemoveSelected = new ToolStripMenuItem();
         toolStripMenuItemLaunchSelected = new ToolStripMenuItem();
         toolStripSeparator1 = new ToolStripSeparator();
@@ -106,7 +107,15 @@ partial class MainForm
         toolStripMenuItemEditSelected.Size = new Size(210, 22);
         toolStripMenuItemEditSelected.Text = "Edit Selected";
         toolStripMenuItemEditSelected.Click += ToolStripMenuItemEditSelected_Click;
+
         // 
+        // toolStripMenuItemCreateShortcut
+        // 
+        toolStripMenuItemCreateShortcut.Name = "toolStripMenuItemCreateShortcut";
+        toolStripMenuItemCreateShortcut.Size = new System.Drawing.Size(210, 22);
+        toolStripMenuItemCreateShortcut.Text = "Create Desktop Shortcut";
+        toolStripMenuItemCreateShortcut.Click += new System.EventHandler(this.ToolStripMenuItemCreateShortcut_Click);
+        //
         // toolStripMenuItemRemoveSelected
         // 
         toolStripMenuItemRemoveSelected.Name = "toolStripMenuItemRemoveSelected";
@@ -180,6 +189,7 @@ partial class MainForm
     private ToolStripMenuItem toolStripMenuItemLaunchGWInstance;
     private ToolStripMenuItem toolStripMenuItemRefreshAccounts;
     private ToolStripMenuItem toolStripMenuItemEditSelected;
+    private ToolStripMenuItem toolStripMenuItemCreateShortcut;
     private ToolStripSeparator toolStripSeparator1;
     private ToolStripMenuItem toolStripMenuItemLaunchSelected;
     private NotifyIcon notifyIcon;
