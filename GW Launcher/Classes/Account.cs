@@ -2,21 +2,27 @@
 
 public class Account
 {
+    [JsonIgnore] public string state = "Inactive";
+
     [JsonRequired] public string character = "";
+
+    public bool elevated;
+
     [JsonRequired] public string email = "";
-    [JsonRequired] public string gwpath = "";
-    [JsonRequired] public string password = "";
+
     public string extraargs = "";
-    public bool elevated = false;
-    public string title = "";
-    public bool usePluginFolderMods = true;
+
+    [JsonRequired] public string gwpath = "";
+
     public List<Mod> mods = new();
 
-    [JsonIgnore] public bool active;
-    [JsonIgnore] public string state = "Inactive";
-    [JsonIgnore] public GWCAMemory? process;
-    [JsonIgnore] public Guid? guid = Guid.NewGuid();
+    [JsonRequired] public string password = "";
 
+    [JsonIgnore] public GWCAMemory? process;
+
+    public string title = "";
+
+    public Guid guid = Guid.NewGuid();
 
     public string Name
     {
@@ -35,5 +41,4 @@ public class Account
             return !string.IsNullOrEmpty(email) ? email : character;
         }
     }
-
 }

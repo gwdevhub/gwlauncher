@@ -8,7 +8,7 @@ public class AccountManager : IEnumerable<Account>, IDisposable
     private readonly string _filePath = "Accounts.json";
 
     private readonly byte[] _salsaIv =
-        { 0xc8, 0x93, 0x48, 0x45, 0xcf, 0xa0, 0xfa, 0x85, 0xc8, 0x93, 0x48, 0x45, 0xcf, 0xa0, 0xfa, 0x85 };
+        {0xc8, 0x93, 0x48, 0x45, 0xcf, 0xa0, 0xfa, 0x85, 0xc8, 0x93, 0x48, 0x45, 0xcf, 0xa0, 0xfa, 0x85};
 
     private List<Account> _accounts = new();
     private byte[]? _cryptPass;
@@ -49,19 +49,6 @@ public class AccountManager : IEnumerable<Account>, IDisposable
         }
     }
 
-    public Account? this[Guid? guid]
-    {
-        get => _accounts.Find(account => account.guid == guid);
-        set
-        {
-            var index = _accounts.FindIndex(account => account.guid == guid);
-            if (index != -1 && value != null)
-            {
-                this[index] = value;
-            }
-        }
-    }
-
     void IDisposable.Dispose()
     {
         GC.SuppressFinalize(this);
@@ -70,24 +57,12 @@ public class AccountManager : IEnumerable<Account>, IDisposable
 
     IEnumerator<Account> IEnumerable<Account>.GetEnumerator()
     {
-        return ((IEnumerable<Account>)_accounts).GetEnumerator();
+        return ((IEnumerable<Account>) _accounts).GetEnumerator();
     }
 
     IEnumerator IEnumerable.GetEnumerator()
     {
         return _accounts.GetEnumerator();
-    }
-
-    public int IndexOf(string account_name)
-    {
-        for (var i = 0; i < Length;i++)
-        {
-            if (this[i].Name == account_name)
-            {
-                return i;
-            }
-        }
-        return -1;
     }
 
     public void Load(string? filePath = null)
@@ -136,7 +111,7 @@ public class AccountManager : IEnumerable<Account>, IDisposable
                 }
                 catch (Exception)
                 {
-                    MessageBox.Show("Incorrect password.\n Restart launcher and try again.",
+                    var result = MessageBox.Show("Incorrect password.\n Restart launcher and try again.",
                         @"GW Launcher - Invalid Password");
                     throw new Exception("Wrong password");
                 }
@@ -155,11 +130,14 @@ public class AccountManager : IEnumerable<Account>, IDisposable
             }
         }
 
+        foreach (var account in _accounts.Where(account => account.mods == null))
+        {
+            account.mods = new List<Mod>();
+        }
+
         foreach (var account in _accounts)
         {
-            account.active = false;
-            account.guid ??= Guid.NewGuid();
-            account.mods ??= new List<Mod>();
+            account.state = "Inactive";
         }
     }
 
@@ -182,7 +160,14 @@ public class AccountManager : IEnumerable<Account>, IDisposable
             File.WriteAllBytes(filePath, cryptBytes);
         }
     }
-
+    public int FindByName(string name)
+    {
+        for(var i=0;i<_accounts.LongCount();i++) {
+            if (_accounts[i].Name == name)
+                return i;
+        }
+        return -1;
+    }
     public void Add(Account account)
     {
         _accounts.Add(account);

@@ -1,17 +1,11 @@
-﻿using System.Extensions;
-using System.Threading;
+﻿using GW_Launcher.uMod;
 using Microsoft.Win32;
+using static GW_Launcher.Memory.GWCAMemory;
 
 namespace GW_Launcher;
 
 internal class MulticlientPatch
 {
-
-    private static string GetErrorMessage(string methodName, int errorCode, [System.Runtime.CompilerServices.CallerFilePath] string file = "", [System.Runtime.CompilerServices.CallerLineNumber] int lineNumber = 0)
-    {
-        return $"Error in {methodName} at {file}:{lineNumber} - Code: {errorCode}";
-    }
-
     private static IntPtr GetProcessModuleBase(IntPtr process)
     {
         if (WinApi.NtQueryInformationProcess(process, PROCESSINFOCLASS.ProcessBasicInformation, out var pbi,
@@ -35,116 +29,104 @@ internal class MulticlientPatch
         return peb.ImageBaseAddress + 0x1000;
     }
 
-    public static string? LaunchClient(Account account, out GWCAMemory? memory)
+    public static string? LaunchClient(Account account, out GWCAMemory? memory_out)
     {
         var path = account.gwpath;
+        var character = " ";
+        var error = "";
         Process? process = null;
-        string? err = null;
-        memory = null;
-        if(!File.Exists(path))
-        {
-            err = GetErrorMessage("Account Gw.exe path invalid", 0);
-            goto cleanup;
-        }
-        memory = null;
-
-        var texmods = string.Join('\n', ModManager.GetTexmods(account));
-        if (!texmods.IsNullOrEmpty())
-        {
-            var modfile = Path.Combine(Path.GetDirectoryName(path)!, "modlist.txt");
-            try
-            {
-                File.WriteAllText(modfile, texmods);
-            }
-            catch (UnauthorizedAccessException) {
-                modfile = Path.Combine(Directory.GetCurrentDirectory(), "modlist.txt");
-                try
-                {
-                    File.WriteAllText(modfile, texmods);
-                }
-                catch (UnauthorizedAccessException) {
-                    err = GetErrorMessage("UnauthorizedAccessException, Failed to write texmods to modlist.txt", 0);
-                    goto cleanup;
-                };
-            };
-        }
-
-        var args = $"-email \"{account.email}\" -password \"{account.password}\"";
-
+        memory_out = null;
+        if (!File.Exists(path))
+            return $"Failed to find executable @ {path}";
         if (!string.IsNullOrEmpty(account.character))
+            character = account.character;
+
+        uModTexClient? texClient = null;
+
+        if (ModManager.GetTexmods(account.gwpath, account.mods).Any())
         {
-            args += $" -character \"{account.character}\"";
+            if (Directory.GetFiles(@"\\.\pipe\", @"Game2uMod").Any())
+                MessageBox.Show(@"uMod may be running in the background. Textures may not load.");
+            texClient = new uModTexClient();
         }
 
-        args += $" {account.extraargs}";
-
+        var args = $"-email \"{account.email}\" -password \"{account.password}\" -character \"{character}\" {account.extraargs}";
+        //var args = $"-email \"{account.email}\" -password \"{account.password}\" {account.extraargs}";
         PatchRegistry(path);
 
-        err = LaunchClient(path, args, account.elevated, out PROCESS_INFORMATION procinfo);
-        if (err != null)
-        {
-            goto cleanup;
-        }
-
-        process = Process.GetProcessById(procinfo.dwProcessId);
-        if(process == null)
-        {
-            err = GetErrorMessage("Process.GetProcessById", Marshal.GetLastWin32Error());
-            goto cleanup;
-        }
-
+        var pId = LaunchClient(path, args, account.elevated, out var hThread);
+        if (pId == 0)
+            return "Failed to run LaunchClient, last error = " + Marshal.GetLastWin32Error();
+        process = Process.GetProcessById(pId);
         if (!McPatch(process.Handle))
-        {
-            err = GetErrorMessage("McPatch(process.Handle)", Marshal.GetLastWin32Error());
-            goto cleanup;
-        }
+            Debug.WriteLine("McPatch");
 
-
-        memory = new GWCAMemory(process);
-
-        foreach (var dll in ModManager.GetDlls(account))
-        {
-            var load_module_result = memory.LoadModule(dll);
-            if (load_module_result != GWCAMemory.LoadModuleResult.SUCCESSFUL)
-            {
-                err = GetErrorMessage($"memory.LoadModule({dll})", Marshal.GetLastWin32Error());
-                goto cleanup;
-            }
-        }
-
+        GWCAMemory memory = new GWCAMemory(process);
         if (Control.ModifierKeys.HasFlag(Keys.Shift))
         {
             DialogResult result = MessageBox.Show("Guild Wars is in a suspended state, plugins are not yet loaded.\n\nContinue?", "Launching paused", MessageBoxButtons.OKCancel);
             if (result == DialogResult.Cancel)
-            {
-                GetErrorMessage("Launch was cancelled", 0);
-                goto cleanup;
-            }
+                return "Launch was cancelled";
+        }
+        foreach (var dll in ModManager.GetDlls(path, account.mods))
+        {
+            var res = memory.LoadModule(dll);
+            if(res != LoadModuleResult.SUCCESSFUL)
+                return "Failed to load dll " + dll + " - LoadModuleResult " + res + " last error = " + Marshal.GetLastWin32Error();
+        }
+        if (Control.ModifierKeys.HasFlag(Keys.Shift))
+        {
+            DialogResult result = MessageBox.Show("Guild Wars is in a suspended state, plugins have been loaded.\n\nContinue?", "Launching paused", MessageBoxButtons.OKCancel);
+            if (result == DialogResult.Cancel)
+                return "Launch was cancelled";
+        }
+        if (hThread != IntPtr.Zero)
+        {
+            if(WinApi.ResumeThread(hThread) == 0xfffffffe)
+                return "Failed to run WinApi.ResumeThread, last error = " + Marshal.GetLastWin32Error();
+            if ((int)WinApi.CloseHandle(hThread) == -1)
+                return "Failed to run WinApi.CloseHandle, last error = " + Marshal.GetLastWin32Error();
         }
 
-        if (procinfo.hThread != IntPtr.Zero)
+        if (texClient != null)
         {
-            if (WinApi.ResumeThread(procinfo.hThread) == 0xfffffffe)
+            var timeout = 0;
+            bool ok = false;
+            for (timeout = 0; timeout < 10 && !ok; timeout++)
             {
-                err = GetErrorMessage($"WinApi.ResumeThread({procinfo.hThread})", Marshal.GetLastWin32Error());
-                goto cleanup;
+                ok = texClient.IsReady();
+                if (!ok) Thread.Sleep(1000);
+                memory.process.Refresh();
             }
-            if (WinApi.CloseHandle(procinfo.hThread) == 0xfffffffe)
+            if (!ok)
             {
-                err = GetErrorMessage($"WinApi.CloseHandle({procinfo.hThread})", Marshal.GetLastWin32Error());
-                goto cleanup;
+                error = "Failed to wait for uMod Client after " + timeout + " seconds.";
+                goto finish_launch;
             }
+            //texClient.Dispose();
+
+            foreach (var tex in ModManager.GetTexmods(path, account.mods))
+            {
+                texClient.AddFile(tex);
+            }
+
+            texClient.Send();
         }
 
-    cleanup:
-        if (err != null)
-        {
-            if(process != null)
+        finish_launch:
+        if (error.Length > 0) {
+            // Error occurred
+            MessageBox.Show(error);
+            if (process != null)
                 process.Kill();
-            memory = null;
         }
+        if (texClient != null)
+            texClient.Dispose();
+        GC.Collect(2, GCCollectionMode.Optimized); // force garbage collection
 
-        return err;
+        memory_out = memory;
+        return null;
+
     }
 
     internal static GWCAMemory LaunchClient(string path)
@@ -167,7 +149,7 @@ internal class MulticlientPatch
         return new GWCAMemory(process);
     }
 
-    private static string? PatchRegistry(string path)
+    private static void PatchRegistry(string path)
     {
         try
         {
@@ -181,7 +163,7 @@ internal class MulticlientPatch
             regSrc = Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\ArenaNet\\Guild Wars", "Src", null);
             if (regSrc == null || (string)regSrc == Path.GetFullPath(path))
             {
-                return null;
+                return;
             }
 
             Registry.SetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\ArenaNet\\Guild Wars", "Src",
@@ -191,9 +173,8 @@ internal class MulticlientPatch
         }
         catch (UnauthorizedAccessException)
         {
-            return GetErrorMessage("PatchRegistry UnauthorizedAccessException", Marshal.GetLastWin32Error());
+            Debug.WriteLine("PatchRegistry");
         }
-        return null;
     }
 
     private static int SearchBytes(IReadOnlyList<byte> haystack, IReadOnlyList<byte> needle)
@@ -223,7 +204,8 @@ internal class MulticlientPatch
     private static bool McPatch(IntPtr processHandle)
     {
         Debug.Assert(processHandle != IntPtr.Zero, "processHandle != IntPtr.Zero");
-        byte[] sigPatch = {
+        byte[] sigPatch =
+        {
             0x56, 0x57, 0x68, 0x00, 0x01, 0x00, 0x00, 0x89, 0x85, 0xF4, 0xFE, 0xFF, 0xFF, 0xC7, 0x00, 0x00, 0x00, 0x00,
             0x00
         };
@@ -249,11 +231,12 @@ internal class MulticlientPatch
         return WinApi.WriteProcessMemory(processHandle, mcpatch, payload, payload.Length, out _);
     }
 
-    private static string? LaunchClient(string path, string args, bool elevated, out PROCESS_INFORMATION procinfo)
+    private static int LaunchClient(string path, string args, bool elevated, out IntPtr hThread)
     {
         var commandLine = $"\"{path}\" {args}";
+        hThread = IntPtr.Zero;
 
-        procinfo = new PROCESS_INFORMATION();
+        PROCESS_INFORMATION procinfo;
         STARTUPINFO startinfo = new()
         {
             cb = Marshal.SizeOf(typeof(STARTUPINFO))
@@ -268,17 +251,20 @@ internal class MulticlientPatch
 
         if (!elevated)
         {
-            if (!WinSafer.SaferCreateLevel(SaferLevelScope.User, SaferLevel.NormalUser, SaferOpen.Open, out var hLevel,IntPtr.Zero))
-                return GetErrorMessage("WinSafer.SaferCreateLevel", Marshal.GetLastWin32Error());
+            if (!WinSafer.SaferCreateLevel(SaferLevelScope.User, SaferLevel.NormalUser, SaferOpen.Open, out var hLevel,
+                    IntPtr.Zero))
+            {
+                Debug.WriteLine("SaferCreateLevel");
+                return 0;
+            }
 
             if (!WinSafer.SaferComputeTokenFromLevel(hLevel, IntPtr.Zero, out var hRestrictedToken, 0, IntPtr.Zero))
-                return GetErrorMessage("WinSafer.SaferComputeTokenFromLevel", Marshal.GetLastWin32Error());
-
-            if (!WinSafer.SaferCloseLevel(hLevel))
             {
-                WinApi.CloseHandle(hRestrictedToken);
-                return GetErrorMessage("WinSafer.SaferCloseLevel", Marshal.GetLastWin32Error());
+                Debug.WriteLine("SaferComputeTokenFromLevel");
+                return 0;
             }
+
+            WinSafer.SaferCloseLevel(hLevel);
 
             // Set the token to medium integrity.
 
@@ -287,7 +273,7 @@ internal class MulticlientPatch
             if (!WinSafer.ConvertStringSidToSid("S-1-16-8192", out tml.Label.Sid))
             {
                 WinApi.CloseHandle(hRestrictedToken);
-                return GetErrorMessage("WinSafer.ConvertStringSidToSid", Marshal.GetLastWin32Error());
+                Debug.WriteLine("ConvertStringSidToSid");
             }
 
             if (!WinSafer.SetTokenInformation(hRestrictedToken, TOKEN_INFORMATION_CLASS.TokenIntegrityLevel, ref tml,
@@ -295,20 +281,19 @@ internal class MulticlientPatch
             {
                 WinApi.LocalFree(tml.Label.Sid);
                 WinApi.CloseHandle(hRestrictedToken);
-                return GetErrorMessage("WinSafer.SetTokenInformation", Marshal.GetLastWin32Error());
+                return 0;
             }
-            WinApi.LocalFree(tml.Label.Sid);
-
-            
 
             if (!WinSafer.CreateProcessAsUser(hRestrictedToken, null!, commandLine, ref saProcess,
                     ref saProcess, false, (uint)CreationFlags.CreateSuspended, IntPtr.Zero,
                     null!, ref startinfo, out procinfo))
             {
-                WinApi.CloseHandle(hRestrictedToken);
-                return GetErrorMessage("WinSafer.CreateProcessAsUser", Marshal.GetLastWin32Error());
+                var error = Marshal.GetLastWin32Error();
+                Debug.WriteLine($"CreateProcessAsUser {error}");
+                WinApi.CloseHandle(procinfo.hThread);
+                return 0;
             }
-            WinApi.CloseHandle(procinfo.hThread);
+
             WinApi.CloseHandle(hRestrictedToken);
         }
         else
@@ -317,15 +302,18 @@ internal class MulticlientPatch
                     ref saThread, false, (uint)CreationFlags.CreateSuspended, IntPtr.Zero,
                     null!, ref startinfo, out procinfo))
             {
+                var error = Marshal.GetLastWin32Error();
+                Debug.WriteLine($"CreateProcess {error}");
                 WinApi.ResumeThread(procinfo.hThread);
                 WinApi.CloseHandle(procinfo.hThread);
-                return GetErrorMessage("WinSafer.CreateProcess", Marshal.GetLastWin32Error());
+                return 0;
             }
         }
 
         Directory.SetCurrentDirectory(lastDirectory);
 
         WinApi.CloseHandle(procinfo.hProcess);
-        return null;
+        hThread = procinfo.hThread;
+        return procinfo.dwProcessId;
     }
 }
