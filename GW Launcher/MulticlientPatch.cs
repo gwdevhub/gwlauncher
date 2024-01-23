@@ -32,7 +32,7 @@ internal class MulticlientPatch
     {
         var path = account.gwpath;
 
-        var texmods = string.Join('\n', ModManager.GetTexmods(account.gwpath, account));
+        var texmods = string.Join('\n', ModManager.GetTexmods(account));
         if (!texmods.IsNullOrEmpty())
         {
             var modfile = Path.Combine(Path.GetDirectoryName(path)!, "modlist.txt");
@@ -74,7 +74,7 @@ internal class MulticlientPatch
 
         var memory = new GWCAMemory(process);
 
-        foreach (var dll in ModManager.GetDlls(path, account))
+        foreach (var dll in ModManager.GetDlls(account))
         {
             memory.LoadModule(dll);
         }
