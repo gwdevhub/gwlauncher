@@ -1,5 +1,6 @@
 ﻿using GW_Launcher.Forms;
 using Octokit;
+using Account = GW_Launcher.Classes.Account;
 using Application = System.Windows.Forms.Application;
 using FileMode = System.IO.FileMode;
 using ThreadState = System.Threading.ThreadState;
@@ -86,8 +87,14 @@ GW Launcher will close.
                         break;
                     }
 
-                    var i = mainForm.needtolaunch.Dequeue();
-                    var account = accounts[i];
+                    Account account;
+                    var accountIndex = mainForm.needtolaunch.Dequeue();
+                    try { 
+                        account = accounts[accountIndex];
+                    } catch {
+                        MessageBox.Show($"Failed to launch account {accountIndex}");
+                        continue;
+                    }
                     if (!File.Exists(account.gwpath))
                     {
                         MessageBox.Show(@"Path to the Guild Wars executable incorrect, aborting launch.");
@@ -126,7 +133,7 @@ GW Launcher will close.
 
                     account.process = memory;
 
-                    mainForm.SetActive(i, true);
+                    mainForm.SetActive(accountIndex, true);
                     GWMemory.FindAddressesIfNeeded(memory);
 
                     Task.Run(() =>

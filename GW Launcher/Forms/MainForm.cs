@@ -26,7 +26,8 @@ public partial class MainForm : Form
             Location = position;
         }
         InitializeComponent();
-        needtolaunch = new Queue<int>();
+        var profilesToLaunch = ArgsManager.processProfileArgs();
+        needtolaunch = new(profilesToLaunch);
         _selectedItems = new ListView.SelectedIndexCollection(listViewAccounts);
         _instance = this;
     }
