@@ -89,9 +89,12 @@ GW Launcher will close.
 
                     Account account;
                     var accountIndex = mainForm.needtolaunch.Dequeue();
-                    try { 
+                    try
+                    {
                         account = accounts[accountIndex];
-                    } catch {
+                    }
+                    catch
+                    {
                         MessageBox.Show($"Failed to launch account {accountIndex}");
                         continue;
                     }
@@ -187,7 +190,10 @@ GW Launcher will close.
                 }
 
                 UnlockMutex();
-
+                if (mainForm.autoCloseAfterLaunch)
+                {
+                    shouldClose = true;
+                }
                 Thread.Sleep(1000);
             }
 
