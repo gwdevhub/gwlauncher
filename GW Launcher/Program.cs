@@ -31,8 +31,27 @@ internal static class Program
         Application.EnableVisualStyles();
         Application.SetCompatibleTextRenderingDefault(false);
 
-        if (Mutex.TryOpenExisting(GwlMutexName, out _gwlMutex))
+        if (Mutex.TryOpenExisting(GwlMutexName, out _gwlMutex) && !ArgsManager.hasArgs)
         {
+            return;
+        }
+
+        try
+        {
+            accounts = new AccountManager("Accounts.json");
+        }
+        catch (Exception e)
+        {
+            MessageBox.Show($"Couldn't load account information, there might be an error in the .json. GW Launcher will close. {e.Message}");
+            _gwlMutex?.Close();
+            return;
+        }
+
+        if (ArgsManager.hasArgs)
+        {
+            // If running with CLI Args we won't launch the mainForm
+            var profilesToLaunch = ArgsManager.ProcessProfilesArg();
+            LaunchGWAccounts(profilesToLaunch, null);
             return;
         }
 
@@ -45,18 +64,7 @@ internal static class Program
 
         Task.Run(CheckGitHubGModVersion);
 
-        try
-        {
-            accounts = new AccountManager("Accounts.json");
-        }
-        catch (Exception e)
-        {
-            MessageBox.Show(@"Couldn't load account information, there might be an error in the .json.
-GW Launcher will close.
-" + e.Message);
-            _gwlMutex.Close();
-            return;
-        }
+
 
         try
         {
@@ -79,93 +87,7 @@ GW Launcher will close.
             while (!shouldClose)
             {
                 UnlockMutex();
-                while (mainForm.needtolaunch.Any())
-                {
-                    UnlockMutex();
-                    if (!LockMutex())
-                    {
-                        break;
-                    }
-
-                    Account account;
-                    var accountIndex = mainForm.needtolaunch.Dequeue();
-                    try
-                    {
-                        account = accounts[accountIndex];
-                    }
-                    catch
-                    {
-                        MessageBox.Show($"Failed to launch account {accountIndex}");
-                        continue;
-                    }
-                    if (!File.Exists(account.gwpath))
-                    {
-                        MessageBox.Show(@"Path to the Guild Wars executable incorrect, aborting launch.");
-                        continue;
-                    }
-
-                    switch (account.active)
-                    {
-                        case true when account.process != null &&
-                                       account.process.process.MainWindowHandle != IntPtr.Zero:
-                            SetForegroundWindow(account.process.process.MainWindowHandle);
-                            continue;
-                        case true:
-                            continue;
-                    }
-
-                    var memory = MulticlientPatch.LaunchClient(account);
-                    if (memory == null)
-                    {
-                        MessageBox.Show(@"Failed to launch account.");
-                        continue;
-                    }
-
-                    var timelock = 0;
-                    while (timelock++ < 5 && (memory.process.MainWindowHandle == IntPtr.Zero ||
-                                              !memory.process.WaitForInputIdle(1000)))
-                    {
-                        Thread.Sleep(1000);
-                        memory.process.Refresh();
-                    }
-
-                    if (timelock >= 10)
-                    {
-                        continue;
-                    }
-
-                    account.process = memory;
-
-                    mainForm.SetActive(accountIndex, true);
-                    GWMemory.FindAddressesIfNeeded(memory);
-
-                    Task.Run(() =>
-                    {
-                        try
-                        {
-                            while ((memory.Read<ushort>(GWMemory.CharnamePtr) == 0 && timelock++ < 5) ||
-                                   memory.process.MainWindowTitle != "Guild Wars")
-                            {
-                                Thread.Sleep(1000);
-                                memory.process.Refresh();
-                            }
-
-                            Thread.Sleep(2000);
-                            memory.process.Refresh();
-
-                            if (memory.process.MainWindowTitle == "Guild Wars")
-                            {
-                                SetWindowText(memory.process.MainWindowHandle, account.Name);
-                            }
-                        }
-                        catch (InvalidOperationException)
-                        {
-                        }
-                    });
-
-                    UnlockMutex();
-                    Thread.Sleep(1000);
-                }
+                LaunchGWAccounts(mainForm.needtolaunch, mainForm);
 
                 if (!LockMutex())
                 {
@@ -190,10 +112,6 @@ GW Launcher will close.
                 }
 
                 UnlockMutex();
-                if (mainForm.autoCloseAfterLaunch)
-                {
-                    shouldClose = true;
-                }
                 Thread.Sleep(1000);
             }
 
@@ -202,6 +120,97 @@ GW Launcher will close.
         Application.Run(mainForm);
     }
 
+    private static void LaunchGWAccounts(Queue<int> accountsToLaunch, MainForm? mainForm)
+    {
+        while (accountsToLaunch.TryDequeue(out var accountIndex))
+        {
+            UnlockMutex();
+            if (!LockMutex())
+            {
+                break;
+            }
+
+            Account account;
+            try
+            {
+                account = accounts[accountIndex];
+            }
+            catch
+            {
+                MessageBox.Show($"Failed to launch account {accountIndex}");
+                continue;
+            }
+            if (!File.Exists(account.gwpath))
+            {
+                MessageBox.Show(@"Path to the Guild Wars executable incorrect, aborting launch.");
+                continue;
+            }
+
+            switch (account.active)
+            {
+                case true when account.process != null &&
+                               account.process.process.MainWindowHandle != IntPtr.Zero:
+                    SetForegroundWindow(account.process.process.MainWindowHandle);
+                    continue;
+                case true:
+                    continue;
+            }
+
+            var memory = MulticlientPatch.LaunchClient(account);
+            if (memory == null)
+            {
+                MessageBox.Show(@"Failed to launch account.");
+                continue;
+            }
+
+            var timelock = 0;
+            while (timelock++ < 5 && (memory.process.MainWindowHandle == IntPtr.Zero ||
+                                      !memory.process.WaitForInputIdle(1000)))
+            {
+                Thread.Sleep(1000);
+                memory.process.Refresh();
+            }
+
+            if (timelock >= 10)
+            {
+                continue;
+            }
+
+            account.process = memory;
+
+            mainForm?.SetActive(accountIndex, true);
+            GWMemory.FindAddressesIfNeeded(memory);
+
+            Task.Run(() =>
+            {
+                try
+                {
+                    while ((memory.Read<ushort>(GWMemory.CharnamePtr) == 0 && timelock++ < 5) ||
+                           memory.process.MainWindowTitle != "Guild Wars")
+                    {
+                        Thread.Sleep(1000);
+                        memory.process.Refresh();
+                    }
+
+                    Thread.Sleep(2000);
+                    memory.process.Refresh();
+
+                    if (memory.process.MainWindowTitle == "Guild Wars")
+                    {
+                        SetWindowText(memory.process.MainWindowHandle, account.Name);
+                    }
+                }
+                catch (InvalidOperationException)
+                {
+                }
+            });
+
+            UnlockMutex();
+            Thread.Sleep(1000);
+        }
+
+    }
+    
     private static bool LockMutex()
     {
         if (_gotMutex)
