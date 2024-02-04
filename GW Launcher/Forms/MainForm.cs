@@ -11,7 +11,6 @@ public partial class MainForm : Form
     private bool _keepOpen;
 
     private ListView.SelectedIndexCollection _selectedItems;
-    public bool autoCloseAfterLaunch;
     public readonly Queue<int> needtolaunch;
 
     public MainForm(bool launchMinimized = false)
@@ -27,9 +26,7 @@ public partial class MainForm : Form
             Location = position;
         }
         InitializeComponent();
-        var profilesToLaunch = ArgsManager.processProfileArgs();
-        autoCloseAfterLaunch = ArgsManager.processAutoCloseAfterLaunch();
-        needtolaunch = new(profilesToLaunch);
+        needtolaunch = new();
         _selectedItems = new ListView.SelectedIndexCollection(listViewAccounts);
         _instance = this;
     }

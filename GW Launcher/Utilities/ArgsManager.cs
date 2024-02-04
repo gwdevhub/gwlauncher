@@ -2,21 +2,17 @@
 
 internal static class ArgsManager
 {
-    private static Dictionary<string, string> _commandLineArgs;
+    public static bool hasArgs { get => _commandLineArgs.Count > 0; }
+    private static readonly Dictionary<string, string> _commandLineArgs;
 
     static ArgsManager()
     {
         _commandLineArgs = GetCommandLineArgs();
     }
 
-    public static bool processAutoCloseAfterLaunch()
+    public static Queue<int> ProcessProfilesArg()
     {
-        return _commandLineArgs.ContainsKey("autoclose") && _commandLineArgs["autoclose"] == "true";
-    }
-
-    public static List<int> processProfileArgs()
-    {
-        List<int> profilesToLaunch = new();
+        Queue<int> profilesToLaunch = new();
         if (_commandLineArgs.ContainsKey("profiles"))
         {
             var profiles = _commandLineArgs["profiles"];
@@ -24,7 +20,7 @@ internal static class ArgsManager
             {
                 if (int.TryParse(profile, out int profileValue))
                 {
-                    profilesToLaunch.Add(profileValue);
+                    profilesToLaunch.Enqueue(profileValue);
                 }
             }
         }
