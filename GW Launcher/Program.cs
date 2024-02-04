@@ -181,6 +181,7 @@ GW Launcher will close.
             mainForm?.SetActive(accountIndex, true);
             GWMemory.FindAddressesIfNeeded(memory);
 
+
             Task.Run(() =>
             {
                 try
@@ -208,7 +209,6 @@ GW Launcher will close.
             UnlockMutex();
             Thread.Sleep(1000);
         }
-
     }
     
     private static bool LockMutex()

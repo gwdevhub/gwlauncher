@@ -26,7 +26,7 @@ public partial class MainForm : Form
             Location = position;
         }
         InitializeComponent();
-        needtolaunch = new();
+        needtolaunch = new Queue<int>();
         _selectedItems = new ListView.SelectedIndexCollection(listViewAccounts);
         _instance = this;
     }
