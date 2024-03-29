@@ -1,55 +1,56 @@
 ﻿using GW_Launcher.Properties;
 using Microsoft.Win32;
-using System;
-using System.Security.Cryptography;
 
 namespace GW_Launcher.Forms;
 
 public partial class MainForm : Form
 {
-    
+    private static MainForm? _instance;
+    private bool _allowVisible;
 
     private bool _keepOpen;
-    private bool _allowVisible = false;
 
     private ListView.SelectedIndexCollection _selectedItems;
 
-    private static MainForm? instance = null;
-
-    public MainForm()
+    public MainForm(bool launchMinimized = false)
     {
+        if (!launchMinimized)
+        {
+            _allowVisible = true;
+            var position = new Point
+            {
+                X = Screen.PrimaryScreen.Bounds.Width / 2,
+                Y = Screen.PrimaryScreen.Bounds.Height / 2
+            };
+            Location = position;
+        }
         InitializeComponent();
         _selectedItems = new ListView.SelectedIndexCollection(listViewAccounts);
-        instance = this;
+        _instance = this;
     }
+
     protected override void OnFormClosing(FormClosingEventArgs e)
     {
-        instance = null;
+        _instance = null;
         base.OnFormClosing(e);
     }
+
     public static void OnAccountSaved(Account account)
     {
-        bool found = false;
         Program.mutex.WaitOne();
-        for (int index = 0; index < Program.accounts.Length; index++)
+        var found = Program.accounts[account.guid];
+        if (found != null)
         {
-            if (Program.accounts[index].guid == account.guid)
-            {
-                Program.accounts[index] = account;
-                Program.accounts.Save();
-                found = true;
-                break;
-            }
+            Program.accounts[account.guid] = account;
         }
-        if(!found)
+        else
         {
             Program.accounts.Add(account);
         }
+
+        Program.accounts.Save();
         Program.mutex.ReleaseMutex();
-        if (instance != null)
-        {
-            instance.RefreshUI();
-        }
+        _instance?.RefreshUI();
     }
 
     protected override void SetVisibleCore(bool value)
@@ -57,8 +58,12 @@ public partial class MainForm : Form
         if (!_allowVisible)
         {
             value = false;
-            if (!this.IsHandleCreated) CreateHandle();
+            if (!IsHandleCreated)
+            {
+                CreateHandle();
+            }
         }
+
         base.SetVisibleCore(value);
     }
 
@@ -79,7 +84,7 @@ public partial class MainForm : Form
             {
                 var memory = new GWCAMemory(process);
                 GWMemory.FindAddressesIfNeeded(memory);
-                var email = memory.ReadWString(GWMemory.EmailAddPtr, 64);
+                var email = memory.ReadWString(GWMemory.EmailAddPtr, 64, Encoding.Default);
                 foreach (var account in Program.accounts)
                 {
                     if (email != account.email)
@@ -87,7 +92,7 @@ public partial class MainForm : Form
                         continue;
                     }
 
-                    account.state = "Active";
+                    account.active = true;
                     account.process = memory;
                     break;
                 }
@@ -99,13 +104,15 @@ public partial class MainForm : Form
                     MessageBox.Show(
                         @"There is a running Guild Wars instance with a higher privilege level than GW Launcher currently has. Attempting to restart as Admin.");
                     if (!AdminAccess.RestartAsAdminPrompt(true))
+                    {
                         return;
+                    }
                 }
                 else
                 {
                     MessageBox.Show(
                         @"Can't read memory of an open Guild Wars instance. Launcher will close.");
-                    Program.shouldClose = true;
+                    Program.Exit();
                 }
             }
         }
@@ -119,7 +126,7 @@ public partial class MainForm : Form
                     account.Name,
                     account.state
                 },
-                "gw-icon"
+                "gwlauncher"
             ));
         }
 
@@ -141,6 +148,11 @@ public partial class MainForm : Form
         Height = Math.Max(Height, minHeight);
     }
 
+    public void SetActive(int index, bool active)
+    {
+        SetAccountState(index, "Active");
+    }
+
     public void SetAccountState(int index, string state)
     {
         if (listViewAccounts.InvokeRequired)
@@ -154,15 +166,15 @@ public partial class MainForm : Form
             listViewAccounts.Items[index].SubItems[1].Text = state;
         }
     }
-
     private void MainForm_Load(object sender, EventArgs e)
     {
         Visible = false;
         // Initialize things
         var imageList = new ImageList();
-        imageList.Images.Add("gw-icon", Resources.gw_icon);
+        imageList.Images.Add("gwlauncher", Resources.gwlauncher);
         listViewAccounts.SmallImageList = imageList;
         RefreshUI();
+        Program.mainthread.Start();
     }
 
     private void ListViewAccounts_MouseDoubleClick(object sender, MouseEventArgs e)
@@ -185,24 +197,14 @@ public partial class MainForm : Form
 
         foreach (int selectedItem in _selectedItems)
         {
-            Program.LaunchAccount(selectedItem);
+            Program.QueueLaunch(selectedItem);
         }
     }
 
     private void ToolStripMenuItemAddNew_Click(object sender, EventArgs e)
     {
         using var gui = new AddAccountForm();
-        if (gui.ShowDialog() is not (DialogResult.Yes or DialogResult.OK)) return;
-        Program.mutex.WaitOne();
-        var account = gui.account;
-        if (account.email != null)
-        {
-            Program.accounts.Add(account);
-            Program.accounts.Save();
-            RefreshUI();
-        }
-
-        Program.mutex.ReleaseMutex();
+        gui.ShowDialog();
     }
 
     private void ToolStripMenuItemRemoveSelected_Click(object sender, EventArgs e)
@@ -222,10 +224,10 @@ public partial class MainForm : Form
     private void ToolStripMenuItemLaunchGWInstance_Click(object sender, EventArgs e)
     {
         var pathdefault =
-            (string?) Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\ArenaNet\\Guild Wars", "Path", null);
+            (string?)Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\ArenaNet\\Guild Wars", "Path", null);
         if (pathdefault == null)
         {
-            pathdefault = (string?) Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\ArenaNet\\Guild Wars",
+            pathdefault = (string?)Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\ArenaNet\\Guild Wars",
                 "Path", null);
             if (pathdefault == null)
             {
@@ -255,7 +257,7 @@ public partial class MainForm : Form
             return;
         }
 
-        int? index = _selectedItems.Contains(listViewAccounts.FocusedItem.Index)
+        int? index = listViewAccounts.FocusedItem != null && _selectedItems.Contains(listViewAccounts.FocusedItem.Index)
             ? listViewAccounts.FocusedItem.Index
             : null;
         if (index == null && _selectedItems.Count > 0)
@@ -268,7 +270,7 @@ public partial class MainForm : Form
             return;
         }
 
-        var account = Program.accounts[(int) index];
+        var account = Program.accounts[(int)index];
         using var addAccountForm = new AddAccountForm
         {
             Text = @"Modify Account",
@@ -276,7 +278,127 @@ public partial class MainForm : Form
         };
 
         addAccountForm.ShowDialog();
+    }
 
+    private void MainForm_Deactivate(object sender, EventArgs e)
+    {
+        if (!_keepOpen)
+        {
+            Visible = false;
+        }
+    }
+
+    private void NotifyIcon_MouseClick(object sender, MouseEventArgs e)
+    {
+        _allowVisible = true;
+        _keepOpen = e.Button == MouseButtons.Right && Visible == false;
+
+        bool IsVisible(Point p)
+        {
+            return Screen.AllScreens.Any(s =>
+                p.X < s.Bounds.Right && p.X > s.Bounds.Left && p.Y > s.Bounds.Top && p.Y < s.Bounds.Bottom);
+        }
+
+        var rect = NotifyIconHelper.GetIconRect(notifyIcon);
+        var position = new Point(rect.Left, rect.Top);
+
+        RefreshUI();
+
+        position.X -= Width / 2;
+        if (position.Y > Screen.FromPoint(Cursor.Position).WorkingArea.Height / 2)
+        {
+            position.Y -= 5 + Height;
+        }
+        else
+        {
+            position.Y += 5;
+        }
+
+        if (!IsVisible(position))
+        {
+            position.Y = Cursor.Position.Y;
+        }
+
+        if (!IsVisible(position))
+        {
+            Debug.Assert(Screen.PrimaryScreen != null, "Screen.PrimaryScreen != null");
+            position.X = Screen.PrimaryScreen.Bounds.Width / 2;
+            position.Y = Screen.PrimaryScreen.Bounds.Height / 2;
+        }
+
+        Location = position;
+
+        Visible = !Visible;
+        Activate();
+    }
+
+    private static Task RunClientUpdateAsync(string client, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var tmpfile = Path.GetDirectoryName(client) + Path.DirectorySeparatorChar + "Gw.tmp";
+            if (File.Exists(tmpfile))
+            {
+                try
+                {
+                    File.Delete(tmpfile);
+                }
+                catch (Exception)
+                {
+                    // ignored
+                }
+            }
+
+            Process process = new()
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = client,
+                    Arguments = "-image",
+                    UseShellExecute = true,
+                    Verb = "runas"
+                }
+            };
+            process.Start();
+
+            var taskCompletionSource = new TaskCompletionSource<object>();
+            process.EnableRaisingEvents = true;
+            process.Exited += (_, _) => taskCompletionSource.TrySetResult(null!);
+            if (cancellationToken != default)
+            {
+                cancellationToken.Register(taskCompletionSource.SetCanceled);
+            }
+
+            if (File.Exists(tmpfile))
+            {
+                try
+                {
+                    File.Delete(tmpfile);
+                }
+                catch (Exception)
+                {
+                    // ignored
+                }
+            }
+
+            return taskCompletionSource.Task;
+        }
+        catch (Win32Exception e) when ((uint)e.ErrorCode == 0x80004005)
+        {
+            return Task.CompletedTask;
+        }
+    }
+
+    private async void ToolStripMenuItemUpdateAllClients_Click(object sender, EventArgs e)
+    {
+        var clients = Program.accounts.Select(account => account.gwpath).Distinct();
+
+        foreach (var client in clients)
+        {
+            await RunClientUpdateAsync(client);
+        }
+
+        Show();
     }
 
     private void ToolStripMenuItemCreateShortcut_Click(object sender, EventArgs e)
@@ -295,110 +417,6 @@ public partial class MainForm : Form
         shortcut.Arguments = "-launch \"" + account.Name + "\"";
         shortcut.TargetPath = Application.ExecutablePath;
         shortcut.Save();
-    }
-
-    private void MainForm_Deactivate(object sender, EventArgs e)
-    {
-        if (!_keepOpen)
-        {
-            Visible = false;
-        }
-    }
-
-    private void NotifyIcon_MouseClick(object sender, MouseEventArgs e)
-    {
-        _allowVisible = true;
-        if (e.Button == MouseButtons.Right && Visible == false)
-        {
-            _keepOpen = true;
-        }
-        else
-        {
-            _keepOpen = false;
-        }
-
-        bool IsVisible(Point p)
-        {
-            return Screen.AllScreens.Any(s => p.X < s.Bounds.Right && p.X > s.Bounds.Left && p.Y > s.Bounds.Top && p.Y < s.Bounds.Bottom);
-        }
-
-        var position = Cursor.Position;
-
-        position.X -= Width / 2;
-        if (position.Y > Screen.FromPoint(Cursor.Position).WorkingArea.Height / 2)
-        {
-            position.Y -= 25 + Height;
-        }
-        else
-        {
-            position.Y += 25;
-        }
-
-        if (!IsVisible(position))
-        {
-            position.Y = Cursor.Position.Y;
-        }
-
-        if (!IsVisible(position))
-        {
-            position.X = Screen.PrimaryScreen.Bounds.Width / 2;
-            position.Y = Screen.PrimaryScreen.Bounds.Height / 2;
-        }
-
-        Location = position;
-
-        Visible = !Visible;
-        Activate();
-    }
-
-    private static Task RunClientUpdateAsync(string client, CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            var tmpfile = Path.GetDirectoryName(client) + Path.DirectorySeparatorChar + "Gw.tmp";
-            if (File.Exists(tmpfile))
-            {
-                File.Delete(tmpfile);
-            }
-
-            var process = Process.Start(client, "-image");
-            var taskCompletionSource = new TaskCompletionSource<object>();
-            process.EnableRaisingEvents = true;
-            process.Exited += (_, _) => taskCompletionSource.TrySetResult(null!);
-            if (cancellationToken != default)
-            {
-                cancellationToken.Register(taskCompletionSource.SetCanceled);
-            }
-
-            if (File.Exists(tmpfile))
-            {
-                File.Delete(tmpfile);
-            }
-
-            return taskCompletionSource.Task;
-        }
-        catch (Win32Exception e) when ((uint) e.ErrorCode == 0x80004005)
-        {
-            return Task.CompletedTask;
-        }
-    }
-
-    private async void ToolStripMenuItemUpdateAllClients_Click(object sender, EventArgs e)
-    {
-        if (!AdminAccess.HasAdmin())
-        {
-            if (!AdminAccess.RestartAsAdminPrompt())
-            {
-                return;
-            }
-        }
-
-        var clients = Program.accounts.Select(account => account.gwpath).Distinct();
-
-        foreach (var client in clients)
-        {
-            await RunClientUpdateAsync(client);
-        }
     }
 
     private delegate void SetActiveUICallback(int index, string state);

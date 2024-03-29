@@ -1,7 +1,12 @@
 ﻿using GW_Launcher.Forms;
 using GW_Launcher.Memory;
+using Octokit;
 using System;
 using System.Xml.Linq;
+using Account = GW_Launcher.Classes.Account;
+using Application = System.Windows.Forms.Application;
+using FileMode = System.IO.FileMode;
+using ThreadState = System.Threading.ThreadState;
 
 namespace GW_Launcher;
 
@@ -31,19 +36,20 @@ internal static class Program
 
     static bool IsProcessOpen(string name)
     {
-        foreach (Process clsProcess in Process.GetProcesses()) {
+        foreach (Process clsProcess in Process.GetProcesses())
+        {
             if (clsProcess.ProcessName.Contains(name))
                 return true;
         }
         return false;
     }
 
-    static bool WaitFor(Func<bool> test_func,uint timeout_ms = 10000)
+    static bool WaitFor(Func<bool> test_func, uint timeout_ms = 10000)
     {
         uint elapsed = 0;
         bool ok = test_func();
 
-        while(!ok)
+        while (!ok)
         {
             if (elapsed > timeout_ms)
                 break;
@@ -54,9 +60,9 @@ internal static class Program
         return ok;
     }
 
-    internal static string? LaunchAccount(string account_name)
+    private static string? LaunchAccount(string account_name)
     {
-        int found = accounts.FindByName(account_name);
+        int found = accounts.IndexOf(account_name);
         if (found == -1)
             return "Failed to find account for " + account_name;
         return LaunchAccount(found);
@@ -71,9 +77,9 @@ internal static class Program
         return account == null ? "" : account.Name;
     }
 
-    internal static string? LaunchAccount(int account_index)
+    private static string? LaunchAccount(int account_index)
     {
-        var account = GetAccountByIndex(account_index);
+        var account = accounts[account_index];
         var previous_state = account.state;
         mainForm?.SetAccountState(account_index, "Launching");
         GWCAMemory? memory = null;
@@ -137,27 +143,26 @@ internal static class Program
     {
         if (!ParseCommandLineArgs())
         {
-            Cleanup();
+            Exit();
             return; // Error message already displayed
         }
-        if(!LoadAccountsJson())
+        if (!LoadAccountsJson())
         {
-            Cleanup();
+            Exit();
             return; // Error message already displayed
         }
 
         if (settings.CheckForUpdates)
         {
             Task.Run(CheckGitHubNewerVersion);
+            Task.Run(CheckGitHubGModVersion);
         }
-
-        CreateUmodD3d9Dll();
 
         settings.Save();
         mainThreadRunning = true;
         mainthread = new Thread(() =>
         {
-            
+
             while (!shouldClose)
             {
                 UnlockMutex();
@@ -173,7 +178,7 @@ internal static class Program
                         MessageBox.Show(@"Failed to launch account " + account_name + "\n" + res);
                     }
                 }
-                
+
                 if (!LockMutex()) continue;
 
                 for (var i = 0; mainForm != null && i < accounts.Length; i++)
@@ -201,23 +206,20 @@ internal static class Program
             mainThreadRunning = false;
         });
 
-        mainthread.Start();
-
-
         if (command_arg_launch_account_name.Length > 0)
         {
             var res = LaunchAccount(command_arg_launch_account_name);
             if (res != null)
             {
-                MessageBox.Show(@"Failed to launch account " + command_arg_launch_account_name+"\n"+ res);
+                MessageBox.Show(@"Failed to launch account " + command_arg_launch_account_name + "\n" + res);
             }
-            Cleanup();
+            Exit();
             return;
         }
         // Only try to create and grab the mutex if we're in the main program
         if (!InitialiseGWLauncherMutex())
         {
-            Cleanup();
+            Exit();
             return; // Error message already displayed
         }
 
@@ -225,7 +227,7 @@ internal static class Program
         Application.EnableVisualStyles();
         Application.SetCompatibleTextRenderingDefault(false);
         mainForm = new MainForm();
-        mainForm.FormClosed += (_, _) => { shouldClose = true; };
+        mainForm.FormClosed += (_, _) => { Exit(); };
         Application.Run(mainForm);
     }
     public static bool QueueLaunch(int index)
@@ -237,16 +239,16 @@ internal static class Program
     }
     public static bool QueueLaunch(string name)
     {
-        return QueueLaunch(accounts.FindByName(name));
+        return QueueLaunch(accounts.IndexOf(name));
     }
-    private static void Cleanup()
+    public static void Exit()
     {
         while (needtolaunch.Count > 0)
             Thread.Sleep(16);
         shouldClose = true;
         while (mainThreadRunning)
             Thread.Sleep(16);
-        if(gwlMutex != null)
+        if (gwlMutex != null)
         {
             gwlMutex.Close();
             gwlMutex = null;
@@ -255,13 +257,13 @@ internal static class Program
     private static bool ParseCommandLineArgs()
     {
         var args = Environment.GetCommandLineArgs();
-        for(var i=1;i<args.Length;i++)
+        for (var i = 1; i < args.Length; i++)
         {
-            switch(args[i])
+            switch (args[i])
             {
                 case "-launch":
                     i++;
-                    if(i >= args.Length)
+                    if (i >= args.Length)
                     {
                         MessageBox.Show(@"No value for command line argument -launch");
                         return false;
@@ -295,25 +297,8 @@ internal static class Program
         {
             MessageBox.Show(@"Couldn't load account information, there might be an error in the .json.
 GW Launcher will close.");
-            
+
             return false;
-        }
-    }
-    private static void CreateUmodD3d9Dll()
-    {
-        var location = Path.GetDirectoryName(AppContext.BaseDirectory);
-        if (location != null)
-        {
-            // dump correct version of umod d3d9.dll
-            var filenameumod = Path.Combine(location, "d3d9.dll");
-            try
-            {
-                File.WriteAllBytes(filenameumod, Properties.Resources.d3d9);
-            }
-            catch (Exception)
-            {
-                // use the file that already exists
-            }
         }
     }
 
@@ -324,7 +309,7 @@ GW Launcher will close.");
     }
     private static void UnlockMutex()
     {
-        if(gotMutex)
+        if (gotMutex)
         {
             mutex.ReleaseMutex();
             gotMutex = false;
@@ -341,8 +326,8 @@ GW Launcher will close.");
         }
 
         //Get all releases from GitHub
-        var client = new Octokit.GitHubClient(new Octokit.ProductHeaderValue("GWLauncher"));
-        var releases = await client.Repository.Release.GetAll("GregLando113", "gwlauncher");
+        var client = new GitHubClient(new ProductHeaderValue("GWLauncher"));
+        var releases = await client.Repository.Release.GetAll("gwdevhub", "gwlauncher");
 
         if (!releases.Any(r => !r.Prerelease && !r.Draft))
         {
@@ -415,9 +400,12 @@ GW Launcher will close.");
 
         mutex.WaitOne();
         shouldClose = true;
-        if (mainthread.ThreadState == System.Threading.ThreadState.Running &&
+        if (mainthread.ThreadState == ThreadState.Running &&
             !mainthread.Join(5000))
+        {
             return;
+        }
+
         mutex.Close();
         gwlMutex?.Close();
 
@@ -436,5 +424,59 @@ GW Launcher will close.");
         Application.Restart();
         Process.Start(processInfo);
         Environment.Exit(0);
+    }
+    private static async Task CheckGitHubGModVersion()
+    {
+        var location = Path.GetDirectoryName(AppContext.BaseDirectory);
+        var gmod = Path.Combine(location!, "gMod.dll");
+        //Get all releases from GitHub
+        var client = new GitHubClient(new ProductHeaderValue("gMod"));
+        var releases = await client.Repository.Release.GetAll("gwdevhub", "gMod");
+
+        if (!releases.Any(r => !r.Prerelease && !r.Draft))
+        {
+            return;
+        }
+
+        var release = releases.First(r => !r.Prerelease && !r.Draft);
+        var tagName = Regex.Replace(release.TagName, @"[^\d\.]", "");
+        var latestVersion = new Version(tagName);
+        var minVersion = new Version("1.5.2");
+        if (latestVersion.CompareTo(minVersion) <= 0)
+        {
+            return;
+        }
+
+        string strVersion;
+        try
+        {
+            var fvi = FileVersionInfo.GetVersionInfo(gmod);
+            strVersion = fvi.FileVersion!;
+        }
+        catch (FileNotFoundException)
+        {
+            strVersion = "1.0.0";
+        }
+        var localVersion = new Version(strVersion);
+
+        var versionComparison = localVersion.CompareTo(latestVersion);
+        if (versionComparison >= 0)
+        {
+            return;
+        }
+
+        var latest = releases[0];
+
+        var asset = latest.Assets.First(a => a.Name == "gMod.dll");
+        if (asset == null)
+        {
+            return;
+        }
+
+        var uri = new Uri(asset.BrowserDownloadUrl);
+        var httpClient = new HttpClient();
+        await using var s = await httpClient.GetStreamAsync(uri);
+        await using var fs = new FileStream(gmod, FileMode.Create);
+        await s.CopyToAsync(fs);
     }
 }
