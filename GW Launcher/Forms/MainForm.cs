@@ -393,9 +393,11 @@ public partial class MainForm : Form
     {
         var clients = Program.accounts.Select(account => account.gwpath).Distinct();
 
+        // todo: await download gw.exe
         foreach (var client in clients)
         {
-            await RunClientUpdateAsync(client);
+            // todo: copy gw.exe to this location, replace the current one
+            await RunClientUpdateAsync(client); // launch the client with -image once, in case gw.dat needs an update as well
         }
 
         Show();

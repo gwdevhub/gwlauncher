@@ -31,9 +31,7 @@ internal sealed class NotifyIconHelper
             throw new InvalidOperationException("Can't find property window of NotifyIcon");
         }
 
-        var window = WindowField.GetValue(icon) as NativeWindow;
-
-        if (window == null)
+        if (WindowField.GetValue(icon) is not NativeWindow window)
         {
             throw new InvalidOperationException("[Useful error message]"); // should not happen?
         }
