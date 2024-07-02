@@ -80,7 +80,6 @@ internal static class Program
     private static string? LaunchAccount(int account_index)
     {
         var account = accounts[account_index];
-        var previous_state = account.state;
         mainForm?.SetAccountState(account_index, "Launching");
         GWCAMemory? memory = null;
         if (!File.Exists(account.gwpath))
@@ -123,9 +122,7 @@ internal static class Program
         account.process = memory;
 
         GWMemory.FindAddressesIfNeeded(memory);
-        ok = WaitFor(() => {
-            return memory.Read<ushort>(GWMemory.CharnamePtr) != 0;
-        }, timeout);
+        ok = WaitFor(() => memory.Read<ushort>(GWMemory.CharnamePtr) != 0, timeout);
         if (!ok)
         {
             memory.process.Kill();
@@ -237,10 +234,7 @@ internal static class Program
         needtolaunch.Enqueue(index);
         return true;
     }
-    public static bool QueueLaunch(string name)
-    {
-        return QueueLaunch(accounts.IndexOf(name));
-    }
+
     public static void Exit()
     {
         while (needtolaunch.Count > 0)

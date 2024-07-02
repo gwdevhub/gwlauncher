@@ -3,10 +3,10 @@
 internal sealed class NotifyIconHelper
 {
     private static readonly FieldInfo? WindowField =
-        typeof(NotifyIcon).GetField("window", BindingFlags.NonPublic | BindingFlags.Instance);
+        typeof(NotifyIcon).GetField("_window", BindingFlags.NonPublic | BindingFlags.Instance);
 
     private static readonly FieldInfo? IdField =
-        typeof(NotifyIcon).GetField("id", BindingFlags.NonPublic | BindingFlags.Instance);
+        typeof(NotifyIcon).GetField("_id", BindingFlags.NonPublic | BindingFlags.Instance);
 
     public static Rectangle GetIconRect(NotifyIcon icon)
     {

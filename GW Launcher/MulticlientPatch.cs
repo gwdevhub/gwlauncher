@@ -6,8 +6,9 @@ namespace GW_Launcher;
 
 internal class MulticlientPatch
 {
-
-    private static string GetErrorMessage(string methodName, int errorCode, [System.Runtime.CompilerServices.CallerFilePath] string file = "", [System.Runtime.CompilerServices.CallerLineNumber] int lineNumber = 0)
+    private static string GetErrorMessage(string methodName, int errorCode,
+        [System.Runtime.CompilerServices.CallerFilePath] string file = "",
+        [System.Runtime.CompilerServices.CallerLineNumber] int lineNumber = 0)
     {
         return $"Error in {methodName} at {file}:{lineNumber} - Code: {errorCode}";
     }
@@ -39,14 +40,13 @@ internal class MulticlientPatch
     {
         var path = account.gwpath;
         Process? process = null;
-        string? err = null;
         memory = null;
-        if(!File.Exists(path))
+        string? err;
+        if (!File.Exists(path))
         {
             err = GetErrorMessage("Account Gw.exe path invalid", 0);
             goto cleanup;
         }
-        memory = null;
 
         var texmods = string.Join('\n', ModManager.GetTexmods(account));
         if (!texmods.IsNullOrEmpty())
@@ -56,17 +56,23 @@ internal class MulticlientPatch
             {
                 File.WriteAllText(modfile, texmods);
             }
-            catch (UnauthorizedAccessException) {
+            catch (UnauthorizedAccessException)
+            {
                 modfile = Path.Combine(Directory.GetCurrentDirectory(), "modlist.txt");
                 try
                 {
                     File.WriteAllText(modfile, texmods);
                 }
-                catch (UnauthorizedAccessException) {
+                catch (UnauthorizedAccessException)
+                {
                     err = GetErrorMessage("UnauthorizedAccessException, Failed to write texmods to modlist.txt", 0);
                     goto cleanup;
-                };
-            };
+                }
+
+                ;
+            }
+
+            ;
         }
 
         var args = $"-email \"{account.email}\" -password \"{account.password}\"";
@@ -87,7 +93,7 @@ internal class MulticlientPatch
         }
 
         process = Process.GetProcessById(procinfo.dwProcessId);
-        if(process == null)
+        if (process == null)
         {
             err = GetErrorMessage("Process.GetProcessById", Marshal.GetLastWin32Error());
             goto cleanup;
@@ -98,7 +104,6 @@ internal class MulticlientPatch
             err = GetErrorMessage("McPatch(process.Handle)", Marshal.GetLastWin32Error());
             goto cleanup;
         }
-
 
         memory = new GWCAMemory(process);
 
@@ -114,7 +119,9 @@ internal class MulticlientPatch
 
         if (Control.ModifierKeys.HasFlag(Keys.Shift))
         {
-            DialogResult result = MessageBox.Show("Guild Wars is in a suspended state, plugins are not yet loaded.\n\nContinue?", "Launching paused", MessageBoxButtons.OKCancel);
+            DialogResult result =
+                MessageBox.Show("Guild Wars is in a suspended state, plugins are not yet loaded.\n\nContinue?",
+                    "Launching paused", MessageBoxButtons.OKCancel);
             if (result == DialogResult.Cancel)
             {
                 GetErrorMessage("Launch was cancelled", 0);
@@ -124,23 +131,30 @@ internal class MulticlientPatch
 
         if (procinfo.hThread != IntPtr.Zero)
         {
-            if (WinApi.ResumeThread(procinfo.hThread) == 0xfffffffe)
+            try
             {
-                err = GetErrorMessage($"WinApi.ResumeThread({procinfo.hThread})", Marshal.GetLastWin32Error());
-                goto cleanup;
+                if (WinApi.ResumeThread(procinfo.hThread) == 0xffffffff)
+                {
+                    err = GetErrorMessage($"WinApi.ResumeThread({procinfo.hThread})", Marshal.GetLastWin32Error());
+                    goto cleanup;
+                }
+
+                if (WinApi.CloseHandle(procinfo.hThread) == 0)
+                {
+                    err = GetErrorMessage($"WinApi.CloseHandle({procinfo.hThread})", Marshal.GetLastWin32Error());
+                    goto cleanup;
+                }
             }
-            if (WinApi.CloseHandle(procinfo.hThread) == 0xfffffffe)
+            catch (Exception e)
             {
-                err = GetErrorMessage($"WinApi.CloseHandle({procinfo.hThread})", Marshal.GetLastWin32Error());
-                goto cleanup;
+                err = e.Message;
             }
         }
 
-    cleanup:
+        cleanup:
         if (err != null)
         {
-            if(process != null)
-                process.Kill();
+            process?.Kill();
             memory = null;
         }
 
@@ -193,6 +207,7 @@ internal class MulticlientPatch
         {
             return GetErrorMessage("PatchRegistry UnauthorizedAccessException", Marshal.GetLastWin32Error());
         }
+
         return null;
     }
 
@@ -223,7 +238,8 @@ internal class MulticlientPatch
     private static bool McPatch(IntPtr processHandle)
     {
         Debug.Assert(processHandle != IntPtr.Zero, "processHandle != IntPtr.Zero");
-        byte[] sigPatch = {
+        byte[] sigPatch =
+        {
             0x56, 0x57, 0x68, 0x00, 0x01, 0x00, 0x00, 0x89, 0x85, 0xF4, 0xFE, 0xFF, 0xFF, 0xC7, 0x00, 0x00, 0x00, 0x00,
             0x00
         };
@@ -268,7 +284,8 @@ internal class MulticlientPatch
 
         if (!elevated)
         {
-            if (!WinSafer.SaferCreateLevel(SaferLevelScope.User, SaferLevel.NormalUser, SaferOpen.Open, out var hLevel,IntPtr.Zero))
+            if (!WinSafer.SaferCreateLevel(SaferLevelScope.User, SaferLevel.NormalUser, SaferOpen.Open, out var hLevel,
+                    IntPtr.Zero))
                 return GetErrorMessage("WinSafer.SaferCreateLevel", Marshal.GetLastWin32Error());
 
             if (!WinSafer.SaferComputeTokenFromLevel(hLevel, IntPtr.Zero, out var hRestrictedToken, 0, IntPtr.Zero))
@@ -297,9 +314,8 @@ internal class MulticlientPatch
                 WinApi.CloseHandle(hRestrictedToken);
                 return GetErrorMessage("WinSafer.SetTokenInformation", Marshal.GetLastWin32Error());
             }
-            WinApi.LocalFree(tml.Label.Sid);
 
-            
+            WinApi.LocalFree(tml.Label.Sid);
 
             if (!WinSafer.CreateProcessAsUser(hRestrictedToken, null!, commandLine, ref saProcess,
                     ref saProcess, false, (uint)CreationFlags.CreateSuspended, IntPtr.Zero,
@@ -308,7 +324,8 @@ internal class MulticlientPatch
                 WinApi.CloseHandle(hRestrictedToken);
                 return GetErrorMessage("WinSafer.CreateProcessAsUser", Marshal.GetLastWin32Error());
             }
-            WinApi.CloseHandle(procinfo.hThread);
+
+            //WinApi.CloseHandle(procinfo.hThread);
             WinApi.CloseHandle(hRestrictedToken);
         }
         else

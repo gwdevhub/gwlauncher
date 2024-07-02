@@ -1,4 +1,6 @@
-﻿namespace GW_Launcher.Forms;
+﻿using GW_Launcher.Properties;
+
+namespace GW_Launcher.Forms;
 
 partial class MainForm
 {
@@ -160,7 +162,7 @@ partial class MainForm
             // 
             // notifyIcon
             // 
-            this.notifyIcon.Icon = ((System.Drawing.Icon)(resources.GetObject("notifyIcon.Icon")));
+            this.notifyIcon.Icon = ((System.Drawing.Icon)(Resources.gwlauncher_ico));
             this.notifyIcon.Text = "GW Launcher";
             this.notifyIcon.Visible = true;
             this.notifyIcon.MouseClick += new System.Windows.Forms.MouseEventHandler(this.NotifyIcon_MouseClick);
