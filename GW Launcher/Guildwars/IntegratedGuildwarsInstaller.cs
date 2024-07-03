@@ -12,8 +12,8 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Daybreak.Services.Guildwars;
-internal sealed class IntegratedGuildwarsInstaller : IGuildwarsInstaller
+namespace GW_Launcher.Guildwars;
+internal sealed class IntegratedGuildwarsInstaller
 {
     private const string ExeName = "Gw.exe";
     private const string TempExeName = "Gw.exe.temp";
