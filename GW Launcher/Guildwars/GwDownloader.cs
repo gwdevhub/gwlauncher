@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.IO.Compression;
 using System.Net.Http;
 using System.Threading.Tasks;
 
@@ -26,10 +27,24 @@ namespace GW_Launcher.Guildwars
 
         public static async Task<string> ExtractGwExeAsync(string setupFilePath)
         {
-            // Implement the extraction logic here
-            // This should decode the downloaded file and extract Gw.exe
-            // Return the path to the extracted Gw.exe
-            throw new NotImplementedException("Extraction logic needs to be implemented");
+            string extractedPath = Path.Combine(Path.GetTempPath(), "Gw.exe");
+            
+            using (var archive = new ZipArchive(File.OpenRead(setupFilePath), ZipArchiveMode.Read))
+            {
+                var gwExeEntry = archive.GetEntry("Gw.exe");
+                if (gwExeEntry == null)
+                {
+                    throw new FileNotFoundException("Gw.exe not found in the setup file.");
+                }
+
+                using (var entryStream = gwExeEntry.Open())
+                using (var fileStream = File.Create(extractedPath))
+                {
+                    await entryStream.CopyToAsync(fileStream);
+                }
+            }
+
+            return extractedPath;
         }
     }
 }
