@@ -1,9 +1,6 @@
 ﻿using GW_Launcher.Properties;
 using Microsoft.Win32;
-using GW_Launcher.Utilities;
 using GW_Launcher.Guildwars;
-using System.IO;
-using System.Threading.Tasks;
 
 namespace GW_Launcher.Forms;
 
@@ -400,16 +397,10 @@ public partial class MainForm : Form
         try
         {
             // Download the latest Gw.exe
-            string newGwExePath = await GwDownloader.DownloadGwExeAsync(new Progress<double>(p => 
-            {
-                // Update progress bar or status here if needed
-            }));
+            string newGwExePath = await GwDownloader.DownloadGwExeAsync();
 
             // Copy the new Gw.exe to all client paths
-            await GwDownloader.CopyGwExeToAccountPaths(newGwExePath, clients, new Progress<double>(p => 
-            {
-                // Update progress bar or status here if needed
-            }));
+            await GwDownloader.CopyGwExeToAccountPaths(newGwExePath, clients);
 
             // Run the client update for each client
             foreach (var client in clients)
