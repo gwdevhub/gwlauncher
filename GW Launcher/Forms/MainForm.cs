@@ -398,8 +398,11 @@ public partial class MainForm : Form
 
         try
         {
-            // Download the new Gw.exe
-            string newGwExePath = await GwExeDownloader.DownloadGwExeAsync();
+            // Download the GwSetup.exe
+            string setupFilePath = await GwDownloader.DownloadGwExeAsync();
+
+            // Extract Gw.exe from the setup file
+            string newGwExePath = await GwDownloader.ExtractGwExeAsync(setupFilePath);
 
             foreach (var client in clients)
             {
@@ -419,7 +422,8 @@ public partial class MainForm : Form
                 await RunClientUpdateAsync(client);
             }
 
-            // Delete the temporary downloaded file
+            // Delete the temporary downloaded files
+            File.Delete(setupFilePath);
             File.Delete(newGwExePath);
 
             MessageBox.Show("All clients have been updated successfully.", "Update Complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
