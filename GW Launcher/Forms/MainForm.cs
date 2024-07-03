@@ -399,32 +399,25 @@ public partial class MainForm : Form
 
         try
         {
-            // Download the GwSetup.exe
-            string setupFilePath = await GwDownloader.DownloadGwExeAsync();
+            // Download the latest Gw.exe
+            string newGwExePath = await GwDownloader.DownloadGwExeAsync(new Progress<double>(p => 
+            {
+                // Update progress bar or status here if needed
+            }));
 
-            // Extract Gw.exe from the setup file
-            string newGwExePath = await GwDownloader.ExtractGwExeAsync(setupFilePath);
+            // Copy the new Gw.exe to all client paths
+            await GwDownloader.CopyGwExeToAccountPaths(newGwExePath, clients, new Progress<double>(p => 
+            {
+                // Update progress bar or status here if needed
+            }));
 
+            // Run the client update for each client
             foreach (var client in clients)
             {
-                string clientDir = Path.GetDirectoryName(client);
-                string backupPath = Path.Combine(clientDir, "Gw.exe.bak");
-
-                // Backup the existing Gw.exe
-                if (File.Exists(client))
-                {
-                    File.Move(client, backupPath, true);
-                }
-
-                // Copy the new Gw.exe
-                File.Copy(newGwExePath, client, true);
-
-                // Run the client update
                 await RunClientUpdateAsync(client);
             }
 
-            // Delete the temporary downloaded files
-            File.Delete(setupFilePath);
+            // Delete the temporary downloaded file
             File.Delete(newGwExePath);
 
             MessageBox.Show("All clients have been updated successfully.", "Update Complete", MessageBoxButtons.OK, MessageBoxIcon.Information);

@@ -6,38 +6,39 @@ namespace GW_Launcher.Guildwars
     {
         public static async Task<string> DownloadGwExeAsync(IProgress<double> progress = null, CancellationToken cancellationToken = default)
         {
-            var guildWarsClient = new GuildwarsClient();
-            var result = await guildWarsClient.Connect(cancellationToken);
-            if (!result.HasValue)
+            var installer = new IntegratedGuildwarsInstaller();
+            string destinationPath = Path.Combine(Directory.GetCurrentDirectory(), "GwTemp");
+            Directory.CreateDirectory(destinationPath);
+
+            bool result = await installer.InstallGuildwars(destinationPath, cancellationToken);
+            if (!result)
             {
-                throw new InvalidOperationException("Failed to connect to ArenaNet servers");
+                throw new InvalidOperationException("Failed to download and install Guild Wars executable");
             }
 
-            var (context, manifest) = result.Value;
-            using (context)
+            string gwExePath = Path.Combine(destinationPath, "Gw.exe");
+            if (!File.Exists(gwExePath))
             {
-                var fileStream = await guildWarsClient.GetFileStream(context, manifest.LatestExe, 0, cancellationToken);
-                if (fileStream == null)
-                {
-                    throw new InvalidOperationException("Failed to get download stream");
-                }
+                throw new FileNotFoundException("Gw.exe not found after installation");
+            }
 
-                string outputPath = Path.Combine(Directory.GetCurrentDirectory(), "Gw.exe");
-                using (var outputStream = new FileStream(outputPath, FileMode.Create, FileAccess.Write))
-                {
-                    var buffer = new byte[8192];
-                    long totalBytesRead = 0;
-                    int bytesRead;
+            return gwExePath;
+        }
 
-                    while ((bytesRead = await fileStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken)) > 0)
-                    {
-                        await outputStream.WriteAsync(buffer, 0, bytesRead, cancellationToken);
-                        totalBytesRead += bytesRead;
-                        progress?.Report((double)totalBytesRead / fileStream.Length);
-                    }
-                }
+        public static async Task CopyGwExeToAccountPaths(string sourceGwExePath, IEnumerable<string> accountPaths, IProgress<double> progress = null, CancellationToken cancellationToken = default)
+        {
+            int totalAccounts = accountPaths.Count();
+            int completedAccounts = 0;
 
-                return outputPath;
+            foreach (string accountPath in accountPaths)
+            {
+                string destinationPath = Path.Combine(Path.GetDirectoryName(accountPath), "Gw.exe");
+                File.Copy(sourceGwExePath, destinationPath, true);
+
+                completedAccounts++;
+                progress?.Report((double)completedAccounts / totalAccounts);
+
+                cancellationToken.ThrowIfCancellationRequested();
             }
         }
     }
