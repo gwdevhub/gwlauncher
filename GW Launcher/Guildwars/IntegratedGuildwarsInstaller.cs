@@ -41,7 +41,6 @@ internal sealed class IntegratedGuildwarsInstaller
 
     private async Task<bool> InstallGuildwarsInternal(string destinationPath, GuildwarsInstallationStatus installationStatus, CancellationToken cancellationToken)
     {
-        var scopedLogger = this.logger.CreateScopedLogger(nameof(this.InstallGuildwarsInternal), destinationPath);
         GuildwarsClientContext? maybeContext = default;
         try
         {
@@ -53,7 +52,7 @@ internal sealed class IntegratedGuildwarsInstaller
             var result = await guildWarsClient.Connect(cancellationToken);
             if (!result.HasValue)
             {
-                scopedLogger.LogError("Failed to connect to ArenaNet servers");
+                MessageBox.Show("Failed to connect to ArenaNet servers", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 installationStatus.CurrentStep = GuildwarsInstallationStatus.FailedDownload;
                 return false;
             }
@@ -63,14 +62,14 @@ internal sealed class IntegratedGuildwarsInstaller
             (var downloadResult, var expectedFinalSize) = await this.DownloadCompressedExecutable(tempName, guildWarsClient, context, manifest, installationStatus, cancellationToken);
             if (!downloadResult)
             {
-                scopedLogger.LogError("Failed to download compressed executable");
+                MessageBox.Show("Failed to download compressed executable", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 installationStatus.CurrentStep = GuildwarsInstallationStatus.FailedDownload;
                 return false;
             }
 
             if (!this.DecompressExecutable(tempName, exeName, expectedFinalSize, installationStatus))
             {
-                scopedLogger.LogError("Failed to decompress executable");
+                MessageBox.Show("Failed to decompress executable", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 installationStatus.CurrentStep = GuildwarsInstallationStatus.FailedDownload;
                 return false;
             }
@@ -79,24 +78,20 @@ internal sealed class IntegratedGuildwarsInstaller
             installationStatus.CurrentStep = GuildwarsInstallationStatus.StartingExecutable;
             await Task.Delay(100, cancellationToken);
             using var process = Process.Start(filePath);
-            scopedLogger.LogInformation("Starting executable. Waiting for the process to end before finishing installation");
+            MessageBox.Show("Starting executable. Waiting for the process to end before finishing installation", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
             while (!process.HasExited)
             {
                 await Task.Delay(1000, cancellationToken);
             }
 
-            this.guildWarsExecutableManager.AddExecutable(filePath);
             File.Delete(tempName);
             installationStatus.CurrentStep = GuildwarsInstallationStatus.Finished;
             return true;
         }
         catch (Exception e)
         {
-            this.notificationService.NotifyError(
-                title: "Download exception",
-                description: $"Encountered exception while downloading: {e}");
+            MessageBox.Show($"Encountered exception while downloading: {e}", "Download Exception", MessageBoxButtons.OK, MessageBoxIcon.Error);
             installationStatus.CurrentStep = GuildwarsInstallationStatus.FailedDownload;
-            this.logger.LogError(e, "Download failed. Encountered exception");
             return false;
         }
         finally
@@ -116,11 +111,10 @@ internal sealed class IntegratedGuildwarsInstaller
         GuildwarsInstallationStatus installationStatus,
         CancellationToken cancellationToken)
     {
-        var scopedLogger = this.logger.CreateScopedLogger(nameof(this.DownloadCompressedExecutable), fileName);
         var maybeStream = await guildWarsClient.GetFileStream(context, manifest.LatestExe, 0, cancellationToken);
         if (maybeStream is null)
         {
-            scopedLogger.LogError("Failed to get download stream");
+            MessageBox.Show("Failed to get download stream", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             return (false, -1);
         }
 
@@ -145,7 +139,6 @@ internal sealed class IntegratedGuildwarsInstaller
         int expectedFinalSize,
         GuildwarsInstallationStatus installationStatus)
     {
-        var scopedLogger = this.logger.CreateScopedLogger(nameof(this.DecompressExecutable), tempName);
         try
         {
             var byteBuffer = new Memory<byte>(new byte[1]);
@@ -211,10 +204,7 @@ internal sealed class IntegratedGuildwarsInstaller
         }
         catch(Exception e)
         {
-            scopedLogger.LogError(e, "Encountered exception when decompressing executable");
-            this.notificationService.NotifyError(
-                title: "Failed to decompress",
-                description: $"Encountered exception while decompressing: {e}");
+            MessageBox.Show($"Encountered exception while decompressing: {e}", "Failed to decompress", MessageBoxButtons.OK, MessageBoxIcon.Error);
             return false;
         }
     }
