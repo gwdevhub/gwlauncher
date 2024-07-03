@@ -1,9 +1,6 @@
 ﻿using Daybreak.Models.Progress;
-using Daybreak.Services.ExecutableManagement;
 using Daybreak.Services.Guildwars.Models;
 using Daybreak.Services.Guildwars.Utils;
-using Daybreak.Services.Notifications;
-using Microsoft.Extensions.Logging;
 using System;
 using System.Core.Extensions;
 using System.Diagnostics;
@@ -11,6 +8,7 @@ using System.Extensions;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows.Forms;
 
 namespace GW_Launcher.Guildwars;
 internal sealed class IntegratedGuildwarsInstaller
@@ -18,18 +16,8 @@ internal sealed class IntegratedGuildwarsInstaller
     private const string ExeName = "Gw.exe";
     private const string TempExeName = "Gw.exe.temp";
 
-    private readonly IGuildWarsExecutableManager guildWarsExecutableManager;
-    private readonly INotificationService notificationService;
-    private readonly ILogger<IntegratedGuildwarsInstaller> logger;
-
-    public IntegratedGuildwarsInstaller(
-        IGuildWarsExecutableManager guildWarsExecutableManager,
-        INotificationService notificationService,
-        ILogger<IntegratedGuildwarsInstaller> logger)
+    public IntegratedGuildwarsInstaller()
     {
-        this.guildWarsExecutableManager = guildWarsExecutableManager.ThrowIfNull();
-        this.notificationService = notificationService.ThrowIfNull();
-        this.logger = logger.ThrowIfNull();
     }
 
     public async Task<bool> InstallGuildwars(string destinationPath, GuildwarsInstallationStatus installationStatus, CancellationToken cancellationToken)
