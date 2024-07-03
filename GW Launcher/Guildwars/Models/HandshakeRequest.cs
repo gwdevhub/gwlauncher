@@ -1,6 +1,4 @@
-﻿using System.Runtime.InteropServices;
-
-namespace GW_Launcher.Guildwars.Models;
+﻿namespace GW_Launcher.Guildwars.Models;
 [StructLayout(LayoutKind.Sequential, Pack = 1)]
 internal readonly struct HandshakeRequest
 {

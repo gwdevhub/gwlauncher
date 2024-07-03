@@ -1,4 +1,4 @@
-﻿namespace Daybreak.Services.Guildwars.Models;
+﻿namespace GW_Launcher.Guildwars.Models;
 internal readonly struct FileResponse
 {
     public int FileId { get; init; }

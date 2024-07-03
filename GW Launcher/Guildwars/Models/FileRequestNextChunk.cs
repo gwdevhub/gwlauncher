@@ -1,4 +1,4 @@
-﻿namespace Daybreak.Services.Guildwars.Models;
+﻿namespace GW_Launcher.Guildwars.Models;
 internal readonly struct FileRequestNextChunk
 {
     public short Field1 { get; init; }

@@ -1,4 +1,4 @@
-﻿namespace Daybreak.Services.Guildwars.Utils;
+﻿namespace GW_Launcher.Guildwars.Utils;
 internal static class Huffman
 {
     public static readonly (uint, uint)[] Table1 =

@@ -1,33 +1,20 @@
-﻿using Daybreak.Models.Progress;
-using Daybreak.Services.Guildwars.Models;
-using Daybreak.Services.Guildwars.Utils;
-using System;
-using System.Core.Extensions;
-using System.Diagnostics;
-using System.Extensions;
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Windows.Forms;
+﻿using GW_Launcher.Guildwars.Models;
+using GW_Launcher.Guildwars.Utils;
 
 namespace GW_Launcher.Guildwars;
 internal sealed class IntegratedGuildwarsInstaller
 {
     private const string ExeName = "Gw.exe";
     private const string TempExeName = "Gw.exe.temp";
-
-    public IntegratedGuildwarsInstaller()
-    {
-    }
-
-    public async Task<bool> InstallGuildwars(string destinationPath, GuildwarsInstallationStatus installationStatus, CancellationToken cancellationToken)
+    
+    public async Task<bool> InstallGuildwars(string destinationPath, CancellationToken cancellationToken)
     {
         return await new TaskFactory().StartNew(_ => {
-            return this.InstallGuildwarsInternal(destinationPath, installationStatus, cancellationToken);
+            return this.InstallGuildwarsInternal(destinationPath, cancellationToken);
         }, TaskCreationOptions.LongRunning, cancellationToken).Unwrap();
     }
 
-    private async Task<bool> InstallGuildwarsInternal(string destinationPath, GuildwarsInstallationStatus installationStatus, CancellationToken cancellationToken)
+    private async Task<bool> InstallGuildwarsInternal(string destinationPath, CancellationToken cancellationToken)
     {
         GuildwarsClientContext? maybeContext = default;
         try
@@ -40,46 +27,40 @@ internal sealed class IntegratedGuildwarsInstaller
             var result = await guildWarsClient.Connect(cancellationToken);
             if (!result.HasValue)
             {
-                MessageBox.Show("Failed to connect to ArenaNet servers", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                installationStatus.CurrentStep = GuildwarsInstallationStatus.FailedDownload;
+                MessageBox.Show("Failed to connect to ArenaNet servers");
                 return false;
             }
 
             (var context, var manifest) = result.Value;
             maybeContext = context;
-            (var downloadResult, var expectedFinalSize) = await this.DownloadCompressedExecutable(tempName, guildWarsClient, context, manifest, installationStatus, cancellationToken);
+            var (downloadResult, expectedFinalSize) = await DownloadCompressedExecutable(tempName, guildWarsClient, context, manifest, cancellationToken);
             if (!downloadResult)
             {
-                MessageBox.Show("Failed to download compressed executable", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                installationStatus.CurrentStep = GuildwarsInstallationStatus.FailedDownload;
+                MessageBox.Show("Failed to download compressed executable");
                 return false;
             }
 
-            if (!this.DecompressExecutable(tempName, exeName, expectedFinalSize, installationStatus))
+            if (!this.DecompressExecutable(tempName, exeName, expectedFinalSize))
             {
-                MessageBox.Show("Failed to decompress executable", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                installationStatus.CurrentStep = GuildwarsInstallationStatus.FailedDownload;
+                MessageBox.Show("Failed to decompress executable");
                 return false;
             }
 
             var filePath = Path.GetFullPath(exeName);
-            installationStatus.CurrentStep = GuildwarsInstallationStatus.StartingExecutable;
             await Task.Delay(100, cancellationToken);
             using var process = Process.Start(filePath);
-            MessageBox.Show("Starting executable. Waiting for the process to end before finishing installation", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            MessageBox.Show("Starting executable. Waiting for the process to end before finishing installation");
             while (!process.HasExited)
             {
                 await Task.Delay(1000, cancellationToken);
             }
 
             File.Delete(tempName);
-            installationStatus.CurrentStep = GuildwarsInstallationStatus.Finished;
             return true;
         }
         catch (Exception e)
         {
-            MessageBox.Show($"Encountered exception while downloading: {e}", "Download Exception", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            installationStatus.CurrentStep = GuildwarsInstallationStatus.FailedDownload;
+            MessageBox.Show("Download failed. Encountered exception" + e.Message);
             return false;
         }
         finally
@@ -96,13 +77,12 @@ internal sealed class IntegratedGuildwarsInstaller
         GuildwarsClient guildWarsClient,
         GuildwarsClientContext context,
         ManifestResponse manifest,
-        GuildwarsInstallationStatus installationStatus,
         CancellationToken cancellationToken)
     {
         var maybeStream = await guildWarsClient.GetFileStream(context, manifest.LatestExe, 0, cancellationToken);
         if (maybeStream is null)
         {
-            MessageBox.Show("Failed to get download stream", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            MessageBox.Show("Failed to get download stream");
             return (false, -1);
         }
 
@@ -115,7 +95,6 @@ internal sealed class IntegratedGuildwarsInstaller
         {
             readBytes = await downloadStream.ReadAsync(buffer, cancellationToken);
             await writeFileStream.WriteAsync(buffer, cancellationToken);
-            installationStatus.CurrentStep = GuildwarsInstallationStatus.Downloading((double)downloadStream.Position / downloadStream.Length, default);
         } while (readBytes > 0);
 
         return (true, expectedFinalSize);
@@ -124,8 +103,7 @@ internal sealed class IntegratedGuildwarsInstaller
     private bool DecompressExecutable(
         string tempName,
         string exeName,
-        int expectedFinalSize,
-        GuildwarsInstallationStatus installationStatus)
+        int expectedFinalSize)
     {
         try
         {
@@ -137,7 +115,6 @@ internal sealed class IntegratedGuildwarsInstaller
             var first4Bits = bitStream.Read(4);
             while (finalExeStream.Length < expectedFinalSize)
             {
-                installationStatus.CurrentStep = GuildwarsInstallationStatus.Unpacking((double)finalExeStream.Length / expectedFinalSize, default);
                 var litHuffman = HuffmanTable.BuildHuffmanTable(bitStream);
                 var distHuffman = HuffmanTable.BuildHuffmanTable(bitStream);
                 var blockSize = (bitStream.Read(4) + 1) * 4096;
@@ -192,7 +169,7 @@ internal sealed class IntegratedGuildwarsInstaller
         }
         catch(Exception e)
         {
-            MessageBox.Show($"Encountered exception while decompressing: {e}", "Failed to decompress", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            MessageBox.Show($"Encountered exception while decompressing: {e}");
             return false;
         }
     }

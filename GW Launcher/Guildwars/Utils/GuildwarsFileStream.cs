@@ -1,11 +1,10 @@
-﻿using Daybreak.Services.Guildwars.Models;
+﻿using GW_Launcher.Guildwars.Models;
 using System;
-using System.Core.Extensions;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Daybreak.Services.Guildwars.Utils;
+namespace GW_Launcher.Guildwars.Utils;
 internal sealed class GuildwarsFileStream : Stream
 {
     private readonly GuildwarsClient guildwarsClient;

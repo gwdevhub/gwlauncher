@@ -1,11 +1,7 @@
-﻿using Daybreak.Services.Guildwars.Models;
-using System;
+﻿using GW_Launcher.Guildwars.Models;
 using System.Net.Sockets;
-using System.Runtime.InteropServices;
-using System.Threading;
-using System.Threading.Tasks;
 
-namespace Daybreak.Services.Guildwars.Utils;
+namespace GW_Launcher.Guildwars.Utils;
 internal sealed class GuildwarsClient
 {
     public async Task<(GuildwarsClientContext, ManifestResponse)?> Connect(CancellationToken cancellationToken)

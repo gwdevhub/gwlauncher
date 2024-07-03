@@ -1,8 +1,4 @@
-﻿using System;
-using System.Core.Extensions;
-using System.IO;
-
-/// <summary>
+﻿/// <summary>
 /// https://github.com/reduf/Headquarter/blob/decomp/tools/inflate.py
 /// </summary>
 internal sealed class BitStream

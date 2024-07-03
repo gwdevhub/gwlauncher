@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Daybreak.Services.Guildwars.Utils;
+namespace GW_Launcher.Guildwars.Utils;
 
 internal sealed class HuffmanTable
 {
