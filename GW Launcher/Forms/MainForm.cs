@@ -391,13 +391,39 @@ public partial class MainForm : Form
 
     private async void ToolStripMenuItemUpdateAllClients_Click(object sender, EventArgs e)
     {
-        var clients = Program.accounts.Select(account => account.gwpath).Distinct();
+        var clients = Program.accounts.Select(account => account.gwpath).Distinct().ToList();
 
-        // todo: await download gw.exe
-        foreach (var client in clients)
+        try
         {
-            // todo: copy gw.exe to this location, replace the current one
-            await RunClientUpdateAsync(client); // launch the client with -image once, in case gw.dat needs an update as well
+            // Download the new Gw.exe
+            string newGwExePath = await GwExeDownloader.DownloadGwExeAsync();
+
+            foreach (var client in clients)
+            {
+                string clientDir = Path.GetDirectoryName(client);
+                string backupPath = Path.Combine(clientDir, "Gw.exe.bak");
+
+                // Backup the existing Gw.exe
+                if (File.Exists(client))
+                {
+                    File.Move(client, backupPath, true);
+                }
+
+                // Copy the new Gw.exe
+                File.Copy(newGwExePath, client, true);
+
+                // Run the client update
+                await RunClientUpdateAsync(client);
+            }
+
+            // Delete the temporary downloaded file
+            File.Delete(newGwExePath);
+
+            MessageBox.Show("All clients have been updated successfully.", "Update Complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"An error occurred while updating clients: {ex.Message}", "Update Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
 
         Show();
