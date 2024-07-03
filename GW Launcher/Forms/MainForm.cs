@@ -20,7 +20,7 @@ public partial class MainForm : Form
             _allowVisible = true;
             var position = new Point
             {
-                X = Screen.PrimaryScreen.Bounds.Width / 2,
+                X = Screen.PrimaryScreen!.Bounds.Width / 2,
                 Y = Screen.PrimaryScreen.Bounds.Height / 2
             };
             Location = position;
@@ -392,6 +392,7 @@ public partial class MainForm : Form
 
     private async void ToolStripMenuItemUpdateAllClients_Click(object sender, EventArgs e)
     {
+        AdminAccess.RestartAsAdminPrompt(true);
         var clients = Program.accounts.Select(account => account.gwpath).Distinct().ToList();
 
         try
@@ -399,17 +400,18 @@ public partial class MainForm : Form
             // Download the latest Gw.exe
             string newGwExePath = await GwDownloader.DownloadGwExeAsync();
 
+            MessageBox.Show("Downloaded new exe.");
+
             // Copy the new Gw.exe to all client paths
             await GwDownloader.CopyGwExeToAccountPaths(newGwExePath, clients);
+
+            MessageBox.Show("Copied exe to all accounts. Each path will now be launched with -image once.");
 
             // Run the client update for each client
             foreach (var client in clients)
             {
                 await RunClientUpdateAsync(client);
             }
-
-            // Delete the temporary downloaded file
-            File.Delete(newGwExePath);
 
             MessageBox.Show("All clients have been updated successfully.", "Update Complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }

@@ -31,7 +31,7 @@ public static class GwDownloader
 
         foreach (string accountPath in accountPaths)
         {
-            string destinationPath = Path.Combine(Path.GetDirectoryName(accountPath), "Gw.exe");
+            string destinationPath = Path.Combine(Path.GetDirectoryName(accountPath)!, "Gw.exe");
             File.Copy(sourceGwExePath, destinationPath, true);
 
             completedAccounts++;

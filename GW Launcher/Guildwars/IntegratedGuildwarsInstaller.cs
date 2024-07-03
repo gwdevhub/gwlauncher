@@ -1,5 +1,6 @@
 ﻿using GW_Launcher.Guildwars.Models;
 using GW_Launcher.Guildwars.Utils;
+using Microsoft.Win32;
 
 namespace GW_Launcher.Guildwars;
 internal sealed class IntegratedGuildwarsInstaller
@@ -31,7 +32,31 @@ internal sealed class IntegratedGuildwarsInstaller
                 return false;
             }
 
-            (var context, var manifest) = result.Value;
+            var (context, manifest) = result.Value;
+            await using var downloadStream = await guildWarsClient.GetFileStream(context, manifest.LatestExe, 0, cancellationToken);
+
+            if (File.Exists(exeName))
+            {
+                var fileInfo = new FileInfo(exeName);
+                if (downloadStream != null && downloadStream.SizeDecompressed == fileInfo.Length)
+                {
+                    return true;
+                }
+            }
+            var pathdefault =
+                (string?)Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\ArenaNet\\Guild Wars", "Path", null) ?? (string?)Registry.GetValue(
+                    "HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\ArenaNet\\Guild Wars",
+                    "Path", null);
+            if (pathdefault != null && File.Exists(pathdefault))
+            {
+                var fileInfo = new FileInfo(pathdefault);
+                if (downloadStream != null && downloadStream.SizeDecompressed == fileInfo.Length)
+                {
+                    File.Copy(pathdefault, exeName, true);
+                    return true;
+                }
+            }
+
             maybeContext = context;
             var (downloadResult, expectedFinalSize) = await DownloadCompressedExecutable(tempName, guildWarsClient, context, manifest, cancellationToken);
             if (!downloadResult)
@@ -45,17 +70,10 @@ internal sealed class IntegratedGuildwarsInstaller
                 MessageBox.Show("Failed to decompress executable");
                 return false;
             }
-
-            var filePath = Path.GetFullPath(exeName);
-            await Task.Delay(100, cancellationToken);
-            using var process = Process.Start(filePath);
-            MessageBox.Show("Starting executable. Waiting for the process to end before finishing installation");
-            while (!process.HasExited)
-            {
-                await Task.Delay(1000, cancellationToken);
-            }
-
             File.Delete(tempName);
+
+            await Task.Delay(100, cancellationToken);
+            MessageBox.Show("Download complete.");
             return true;
         }
         catch (Exception e)
@@ -86,9 +104,10 @@ internal sealed class IntegratedGuildwarsInstaller
             return (false, -1);
         }
 
-        using var downloadStream = maybeStream;
-        using var writeFileStream = new FileStream(fileName, FileMode.Create, FileAccess.Write);
+        await using var downloadStream = maybeStream;
         var expectedFinalSize = downloadStream.SizeDecompressed;
+
+        await using var writeFileStream = new FileStream(fileName, FileMode.Create, FileAccess.Write);
         var buffer = new Memory<byte>(new byte[2048]);
         var readBytes = 0;
         do
@@ -97,6 +116,7 @@ internal sealed class IntegratedGuildwarsInstaller
             await writeFileStream.WriteAsync(buffer, cancellationToken);
         } while (readBytes > 0);
 
+        MessageBox.Show("Downloaded compressed executable.");
         return (true, expectedFinalSize);
     }
 
