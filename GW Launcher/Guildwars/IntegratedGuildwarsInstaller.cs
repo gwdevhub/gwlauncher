@@ -31,8 +31,6 @@ internal sealed class IntegratedGuildwarsInstaller
             }
 
             var (context, manifest) = result.Value;
-            await using var downloadStream = await guildWarsClient.GetFileStream(context, manifest.LatestExe, 0, cancellationToken);
-
             maybeContext = context;
             var (downloadResult, expectedFinalSize) = await DownloadCompressedExecutable(tempName, guildWarsClient, context, manifest, progress, cancellationToken);
             if (!downloadResult)
@@ -56,10 +54,7 @@ internal sealed class IntegratedGuildwarsInstaller
         }
         finally
         {
-            if (maybeContext.HasValue)
-            {
-                maybeContext.Value.Dispose();
-            }
+            maybeContext?.Dispose();
         }
     }
 

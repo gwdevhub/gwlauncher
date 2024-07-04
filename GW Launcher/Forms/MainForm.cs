@@ -409,15 +409,17 @@ public partial class MainForm : Form
             MessageBox.Show("All clients have been updated successfully.", "Update Complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
 
             // Run the client update for each client
-            foreach (var client in clients)
-            {
-                await RunClientUpdateAsync(client.gwpath);
-            }
+            // foreach (var client in clients)
+            // {
+            //     await RunClientUpdateAsync(client.gwpath);
+            // }
         }
         catch (Exception ex)
         {
-            progressForm.Close();
             MessageBox.Show($"An error occurred while updating clients: {ex.Message}", "Update Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+        finally{
+            progressForm.Close();
         }
 
         Show();

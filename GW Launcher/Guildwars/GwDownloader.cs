@@ -18,7 +18,7 @@ public static class GwDownloader
         return manifest.LatestExe;
     }
 
-    public static async Task<string> DownloadGwExeAsync(IProgress<(string Stage, double Progress)> progress = null, CancellationToken cancellationToken = default)
+    private static async Task<string> DownloadGwExeAsync(IProgress<(string Stage, double Progress)> progress, CancellationToken cancellationToken = default)
     {
         var installer = new IntegratedGuildwarsInstaller();
         string destinationPath = Path.Combine(Directory.GetCurrentDirectory(), "GwTemp");
@@ -39,8 +39,8 @@ public static class GwDownloader
         return gwExePath;
     }
 
-    public static async Task CopyGwExeToAccountPaths(IEnumerable<string> accountPaths,
-        IProgress<double> progress = null, CancellationToken cancellationToken = default)
+    private static async Task CopyGwExeToAccountPaths(IEnumerable<string> accountPaths,
+        IProgress<double> progress, CancellationToken cancellationToken = default)
     {
         int totalAccounts = accountPaths.Count();
         int completedAccounts = 0;
@@ -59,7 +59,7 @@ public static class GwDownloader
         }
     }
 
-    public static async Task UpdateClients(IEnumerable<Account> accountsToUpdate = null, IProgress<(string Stage, double Progress)> progress = null, CancellationToken cancellationToken = default)
+    public static async Task UpdateClients(IEnumerable<Account>? accountsToUpdate, IProgress<(string Stage, double Progress)> progress, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -68,10 +68,10 @@ public static class GwDownloader
             accountsToUpdate ??= Program.accounts;
 
             var uniquePaths = accountsToUpdate.Select(a => a.gwpath).Distinct().ToList();
-            progress?.Report(("Copying Gw.exe to client paths", 0.8));
-            await CopyGwExeToAccountPaths(uniquePaths, new Progress<double>(p => progress?.Report(("Copying Gw.exe to client paths", 0.8 + p * 0.2))), cancellationToken);
+            progress.Report(("Copying Gw.exe to client paths", 0.8));
+            await CopyGwExeToAccountPaths(uniquePaths, new Progress<double>(p => progress.Report(("Copying Gw.exe to client paths", 0.8 + p * 0.2))), cancellationToken);
 
-            progress?.Report(("Update completed", 1));
+            progress.Report(("Update completed", 1));
         }
         catch (Exception ex)
         {

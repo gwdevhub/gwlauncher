@@ -511,7 +511,13 @@ internal static class Program
             if (ok == DialogResult.Yes)
             {
                 AdminAccess.RestartAsAdminPrompt(true);
-                await GwDownloader.UpdateClients(accsToUpdate);
+                var progressForm = new ProgressForm();
+                progressForm.Show();
+                await GwDownloader.UpdateClients(accsToUpdate, new Progress<(string Stage, double Progress)>(update =>
+                {
+                    progressForm.UpdateProgress(update.Stage, update.Progress);
+                }));
+                progressForm.Close();
                 MessageBox.Show("Updated successfully");
             }
         }
