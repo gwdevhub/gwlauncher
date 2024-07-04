@@ -152,8 +152,8 @@ internal static class Program
         {
             Task.Run(CheckGitHubNewerVersion);
             Task.Run(CheckGitHubGModVersion);
+            Task.Run(CheckForGwExeUpdates);
         }
-        Task.Run(CheckForGwExeUpdates);
 
         settings.Save();
         mainThreadRunning = true;
@@ -480,16 +480,19 @@ GW Launcher will close.");
     {
         try
         {
-            var latestSize = await GwDownloader.GetLatestGwExeSizeAsync();
-            if (latestSize <= 0) return;
+            var latestFileId = await GwDownloader.GetLatestGwExeFileIdAsync();
+            if (latestFileId == 0) return;
             List<Account> accsToUpdate = [];
+            List<Account> accsChecked = [];
 
             foreach (var account in accounts)
             {
+                if (accsChecked.Select(a => a.gwpath).Contains(account.gwpath)) continue;
                 if (!File.Exists(account.gwpath)) continue;
+                var currentFileId = FileIdFinder.GetFileId(account.gwpath);
 
-                var fileInfo = new FileInfo(account.gwpath);
-                if (fileInfo.Length == latestSize)
+                accsChecked.Add(account);
+                if (currentFileId == latestFileId)
                 {
                     continue;
                 }
@@ -508,9 +511,8 @@ GW Launcher will close.");
                 AdminAccess.RestartAsAdminPrompt(true);
                 await GwDownloader.DownloadGwExeAsync();
                 await GwDownloader.CopyGwExeToAccountPaths(accsToUpdate.Select(a => a.gwpath));
+                MessageBox.Show("Updated successfully");
             }
-
-            MessageBox.Show("Updated successfully");
         }
         catch (Exception ex)
         {

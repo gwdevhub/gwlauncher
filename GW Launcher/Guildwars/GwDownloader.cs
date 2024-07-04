@@ -4,7 +4,7 @@ namespace GW_Launcher.Guildwars;
 
 public static class GwDownloader
 {
-    public static async Task<int> GetLatestGwExeCrcAsync(CancellationToken cancellationToken = default)
+    public static async Task<int> GetLatestGwExeFileIdAsync(CancellationToken cancellationToken = default)
     {
         // Initialize the download client
         var guildWarsClient = new GuildwarsClient();
@@ -14,9 +14,8 @@ public static class GwDownloader
             MessageBox.Show("Failed to connect to ArenaNet servers");
             return 0;
         }
-        var (context, manifest) = result.Value;
-        await using var downloadStream = await guildWarsClient.GetFileStream(context, manifest.LatestExe, 0, cancellationToken);
-        return downloadStream?.Crc ?? 0;
+        var (_, manifest) = result.Value;
+        return manifest.LatestExe;
     }
 
     public static async Task<string> DownloadGwExeAsync(CancellationToken cancellationToken = default)
