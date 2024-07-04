@@ -5,35 +5,31 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace GW_Launcher.Guildwars.Utils;
-internal sealed class GuildwarsFileStream : Stream
+internal sealed class GuildwarsFileStream(
+    GuildwarsClientContext guildwarsClientContext,
+    GuildwarsClient guildwarsClient,
+    int fileId,
+    int sizeCompressed,
+    int sizeDecompressed,
+    int crc)
+    : Stream
 {
-    private readonly GuildwarsClient guildwarsClient;
-    private readonly GuildwarsClientContext guildwarsClientContext;
+    private readonly GuildwarsClient guildwarsClient = guildwarsClient.ThrowIfNull();
 
     private byte[]? chunkBuffer;
     private int positionInBuffer = 0;
     private int chunkSize = 0;
 
-    public int FileId { get; init; }
-    public int SizeCompressed { get; init; }
-    public int SizeDecompressed { get; init; }
-    public int Crc { get; init; }
+    public int FileId { get; init; } = fileId;
+    public int SizeCompressed { get; init; } = sizeCompressed;
+    public int SizeDecompressed { get; init; } = sizeDecompressed;
+    public int Crc { get; init; } = crc;
 
     public override bool CanRead => true;
     public override bool CanSeek => false;
     public override bool CanWrite => false;
     public override long Length => this.SizeCompressed;
     public override long Position { get; set; }
-
-    public GuildwarsFileStream(GuildwarsClientContext guildwarsClientContext, GuildwarsClient guildwarsClient, int fileId, int sizeCompressed, int sizeDecompressed, int crc)
-    {
-        this.guildwarsClient = guildwarsClient.ThrowIfNull();
-        this.guildwarsClientContext = guildwarsClientContext;
-        this.FileId = fileId;
-        this.SizeCompressed = sizeCompressed;
-        this.SizeDecompressed = sizeDecompressed;
-        this.Crc = crc;
-    }
 
     public override void Flush()
     {
@@ -57,10 +53,10 @@ internal sealed class GuildwarsFileStream : Stream
         // If we have already requested a previous chunk, we need to request more data
         if (this.chunkSize > 0)
         {
-            await this.guildwarsClient.Send(new FileRequestNextChunk { Field1 = 0x7F3, Field2 = 0x8, Field3 = (uint)this.chunkSize }, this.guildwarsClientContext, cancellationToken);
+            await this.guildwarsClient.Send(new FileRequestNextChunk { Field1 = 0x7F3, Field2 = 0x8, Field3 = (uint)this.chunkSize }, guildwarsClientContext, cancellationToken);
         }
 
-        var meta = await this.guildwarsClient.ReceiveWait<FileMetadataResponse>(this.guildwarsClientContext, cancellationToken);
+        var meta = await this.guildwarsClient.ReceiveWait<FileMetadataResponse>(guildwarsClientContext, cancellationToken);
         if (meta.Field1 != 0x6F2 && meta.Field1 != 0x6F3)
         {
             throw new InvalidOperationException($"Unknown header in response {meta.Field1:X4}");
@@ -77,7 +73,7 @@ internal sealed class GuildwarsFileStream : Stream
         do
         {
             var buf = new byte[Math.Min(4096, this.chunkSize - downloadedChunkSize)];
-            var readTask = this.guildwarsClientContext.Socket.ReceiveAsync(buf, cancellationToken).AsTask();
+            var readTask = guildwarsClientContext.Socket.ReceiveAsync(buf, cancellationToken).AsTask();
             if (await Task.WhenAny(readTask, Task.Delay(5000, cancellationToken)) != readTask)
             {
                 throw new TaskCanceledException("Timed out waiting for download");

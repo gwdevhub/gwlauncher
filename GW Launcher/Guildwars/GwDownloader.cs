@@ -40,16 +40,18 @@ public static class GwDownloader
         return gwExePath;
     }
 
-    public static async Task CopyGwExeToAccountPaths(string sourceGwExePath, IEnumerable<string> accountPaths,
+    public static async Task CopyGwExeToAccountPaths(IEnumerable<string> accountPaths,
         IProgress<double> progress = null, CancellationToken cancellationToken = default)
     {
         int totalAccounts = accountPaths.Count();
         int completedAccounts = 0;
+        string sourceGwExePath = Path.Combine(Directory.GetCurrentDirectory(), "GwTemp");
+        string gwExePath = Path.Combine(sourceGwExePath, "Gw.exe");
+        Directory.CreateDirectory(sourceGwExePath);
 
-        foreach (string accountPath in accountPaths)
+        foreach (var accountPath in accountPaths)
         {
-            string destinationPath = Path.Combine(Path.GetDirectoryName(accountPath)!, "Gw.exe");
-            File.Copy(sourceGwExePath, destinationPath, true);
+            File.Copy(gwExePath, accountPath, true);
 
             completedAccounts++;
             progress?.Report((double)completedAccounts / totalAccounts);

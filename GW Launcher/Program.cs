@@ -1,8 +1,7 @@
-﻿using GW_Launcher.Forms;
-using GW_Launcher.Memory;
+﻿using System.Extensions;
+using GW_Launcher.Forms;
+using GW_Launcher.Guildwars;
 using Octokit;
-using System;
-using System.Xml.Linq;
 using Account = GW_Launcher.Classes.Account;
 using Application = System.Windows.Forms.Application;
 using FileMode = System.IO.FileMode;
@@ -154,6 +153,7 @@ internal static class Program
             Task.Run(CheckGitHubNewerVersion);
             Task.Run(CheckGitHubGModVersion);
         }
+        Task.Run(CheckForGwExeUpdates);
 
         settings.Save();
         mainThreadRunning = true;
@@ -309,6 +309,7 @@ GW Launcher will close.");
             gotMutex = false;
         }
     }
+
     private static async Task CheckGitHubNewerVersion()
     {
         const string oldName = ".old.exe";
@@ -419,6 +420,7 @@ GW Launcher will close.");
         Process.Start(processInfo);
         Environment.Exit(0);
     }
+
     private static async Task CheckGitHubGModVersion()
     {
         var location = Path.GetDirectoryName(AppContext.BaseDirectory);
@@ -472,5 +474,48 @@ GW Launcher will close.");
         await using var s = await httpClient.GetStreamAsync(uri);
         await using var fs = new FileStream(gmod, FileMode.Create);
         await s.CopyToAsync(fs);
+    }
+
+    private static async Task CheckForGwExeUpdates()
+    {
+        try
+        {
+            var latestSize = await GwDownloader.GetLatestGwExeSizeAsync();
+            if (latestSize <= 0) return;
+            List<Account> accsToUpdate = [];
+
+            foreach (var account in accounts)
+            {
+                if (!File.Exists(account.gwpath)) continue;
+
+                var fileInfo = new FileInfo(account.gwpath);
+                if (fileInfo.Length == latestSize)
+                {
+                    continue;
+                }
+
+                accsToUpdate.Add(account);
+            }
+
+            if (accsToUpdate.Count == 0) return;
+            var accsToUpdateNames = accsToUpdate.Select(
+                acc => !acc.Name.IsNullOrEmpty() ? acc.Name : acc.character
+            );
+            var accNames = string.Join(',', accsToUpdateNames);
+            var ok = MessageBox.Show($"Accounts {accNames} are out of date. Update now?", "GW Update", MessageBoxButtons.YesNo);
+            if (ok == DialogResult.Yes)
+            {
+                AdminAccess.RestartAsAdminPrompt(true);
+                await GwDownloader.DownloadGwExeAsync();
+                await GwDownloader.CopyGwExeToAccountPaths(accsToUpdate.Select(a => a.gwpath));
+            }
+
+            MessageBox.Show("Updated successfully");
+        }
+        catch (Exception ex)
+        {
+            // Log the exception
+            Console.WriteLine($"Error checking for Gw.exe updates: {ex.Message}");
+        }
     }
 }

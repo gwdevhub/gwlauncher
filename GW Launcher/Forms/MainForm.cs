@@ -398,12 +398,12 @@ public partial class MainForm : Form
         try
         {
             // Download the latest Gw.exe
-            string newGwExePath = await GwDownloader.DownloadGwExeAsync();
+            await GwDownloader.DownloadGwExeAsync();
 
             MessageBox.Show("Downloaded new exe.");
 
             // Copy the new Gw.exe to all client paths
-            await GwDownloader.CopyGwExeToAccountPaths(newGwExePath, clients);
+            await GwDownloader.CopyGwExeToAccountPaths(clients);
 
             MessageBox.Show("Copied exe to all accounts. Each path will now be launched with -image once.");
 
