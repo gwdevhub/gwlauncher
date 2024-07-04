@@ -4,7 +4,7 @@ namespace GW_Launcher.Guildwars;
 
 public static class GwDownloader
 {
-    public static async Task<long> GetLatestGwExeSizeAsync(CancellationToken cancellationToken = default)
+    public static async Task<int> GetLatestGwExeCrcAsync(CancellationToken cancellationToken = default)
     {
         // Initialize the download client
         var guildWarsClient = new GuildwarsClient();
@@ -16,7 +16,7 @@ public static class GwDownloader
         }
         var (context, manifest) = result.Value;
         await using var downloadStream = await guildWarsClient.GetFileStream(context, manifest.LatestExe, 0, cancellationToken);
-        return downloadStream?.SizeDecompressed ?? 0;
+        return downloadStream?.Crc ?? 0;
     }
 
     public static async Task<string> DownloadGwExeAsync(CancellationToken cancellationToken = default)
