@@ -10,9 +10,7 @@ internal sealed class IntegratedGuildwarsInstaller
     
     public async Task<bool> InstallGuildwars(string destinationPath, CancellationToken cancellationToken)
     {
-        return await new TaskFactory().StartNew(_ => {
-            return this.InstallGuildwarsInternal(destinationPath, cancellationToken);
-        }, TaskCreationOptions.LongRunning, cancellationToken).Unwrap();
+        return await new TaskFactory().StartNew(_ => InstallGuildwarsInternal(destinationPath, cancellationToken), TaskCreationOptions.LongRunning, cancellationToken).Unwrap();
     }
 
     private async Task<bool> InstallGuildwarsInternal(string destinationPath, CancellationToken cancellationToken)
