@@ -289,8 +289,10 @@ internal static class Program
         }
         catch (Exception)
         {
-            MessageBox.Show(@"Couldn't load account information, there might be an error in the .json.
-GW Launcher will close.");
+            MessageBox.Show("""
+                            Couldn't load account information, there might be an error in the .json.
+                            GW Launcher will close.
+                            """);
 
             return false;
         }
@@ -482,8 +484,8 @@ GW Launcher will close.");
         {
             var latestFileId = await GwDownloader.GetLatestGwExeFileIdAsync();
             if (latestFileId == 0) return;
-            List<Account> accsToUpdate = [];
-            List<Account> accsChecked = [];
+            List<Account> accsToUpdate = new List<Account>();
+            List<Account> accsChecked = new List<Account>();
 
             foreach (var account in accounts)
             {
@@ -509,8 +511,7 @@ GW Launcher will close.");
             if (ok == DialogResult.Yes)
             {
                 AdminAccess.RestartAsAdminPrompt(true);
-                await GwDownloader.DownloadGwExeAsync();
-                await GwDownloader.CopyGwExeToAccountPaths(accsToUpdate.Select(a => a.gwpath));
+                await GwDownloader.UpdateClients(accsToUpdate);
                 MessageBox.Show("Updated successfully");
             }
         }

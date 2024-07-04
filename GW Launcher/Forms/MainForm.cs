@@ -393,30 +393,30 @@ public partial class MainForm : Form
     private async void ToolStripMenuItemUpdateAllClients_Click(object sender, EventArgs e)
     {
         AdminAccess.RestartAsAdminPrompt(true);
-        var clients = Program.accounts.Select(account => account.gwpath).Distinct().ToList();
+        var clients = Program.accounts.ToList();
+
+        var progressForm = new ProgressForm();
+        progressForm.Show();
 
         try
         {
-            // Download the latest Gw.exe
-            await GwDownloader.DownloadGwExeAsync();
+            await GwDownloader.UpdateClients(clients, new Progress<(string Stage, double Progress)>(update =>
+            {
+                progressForm.UpdateProgress(update.Stage, update.Progress);
+            }));
 
-            MessageBox.Show("Downloaded new exe.");
-
-            // Copy the new Gw.exe to all client paths
-            await GwDownloader.CopyGwExeToAccountPaths(clients);
-
-            MessageBox.Show("Copied exe to all accounts. Each path will now be launched with -image once.");
+            progressForm.Close();
+            MessageBox.Show("All clients have been updated successfully.", "Update Complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
 
             // Run the client update for each client
             foreach (var client in clients)
             {
-                await RunClientUpdateAsync(client);
+                await RunClientUpdateAsync(client.gwpath);
             }
-
-            MessageBox.Show("All clients have been updated successfully.", "Update Complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
         catch (Exception ex)
         {
+            progressForm.Close();
             MessageBox.Show($"An error occurred while updating clients: {ex.Message}", "Update Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
 

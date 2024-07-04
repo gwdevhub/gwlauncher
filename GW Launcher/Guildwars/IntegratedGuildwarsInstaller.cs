@@ -8,12 +8,12 @@ internal sealed class IntegratedGuildwarsInstaller
     private const string ExeName = "Gw.exe";
     private const string TempExeName = "Gw.exe.temp";
     
-    public async Task<bool> InstallGuildwars(string destinationPath, CancellationToken cancellationToken)
+    public async Task<bool> InstallGuildwars(string destinationPath, IProgress<(string Stage, double Progress)> progress, CancellationToken cancellationToken)
     {
-        return await new TaskFactory().StartNew(_ => InstallGuildwarsInternal(destinationPath, cancellationToken), TaskCreationOptions.LongRunning, cancellationToken).Unwrap();
+        return await new TaskFactory().StartNew(_ => InstallGuildwarsInternal(destinationPath, progress, cancellationToken), TaskCreationOptions.LongRunning, cancellationToken).Unwrap();
     }
 
-    private async Task<bool> InstallGuildwarsInternal(string destinationPath, CancellationToken cancellationToken)
+    private async Task<bool> InstallGuildwarsInternal(string destinationPath, IProgress<(string Stage, double Progress)> progress, CancellationToken cancellationToken)
     {
         GuildwarsClientContext? maybeContext = default;
         try
@@ -33,45 +33,20 @@ internal sealed class IntegratedGuildwarsInstaller
             var (context, manifest) = result.Value;
             await using var downloadStream = await guildWarsClient.GetFileStream(context, manifest.LatestExe, 0, cancellationToken);
 
-            if (File.Exists(exeName))
-            {
-                var fileInfo = new FileInfo(exeName);
-                if (downloadStream != null && downloadStream.SizeDecompressed == fileInfo.Length)
-                {
-                    return true;
-                }
-            }
-            var pathdefault =
-                (string?)Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\ArenaNet\\Guild Wars", "Path", null) ?? (string?)Registry.GetValue(
-                    "HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\ArenaNet\\Guild Wars",
-                    "Path", null);
-            if (pathdefault != null && File.Exists(pathdefault))
-            {
-                var fileInfo = new FileInfo(pathdefault);
-                if (downloadStream != null && downloadStream.SizeDecompressed == fileInfo.Length)
-                {
-                    File.Copy(pathdefault, exeName, true);
-                    return true;
-                }
-            }
-
             maybeContext = context;
-            var (downloadResult, expectedFinalSize) = await DownloadCompressedExecutable(tempName, guildWarsClient, context, manifest, cancellationToken);
+            var (downloadResult, expectedFinalSize) = await DownloadCompressedExecutable(tempName, guildWarsClient, context, manifest, progress, cancellationToken);
             if (!downloadResult)
             {
                 MessageBox.Show("Failed to download compressed executable");
                 return false;
             }
 
-            if (!this.DecompressExecutable(tempName, exeName, expectedFinalSize))
+            if (!DecompressExecutable(tempName, exeName, expectedFinalSize, progress))
             {
                 MessageBox.Show("Failed to decompress executable");
                 return false;
             }
             File.Delete(tempName);
-
-            await Task.Delay(100, cancellationToken);
-            MessageBox.Show("Download complete.");
             return true;
         }
         catch (Exception e)
@@ -93,6 +68,7 @@ internal sealed class IntegratedGuildwarsInstaller
         GuildwarsClient guildWarsClient,
         GuildwarsClientContext context,
         ManifestResponse manifest,
+        IProgress<(string Stage, double Progress)> progress,
         CancellationToken cancellationToken)
     {
         var maybeStream = await guildWarsClient.GetFileStream(context, manifest.LatestExe, 0, cancellationToken);
@@ -108,29 +84,33 @@ internal sealed class IntegratedGuildwarsInstaller
         await using var writeFileStream = new FileStream(fileName, FileMode.Create, FileAccess.Write);
         var buffer = new Memory<byte>(new byte[2048]);
         var readBytes = 0;
+        var totalBytesRead = 0;
         do
         {
             readBytes = await downloadStream.ReadAsync(buffer, cancellationToken);
-            await writeFileStream.WriteAsync(buffer, cancellationToken);
+            await writeFileStream.WriteAsync(buffer.Slice(0, readBytes), cancellationToken);
+            totalBytesRead += readBytes;
+            progress?.Report(("Downloading compressed executable", (double)totalBytesRead / downloadStream.Length * 0.4));
         } while (readBytes > 0);
 
-        MessageBox.Show("Downloaded compressed executable.");
+        progress?.Report(("Downloaded compressed executable", 0.4));
         return (true, expectedFinalSize);
     }
 
     private bool DecompressExecutable(
         string tempName,
         string exeName,
-        int expectedFinalSize)
+        int expectedFinalSize,
+        IProgress<(string Stage, double Progress)> progress)
     {
         try
         {
-            var byteBuffer = new Memory<byte>(new byte[1]);
             using var readFileStream = new FileStream(tempName, FileMode.Open, FileAccess.Read);
             using var finalExeStream = new FileStream(exeName, FileMode.Create, FileAccess.ReadWrite);
             var bitStream = new BitStream(readFileStream);
             bitStream.Consume(4);
             var first4Bits = bitStream.Read(4);
+            progress?.Report(("Decompressing downloaded executable", 0.4));
             while (finalExeStream.Length < expectedFinalSize)
             {
                 var litHuffman = HuffmanTable.BuildHuffmanTable(bitStream);
@@ -180,8 +160,18 @@ internal sealed class IntegratedGuildwarsInstaller
                             finalExeStream.WriteByte((byte)b);
                         }
                     }
+
+                    // Report progress
+                    if (i % 1000 == 0) // Update progress every 1000 iterations to avoid excessive updates
+                    {
+                        double progressPercentage = 0.4 + ((double)finalExeStream.Length / expectedFinalSize) * 0.4;
+                        progress?.Report(("Decompressing downloaded executable", progressPercentage));
+                    }
                 }
             }
+
+            // Ensure 80% progress is reported at the end of decompression
+            progress?.Report(("Decompressed downloaded executable", 0.8));
 
             return true;
         }

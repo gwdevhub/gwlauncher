@@ -18,13 +18,13 @@ public static class GwDownloader
         return manifest.LatestExe;
     }
 
-    public static async Task<string> DownloadGwExeAsync(CancellationToken cancellationToken = default)
+    public static async Task<string> DownloadGwExeAsync(IProgress<(string Stage, double Progress)> progress = null, CancellationToken cancellationToken = default)
     {
         var installer = new IntegratedGuildwarsInstaller();
         string destinationPath = Path.Combine(Directory.GetCurrentDirectory(), "GwTemp");
         Directory.CreateDirectory(destinationPath);
 
-        bool result = await installer.InstallGuildwars(destinationPath, cancellationToken);
+        bool result = await installer.InstallGuildwars(destinationPath, progress, cancellationToken);
         if (!result)
         {
             throw new InvalidOperationException("Failed to download and install Guild Wars executable");
@@ -56,6 +56,27 @@ public static class GwDownloader
             progress?.Report((double)completedAccounts / totalAccounts);
 
             cancellationToken.ThrowIfCancellationRequested();
+        }
+    }
+
+    public static async Task UpdateClients(IEnumerable<Account> accountsToUpdate = null, IProgress<(string Stage, double Progress)> progress = null, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            await DownloadGwExeAsync(progress, cancellationToken);
+
+            accountsToUpdate ??= Program.accounts;
+
+            var uniquePaths = accountsToUpdate.Select(a => a.gwpath).Distinct().ToList();
+            progress?.Report(("Copying Gw.exe to client paths", 0.8));
+            await CopyGwExeToAccountPaths(uniquePaths, new Progress<double>(p => progress?.Report(("Copying Gw.exe to client paths", 0.8 + p * 0.2))), cancellationToken);
+
+            progress?.Report(("Update completed", 1));
+        }
+        catch (Exception ex)
+        {
+            // Handle or log the exception as needed
+            throw new Exception("Failed to update clients", ex);
         }
     }
 }
