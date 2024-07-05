@@ -68,8 +68,8 @@ public static class GwDownloader
             accountsToUpdate ??= Program.accounts;
 
             var uniquePaths = accountsToUpdate.Select(a => a.gwpath).Distinct().ToList();
-            progress.Report(("Copying Gw.exe to client paths", 0.8));
-            await CopyGwExeToAccountPaths(uniquePaths, new Progress<double>(p => progress.Report(("Copying Gw.exe to client paths", 0.8 + p * 0.2))), cancellationToken);
+            progress.Report(("Copying Gw.exe to client paths", 0.9));
+            await CopyGwExeToAccountPaths(uniquePaths, new Progress<double>(p => progress.Report(("Copying Gw.exe to client paths", 0.9 + p * (1 / accountsToUpdate.Count())))), cancellationToken);
 
             progress.Report(("Update completed", 1));
         }

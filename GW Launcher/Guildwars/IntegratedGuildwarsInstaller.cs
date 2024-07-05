@@ -34,7 +34,7 @@ internal sealed class IntegratedGuildwarsInstaller
             maybeContext = context;
             if (FileIdFinder.GetFileId(exeName) == manifest.LatestExe)
             {
-                progress.Report(("Exe already downloaded", 0.8));
+                progress.Report(("Exe already downloaded", 0.9));
                 return true;
             }
             var (downloadResult, expectedFinalSize) = await DownloadCompressedExecutable(tempName, guildWarsClient, context, manifest, progress, cancellationToken);
@@ -90,10 +90,10 @@ internal sealed class IntegratedGuildwarsInstaller
             readBytes = await downloadStream.ReadAsync(buffer, cancellationToken);
             await writeFileStream.WriteAsync(buffer.Slice(0, readBytes), cancellationToken);
             totalBytesRead += readBytes;
-            progress?.Report(("Downloading compressed executable", (double)totalBytesRead / downloadStream.Length * 0.4));
+            progress?.Report(("Downloading compressed executable", (double)totalBytesRead / downloadStream.Length * 0.45));
         } while (readBytes > 0);
 
-        progress?.Report(("Downloaded compressed executable", 0.4));
+        progress?.Report(("Downloaded compressed executable", 0.45));
         return (true, expectedFinalSize);
     }
 
@@ -110,7 +110,7 @@ internal sealed class IntegratedGuildwarsInstaller
             var bitStream = new BitStream(readFileStream);
             bitStream.Consume(4);
             var first4Bits = bitStream.Read(4);
-            progress?.Report(("Decompressing downloaded executable", 0.4));
+            progress?.Report(("Decompressing downloaded executable", 0.45));
             while (finalExeStream.Length < expectedFinalSize)
             {
                 var litHuffman = HuffmanTable.BuildHuffmanTable(bitStream);
@@ -164,14 +164,14 @@ internal sealed class IntegratedGuildwarsInstaller
                     // Report progress
                     if (i % 1000 == 0) // Update progress every 1000 iterations to avoid excessive updates
                     {
-                        double progressPercentage = 0.4 + ((double)finalExeStream.Length / expectedFinalSize) * 0.4;
+                        double progressPercentage = 0.45 + ((double)finalExeStream.Length / expectedFinalSize) * 0.45;
                         progress?.Report(("Decompressing downloaded executable", progressPercentage));
                     }
                 }
             }
 
-            // Ensure 80% progress is reported at the end of decompression
-            progress?.Report(("Decompressed downloaded executable", 0.8));
+            // Ensure 90% progress is reported at the end of decompression
+            progress?.Report(("Decompressed downloaded executable", 0.9));
 
             return true;
         }
