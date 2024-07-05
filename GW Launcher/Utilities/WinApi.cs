@@ -29,6 +29,7 @@ internal static class WinApi
     [DllImport("ntdll.dll", SetLastError = true, CallingConvention = CallingConvention.Winapi)]
     internal static extern int NtQueryInformationProcess(IntPtr hProcess, PROCESSINFOCLASS pic,
         out PROCESS_BASIC_INFORMATION pbi, int cb, out int pSize);
+
 }
 
 internal static class WinSafer

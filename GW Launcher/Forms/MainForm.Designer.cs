@@ -7,7 +7,7 @@ partial class MainForm
     /// <summary>
     /// Required designer variable.
     /// </summary>
-    private IContainer components = null;
+    private System.ComponentModel.IContainer components = null;
 
     /// <summary>
     /// Clean up any resources being used.
@@ -40,12 +40,14 @@ partial class MainForm
         toolStripSeparator3 = new ToolStripSeparator();
         toolStripMenuItemAddNew = new ToolStripMenuItem();
         toolStripMenuItemEditSelected = new ToolStripMenuItem();
+        toolStripMenuItemCreateShortcut = new ToolStripMenuItem();
         toolStripMenuItemRemoveSelected = new ToolStripMenuItem();
         toolStripMenuItemLaunchSelected = new ToolStripMenuItem();
         toolStripSeparator1 = new ToolStripSeparator();
         toolStripMenuItemLaunchGWInstance = new ToolStripMenuItem();
         toolStripMenuItemUpdateAllClients = new ToolStripMenuItem();
-        notifyIcon = new NotifyIcon(components);
+        notifyIcon = new NotifyIcon();
+        notifyIcon.Icon = Icon.FromHandle(Resources.gwlauncher_ico.Handle);
         contextMenuStripAccounts.SuspendLayout();
         SuspendLayout();
         // 
@@ -76,9 +78,9 @@ partial class MainForm
         // 
         // contextMenuStripAccounts
         // 
-        contextMenuStripAccounts.Items.AddRange(new ToolStripItem[] { toolStripMenuItemRefreshAccounts, toolStripSeparator3, toolStripMenuItemAddNew, toolStripMenuItemEditSelected, toolStripMenuItemRemoveSelected, toolStripMenuItemLaunchSelected, toolStripSeparator1, toolStripMenuItemLaunchGWInstance, toolStripMenuItemUpdateAllClients });
+        contextMenuStripAccounts.Items.AddRange(new ToolStripItem[] { toolStripMenuItemRefreshAccounts, toolStripSeparator3, toolStripMenuItemAddNew, toolStripMenuItemEditSelected, toolStripMenuItemCreateShortcut, toolStripMenuItemRemoveSelected, toolStripMenuItemLaunchSelected, toolStripSeparator1, toolStripMenuItemLaunchGWInstance, toolStripMenuItemUpdateAllClients });
         contextMenuStripAccounts.Name = "contextMenuStripAccounts";
-        contextMenuStripAccounts.Size = new Size(211, 170);
+        contextMenuStripAccounts.Size = new Size(211, 192);
         contextMenuStripAccounts.Text = "Options.";
         // 
         // toolStripMenuItemRefreshAccounts
@@ -106,6 +108,13 @@ partial class MainForm
         toolStripMenuItemEditSelected.Size = new Size(210, 22);
         toolStripMenuItemEditSelected.Text = "Edit Selected";
         toolStripMenuItemEditSelected.Click += ToolStripMenuItemEditSelected_Click;
+        // 
+        // toolStripMenuItemCreateShortcut
+        // 
+        toolStripMenuItemCreateShortcut.Name = "toolStripMenuItemCreateShortcut";
+        toolStripMenuItemCreateShortcut.Size = new Size(210, 22);
+        toolStripMenuItemCreateShortcut.Text = "Create Desktop Shortcut";
+        toolStripMenuItemCreateShortcut.Click += ToolStripMenuItemCreateShortcut_Click;
         // 
         // toolStripMenuItemRemoveSelected
         // 
@@ -142,10 +151,10 @@ partial class MainForm
         // 
         // notifyIcon
         // 
+        notifyIcon.Icon = Resources.gwlauncher_ico;
         notifyIcon.Text = "GW Launcher";
         notifyIcon.Visible = true;
         notifyIcon.MouseClick += NotifyIcon_MouseClick;
-        notifyIcon.Icon = (Icon)Resources.gwlauncher_ico;
         // 
         // MainForm
         // 
@@ -171,18 +180,19 @@ partial class MainForm
 
     #endregion
 
-    private ListView listViewAccounts;
-    private ColumnHeader columnHeaderName;
-    private ColumnHeader columnHeaderStatus;
-    private ContextMenuStrip contextMenuStripAccounts;
-    private ToolStripMenuItem toolStripMenuItemAddNew;
-    private ToolStripMenuItem toolStripMenuItemRemoveSelected;
-    private ToolStripMenuItem toolStripMenuItemLaunchGWInstance;
-    private ToolStripMenuItem toolStripMenuItemRefreshAccounts;
-    private ToolStripMenuItem toolStripMenuItemEditSelected;
-    private ToolStripSeparator toolStripSeparator1;
-    private ToolStripMenuItem toolStripMenuItemLaunchSelected;
-    private NotifyIcon notifyIcon;
-    private ToolStripSeparator toolStripSeparator3;
-    private ToolStripMenuItem toolStripMenuItemUpdateAllClients;
+    private System.Windows.Forms.ListView listViewAccounts;
+    private System.Windows.Forms.ColumnHeader columnHeaderName;
+    private System.Windows.Forms.ColumnHeader columnHeaderStatus;
+    private System.Windows.Forms.ContextMenuStrip contextMenuStripAccounts;
+    private System.Windows.Forms.ToolStripMenuItem toolStripMenuItemAddNew;
+    private System.Windows.Forms.ToolStripMenuItem toolStripMenuItemRemoveSelected;
+    private System.Windows.Forms.ToolStripMenuItem toolStripMenuItemLaunchGWInstance;
+    private System.Windows.Forms.ToolStripMenuItem toolStripMenuItemRefreshAccounts;
+    private System.Windows.Forms.ToolStripMenuItem toolStripMenuItemEditSelected;
+    private System.Windows.Forms.ToolStripMenuItem toolStripMenuItemCreateShortcut;
+    private System.Windows.Forms.ToolStripSeparator toolStripSeparator1;
+    private System.Windows.Forms.ToolStripMenuItem toolStripMenuItemLaunchSelected;
+    private System.Windows.Forms.NotifyIcon notifyIcon;
+    private System.Windows.Forms.ToolStripSeparator toolStripSeparator3;
+    private System.Windows.Forms.ToolStripMenuItem toolStripMenuItemUpdateAllClients;
 }

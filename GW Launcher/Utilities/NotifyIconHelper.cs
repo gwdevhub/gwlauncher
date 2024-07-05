@@ -3,10 +3,10 @@
 internal sealed class NotifyIconHelper
 {
     private static readonly FieldInfo? WindowField =
-        typeof(NotifyIcon).GetField("window", BindingFlags.NonPublic | BindingFlags.Instance);
+        typeof(NotifyIcon).GetField("_window", BindingFlags.NonPublic | BindingFlags.Instance);
 
     private static readonly FieldInfo? IdField =
-        typeof(NotifyIcon).GetField("id", BindingFlags.NonPublic | BindingFlags.Instance);
+        typeof(NotifyIcon).GetField("_id", BindingFlags.NonPublic | BindingFlags.Instance);
 
     public static Rectangle GetIconRect(NotifyIcon icon)
     {
@@ -31,9 +31,7 @@ internal sealed class NotifyIconHelper
             throw new InvalidOperationException("Can't find property window of NotifyIcon");
         }
 
-        var window = WindowField.GetValue(icon) as NativeWindow;
-
-        if (window == null)
+        if (WindowField.GetValue(icon) is not NativeWindow window)
         {
             throw new InvalidOperationException("[Useful error message]"); // should not happen?
         }

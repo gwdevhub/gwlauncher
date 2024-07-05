@@ -39,3 +39,4 @@ Publish/
 *.json
 *.vcxproj.user
 *.VC.db
+.aider*

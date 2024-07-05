@@ -78,6 +78,18 @@ public class AccountManager : IEnumerable<Account>, IDisposable
         return _accounts.GetEnumerator();
     }
 
+    public int IndexOf(string account_name)
+    {
+        for (var i = 0; i < Length;i++)
+        {
+            if (this[i].Name == account_name)
+            {
+                return i;
+            }
+        }
+        return -1;
+    }
+
     public void Load(string? filePath = null)
     {
         if (Program.settings.Encrypt)

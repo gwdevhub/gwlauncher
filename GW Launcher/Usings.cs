@@ -1,6 +1,7 @@
 ﻿global using GW_Launcher.Classes;
 global using GW_Launcher.Memory;
 global using GW_Launcher.Utilities;
+global using System.Core.Extensions;
 global using System.Collections;
 global using System.ComponentModel;
 global using System.Diagnostics;
@@ -9,5 +10,4 @@ global using System.Reflection;
 global using System.Runtime.InteropServices;
 global using System.Text;
 global using System.Text.RegularExpressions;
-global using Ionic.Zip;
 global using Newtonsoft.Json;

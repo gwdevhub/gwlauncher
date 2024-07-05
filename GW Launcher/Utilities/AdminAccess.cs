@@ -31,8 +31,9 @@ internal static class AdminAccess
         try
         {
             Program.shouldClose = true;
-            Application.Exit();
+            Program.gwlMutex?.Close();
             Process.Start(processInfo);
+            Environment.Exit(0);
             return false;
         }
         catch (Win32Exception)
@@ -43,7 +44,6 @@ internal static class AdminAccess
                 Program.shouldClose = true;
                 Application.Exit();
             }
-
             return true;
         }
     }

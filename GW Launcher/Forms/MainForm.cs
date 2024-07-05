@@ -1,5 +1,6 @@
 ﻿using GW_Launcher.Properties;
 using Microsoft.Win32;
+using GW_Launcher.Guildwars;
 
 namespace GW_Launcher.Forms;
 
@@ -11,7 +12,6 @@ public partial class MainForm : Form
     private bool _keepOpen;
 
     private ListView.SelectedIndexCollection _selectedItems;
-    public readonly Queue<int> needtolaunch;
 
     public MainForm(bool launchMinimized = false)
     {
@@ -20,13 +20,12 @@ public partial class MainForm : Form
             _allowVisible = true;
             var position = new Point
             {
-                X = Screen.PrimaryScreen.Bounds.Width / 2,
+                X = Screen.PrimaryScreen!.Bounds.Width / 2,
                 Y = Screen.PrimaryScreen.Bounds.Height / 2
             };
             Location = position;
         }
         InitializeComponent();
-        needtolaunch = new Queue<int>();
         _selectedItems = new ListView.SelectedIndexCollection(listViewAccounts);
         _instance = this;
     }
@@ -114,7 +113,7 @@ public partial class MainForm : Form
                 {
                     MessageBox.Show(
                         @"Can't read memory of an open Guild Wars instance. Launcher will close.");
-                    Program.shouldClose = true;
+                    Program.Exit();
                 }
             }
         }
@@ -126,7 +125,7 @@ public partial class MainForm : Form
                 new[]
                 {
                     account.Name,
-                    account.active ? "Active" : "Inactive"
+                    account.state
                 },
                 "gwlauncher"
             ));
@@ -152,18 +151,22 @@ public partial class MainForm : Form
 
     public void SetActive(int index, bool active)
     {
+        SetAccountState(index, "Active");
+    }
+
+    public void SetAccountState(int index, string state)
+    {
         if (listViewAccounts.InvokeRequired)
         {
-            var callback = new SetActiveUICallback(SetActive);
-            Invoke(callback, index, active);
+            var callback = new SetActiveUICallback(SetAccountState);
+            Invoke(callback, index, state);
         }
         else
         {
-            Program.accounts[index].active = active;
-            listViewAccounts.Items[index].SubItems[1].Text = active ? "Active" : "Inactive";
+            Program.accounts[index].state = state;
+            listViewAccounts.Items[index].SubItems[1].Text = state;
         }
     }
-
     private void MainForm_Load(object sender, EventArgs e)
     {
         Visible = false;
@@ -182,8 +185,7 @@ public partial class MainForm : Form
         {
             return;
         }
-
-        needtolaunch.Enqueue(selectedItems[0]);
+        Program.QueueLaunch(selectedItems[0]);
     }
 
     private void ToolStripMenuItemLaunchSelected_Click(object sender, EventArgs e)
@@ -196,7 +198,7 @@ public partial class MainForm : Form
 
         foreach (int selectedItem in _selectedItems)
         {
-            needtolaunch.Enqueue(selectedItem);
+            Program.QueueLaunch(selectedItem);
         }
     }
 
@@ -270,11 +272,9 @@ public partial class MainForm : Form
         }
 
         var account = Program.accounts[(int)index];
-        using var addAccountForm = new AddAccountForm
-        {
-            Text = @"Modify Account",
-            account = account
-        };
+        using var addAccountForm = new AddAccountForm();
+        addAccountForm.Text = @"Modify Account";
+        addAccountForm.account = account;
 
         addAccountForm.ShowDialog();
     }
@@ -331,74 +331,63 @@ public partial class MainForm : Form
         Activate();
     }
 
-    private static Task RunClientUpdateAsync(string client, CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            var tmpfile = Path.GetDirectoryName(client) + Path.DirectorySeparatorChar + "Gw.tmp";
-            if (File.Exists(tmpfile))
-            {
-                try
-                {
-                    File.Delete(tmpfile);
-                }
-                catch (Exception)
-                {
-                    // ignored
-                }
-            }
-
-            Process process = new()
-            {
-                StartInfo = new ProcessStartInfo
-                {
-                    FileName = client,
-                    Arguments = "-image",
-                    UseShellExecute = true,
-                    Verb = "runas"
-                }
-            };
-            process.Start();
-
-            var taskCompletionSource = new TaskCompletionSource<object>();
-            process.EnableRaisingEvents = true;
-            process.Exited += (_, _) => taskCompletionSource.TrySetResult(null!);
-            if (cancellationToken != default)
-            {
-                cancellationToken.Register(taskCompletionSource.SetCanceled);
-            }
-
-            if (File.Exists(tmpfile))
-            {
-                try
-                {
-                    File.Delete(tmpfile);
-                }
-                catch (Exception)
-                {
-                    // ignored
-                }
-            }
-
-            return taskCompletionSource.Task;
-        }
-        catch (Win32Exception e) when ((uint)e.ErrorCode == 0x80004005)
-        {
-            return Task.CompletedTask;
-        }
-    }
-
     private async void ToolStripMenuItemUpdateAllClients_Click(object sender, EventArgs e)
     {
-        var clients = Program.accounts.Select(account => account.gwpath).Distinct();
+        AdminAccess.RestartAsAdminPrompt(true);
+        var clients = Program.accounts.ToList();
 
-        foreach (var client in clients)
+        await UpdateAccountsGui(clients);
+    }
+
+    public async Task UpdateAccountsGui(List<Account> clients)
+    {
+        var progressForm = new ProgressForm();
+        progressForm.Show();
+
+        try
         {
-            await RunClientUpdateAsync(client);
+            await GwDownloader.UpdateClients(clients, new Progress<(string Stage, double Progress)>(update =>
+            {
+                progressForm.UpdateProgress(update.Stage, update.Progress);
+            }));
+
+            progressForm.Close();
+            MessageBox.Show("All clients have been updated successfully.", "Update Complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+            // Run the client update for each client
+            // foreach (var client in clients)
+            // {
+            //     await RunClientUpdateAsync(client.gwpath);
+            // }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"An error occurred while updating clients: {ex.Message}", "Update Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+        finally{
+            progressForm.Close();
         }
 
         Show();
     }
 
-    private delegate void SetActiveUICallback(int index, bool active);
+    private void ToolStripMenuItemCreateShortcut_Click(object sender, EventArgs e)
+    {
+        _selectedItems = listViewAccounts.SelectedIndices;
+        if (_selectedItems.Count == 0 && listViewAccounts.FocusedItem == null)
+        {
+            return;
+        }
+        var account = Program.accounts[_selectedItems[0]];
+        var shell = new IWshRuntimeLibrary.WshShell();
+        string shortcutAddress = Environment.GetFolderPath(Environment.SpecialFolder.Desktop) + @"\" + account.Name + ".lnk";
+        IWshRuntimeLibrary.IWshShortcut shortcut = shell.CreateShortcut(shortcutAddress);
+        shortcut.Description = "GW Launcher shortcut for " + account.Name;
+        shortcut.WorkingDirectory = Path.GetDirectoryName(Application.ExecutablePath);
+        shortcut.Arguments = "-launch \"" + account.Name + "\"";
+        shortcut.TargetPath = Application.ExecutablePath;
+        shortcut.Save();
+    }
+
+    private delegate void SetActiveUICallback(int index, string state);
 }
