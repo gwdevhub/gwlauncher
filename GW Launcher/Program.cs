@@ -514,63 +514,7 @@ internal static class Program
             if (ok == DialogResult.Yes)
             {
                 AdminAccess.RestartAsAdminPrompt(true);
-                
-                var progressQueue = new ConcurrentQueue<(string Stage, double Progress)>();
-                var progressFormCreated = new ManualResetEventSlim(false);
-                var progressFormClosed = new ManualResetEventSlim(false);
-
-                var progressFormThread = new Thread(() =>
-                {
-                    var progressForm = new ProgressForm();
-                    progressForm.FormClosed += (s, e) => progressFormClosed.Set();
-                    progressForm.Shown += (s, e) => progressFormCreated.Set();
-                    progressForm.Show();
-
-                    while (!progressFormClosed.IsSet)
-                    {
-                        if (progressQueue.TryDequeue(out var update))
-                        {
-                            progressForm.Invoke((MethodInvoker)delegate
-                            {
-                                progressForm.UpdateProgress(update.Stage, update.Progress);
-                            });
-                        }
-                        Thread.Sleep(50);
-                    }
-
-                    progressForm.Invoke((MethodInvoker)delegate
-                    {
-                        progressForm.Close();
-                        progressForm.Dispose();
-                    });
-                });
-
-                progressFormThread.SetApartmentState(ApartmentState.STA);
-                progressFormThread.Start();
-
-                progressQueue.Enqueue(("Starting update", 0));
-                progressFormCreated.Wait(100);
-                progressQueue.Enqueue(("Updating", 0.1));
-                Thread.Sleep(100);
-
-                try
-                {
-                    await GwDownloader.UpdateClients(accsToUpdate, new Progress<(string Stage, double Progress)>(update =>
-                    {
-                        progressQueue.Enqueue(update);
-                    }));
-
-                    MessageBox.Show("Updated successfully", "Update Complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"Error updating: {ex.Message}", "Update Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }
-                finally
-                {
-                    progressFormClosed.Set();
-                    progressFormThread.Join();
-                }
+                // todo: trigger MainForm to update the accounts
             }
         }
         catch (Exception ex)

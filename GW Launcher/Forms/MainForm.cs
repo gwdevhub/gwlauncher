@@ -333,68 +333,16 @@ public partial class MainForm : Form
         Activate();
     }
 
-    private static Task RunClientUpdateAsync(string client, CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            var tmpfile = Path.GetDirectoryName(client) + Path.DirectorySeparatorChar + "Gw.tmp";
-            if (File.Exists(tmpfile))
-            {
-                try
-                {
-                    File.Delete(tmpfile);
-                }
-                catch (Exception)
-                {
-                    // ignored
-                }
-            }
-
-            Process process = new()
-            {
-                StartInfo = new ProcessStartInfo
-                {
-                    FileName = client,
-                    Arguments = "-image",
-                    UseShellExecute = true,
-                    Verb = "runas"
-                }
-            };
-            process.Start();
-
-            var taskCompletionSource = new TaskCompletionSource<object>();
-            process.EnableRaisingEvents = true;
-            process.Exited += (_, _) => taskCompletionSource.TrySetResult(null!);
-            if (cancellationToken != default)
-            {
-                cancellationToken.Register(taskCompletionSource.SetCanceled);
-            }
-
-            if (File.Exists(tmpfile))
-            {
-                try
-                {
-                    File.Delete(tmpfile);
-                }
-                catch (Exception)
-                {
-                    // ignored
-                }
-            }
-
-            return taskCompletionSource.Task;
-        }
-        catch (Win32Exception e) when ((uint)e.ErrorCode == 0x80004005)
-        {
-            return Task.CompletedTask;
-        }
-    }
-
     private async void ToolStripMenuItemUpdateAllClients_Click(object sender, EventArgs e)
     {
         AdminAccess.RestartAsAdminPrompt(true);
         var clients = Program.accounts.ToList();
 
+        await UpdateAccountsGui(clients);
+    }
+
+    private async Task UpdateAccountsGui(List<Account> clients)
+    {
         var progressForm = new ProgressForm();
         progressForm.Show();
 
