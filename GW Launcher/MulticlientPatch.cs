@@ -93,11 +93,6 @@ internal class MulticlientPatch
         }
 
         process = Process.GetProcessById(procinfo.dwProcessId);
-        if (process == null)
-        {
-            err = GetErrorMessage("Process.GetProcessById", Marshal.GetLastWin32Error());
-            goto cleanup;
-        }
 
         if (!McPatch(process.Handle))
         {

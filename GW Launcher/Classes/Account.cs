@@ -9,7 +9,7 @@ public class Account
     public string extraargs = "";
     public bool elevated = false;
     public string title = "";
-    public bool usePluginFolderMods = true;
+    public bool usePluginFolderMods = false;
     public List<Mod> mods = new();
 
     [JsonIgnore] public bool active;
