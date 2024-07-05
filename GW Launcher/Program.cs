@@ -13,11 +13,11 @@ internal static class Program
 {
     private const string GwlMutexName = "gwl_instance_mutex";
     public static volatile bool shouldClose = false;
-    public static volatile bool mainThreadRunning = false;
+    private static volatile bool mainThreadRunning = false;
     public static AccountManager accounts = new();
     public static Thread mainthread = null!;
     public static Mutex mutex = new();
-    public static Mutex? gwlMutex;
+    private static Mutex? gwlMutex;
     private static MainForm? mainForm;
     private static bool gotMutex = false;
     public static GlobalSettings settings = GlobalSettings.Load();
@@ -154,8 +154,26 @@ internal static class Program
             Task.Run(CheckGitHubGModVersion);
             Task.Run(CheckForGwExeUpdates);
         }
-
         settings.Save();
+
+        if (command_arg_launch_account_name.Length > 0)
+        {
+            var res = LaunchAccount(command_arg_launch_account_name);
+            if (res != null)
+            {
+                MessageBox.Show(@"Failed to launch account " + command_arg_launch_account_name + "\n" + res);
+            }
+            Exit();
+            return;
+        }
+
+        // Only try to create and grab the mutex if we're in the main program
+        if (!InitialiseGWLauncherMutex())
+        {
+            Exit();
+            return; // Error message already displayed
+        }
+
         mainThreadRunning = true;
         mainthread = new Thread(() =>
         {
@@ -203,27 +221,10 @@ internal static class Program
             mainThreadRunning = false;
         });
 
-        if (command_arg_launch_account_name.Length > 0)
-        {
-            var res = LaunchAccount(command_arg_launch_account_name);
-            if (res != null)
-            {
-                MessageBox.Show(@"Failed to launch account " + command_arg_launch_account_name + "\n" + res);
-            }
-            Exit();
-            return;
-        }
-        // Only try to create and grab the mutex if we're in the main program
-        if (!InitialiseGWLauncherMutex())
-        {
-            Exit();
-            return; // Error message already displayed
-        }
-
         // Main application
         Application.EnableVisualStyles();
         Application.SetCompatibleTextRenderingDefault(false);
-        mainForm = new MainForm();
+        mainForm = new MainForm(settings.LaunchMinimized);
         mainForm.FormClosed += (_, _) => { Exit(); };
         Application.Run(mainForm);
     }
