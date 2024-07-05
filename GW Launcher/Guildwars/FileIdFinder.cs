@@ -2,7 +2,7 @@ using PeNet;
 
 namespace GW_Launcher.Guildwars;
 
-public class FileIdFinder
+public static class FileIdFinder
 {
     public static int GetFileId(string filePath)
     {
