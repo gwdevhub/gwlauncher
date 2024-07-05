@@ -1,10 +1,12 @@
-﻿using System.Extensions;
+﻿using System.Collections.Concurrent;
+using System.Extensions;
 using GW_Launcher.Forms;
 using GW_Launcher.Guildwars;
 using Octokit;
 using Account = GW_Launcher.Classes.Account;
 using Application = System.Windows.Forms.Application;
 using FileMode = System.IO.FileMode;
+using MethodInvoker = System.Windows.Forms.MethodInvoker;
 using ThreadState = System.Threading.ThreadState;
 
 namespace GW_Launcher;
@@ -512,20 +514,63 @@ internal static class Program
             if (ok == DialogResult.Yes)
             {
                 AdminAccess.RestartAsAdminPrompt(true);
-                var progressForm = new ProgressForm();
-                progressForm.Show();
-                await GwDownloader.UpdateClients(accsToUpdate, new Progress<(string Stage, double Progress)>(update =>
+                
+                var progressQueue = new ConcurrentQueue<(string Stage, double Progress)>();
+                var progressFormClosed = new ManualResetEventSlim(false);
+
+                var progressFormThread = new Thread(() =>
                 {
-                    progressForm.UpdateProgress(update.Stage, update.Progress);
-                }));
-                progressForm.Close();
-                MessageBox.Show("Updated successfully");
+                    var progressForm = new ProgressForm();
+                    progressForm.FormClosed += (s, e) => progressFormClosed.Set();
+                    progressForm.Show();
+
+                    while (!progressFormClosed.IsSet)
+                    {
+                        if (progressQueue.TryDequeue(out var update))
+                        {
+                            progressForm.Invoke((MethodInvoker)delegate
+                            {
+                                progressForm.UpdateProgress(update.Stage, update.Progress);
+                            });
+                        }
+                        Thread.Sleep(50);
+                    }
+
+                    progressForm.Invoke((MethodInvoker)delegate
+                    {
+                        progressForm.Close();
+                        progressForm.Dispose();
+                    });
+                });
+
+                progressFormThread.SetApartmentState(ApartmentState.STA);
+                progressFormThread.Start();
+
+                try
+                {
+                    await GwDownloader.UpdateClients(accsToUpdate, new Progress<(string Stage, double Progress)>(update =>
+                    {
+                        progressQueue.Enqueue(update);
+                    }));
+
+                    MessageBox.Show("Updated successfully", "Update Complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Error updating: {ex.Message}", "Update Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+                finally
+                {
+                    progressFormClosed.Set();
+                    progressFormThread.Join();
+                }
             }
         }
         catch (Exception ex)
         {
             // Log the exception
             Console.WriteLine($"Error checking for Gw.exe updates: {ex.Message}");
+            MessageBox.Show($"Error checking for updates: {ex.Message}", "Update Check Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
     }
 }

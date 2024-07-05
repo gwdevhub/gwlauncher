@@ -32,6 +32,11 @@ internal sealed class IntegratedGuildwarsInstaller
 
             var (context, manifest) = result.Value;
             maybeContext = context;
+            if (FileIdFinder.GetFileId(exeName) == manifest.LatestExe)
+            {
+                progress.Report(("Exe already downloaded", 0.8));
+                return true;
+            }
             var (downloadResult, expectedFinalSize) = await DownloadCompressedExecutable(tempName, guildWarsClient, context, manifest, progress, cancellationToken);
             if (!downloadResult)
             {
