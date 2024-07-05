@@ -6,7 +6,6 @@ using Octokit;
 using Account = GW_Launcher.Classes.Account;
 using Application = System.Windows.Forms.Application;
 using FileMode = System.IO.FileMode;
-using MethodInvoker = System.Windows.Forms.MethodInvoker;
 using ThreadState = System.Threading.ThreadState;
 
 namespace GW_Launcher;
@@ -19,7 +18,7 @@ internal static class Program
     public static AccountManager accounts = new();
     public static Thread mainthread = null!;
     public static Mutex mutex = new();
-    private static Mutex? gwlMutex;
+    internal static Mutex? gwlMutex;
     private static MainForm? mainForm;
     private static bool gotMutex = false;
     public static GlobalSettings settings = GlobalSettings.Load();
