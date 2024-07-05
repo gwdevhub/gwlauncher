@@ -186,13 +186,13 @@ internal static class Program
                 if (needtolaunch.Any())
                 {
                     if (!LockMutex()) break;
-                    var account_name = GetAccountName(needtolaunch.Dequeue());
+                    var accountName = GetAccountName(needtolaunch.Dequeue());
 
-                    var res = LaunchAccount(account_name);
+                    var res = LaunchAccount(accountName);
                     UnlockMutex();
                     if (res != null)
                     {
-                        MessageBox.Show(@"Failed to launch account " + account_name + "\n" + res);
+                        MessageBox.Show(@"Failed to launch account " + accountName + "\n" + res);
                     }
                 }
 
@@ -506,15 +506,26 @@ internal static class Program
             }
 
             if (accsToUpdate.Count == 0) return;
-            var accsToUpdateNames = accsToUpdate.Select(
-                acc => !acc.Name.IsNullOrEmpty() ? acc.Name : acc.character
-            );
-            var accNames = string.Join(',', accsToUpdateNames);
+            var accNames = string.Join(',', accsToUpdate.Select(acc => acc.Name));
             var ok = MessageBox.Show($"Accounts {accNames} are out of date. Update now?", "GW Update", MessageBoxButtons.YesNo);
             if (ok == DialogResult.Yes)
             {
                 AdminAccess.RestartAsAdminPrompt(true);
-                // todo: trigger MainForm to update the accounts
+                if (mainForm is not null)
+                {
+                    await mainForm.Invoke(async () =>
+                    {
+                        try
+                        {
+                            mutex.WaitOne();
+                            await mainForm.UpdateAccountsGui(accsToUpdate);
+                        }
+                        finally
+                        {
+                            mutex.ReleaseMutex();
+                        }
+                    });
+                }
             }
         }
         catch (Exception ex)

@@ -341,7 +341,7 @@ public partial class MainForm : Form
         await UpdateAccountsGui(clients);
     }
 
-    private async Task UpdateAccountsGui(List<Account> clients)
+    public async Task UpdateAccountsGui(List<Account> clients)
     {
         var progressForm = new ProgressForm();
         progressForm.Show();
