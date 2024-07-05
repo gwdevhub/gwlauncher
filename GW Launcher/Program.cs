@@ -154,7 +154,7 @@ internal static class Program
         {
             Task.Run(CheckGitHubNewerVersion);
             Task.Run(CheckGitHubGModVersion);
-            Task.Run(CheckForGwExeUpdates);
+            new TaskFactory().StartNew(CheckForGwExeUpdates, CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Current);
         }
         settings.Save();
 
@@ -514,7 +514,20 @@ internal static class Program
             if (ok == DialogResult.Yes)
             {
                 AdminAccess.RestartAsAdminPrompt(true);
-                // todo: trigger MainForm to update the accounts
+                while (mainForm is null)
+                {
+                    await Task.Delay(100);
+                }
+
+                var progressForm = new ProgressForm();
+                progressForm.Show();
+                Task.Run(() => new TaskFactory().StartNew(async _ =>
+                {
+                    await GwDownloader.UpdateClients(accsToUpdate, new Progress<(string Stage, double Progress)>(update =>
+                    {
+                        progressForm.UpdateProgress(update.Stage, update.Progress);
+                    }));
+                }, TaskCreationOptions.LongRunning, CancellationToken.None));
             }
         }
         catch (Exception ex)
