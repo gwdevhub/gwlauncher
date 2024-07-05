@@ -31,6 +31,7 @@ public partial class AddAccountForm : Form
         account.gwpath = textBoxPath.Text;
         account.elevated = checkBoxElevated.Checked;
         account.extraargs = textBoxExtraArguments.Text;
+        account.usePluginFolderMods = checkBoxUsePluginFolderMods.Checked;
         MainForm.OnAccountSaved(account);
     }
 
@@ -42,6 +43,7 @@ public partial class AddAccountForm : Form
         textBoxCharacter.Text = account.character;
         textBoxPath.Text = account.gwpath;
         checkBoxElevated.Checked = account.elevated;
+        checkBoxUsePluginFolderMods.Checked = account.usePluginFolderMods;
         textBoxExtraArguments.Text = account.extraargs;
     }
 
