@@ -17,7 +17,6 @@
 2.  Select the latest release.
 3.  Put the executable in its own folder! It will create files (Settings.json, Accounts.json, d3d9.dll) in the same location when you launch it.
 4.  Run the executable.
-5.  If you do not have the [.NET 6 Desktop Runtime (x86)](https://dotnet.microsoft.com/en-us/download/dotnet/6.0) installed, it will prompt you to download it.
 
 * * *
 
