@@ -272,11 +272,9 @@ public partial class MainForm : Form
         }
 
         var account = Program.accounts[(int)index];
-        using var addAccountForm = new AddAccountForm
-        {
-            Text = @"Modify Account",
-            account = account
-        };
+        using var addAccountForm = new AddAccountForm();
+        addAccountForm.Text = @"Modify Account";
+        addAccountForm.account = account;
 
         addAccountForm.ShowDialog();
     }
