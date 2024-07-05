@@ -35,7 +35,7 @@ internal class FileScanner
     public FileScanner(string path)
     {
         _peFile = new PeFile(path);
-        _textSection = _peFile.ImageSectionHeaders.FirstOrDefault(s => s.Name == ".text");
+        _textSection = _peFile.ImageSectionHeaders!.FirstOrDefault(s => s.Name == ".text")!;
         if (_textSection == null)
             throw new Exception("Could not find .text section");
     }
@@ -72,7 +72,7 @@ internal class FileScanner
     private int RvaToOffset(uint rva)
     {
         var section =
-            _peFile.ImageSectionHeaders.FirstOrDefault(s =>
+            _peFile.ImageSectionHeaders!.FirstOrDefault(s =>
                 rva >= s.VirtualAddress && rva < s.VirtualAddress + s.VirtualSize);
         if (section == null)
             throw new Exception("Could not find section for RVA");
