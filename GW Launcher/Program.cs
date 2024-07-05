@@ -516,12 +516,14 @@ internal static class Program
                 AdminAccess.RestartAsAdminPrompt(true);
                 
                 var progressQueue = new ConcurrentQueue<(string Stage, double Progress)>();
+                var progressFormCreated = new ManualResetEventSlim(false);
                 var progressFormClosed = new ManualResetEventSlim(false);
 
                 var progressFormThread = new Thread(() =>
                 {
                     var progressForm = new ProgressForm();
                     progressForm.FormClosed += (s, e) => progressFormClosed.Set();
+                    progressForm.Shown += (s, e) => progressFormCreated.Set();
                     progressForm.Show();
 
                     while (!progressFormClosed.IsSet)
@@ -545,6 +547,11 @@ internal static class Program
 
                 progressFormThread.SetApartmentState(ApartmentState.STA);
                 progressFormThread.Start();
+
+                progressQueue.Enqueue(("Starting update", 0));
+                progressFormCreated.Wait(100);
+                progressQueue.Enqueue(("Updating", 0.1));
+                Thread.Sleep(100);
 
                 try
                 {
