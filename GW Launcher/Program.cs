@@ -138,6 +138,9 @@ internal static class Program
     [STAThread]
     internal static void Main()
     {
+        Application.EnableVisualStyles();
+        Application.SetCompatibleTextRenderingDefault(false);
+
         if (!ParseCommandLineArgs())
         {
             Exit();
@@ -223,8 +226,6 @@ internal static class Program
         });
 
         // Main application
-        Application.EnableVisualStyles();
-        Application.SetCompatibleTextRenderingDefault(false);
         mainForm = new MainForm(settings.LaunchMinimized);
         mainForm.FormClosed += (_, _) => { Exit(); };
         Application.Run(mainForm);
