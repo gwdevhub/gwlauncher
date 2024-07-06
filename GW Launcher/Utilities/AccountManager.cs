@@ -136,7 +136,7 @@ public class AccountManager : IEnumerable<Account>, IDisposable
                 }
                 catch (Exception)
                 {
-                    MessageBox.Show("Incorrect password.\n Restart launcher and try again.",
+                    MessageBox.Show("Incorrect password.\nRestart launcher and try again.",
                         @"GW Launcher - Invalid Password");
                     throw new Exception("Wrong password");
                 }
