@@ -36,7 +36,7 @@ jobs:
       run: dotnet dotnet-gitversion /output buildserver
 
     - name: Build GW Launcher
-      run: MSBuild.exe "GW Launcher\GW Launcher.csproj" /target:"Restore;Publish" /m /nodeReuse:false /property:"PublishProfile=FrameworkDependent;Version=$Env:GitVersion_FullSemVer"
+      run: MSBuild.exe "GW Launcher\GW Launcher.csproj" /target:"Restore;Publish" /m /nodeReuse:false /property:"PublishProfile=SelfContained;Version=$Env:GitVersion_FullSemVer"
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
