@@ -3,7 +3,6 @@ Debug/
 Release/
 Publish/
 packages/
-Publish/
 .vs/
 /GW Launcher/obj
 *exe
@@ -26,7 +25,6 @@ Publish/
 *.lo
 *.o
 *.obj
-
 
 # Precompiled Headers
 *.gch

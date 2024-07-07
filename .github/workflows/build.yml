@@ -1,0 +1,48 @@
+---
+name: Build
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+defaults:
+  run:
+    shell: pwsh
+
+jobs:
+  build:
+    runs-on: windows-2022
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Install .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 8.0.x
+
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v2
+
+    - name: .NET Tool Restore
+      run: dotnet tool restore
+
+    - name: GitVersion
+      run: dotnet dotnet-gitversion /output buildserver
+
+    - name: Build GW Launcher
+      run: MSBuild.exe "GW Launcher\GW Launcher.csproj" /target:"Restore;Publish" /m /nodeReuse:false /property:"PublishProfile=SelfContained;Version=$Env:GitVersion_FullSemVer"
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
+      if: ${{ github.ref == 'refs/heads/master' }}
+      with:
+        name: GW Launcher
+        path: "Publish\\GW_Launcher.exe"
+        if-no-files-found: error
+...
