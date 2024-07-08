@@ -33,16 +33,18 @@ jobs:
                     $gitVersionObj = $gitVersionOutput | ConvertFrom-Json
                     $version = "$($gitVersionObj.Major).$($gitVersionObj.Minor)"
                     echo "VERSION=$version" >> $env:GITHUB_ENV
-                    echo "VERSION=$version"
 
             -   name: Build GW Launcher
                 run: |
-                    echo "VERSION: ${{ env.VERSION }}"
                     MSBuild.exe "GW Launcher\GW Launcher.csproj" `
                       /target:"Restore;Publish" `
                       /m /nodeReuse:false `
                       /property:"PublishProfile=SelfContained" `
                       /property:GitVersion_NoFetchEnabled=true
+
+            -   name: Rename Executable
+                run: |
+                    Move-Item -Path "Publish\GW Launcher.exe" -Destination "Publish\GW_Launcher.exe" -Force
 
             -   name: Upload Artifact
                 uses: actions/upload-artifact@v4
