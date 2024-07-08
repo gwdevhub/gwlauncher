@@ -1,0 +1,7 @@
+mode: ContinuousDelivery
+branches: {}
+tag-prefix: '[rR]'
+increment: Minor
+ignore:
+  sha: []
+merge-message-formats: {}
