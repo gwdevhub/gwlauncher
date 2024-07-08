@@ -1,7 +1,10 @@
 mode: ContinuousDelivery
-branches: {}
+branches:
+  master:
+    increment: Minor
+    prevent-increment-of-merged-branch-version: true
+    track-merge-target: false
 tag-prefix: '[rR]'
-increment: Minor
 ignore:
   sha: []
 merge-message-formats: {}
