@@ -1,75 +1,64 @@
----
 name: Build and Release
-
 on:
-  push:
-    branches: [ "master" ]
-  pull_request:
-    branches: [ "master" ]
-
+    push:
+        branches: [ "master" ]
+    pull_request:
+        branches: [ "master" ]
 defaults:
-  run:
-    shell: pwsh
-
+    run:
+        shell: pwsh
 jobs:
-  build:
-    runs-on: windows-2022
+    build:
+        runs-on: windows-2022
+        steps:
+            -   name: Checkout
+                uses: actions/checkout@v4
+                with:
+                    fetch-depth: 0
 
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
+            -   name: Install .NET
+                uses: actions/setup-dotnet@v4
+                with:
+                    dotnet-version: 8.0.x
 
-    - name: Install .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: 8.0.x
+            -   name: Setup MSBuild
+                uses: microsoft/setup-msbuild@v2
 
-    - name: Setup MSBuild
-      uses: microsoft/setup-msbuild@v2
+            -   name: .NET Tool Restore
+                run: dotnet tool restore
 
-    - name: .NET Tool Restore
-      run: dotnet tool restore
+            -   name: GitVersion
+                run: |
+                    $gitVersionOutput = dotnet dotnet-gitversion /output json
+                    $gitVersionObj = $gitVersionOutput | ConvertFrom-Json
+                    $version = "$($gitVersionObj.Major).$($gitVersionObj.Minor)"
+                    echo "VERSION=$version" >> $env:GITHUB_ENV
 
-    - name: GitVersion
-      run: dotnet dotnet-gitversion /output buildserver
+            -   name: Build GW Launcher
+                run: |
+                    MSBuild.exe "GW Launcher\GW Launcher.csproj" `
+                      /target:"Restore;Publish" `
+                      /m /nodeReuse:false `
+                      /property:"PublishProfile=SelfContained" `
+                      /property:GitVersion_NoFetchEnabled=true
 
-    - name: Build GW Launcher
-      run: |
-        MSBuild.exe "GW Launcher\GW Launcher.csproj" `
-          /target:"Restore;Publish" `
-          /m /nodeReuse:false `
-          /property:"PublishProfile=SelfContained" `
-          /property:GitVersion_NoFetchEnabled=true
+            -   name: Rename Executable
+                run: |
+                    Move-Item -Path "Publish\GW Launcher.exe" -Destination "Publish\GW_Launcher.exe" -Force
 
-    - name: Upload Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: GW Launcher
-        path: "Publish\\GW_Launcher.exe"
-        if-no-files-found: error
+            -   name: Upload Artifact
+                uses: actions/upload-artifact@v4
+                with:
+                    name: GW Launcher
+                    path: "Publish\\GW_Launcher.exe"
+                    if-no-files-found: error
 
-    - name: Create Release
-      if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: r${{ env.GitVersion_AssemblySemVersion }}
-        release_name: Release ${{ env.GitVersion_AssemblySemVersion }}
-        draft: false
-        prerelease: false
-        
-    - name: Upload Release Asset
-      if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./Publish/GW_Launcher.exe
-        asset_name: GW_Launcher.exe
-        asset_content_type: application/octet-stream
-...
+            -   name: Create Release
+                if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+                env:
+                    GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                run: |
+                    gh release create "r${{ env.VERSION }}" `
+                      --title "Release ${{ env.VERSION }}" `
+                      --notes "Release ${{ env.VERSION }}" `
+                      ./Publish/GW_Launcher.exe

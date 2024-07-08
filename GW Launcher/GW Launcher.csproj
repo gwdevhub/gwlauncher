@@ -4,7 +4,6 @@
         <OutputType>WinExe</OutputType>
         <TargetFramework>net8.0-windows</TargetFramework>
         <RootNamespace>GW_Launcher</RootNamespace>
-        <AssemblyName>GW_Launcher</AssemblyName>
         <Nullable>enable</Nullable>
         <UseWindowsForms>true</UseWindowsForms>
         <ImplicitUsings>enable</ImplicitUsings>
