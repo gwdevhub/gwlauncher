@@ -33,13 +33,15 @@ jobs:
       run: dotnet tool restore
 
     - name: GitVersion
-      id: gitversion
-      run: |
-        dotnet dotnet-gitversion /output buildserver
-        echo "::set-output name=version::$($Env:GitVersion_MajorMinorPatch)"
+      run: dotnet dotnet-gitversion /output buildserver
 
     - name: Build GW Launcher
-      run: MSBuild.exe "GW Launcher\GW Launcher.csproj" /target:"Restore;Publish" /m /nodeReuse:false /property:"PublishProfile=SelfContained;Version=${{ steps.gitversion.outputs.version }}"
+      run: |
+        MSBuild.exe "GW Launcher\GW Launcher.csproj" `
+          /target:"Restore;Publish" `
+          /m /nodeReuse:false `
+          /property:"PublishProfile=SelfContained" `
+          /property:GitVersion_NoFetchEnabled=true
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
@@ -50,15 +52,16 @@ jobs:
 
     - name: Create Release
       if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+      id: create_release
       uses: actions/create-release@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: r${{ steps.gitversion.outputs.version }}
-        release_name: Release ${{ steps.gitversion.outputs.version }}
+        tag_name: r${{ env.GitVersion_AssemblySemVersion }}
+        release_name: Release ${{ env.GitVersion_AssemblySemVersion }}
         draft: false
         prerelease: false
-
+        
     - name: Upload Release Asset
       if: github.event_name == 'push' && github.ref == 'refs/heads/master'
       uses: actions/upload-release-asset@v1

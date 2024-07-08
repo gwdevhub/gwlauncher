@@ -8,3 +8,5 @@ tag-prefix: '[rR]'
 ignore:
   sha: []
 merge-message-formats: {}
+assembly-versioning-scheme: MajorMinor
+assembly-file-versioning-scheme: MajorMinor
