@@ -1,5 +1,5 @@
 ---
-name: Build
+name: Build and Release
 
 on:
   push:
@@ -33,16 +33,40 @@ jobs:
       run: dotnet tool restore
 
     - name: GitVersion
-      run: dotnet dotnet-gitversion /output buildserver
+      id: gitversion
+      run: |
+        dotnet dotnet-gitversion /output buildserver
+        echo "::set-output name=version::$($Env:GitVersion_MajorMinorPatch)"
 
     - name: Build GW Launcher
-      run: MSBuild.exe "GW Launcher\GW Launcher.csproj" /target:"Restore;Publish" /m /nodeReuse:false /property:"PublishProfile=SelfContained;Version=$Env:GitVersion_FullSemVer"
+      run: MSBuild.exe "GW Launcher\GW Launcher.csproj" /target:"Restore;Publish" /m /nodeReuse:false /property:"PublishProfile=SelfContained;Version=${{ steps.gitversion.outputs.version }}"
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
-      if: ${{ github.ref == 'refs/heads/master' }}
       with:
         name: GW Launcher
         path: "Publish\\GW_Launcher.exe"
         if-no-files-found: error
+
+    - name: Create Release
+      if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: r${{ steps.gitversion.outputs.version }}
+        release_name: Release ${{ steps.gitversion.outputs.version }}
+        draft: false
+        prerelease: false
+
+    - name: Upload Release Asset
+      if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./Publish/GW_Launcher.exe
+        asset_name: GW_Launcher.exe
+        asset_content_type: application/octet-stream
 ...
