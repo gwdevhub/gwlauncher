@@ -39,7 +39,7 @@ public static class GwDownloader
         return gwExePath;
     }
 
-    private static async Task CopyGwExeToAccountPaths(IEnumerable<string> accountPaths,
+    private static void CopyGwExeToAccountPaths(IEnumerable<string> accountPaths,
         IProgress<double> progress, CancellationToken cancellationToken = default)
     {
         int totalAccounts = accountPaths.Count();
@@ -69,7 +69,7 @@ public static class GwDownloader
 
             var uniquePaths = accountsToUpdate.Select(a => a.gwpath).Distinct().ToList();
             progress.Report(("Copying Gw.exe to client paths", 0.9));
-            await CopyGwExeToAccountPaths(uniquePaths, new Progress<double>(p => progress.Report(("Copying Gw.exe to client paths", 0.9 + p * 0.1))), cancellationToken);
+            CopyGwExeToAccountPaths(uniquePaths, new Progress<double>(p => progress.Report(("Copying Gw.exe to client paths", 0.9 + p * 0.1))), cancellationToken);
 
             progress.Report(("Update completed", 1));
         }

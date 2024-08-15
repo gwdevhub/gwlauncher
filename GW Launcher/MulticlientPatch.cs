@@ -4,7 +4,7 @@ using Microsoft.Win32;
 
 namespace GW_Launcher;
 
-internal class MulticlientPatch
+internal static class MulticlientPatch
 {
     private static string GetErrorMessage(string methodName, int errorCode,
         [System.Runtime.CompilerServices.CallerFilePath] string file = "",
@@ -51,14 +51,14 @@ internal class MulticlientPatch
         var texmods = string.Join('\n', ModManager.GetTexmods(account));
         if (!texmods.IsNullOrEmpty())
         {
-            var modfile = Path.Combine(Path.GetDirectoryName(path)!, "modlist.txt");
+            var modfile = Path.Combine(Directory.GetCurrentDirectory(), "modlist.txt");
             try
             {
                 File.WriteAllText(modfile, texmods);
             }
             catch (UnauthorizedAccessException)
             {
-                modfile = Path.Combine(Directory.GetCurrentDirectory(), "modlist.txt");
+                modfile = Path.Combine(Path.GetDirectoryName(path)!, "modlist.txt");
                 try
                 {
                     File.WriteAllText(modfile, texmods);
@@ -69,10 +69,8 @@ internal class MulticlientPatch
                     goto cleanup;
                 }
 
-                ;
             }
 
-            ;
         }
 
         var args = $"-email \"{account.email}\" -password \"{account.password}\"";
@@ -83,8 +81,6 @@ internal class MulticlientPatch
         }
 
         args += $" {account.extraargs}";
-
-        PatchRegistry(path);
 
         err = LaunchClient(path, args, account.elevated, out PROCESS_INFORMATION procinfo);
         if (err != null)
@@ -158,8 +154,6 @@ internal class MulticlientPatch
 
     internal static GWCAMemory LaunchClient(string path)
     {
-        PatchRegistry(path);
-
         var lastDirectory = Directory.GetCurrentDirectory();
 
         Directory.SetCurrentDirectory(Path.GetDirectoryName(path)!);
@@ -174,36 +168,6 @@ internal class MulticlientPatch
         process.Resume();
 
         return new GWCAMemory(process);
-    }
-
-    private static string? PatchRegistry(string path)
-    {
-        try
-        {
-            var regSrc = Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\ArenaNet\\Guild Wars", "Src", null);
-            if (regSrc != null && (string)regSrc != Path.GetFullPath(path))
-            {
-                Registry.SetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\ArenaNet\\Guild Wars", "Src", Path.GetFullPath(path));
-                Registry.SetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\ArenaNet\\Guild Wars", "Path", Path.GetFullPath(path));
-            }
-
-            regSrc = Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\ArenaNet\\Guild Wars", "Src", null);
-            if (regSrc == null || (string)regSrc == Path.GetFullPath(path))
-            {
-                return null;
-            }
-
-            Registry.SetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\ArenaNet\\Guild Wars", "Src",
-                Path.GetFullPath(path));
-            Registry.SetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\ArenaNet\\Guild Wars", "Path",
-                Path.GetFullPath(path));
-        }
-        catch (UnauthorizedAccessException)
-        {
-            return GetErrorMessage("PatchRegistry UnauthorizedAccessException", Marshal.GetLastWin32Error());
-        }
-
-        return null;
     }
 
     private static int SearchBytes(IReadOnlyList<byte> haystack, IReadOnlyList<byte> needle)
