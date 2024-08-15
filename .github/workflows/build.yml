@@ -34,7 +34,7 @@ jobs:
                     $version = "$($gitVersionObj.Major).$($gitVersionObj.Minor)"
                     echo "VERSION=$version" >> $env:GITHUB_ENV
 
-            -   name: Build GW Launcher
+            -   name: Build GW Launcher Self Contained
                 run: |
                     MSBuild.exe "GW Launcher\GW Launcher.csproj" `
                       /target:"Restore;Publish" `
@@ -42,15 +42,29 @@ jobs:
                       /property:"PublishProfile=SelfContained" `
                       /property:GitVersion_NoFetchEnabled=true
 
-            -   name: Rename Executable
+            -   name: Rename SelfContained Executable
                 run: |
                     Move-Item -Path "Publish\GW Launcher.exe" -Destination "Publish\GW_Launcher.exe" -Force
+
+            -   name: Build GW Launcher Framework Dependent
+                run: |
+                    MSBuild.exe "GW Launcher\GW Launcher.csproj" `
+                      /target:"Restore;Publish" `
+                      /m /nodeReuse:false `
+                      /property:"PublishProfile=FrameworkDependent" `
+                      /property:GitVersion_NoFetchEnabled=true
+
+            -   name: Rename FrameworkDependent Executable
+                run: |
+                    Move-Item -Path "Publish\GW Launcher.exe" -Destination "Publish\GW_Launcher_Framework_Dependent.exe" -Force
 
             -   name: Upload Artifact
                 uses: actions/upload-artifact@v4
                 with:
                     name: GW Launcher
-                    path: "Publish\\GW_Launcher.exe"
+                    path: |
+                        Publish\GW_Launcher.exe
+                        Publish\GW_Launcher_Framework_Dependent.exe
                     if-no-files-found: error
 
             -   name: Create Release
@@ -61,4 +75,5 @@ jobs:
                     gh release create "r${{ env.VERSION }}" `
                       --title "Release ${{ env.VERSION }}" `
                       --notes "Release ${{ env.VERSION }}" `
-                      ./Publish/GW_Launcher.exe
+                      ./Publish/GW_Launcher.exe `
+                      ./Publish/GW_Launcher_Framework_Dependent.exe
