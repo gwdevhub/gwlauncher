@@ -292,10 +292,14 @@ public partial class MainForm : Form
         _allowVisible = true;
         _keepOpen = e.Button == MouseButtons.Right && Visible == false;
 
+        //get Windows screen scale factor (system -> display -> scale):
+        //to get real resolution from virtual one, we need to multiply with scale factor: virtual resolution * scale = native unscaled resolution
+        float scale = ScreenScaling.GetScreenScalingFactor();
+
         bool IsVisible(Point p)
         {
             return Screen.AllScreens.Any(s =>
-                p.X < s.Bounds.Right && p.X > s.Bounds.Left && p.Y > s.Bounds.Top && p.Y < s.Bounds.Bottom);
+                p.X < s.Bounds.Right * scale && p.X > s.Bounds.Left * scale && p.Y > s.Bounds.Top * scale && p.Y < s.Bounds.Bottom * scale);
         }
 
         var rect = NotifyIconHelper.GetIconRect(notifyIcon);
@@ -304,7 +308,7 @@ public partial class MainForm : Form
         RefreshUI();
 
         position.X -= Width / 2;
-        if (position.Y > Screen.FromPoint(Cursor.Position).WorkingArea.Height / 2)
+        if (position.Y > Screen.FromPoint(Cursor.Position).WorkingArea.Height * scale / 2)
         {
             position.Y -= 5 + Height;
         }
@@ -315,16 +319,29 @@ public partial class MainForm : Form
 
         if (!IsVisible(position))
         {
-            position.Y = Cursor.Position.Y;
+            position.Y = (int) (Cursor.Position.Y * scale);
         }
+
+        Debug.Assert(Screen.PrimaryScreen != null, "Screen.PrimaryScreen != null");
 
         if (!IsVisible(position))
         {
-            Debug.Assert(Screen.PrimaryScreen != null, "Screen.PrimaryScreen != null");
-            position.X = Screen.PrimaryScreen.Bounds.Width / 2;
-            position.Y = Screen.PrimaryScreen.Bounds.Height / 2;
+            position.X = (int) (Screen.PrimaryScreen.Bounds.Width * scale) / 2;
+            position.Y = (int) (Screen.PrimaryScreen.Bounds.Height * scale) / 2;
         }
 
+        //divide out scaling factor as DPI-unaware windows app works with a virtual resolution of 100% scaling:
+        position.X = (int) (position.X / scale);
+        position.Y = (int) (position.Y / scale);
+
+        //if bottom right corner is out of screen (scaling was already divided out), move window back into screen:
+        if (position.X + Width > Screen.PrimaryScreen.Bounds.Width)
+            position.X -= position.X + Width - Screen.PrimaryScreen.Bounds.Width;
+
+        if (position.Y + Height > Screen.PrimaryScreen.Bounds.Height)
+            position.Y -= position.Y + Height - Screen.PrimaryScreen.Bounds.Height;
+
+        
         Location = position;
 
         Visible = !Visible;
