@@ -292,8 +292,8 @@ public partial class MainForm : Form
         _allowVisible = true;
         _keepOpen = e.Button == MouseButtons.Right && Visible == false;
 
-        //get Windows screen scale factor (system -> display -> scale):
-        //to get real resolution from virtual one, we need to multiply with scale factor: virtual resolution * scale = native unscaled resolution
+        // get Windows screen scale factor (system -> display -> scale):
+        // to get real resolution from virtual one, we need to multiply with scale factor: virtual resolution * scale = native unscaled resolution
         float scale = ScreenScaling.GetScreenScalingFactor();
 
         bool IsVisible(Point p)
