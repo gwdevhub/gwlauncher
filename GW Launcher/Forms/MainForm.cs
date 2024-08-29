@@ -210,6 +210,11 @@ public partial class MainForm : Form
 
     private void ToolStripMenuItemRemoveSelected_Click(object sender, EventArgs e)
     {
+        if (MessageBox.Show(@"Are you sure you want to remove the selected accounts?", @"Remove Accounts",
+            MessageBoxButtons.YesNo) != DialogResult.Yes)
+        {
+            return;
+        }
         Program.mutex.WaitOne();
         var indices = from int indice in listViewAccounts.SelectedIndices orderby indice descending select indice;
         foreach (var indice in indices)
