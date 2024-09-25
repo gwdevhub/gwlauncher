@@ -41,6 +41,7 @@ internal static class Program
             if (clsProcess.ProcessName.Contains(name))
                 return true;
         }
+
         return false;
     }
 
@@ -57,6 +58,7 @@ internal static class Program
             elapsed += 200;
             ok = test_func();
         }
+
         return ok;
     }
 
@@ -67,10 +69,12 @@ internal static class Program
             return "Failed to find account for " + account_name;
         return LaunchAccount(found);
     }
+
     static Account? GetAccountByIndex(int account_index)
     {
         return accounts[account_index];
     }
+
     static string GetAccountName(int account_index)
     {
         var account = GetAccountByIndex(account_index);
@@ -94,11 +98,13 @@ internal static class Program
             if (res != null)
                 return res;
         }
+
         if (memory == null)
             return "Failed to launch account.";
 
         uint timeout = 10000;
-        bool ok = WaitFor(() => {
+        bool ok = WaitFor(() =>
+        {
             memory.process.Refresh();
             return memory.process.MainWindowHandle != IntPtr.Zero;
         }, timeout);
@@ -107,7 +113,9 @@ internal static class Program
             memory.process.Kill();
             return "Failed to wait for MainWindowHandle after " + (timeout / 1000) + " seconds.";
         }
-        ok = WaitFor(() => {
+
+        ok = WaitFor(() =>
+        {
             memory.process.Refresh();
             return memory.process.WaitForInputIdle(1000);
         }, timeout);
@@ -133,8 +141,10 @@ internal static class Program
         {
             SetWindowText(memory.process.MainWindowHandle, account.Name);
         }
+
         return null;
     }
+
     [STAThread]
     internal static void Main()
     {
@@ -146,6 +156,7 @@ internal static class Program
             Exit();
             return; // Error message already displayed
         }
+
         if (!LoadAccountsJson())
         {
             Exit();
@@ -158,6 +169,7 @@ internal static class Program
             Task.Run(CheckGitHubGModVersion);
             Task.Run(CheckForGwExeUpdates);
         }
+
         settings.Save();
 
         if (command_arg_launch_account_name.Length > 0)
@@ -167,6 +179,7 @@ internal static class Program
             {
                 MessageBox.Show(@"Failed to launch account " + command_arg_launch_account_name + "\n" + res);
             }
+
             Exit();
             return;
         }
@@ -181,7 +194,6 @@ internal static class Program
         mainThreadRunning = true;
         mainthread = new Thread(() =>
         {
-
             while (!shouldClose)
             {
                 UnlockMutex();
@@ -208,10 +220,12 @@ internal static class Program
                     {
                         state = "Active";
                     }
+
                     if (state != "Active" && accounts[i].process != null)
                     {
                         accounts[i].process = null;
                     }
+
                     if (accounts[i].state != state)
                     {
                         mainForm?.SetAccountState(i, state);
@@ -222,6 +236,7 @@ internal static class Program
 
                 Thread.Sleep(1000);
             }
+
             mainThreadRunning = false;
         });
 
@@ -230,6 +245,7 @@ internal static class Program
         mainForm.FormClosed += (_, _) => { Exit(); };
         Application.Run(mainForm);
     }
+
     public static bool QueueLaunch(int index)
     {
         if (index < 0 || accounts.Length <= index)
@@ -251,6 +267,7 @@ internal static class Program
             gwlMutex = null;
         }
     }
+
     private static bool ParseCommandLineArgs()
     {
         var args = Environment.GetCommandLineArgs();
@@ -265,12 +282,15 @@ internal static class Program
                         MessageBox.Show(@"No value for command line argument -launch");
                         return false;
                     }
+
                     command_arg_launch_account_name = args[i];
                     break;
             }
         }
+
         return true;
     }
+
     private static bool InitialiseGWLauncherMutex()
     {
         // Check to see if another instance is running
@@ -279,9 +299,11 @@ internal static class Program
             //MessageBox.Show(@"GW Launcher already running. GW Launcher will close.");
             return false;
         }
+
         gwlMutex = new Mutex(true, GwlMutexName);
         return true;
     }
+
     private static bool LoadAccountsJson()
     {
         // Load accounts
@@ -307,6 +329,7 @@ internal static class Program
         gotMutex = gotMutex || mutex.WaitOne(1000);
         return gotMutex;
     }
+
     private static void UnlockMutex()
     {
         if (gotMutex)
@@ -326,7 +349,7 @@ internal static class Program
             File.Delete(newName);
         }
 
-        //Get all releases from GitHub
+        // Get all releases from GitHub
         var client = new GitHubClient(new ProductHeaderValue("GWLauncher"));
         var releases = await client.Repository.Release.GetAll("gwdevhub", "gwlauncher");
 
@@ -362,11 +385,12 @@ internal static class Program
         }
 
         var latest = releases[0];
+        var runtimeInstalled = IsDotNet8DesktopInstalled();
 
         if (!settings.AutoUpdate)
         {
             var msgBoxResult = MessageBox.Show(
-                $@"New version {tagName} available online. Visit page?",
+                $@"New version {tagName} available online. Visit page?{(runtimeInstalled ? "\nYou can download the Framework Dependent version." : "")}",
                 @"GW Launcher",
                 MessageBoxButtons.YesNo,
                 MessageBoxIcon.Information,
@@ -385,7 +409,11 @@ internal static class Program
             return;
         }
 
-        var asset = latest.Assets.First(a => a.Name == "GW_Launcher.exe");
+        var assetName = runtimeInstalled
+            ? "GW_Launcher_Framework_Dependent.exe"
+            : "GW_Launcher.exe";
+
+        var asset = latest.Assets.FirstOrDefault(a => a.Name == assetName);
         if (asset == null)
         {
             return;
@@ -401,8 +429,7 @@ internal static class Program
 
         mutex.WaitOne();
         shouldClose = true;
-        if (mainthread.ThreadState == ThreadState.Running &&
-            !mainthread.Join(5000))
+        if (mainthread.ThreadState == ThreadState.Running && !mainthread.Join(5000))
         {
             return;
         }
@@ -411,7 +438,6 @@ internal static class Program
         gwlMutex?.Close();
 
         File.Move(currentName, oldName);
-
         File.Move(newName, currentName);
 
         var fileName = Environment.ProcessPath;
@@ -425,6 +451,34 @@ internal static class Program
         Application.Restart();
         Process.Start(processInfo);
         Environment.Exit(0);
+    }
+
+    private static bool IsDotNet8DesktopInstalled()
+    {
+        try
+        {
+            var processInfo = new ProcessStartInfo
+            {
+                FileName = "dotnet",
+                Arguments = "--list-runtimes",
+                RedirectStandardOutput = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            using var process = Process.Start(processInfo);
+            using var reader = process.StandardOutput;
+            var output = reader.ReadToEnd();
+            process.WaitForExit();
+
+            // Check if .NET 8 is listed in the installed runtimes
+            return output.Contains("Microsoft.WindowsDesktop.App 8");
+        }
+        catch (Exception)
+        {
+            // If the check fails, assume .NET 8 is not installed
+            return false;
+        }
     }
 
     private static async Task CheckGitHubGModVersion()
@@ -459,6 +513,7 @@ internal static class Program
         {
             strVersion = "1.0.0";
         }
+
         var localVersion = new Version(strVersion);
 
         var versionComparison = localVersion.CompareTo(latestVersion);
@@ -508,7 +563,8 @@ internal static class Program
 
             if (accsToUpdate.Count == 0) return;
             var accNames = string.Join(',', accsToUpdate.Select(acc => acc.Name));
-            var ok = MessageBox.Show($"Accounts {accNames} are out of date. Update now?", "GW Update", MessageBoxButtons.YesNo);
+            var ok = MessageBox.Show($"Accounts {accNames} are out of date. Update now?", "GW Update",
+                MessageBoxButtons.YesNo);
             if (ok == DialogResult.Yes)
             {
                 AdminAccess.RestartAsAdminPrompt(true);
@@ -533,7 +589,8 @@ internal static class Program
         {
             // Log the exception
             Console.WriteLine($"Error checking for Gw.exe updates: {ex.Message}");
-            MessageBox.Show($"Error checking for updates: {ex.Message}", "Update Check Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            MessageBox.Show($"Error checking for updates: {ex.Message}", "Update Check Error", MessageBoxButtons.OK,
+                MessageBoxIcon.Error);
         }
     }
 }
