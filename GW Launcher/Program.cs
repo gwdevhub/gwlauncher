@@ -349,7 +349,6 @@ internal static class Program
             File.Delete(newName);
         }
 
-        // Get all releases from GitHub
         var client = new GitHubClient(new ProductHeaderValue("GWLauncher"));
         var releases = await client.Repository.Release.GetAll("gwdevhub", "gwlauncher");
 
@@ -471,12 +470,10 @@ internal static class Program
             var output = reader.ReadToEnd();
             process.WaitForExit();
 
-            // Check if .NET 8 is listed in the installed runtimes
             return output.Contains("Microsoft.WindowsDesktop.App 8");
         }
         catch (Exception)
         {
-            // If the check fails, assume .NET 8 is not installed
             return false;
         }
     }
@@ -543,8 +540,8 @@ internal static class Program
         {
             var latestFileId = await GwDownloader.GetLatestGwExeFileIdAsync();
             if (latestFileId == 0) return;
-            List<Account> accsToUpdate = new List<Account>();
-            List<Account> accsChecked = new List<Account>();
+            var accsToUpdate = new List<Account>();
+            var accsChecked = new List<Account>();
 
             foreach (var account in accounts)
             {
