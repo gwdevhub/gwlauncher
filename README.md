@@ -83,4 +83,6 @@ Alternatively there is also a GUI to select plugins for specific accounts when y
 Similarly, all .tpf or .zip files will be loaded as TexMod files. This means that you do not have to use uMod anymore, if you only want basic TexMod functionality.  
 Plugins are loaded in the alphabetical order of their filename. Textures that are already replaced by `1_FirstTexmod.tpf` cannot be replaced by subsequent `2_SecondTexmod.tpf`, so make sure your texmods are named in ascending alphabetical order.
 
-**Important**: The r44 version of uMod is used for performance reasons. This means that you can only load texmods created with TexMod or uMod v1. TexMods created with uMod v2 (r49 or higher) will not load. This is because the latter use an expensive 64 bit hashing algorithm, rather than the standard 32 bit one.
+**Important**: Some old texmods may contain technically invalid image files that may not show up correctly.
+If you encounter issues with that, visit https://github.com/gwdevhub/gMod and follow the TpfConvert instructions at the bottom.
+It will convert your invalid .tpf file into a valid .zip file. Delete the tpf file afterwards and use the zip as mod.
