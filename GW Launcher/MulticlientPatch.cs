@@ -51,27 +51,17 @@ internal static class MulticlientPatch
         var texmods = string.Join('\n', ModManager.GetTexmods(account));
         if (!texmods.IsNullOrEmpty())
         {
-            var modfile = Path.Combine(Directory.GetCurrentDirectory(), "modlist.txt");
-            try
-            {
-                File.WriteAllText(modfile, texmods);
-            }
-            catch (UnauthorizedAccessException)
-            {
-                modfile = Path.Combine(Path.GetDirectoryName(path)!, "modlist.txt");
-                try
-                {
-                    File.WriteAllText(modfile, texmods);
-                }
-                catch (UnauthorizedAccessException)
-                {
-                    err = GetErrorMessage("UnauthorizedAccessException, Failed to write texmods to modlist.txt", 0);
-                    goto cleanup;
-                }
-
-            }
-
-        }
+			var modfile = Path.Combine(Path.GetDirectoryName(path)!, "modlist.txt");
+			try
+			{
+				File.WriteAllText(modfile, texmods);
+			}
+			catch (UnauthorizedAccessException)
+			{
+				err = GetErrorMessage("UnauthorizedAccessException, Failed to write texmods to modlist.txt", 0);
+				goto cleanup;
+			}
+		}
 
         var args = $"-email \"{account.email}\" -password \"{account.password}\"";
 
