@@ -1,4 +1,6 @@
-﻿using System.Collections.Concurrent;
+﻿using System;
+using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Extensions;
 using GW_Launcher.Forms;
 using GW_Launcher.Guildwars;
@@ -34,14 +36,33 @@ internal static class Program
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool SetForegroundWindow(IntPtr hWnd);
 
-    static bool IsProcessOpen(string name)
+
+	[DllImport("Kernel32.dll")]
+    private static extern bool QueryFullProcessImageName([In] IntPtr hProcess, [In] uint dwFlags, [Out] StringBuilder lpExeName, [In, Out] ref uint lpdwSize);
+
+	public static string? GetProcessPath(Process process)
     {
-        foreach (Process clsProcess in Process.GetProcesses())
+		
+		var fileNameBuilder = new StringBuilder(1024);
+        uint bufferLength = (uint)fileNameBuilder.Capacity + 1;
+        return QueryFullProcessImageName(process.Handle, 0, fileNameBuilder, ref bufferLength) ?
+            fileNameBuilder.ToString() :
+            null;
+
+    }
+
+	static bool IsProcessOpen(string name)
+    {
+        var basename = Path.GetFileNameWithoutExtension(name);
+        var processes = Process.GetProcesses();
+		foreach (Process clsProcess in processes)
         {
-            if (clsProcess.ProcessName.Contains(name))
+            if (!clsProcess.ProcessName.Equals(basename))
+                continue;
+            var path = GetProcessPath(clsProcess);
+            if (path != null && path.Contains(name))
                 return true;
         }
-
         return false;
     }
 

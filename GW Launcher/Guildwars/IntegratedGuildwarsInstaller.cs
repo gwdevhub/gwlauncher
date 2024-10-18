@@ -82,7 +82,7 @@ internal sealed class IntegratedGuildwarsInstaller
         var expectedFinalSize = downloadStream.SizeDecompressed;
 
         await using var writeFileStream = new FileStream(fileName, FileMode.Create, FileAccess.Write);
-        var buffer = new Memory<byte>(new byte[2048]);
+        var buffer = new Memory<byte>(new byte[1048 * 512]);
         var readBytes = 0;
         var totalBytesRead = 0;
         do
