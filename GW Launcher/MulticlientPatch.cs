@@ -1,16 +1,15 @@
 ﻿using System.Extensions;
-using System.Threading;
-using Microsoft.Win32;
+
 
 namespace GW_Launcher;
 
 internal static class MulticlientPatch
 {
-    private static string GetErrorMessage(string methodName, int errorCode,
+    private static string GetErrorMessage(string err, int errorCode,
         [System.Runtime.CompilerServices.CallerFilePath] string file = "",
         [System.Runtime.CompilerServices.CallerLineNumber] int lineNumber = 0)
     {
-        return $"Error in {methodName} at {file}:{lineNumber} - Code: {errorCode}";
+        return $"Error:\n\n{err}\n\n at {file}:{lineNumber} - Code: {errorCode}";
     }
 
     private static IntPtr GetProcessModuleBase(IntPtr process)
@@ -36,23 +35,53 @@ internal static class MulticlientPatch
         return peb.ImageBaseAddress + 0x1000;
     }
 
-    public static string? LaunchClient(Account account, out GWCAMemory? memory)
+	[DllImport("user32.dll")]
+	public static extern short GetAsyncKeyState(int vKey);
+
+	private static string? ResumeThread(IntPtr hThread)
+    {
+		if (hThread != IntPtr.Zero)
+		{
+			try
+			{
+				if (WinApi.ResumeThread(hThread) == 0xffffffff)
+				{
+					return GetErrorMessage($"WinApi.ResumeThread({hThread})", Marshal.GetLastWin32Error());
+				}
+
+				if (WinApi.CloseHandle(hThread) == 0)
+				{
+					return GetErrorMessage($"WinApi.CloseHandle({hThread})", Marshal.GetLastWin32Error());
+				}
+			}
+			catch (Exception e)
+			{
+				return e.Message;
+			}
+		}
+        return null;
+	}
+
+	public static string? LaunchClient(Account account, out GWCAMemory? memory)
     {
         var path = account.gwpath;
         Process? process = null;
         memory = null;
         string? err;
-        if (!File.Exists(path))
+		var modfile = "";
+        var prev_modfile_contents = "";
+		if (!File.Exists(path))
         {
-            err = GetErrorMessage("Account Gw.exe path invalid", 0);
+            err = GetErrorMessage($"Account path {path} invalid", 0);
             goto cleanup;
         }
 
         var texmods = string.Join('\n', ModManager.GetTexmods(account));
-        if (!texmods.IsNullOrEmpty())
+        
+		if (!texmods.IsNullOrEmpty())
         {
-            var modfile = Path.Combine(Directory.GetCurrentDirectory(), "modlist.txt");
-            try
+            modfile = Path.Combine(Directory.GetCurrentDirectory(), "modlist.txt");
+			try
             {
                 File.WriteAllText(modfile, texmods);
             }
@@ -61,11 +90,13 @@ internal static class MulticlientPatch
                 modfile = Path.Combine(Path.GetDirectoryName(path)!, "modlist.txt");
                 try
                 {
-                    File.WriteAllText(modfile, texmods);
+					if (File.Exists(modfile))
+						prev_modfile_contents = File.ReadAllText(modfile);
+					File.WriteAllText(modfile, texmods);
                 }
                 catch (UnauthorizedAccessException)
                 {
-                    err = GetErrorMessage("UnauthorizedAccessException, Failed to write texmods to modlist.txt", 0);
+                    err = GetErrorMessage($"UnauthorizedAccessException, Failed to write texmods to {modfile}", 0);
                     goto cleanup;
                 }
 
@@ -104,18 +135,18 @@ internal static class MulticlientPatch
             if (load_module_result != GWCAMemory.LoadModuleResult.SUCCESSFUL)
             {
                 err = GetErrorMessage($"memory.LoadModule({dll})", Marshal.GetLastWin32Error());
-                goto cleanup;
-            }
+				goto cleanup;
+			}
         }
 
-        if (Control.ModifierKeys.HasFlag(Keys.Shift))
-        {
+        //NB: Because account launching is done on another thread, we can't rely on WPF/WinForms API to tell us if shift is pressed
+		if ((GetAsyncKeyState(0x10) & 0x8000) != 0) {
             DialogResult result =
                 MessageBox.Show("Guild Wars is in a suspended state, plugins are not yet loaded.\n\nContinue?",
                     "Launching paused", MessageBoxButtons.OKCancel);
             if (result == DialogResult.Cancel)
             {
-                GetErrorMessage("Launch was cancelled", 0);
+                err = GetErrorMessage("Launch was cancelled", 0);
                 goto cleanup;
             }
         }
@@ -147,6 +178,16 @@ internal static class MulticlientPatch
         {
             process?.Kill();
             memory = null;
+        }
+		// Make sure to restore the modfile.txt file (blank string if in the gwlauncher dir, whatever was there before if in the gw dir)
+		if (!modfile.IsNullOrEmpty())
+        {
+            try
+            {
+                File.WriteAllText(modfile, prev_modfile_contents);
+            } catch {  
+                // Silent fail
+            }
         }
 
         return err;
