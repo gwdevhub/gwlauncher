@@ -5,8 +5,11 @@ using System.Extensions;
 using GW_Launcher.Forms;
 using GW_Launcher.Guildwars;
 using Octokit;
+using PeNet.Header.Net.MetaDataTables;
 using Account = GW_Launcher.Classes.Account;
 using Application = System.Windows.Forms.Application;
+using Assembly = System.Reflection.Assembly;
+using File = System.IO.File;
 using FileMode = System.IO.FileMode;
 using ThreadState = System.Threading.ThreadState;
 
@@ -29,10 +32,11 @@ internal static class Program
 
     private static string command_arg_launch_account_name = "";
 
-    [DllImport("user32.dll", EntryPoint = "SetWindowText", CharSet = CharSet.Unicode)]
-    private static extern bool SetWindowText(IntPtr hwnd, string lpString);
+	[DllImport("user32.dll")]
+    public static extern int SendMessage(IntPtr hWnd, int wMsg, IntPtr wParam, IntPtr lParam);
 
-    [DllImport("user32.dll")]
+
+	[DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool SetForegroundWindow(IntPtr hWnd);
 
@@ -157,11 +161,29 @@ internal static class Program
             memory.process.Kill();
             return "Failed to wait for CharnamePtr after " + (timeout / 1000) + " seconds.";
         }
-
-        if (memory.process.MainWindowTitle == "Guild Wars")
-        {
-            SetWindowText(memory.process.MainWindowHandle, account.Name);
-        }
+        timeout = 5000;
+		ok = WaitFor(() =>
+		{
+			memory.process.Refresh();
+            return memory.process.MainWindowTitle != "";
+		}, timeout);
+		if (ok && memory.process.MainWindowTitle == "Guild Wars")
+		{
+            // NB: Window may not be ready for title change, or GW may be (re)setting window title as part of render process.
+			ok = WaitFor(() =>
+			{
+				memory.process.Refresh();
+				var chars = Marshal.StringToHGlobalAnsi(account.Name);
+				SendMessage(memory.process.MainWindowHandle, 0xc, 0, chars);
+				memory.process.Refresh();
+                return memory.process.MainWindowTitle != "Guild Wars";
+			}, timeout);
+			if (!ok)
+			{
+				memory.process.Kill();
+				return "Failed to set window name after " + (timeout / 1000) + " seconds.";
+			}
+		}
 
         return null;
     }
