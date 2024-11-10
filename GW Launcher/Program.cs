@@ -178,11 +178,6 @@ internal static class Program
 				memory.process.Refresh();
                 return memory.process.MainWindowTitle != "Guild Wars";
 			}, timeout);
-			if (!ok)
-			{
-				memory.process.Kill();
-				return "Failed to set window name after " + (timeout / 1000) + " seconds.";
-			}
 		}
 
         return null;
