@@ -509,7 +509,7 @@ internal static class Program
             };
 
             using var process = Process.Start(processInfo);
-            using var reader = process.StandardOutput;
+            using var reader = process!.StandardOutput;
             var output = reader.ReadToEnd();
             process.WaitForExit();
 
