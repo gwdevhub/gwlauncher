@@ -5,6 +5,8 @@ namespace GW_Launcher;
 
 internal static class MulticlientPatch
 {
+    private const int LaunchDelay = 2000;
+
     private static string GetErrorMessage(string err, int errorCode,
         [System.Runtime.CompilerServices.CallerFilePath] string file = "",
         [System.Runtime.CompilerServices.CallerLineNumber] int lineNumber = 0)
@@ -151,6 +153,8 @@ internal static class MulticlientPatch
             }
         }
 
+        //Delay process resume to allow time for mods to properly hook into GW
+        Thread.Sleep(LaunchDelay);
         if (procinfo.hThread != IntPtr.Zero)
         {
             try
