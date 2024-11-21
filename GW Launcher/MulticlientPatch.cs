@@ -153,8 +153,6 @@ internal static class MulticlientPatch
             }
         }
 
-        //Delay process resume to allow time for mods to properly hook into GW
-        Thread.Sleep(LaunchDelay);
         if (procinfo.hThread != IntPtr.Zero)
         {
             try
