@@ -177,7 +177,7 @@ internal static class MulticlientPatch
         cleanup:
         if (err != null)
         {
-            // process?.Kill();
+            process?.Kill();
             memory = null;
         }
 		// Make sure to restore the modfile.txt file (blank string if in the gwlauncher dir, whatever was there before if in the gw dir)
