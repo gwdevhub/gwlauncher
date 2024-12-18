@@ -129,7 +129,7 @@ internal static class MulticlientPatch
 
         memory = new GWCAMemory(process);
 
-        var VK_SHIFT = 0x10;
+        const int VK_SHIFT = 0x10;
         //NB: Because account launching is done on another thread, we can't rely on WPF/WinForms API to tell us if shift is pressed
         if ((GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0) {
             DialogResult result =
