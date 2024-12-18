@@ -129,18 +129,9 @@ internal static class MulticlientPatch
 
         memory = new GWCAMemory(process);
 
-        foreach (var dll in ModManager.GetDlls(account))
-        {
-            var load_module_result = memory.LoadModule(dll);
-            if (load_module_result != GWCAMemory.LoadModuleResult.SUCCESSFUL)
-            {
-                err = GetErrorMessage($"memory.LoadModule({dll})", Marshal.GetLastWin32Error());
-				goto cleanup;
-			}
-        }
-
+        var VK_SHIFT = 0x10;
         //NB: Because account launching is done on another thread, we can't rely on WPF/WinForms API to tell us if shift is pressed
-		if ((GetAsyncKeyState(0x10) & 0x8000) != 0) {
+        if ((GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0) {
             DialogResult result =
                 MessageBox.Show("Guild Wars is in a suspended state, plugins are not yet loaded.\n\nContinue?",
                     "Launching paused", MessageBoxButtons.OKCancel);
@@ -149,6 +140,16 @@ internal static class MulticlientPatch
                 err = GetErrorMessage("Launch was cancelled", 0);
                 goto cleanup;
             }
+        }
+
+        foreach (var dll in ModManager.GetDlls(account))
+        {
+            var loadModuleResult = memory.LoadModule(dll);
+            if (loadModuleResult != GWCAMemory.LoadModuleResult.SUCCESSFUL)
+            {
+                err = GetErrorMessage($"memory.LoadModule({dll})", Marshal.GetLastWin32Error());
+				goto cleanup;
+			}
         }
 
         if (procinfo.hThread != IntPtr.Zero)
@@ -176,7 +177,7 @@ internal static class MulticlientPatch
         cleanup:
         if (err != null)
         {
-            process?.Kill();
+            // process?.Kill();
             memory = null;
         }
 		// Make sure to restore the modfile.txt file (blank string if in the gwlauncher dir, whatever was there before if in the gw dir)
