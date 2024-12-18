@@ -129,9 +129,9 @@ internal static class MulticlientPatch
 
         memory = new GWCAMemory(process);
 
-        const int VK_SHIFT = 0x10;
-        //NB: Because account launching is done on another thread, we can't rely on WPF/WinForms API to tell us if shift is pressed
-        if ((GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0) {
+        const int VK_CONTROL = 0x11;
+        //NB: Because account launching is done on another thread, we can't rely on WPF/WinForms API to tell us if ctrl is pressed
+        if ((GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0) {
             DialogResult result =
                 MessageBox.Show("Guild Wars is in a suspended state, plugins are not yet loaded.\n\nContinue?",
                     "Launching paused", MessageBoxButtons.OKCancel);
