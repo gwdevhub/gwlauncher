@@ -147,7 +147,7 @@ internal static class MulticlientPatch
             var loadModuleResult = memory.LoadModule(dll);
             if (loadModuleResult != GWCAMemory.LoadModuleResult.SUCCESSFUL)
             {
-                err = GetErrorMessage($"memory.LoadModule({dll})", Marshal.GetLastWin32Error());
+                err = GetErrorMessage($"Result {loadModuleResult}: memory.LoadModule({dll})", Marshal.GetLastWin32Error());
 				goto cleanup;
 			}
         }
@@ -177,8 +177,14 @@ internal static class MulticlientPatch
         cleanup:
         if (err != null)
         {
-            process?.Kill();
-            memory = null;
+            try
+            {
+                process?.Kill();
+            }
+            finally
+            {
+                memory = null;
+            }
         }
 		// Make sure to restore the modfile.txt file (blank string if in the gwlauncher dir, whatever was there before if in the gw dir)
 		if (!modfile.IsNullOrEmpty())

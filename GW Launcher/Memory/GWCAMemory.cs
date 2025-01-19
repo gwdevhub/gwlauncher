@@ -351,6 +351,7 @@ public class GWCAMemory
         MEMORY_NOT_ALLOCATED,
         PATH_NOT_WRITTEN,
         REMOTE_THREAD_NOT_SPAWNED,
+        REMOTE_THREAD_DID_NOT_START,
         REMOTE_THREAD_DID_NOT_FINISH,
         MEMORY_NOT_DEALLOCATED
     }
@@ -402,7 +403,7 @@ public class GWCAMemory
         var threadResult = WaitForSingleObject(hThread, 5000u);
         if (threadResult is 0x102 or 0xFFFFFFFF /* WAIT_FAILED */)
         {
-            return LoadModuleResult.REMOTE_THREAD_DID_NOT_FINISH;
+            return LoadModuleResult.REMOTE_THREAD_DID_NOT_START;
         }
 
         if (GetExitCodeThread(hThread, out _) == 0)
