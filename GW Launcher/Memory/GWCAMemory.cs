@@ -400,7 +400,7 @@ public class GWCAMemory
             return LoadModuleResult.REMOTE_THREAD_NOT_SPAWNED;
         }
 
-        var threadResult = WaitForSingleObject(hThread, 5000u);
+        var threadResult = WaitForSingleObject(hThread, Program.settings.TimeoutOnModlaunch);
         if (threadResult is 0x102 or 0xFFFFFFFF /* WAIT_FAILED */)
         {
             return LoadModuleResult.REMOTE_THREAD_DID_NOT_START;

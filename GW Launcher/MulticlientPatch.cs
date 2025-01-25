@@ -1,4 +1,6 @@
-﻿using System.Extensions;
+﻿using Microsoft.Win32;
+using System.DirectoryServices.ActiveDirectory;
+using System.Extensions;
 
 
 namespace GW_Launcher;
@@ -272,7 +274,35 @@ internal static class MulticlientPatch
         return WinApi.WriteProcessMemory(processHandle, mcpatch, payload, payload.Length, out _);
     }
 
-    private static string? LaunchClient(string path, string args, bool elevated, out PROCESS_INFORMATION procinfo)
+    private static bool SetRegistryValue(string registryPath, string valueName, object newValue)
+	{
+		try
+		{
+
+			// Open the registry key
+			using (RegistryKey key = Registry.CurrentUser.CreateSubKey(registryPath))
+			{
+				if (key != null)
+				{
+					// Set the string value
+					key.SetValue(valueName, newValue, RegistryValueKind.String);
+					Console.WriteLine($"Successfully set {valueName} to '{newValue}' at {registryPath}");
+					return true;
+				}
+			}
+		}
+		catch (UnauthorizedAccessException)
+		{
+			Console.WriteLine("You do not have permission to modify the registry.");
+		}
+		catch (Exception ex)
+		{
+			Console.WriteLine($"An error occurred: {ex.Message}");
+		}
+		return false;
+	}
+
+	private static string? LaunchClient(string path, string args, bool elevated, out PROCESS_INFORMATION procinfo)
     {
         var commandLine = $"\"{path}\" {args}";
 
@@ -289,7 +319,10 @@ internal static class MulticlientPatch
         var lastDirectory = Directory.GetCurrentDirectory();
         Directory.SetCurrentDirectory(Path.GetDirectoryName(path)!);
 
-        if (!elevated)
+		SetRegistryValue(@"Software\ArenaNet\Guild Wars", "Path", path);
+		SetRegistryValue(@"Software\ArenaNet\Guild Wars", "Src", path);
+
+		if (!elevated)
         {
             if (!WinSafer.SaferCreateLevel(SaferLevelScope.User, SaferLevel.NormalUser, SaferOpen.Open, out var hLevel,
                     IntPtr.Zero))

@@ -10,6 +10,8 @@ public class GlobalSettings
 
     public bool LaunchMinimized { get; set; } = false;
 
+    public uint TimeoutOnModlaunch { get; set; } = 5000;
+
     public void Save(string path = "Settings.json")
     {
         File.WriteAllText(path, JsonConvert.SerializeObject(this, Formatting.Indented));
