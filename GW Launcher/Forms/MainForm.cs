@@ -231,6 +231,12 @@ public partial class MainForm : Form
         Program.mainthread.Start();
     }
 
+	protected override void OnClosed(EventArgs e)
+ 	{
+ 		base.OnClosed(e);
+		notifyIcon.Dispose();
+ 	}
+  
     private void ListViewAccounts_MouseDoubleClick(object sender, MouseEventArgs e)
     {
         var selectedItems = listViewAccounts.SelectedIndices;
