@@ -10,7 +10,7 @@ public class GlobalSettings
 
     public bool LaunchMinimized { get; set; } = false;
 
-    public bool TimeoutOnModlaunch { get; set; } = true;
+    public uint TimeoutOnModlaunch { get; set; } = 5000;
 
     public void Save(string path = "Settings.json")
     {
