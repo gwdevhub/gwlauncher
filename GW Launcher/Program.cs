@@ -195,12 +195,6 @@ internal static class Program
             return; // Error message already displayed
         }
 
-        if (!LoadAccountsJson())
-        {
-            Exit();
-            return; // Error message already displayed
-        }
-
         if (settings.CheckForUpdates)
         {
             Task.Run(CheckGitHubNewerVersion);
@@ -224,6 +218,12 @@ internal static class Program
 
         // Only try to create and grab the mutex if we're in the main program
         if (!InitialiseGWLauncherMutex())
+        {
+            Exit();
+            return; // Error message already displayed
+        }
+
+        if (!LoadAccountsJson())
         {
             Exit();
             return; // Error message already displayed
