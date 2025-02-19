@@ -204,7 +204,9 @@ internal static class Program
 
         settings.Save();
 
-        if (command_arg_launch_account_name.Length > 0)
+        var hasMutex = InitialiseGWLauncherMutex();
+
+        if (command_arg_launch_account_name.Length > 0 && LoadAccountsJson())
         {
             var res = LaunchAccount(command_arg_launch_account_name);
             if (res != null)
@@ -213,11 +215,11 @@ internal static class Program
             }
 
             Exit();
-            return;
+            return; // Error message already displayed
         }
 
         // Only try to create and grab the mutex if we're in the main program
-        if (!InitialiseGWLauncherMutex())
+        if (!hasMutex)
         {
             Exit();
             return; // Error message already displayed
