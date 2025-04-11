@@ -82,15 +82,16 @@ internal static class MulticlientPatch
         
 		if (!texmods.IsNullOrEmpty())
         {
-            modfile = Path.Combine(Directory.GetCurrentDirectory(), "modlist.txt");
+            
+			modfile = Path.Combine(Path.GetDirectoryName(path)!, "modlist.txt");
 			try
             {
                 File.WriteAllText(modfile, texmods);
             }
             catch (UnauthorizedAccessException)
             {
-                modfile = Path.Combine(Path.GetDirectoryName(path)!, "modlist.txt");
-                try
+				modfile = Path.Combine(Directory.GetCurrentDirectory(), "modlist.txt");
+				try
                 {
 					if (File.Exists(modfile))
 						prev_modfile_contents = File.ReadAllText(modfile);
