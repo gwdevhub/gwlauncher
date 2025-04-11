@@ -79,11 +79,11 @@ internal static class MulticlientPatch
         }
 
         var texmods = string.Join('\n', ModManager.GetTexmods(account));
-        
-		if (!texmods.IsNullOrEmpty())
+        var gModDll = ModManager.GetDlls(account).FirstOrDefault(p => p.EndsWith("gMod.dll", StringComparison.OrdinalIgnoreCase), null);
+
+		if (!texmods.IsNullOrEmpty() && gModDll != null)
         {
-            
-			modfile = Path.Combine(Path.GetDirectoryName(path)!, "modlist.txt");
+            modfile = Path.Combine(Path.GetDirectoryName(gModDll)!, "modlist.txt");
 			try
             {
                 File.WriteAllText(modfile, texmods);
