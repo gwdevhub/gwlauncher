@@ -70,33 +70,42 @@ internal static class MulticlientPatch
         Process? process = null;
         memory = null;
         string? err;
-        string? modfile = null;
-        string? prevModfileContents = null;
-        if (!File.Exists(path))
-        {
-            err = GetErrorMessage($"Account path {path} invalid", 0);
-            goto cleanup;
-        }
-
         var texmods = string.Join('\n', ModManager.GetTexmods(account));
-        var gModDll = ModManager.GetDlls(account)
-            .FirstOrDefault(p => p!.EndsWith("gMod.dll", StringComparison.OrdinalIgnoreCase), null);
 
-        if (!texmods.IsNullOrEmpty() && gModDll != null)
+		string? gmoddll_modlist_path = null;
+		string? gmoddll_modlist_original_contents = null;
+		string? gwexe_modlist_path = null;
+		string? gwexe_modlist_original_contents = null;
+
+		if (!File.Exists(path))
+		{
+			err = GetErrorMessage($"Account path {path} invalid", 0);
+			goto cleanup;
+		}
+
+		var gModDll = ModManager.GetDlls(account)
+	        .FirstOrDefault(p => p!.EndsWith("gMod.dll", StringComparison.OrdinalIgnoreCase), null);
+		if (!texmods.IsNullOrEmpty() && gModDll != null)
         {
-            modfile = Path.Combine(Path.GetDirectoryName(gModDll)!, "modlist.txt");
-            try
+			gmoddll_modlist_path = Path.Combine(Path.GetDirectoryName(gModDll)!, "modlist.txt");
+			gwexe_modlist_path = Path.Combine(Path.GetDirectoryName(path)!, "modlist.txt");
+			try
             {
-                if (File.Exists(modfile))
-                    prevModfileContents = File.ReadAllText(modfile);
-                File.WriteAllText(modfile, texmods);
-            }
+                if (File.Exists(gmoddll_modlist_path))
+					gmoddll_modlist_original_contents = File.ReadAllText(gmoddll_modlist_path);
+				File.WriteAllText(gmoddll_modlist_path, texmods);
+				if (File.Exists(gwexe_modlist_path))
+				{
+					gwexe_modlist_original_contents = File.ReadAllText(gwexe_modlist_path);
+					File.WriteAllText(gwexe_modlist_path, "");
+				}
+			}
             catch (UnauthorizedAccessException)
             {
-                err = GetErrorMessage($"UnauthorizedAccessException, Failed to write texmods to {modfile}", 0);
+                err = GetErrorMessage($"UnauthorizedAccessException, Failed to write texmods to {gmoddll_modlist_path}", 0);
                 goto cleanup;
             }
-        }
+		}
 
         var args = $"-email \"{account.email}\" -password \"{account.password}\"";
 
@@ -184,19 +193,30 @@ internal static class MulticlientPatch
         }
 
         // Make sure to restore the modfile.txt file (blank string if in the gwlauncher dir, whatever was there before if in the gw dir)
-        if (modfile != null)
+        if (gmoddll_modlist_path != null && Path.Exists(gmoddll_modlist_path))
         {
             try
             {
-                File.WriteAllText(modfile, prevModfileContents);
+                File.WriteAllText(gmoddll_modlist_path, gmoddll_modlist_original_contents);
             }
             catch
             {
                 // Silent fail
             }
         }
+		if (gwexe_modlist_path != null && Path.Exists(gwexe_modlist_path))
+		{
+			try
+			{
+				File.WriteAllText(gwexe_modlist_path, gwexe_modlist_original_contents);
+			}
+			catch
+			{
+				// Silent fail
+			}
+		}
 
-        return err;
+		return err;
     }
 
     internal static GWCAMemory LaunchClient(string path)
