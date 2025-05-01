@@ -155,7 +155,9 @@ internal static class Program
         account.process = memory;
 
         GWMemory.FindAddressesIfNeeded(memory);
-        ok = WaitFor(() => memory.Read<ushort>(GWMemory.CharnamePtr) != 0 || memory.process.Responding, timeout);
+        ok = WaitFor(() => memory.Read<ushort>(GWMemory.CharnamePtr) != 0 &&
+                           memory.Read<ushort>(GWMemory.GameContextPtr) != 0 &&
+                           memory.process.Responding, timeout);
         if (!ok)
         {
             memory.process.Kill();
