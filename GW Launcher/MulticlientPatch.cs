@@ -1,5 +1,4 @@
 ﻿using Microsoft.Win32;
-using System.DirectoryServices.ActiveDirectory;
 using System.Extensions;
 
 
@@ -31,80 +30,82 @@ internal static class MulticlientPatch
 
         PEB peb = new()
         {
-            ImageBaseAddress = (IntPtr)BitConverter.ToInt32(buffer, 8)
+            ImageBaseAddress = BitConverter.ToInt32(buffer, 8)
         };
 
         return peb.ImageBaseAddress + 0x1000;
     }
 
-	[DllImport("user32.dll")]
-	public static extern short GetAsyncKeyState(int vKey);
+    [DllImport("user32.dll")]
+    public static extern short GetAsyncKeyState(int vKey);
 
-	private static string? ResumeThread(IntPtr hThread)
+    private static string? ResumeThread(IntPtr hThread)
     {
-		if (hThread != IntPtr.Zero)
-		{
-			try
-			{
-				if (WinApi.ResumeThread(hThread) == 0xffffffff)
-				{
-					return GetErrorMessage($"WinApi.ResumeThread({hThread})", Marshal.GetLastWin32Error());
-				}
+        if (hThread != IntPtr.Zero)
+        {
+            try
+            {
+                if (WinApi.ResumeThread(hThread) == 0xffffffff)
+                {
+                    return GetErrorMessage($"WinApi.ResumeThread({hThread})", Marshal.GetLastWin32Error());
+                }
 
-				if (WinApi.CloseHandle(hThread) == 0)
-				{
-					return GetErrorMessage($"WinApi.CloseHandle({hThread})", Marshal.GetLastWin32Error());
-				}
-			}
-			catch (Exception e)
-			{
-				return e.Message;
-			}
-		}
+                if (WinApi.CloseHandle(hThread) == 0)
+                {
+                    return GetErrorMessage($"WinApi.CloseHandle({hThread})", Marshal.GetLastWin32Error());
+                }
+            }
+            catch (Exception e)
+            {
+                return e.Message;
+            }
+        }
+
         return null;
-	}
+    }
 
-	public static string? LaunchClient(Account account, out GWCAMemory? memory)
+    public static string? LaunchClient(Account account, out GWCAMemory? memory)
     {
         var path = account.gwpath;
         Process? process = null;
         memory = null;
         string? err;
-		var modfile = "";
-        var prev_modfile_contents = "";
-		if (!File.Exists(path))
-        {
-            err = GetErrorMessage($"Account path {path} invalid", 0);
-            goto cleanup;
-        }
-
         var texmods = string.Join('\n', ModManager.GetTexmods(account));
-        
-		if (!texmods.IsNullOrEmpty())
+
+		string? gmoddll_modlist_path = null;
+		string? gmoddll_modlist_original_contents = null;
+		string? gwexe_modlist_path = null;
+		string? gwexe_modlist_original_contents = null;
+
+		if (!File.Exists(path))
+		{
+			err = GetErrorMessage($"Account path {path} invalid", 0);
+			goto cleanup;
+		}
+
+		var gModDll = ModManager.GetDlls(account)
+	        .FirstOrDefault(p => p!.EndsWith("gMod.dll", StringComparison.OrdinalIgnoreCase), null);
+		if (!texmods.IsNullOrEmpty() && gModDll != null)
         {
-            modfile = Path.Combine(Directory.GetCurrentDirectory(), "modlist.txt");
+			gmoddll_modlist_path = Path.Combine(Path.GetDirectoryName(gModDll)!, "modlist.txt");
+			gwexe_modlist_path = Path.Combine(Path.GetDirectoryName(path)!, "modlist.txt");
 			try
             {
-                File.WriteAllText(modfile, texmods);
-            }
+                if (File.Exists(gmoddll_modlist_path))
+					gmoddll_modlist_original_contents = File.ReadAllText(gmoddll_modlist_path);
+				File.WriteAllText(gmoddll_modlist_path, texmods);
+				if (File.Exists(gwexe_modlist_path))
+				{
+					gwexe_modlist_original_contents = File.ReadAllText(gwexe_modlist_path);
+					File.WriteAllText(gwexe_modlist_path, "");
+				}
+			}
             catch (UnauthorizedAccessException)
             {
-                modfile = Path.Combine(Path.GetDirectoryName(path)!, "modlist.txt");
-                try
-                {
-					if (File.Exists(modfile))
-						prev_modfile_contents = File.ReadAllText(modfile);
-					File.WriteAllText(modfile, texmods);
-                }
-                catch (UnauthorizedAccessException)
-                {
-                    err = GetErrorMessage($"UnauthorizedAccessException, Failed to write texmods to {modfile}", 0);
-                    goto cleanup;
-                }
-
+                err = GetErrorMessage($"UnauthorizedAccessException, Failed to write texmods to {gmoddll_modlist_path}", 0);
+                goto cleanup;
             }
-
-        }
+		}
 
         var args = $"-email \"{account.email}\" -password \"{account.password}\"";
 
@@ -115,7 +116,7 @@ internal static class MulticlientPatch
 
         args += $" {account.extraargs}";
 
-        err = LaunchClient(path, args, account.elevated, out PROCESS_INFORMATION procinfo);
+        err = LaunchClient(path, args, account.elevated, out var procinfo);
         if (err != null)
         {
             goto cleanup;
@@ -133,8 +134,9 @@ internal static class MulticlientPatch
 
         const int VK_CONTROL = 0x11;
         //NB: Because account launching is done on another thread, we can't rely on WPF/WinForms API to tell us if ctrl is pressed
-        if ((GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0) {
-            DialogResult result =
+        if ((GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0)
+        {
+            var result =
                 MessageBox.Show("Guild Wars is in a suspended state, plugins are not yet loaded.\n\nContinue?",
                     "Launching paused", MessageBoxButtons.OKCancel);
             if (result == DialogResult.Cancel)
@@ -149,9 +151,10 @@ internal static class MulticlientPatch
             var loadModuleResult = memory.LoadModule(dll);
             if (loadModuleResult != GWCAMemory.LoadModuleResult.SUCCESSFUL)
             {
-                err = GetErrorMessage($"Result {loadModuleResult}: memory.LoadModule({dll})", Marshal.GetLastWin32Error());
-				goto cleanup;
-			}
+                err = GetErrorMessage($"Result {loadModuleResult}: memory.LoadModule({dll})",
+                    Marshal.GetLastWin32Error());
+                goto cleanup;
+            }
         }
 
         if (procinfo.hThread != IntPtr.Zero)
@@ -188,18 +191,32 @@ internal static class MulticlientPatch
                 memory = null;
             }
         }
-		// Make sure to restore the modfile.txt file (blank string if in the gwlauncher dir, whatever was there before if in the gw dir)
-		if (!modfile.IsNullOrEmpty())
+
+        // Make sure to restore the modfile.txt file (blank string if in the gwlauncher dir, whatever was there before if in the gw dir)
+        if (gmoddll_modlist_path != null && Path.Exists(gmoddll_modlist_path))
         {
             try
             {
-                File.WriteAllText(modfile, prev_modfile_contents);
-            } catch {  
+                File.WriteAllText(gmoddll_modlist_path, gmoddll_modlist_original_contents);
+            }
+            catch
+            {
                 // Silent fail
             }
         }
+		if (gwexe_modlist_path != null && Path.Exists(gwexe_modlist_path))
+		{
+			try
+			{
+				File.WriteAllText(gwexe_modlist_path, gwexe_modlist_original_contents);
+			}
+			catch
+			{
+				// Silent fail
+			}
+		}
 
-        return err;
+		return err;
     }
 
     internal static GWCAMemory LaunchClient(string path)
@@ -275,34 +292,29 @@ internal static class MulticlientPatch
     }
 
     private static bool SetRegistryValue(string registryPath, string valueName, object newValue)
-	{
-		try
-		{
+    {
+        try
+        {
+            // Open the registry key
+            using var key = Registry.CurrentUser.CreateSubKey(registryPath);
+            // Set the string value
+            key.SetValue(valueName, newValue, RegistryValueKind.String);
+            Console.WriteLine($"Successfully set {valueName} to '{newValue}' at {registryPath}");
+            return true;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            Console.WriteLine("You do not have permission to modify the registry.");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"An error occurred: {ex.Message}");
+        }
 
-			// Open the registry key
-			using (RegistryKey key = Registry.CurrentUser.CreateSubKey(registryPath))
-			{
-				if (key != null)
-				{
-					// Set the string value
-					key.SetValue(valueName, newValue, RegistryValueKind.String);
-					Console.WriteLine($"Successfully set {valueName} to '{newValue}' at {registryPath}");
-					return true;
-				}
-			}
-		}
-		catch (UnauthorizedAccessException)
-		{
-			Console.WriteLine("You do not have permission to modify the registry.");
-		}
-		catch (Exception ex)
-		{
-			Console.WriteLine($"An error occurred: {ex.Message}");
-		}
-		return false;
-	}
+        return false;
+    }
 
-	private static string? LaunchClient(string path, string args, bool elevated, out PROCESS_INFORMATION procinfo)
+    private static string? LaunchClient(string path, string args, bool elevated, out PROCESS_INFORMATION procinfo)
     {
         var commandLine = $"\"{path}\" {args}";
 
@@ -319,10 +331,10 @@ internal static class MulticlientPatch
         var lastDirectory = Directory.GetCurrentDirectory();
         Directory.SetCurrentDirectory(Path.GetDirectoryName(path)!);
 
-		SetRegistryValue(@"Software\ArenaNet\Guild Wars", "Path", path);
-		SetRegistryValue(@"Software\ArenaNet\Guild Wars", "Src", path);
+        SetRegistryValue(@"Software\ArenaNet\Guild Wars", "Path", path);
+        SetRegistryValue(@"Software\ArenaNet\Guild Wars", "Src", path);
 
-		if (!elevated)
+        if (!elevated)
         {
             if (!WinSafer.SaferCreateLevel(SaferLevelScope.User, SaferLevel.NormalUser, SaferOpen.Open, out var hLevel,
                     IntPtr.Zero))

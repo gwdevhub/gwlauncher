@@ -78,10 +78,8 @@ public class ModManager
             directory = Path.Combine(Path.GetDirectoryName(path)!, "plugins");
             AddMods(directory, ref dllsToLoad, ref texsToLoad);
         }
-        foreach(var mod in account.mods)
+        foreach (var mod in account.mods.Where(mod => mod.active))
         {
-            if (mod.active != true)
-                continue;
             AddMod(mod.fileName, ref dllsToLoad, ref texsToLoad);
         }
 
@@ -100,7 +98,7 @@ public class ModManager
 
     private static string? GetShortcutPath(string path)
     {
-        if (path == null || !File.Exists(path))
+        if (!File.Exists(path))
             return null;
         var shell = new WshShell();
         var lnk = (IWshShortcut)shell.CreateShortcut(path);
