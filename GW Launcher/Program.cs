@@ -1,11 +1,6 @@
-﻿using System;
-using System.Collections.Concurrent;
-using System.Diagnostics;
-using System.Extensions;
-using GW_Launcher.Forms;
+﻿using GW_Launcher.Forms;
 using GW_Launcher.Guildwars;
 using Octokit;
-using PeNet.Header.Net.MetaDataTables;
 using Account = GW_Launcher.Classes.Account;
 using Application = System.Windows.Forms.Application;
 using Assembly = System.Reflection.Assembly;
@@ -155,13 +150,11 @@ internal static class Program
         account.process = memory;
 
         GWMemory.FindAddressesIfNeeded(memory);
-        ok = WaitFor(() => memory.Read<ushort>(GWMemory.CharnamePtr) != 0 &&
-                           memory.Read<ushort>(GWMemory.GameContextPtr) != 0 &&
-                           memory.process.Responding, timeout);
+        ok = WaitFor(() => memory.Read<ushort>(GWMemory.CharnamePtr) != 0 && memory.process.Responding, timeout);
         if (!ok)
         {
-            memory.process.Kill();
-            return "Failed to wait for CharnamePtr after " + (timeout / 1000) + " seconds.";
+            // memory.process.Kill();
+            Console.WriteLine("Failed to wait for CharnamePtr after " + (timeout / 1000) + " seconds.");
         }
         timeout = 5000;
 		ok = WaitFor(() =>
