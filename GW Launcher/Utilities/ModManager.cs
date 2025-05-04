@@ -85,7 +85,7 @@ public class ModManager
 
         if (texsToLoad.Count > 0)
         {
-            var found = dllsToLoad.Find(str => str.EndsWith("gmod.dll", StringComparison.OrdinalIgnoreCase));
+            var found = dllsToLoad.Find(str => str.EndsWith("gMod.dll", StringComparison.OrdinalIgnoreCase));
             if (found == null)
                 AddMod(Path.Combine(Directory.GetCurrentDirectory(), "gMod.dll"), ref dllsToLoad, ref texsToLoad);
         }
