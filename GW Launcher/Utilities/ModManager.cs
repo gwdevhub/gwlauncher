@@ -20,9 +20,7 @@ public class ModManager
             path = GetShortcutPath(path);
         if (path == null || !File.Exists(path))
             return null;
-        if (path.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
-            return path;
-        return null;
+        return path.EndsWith(".dll", StringComparison.OrdinalIgnoreCase) ? Path.GetFullPath(path) : null;
     }
     private static string? GetTpfPath(string? path)
     {
@@ -31,21 +29,21 @@ public class ModManager
         if (path == null || !File.Exists(path))
             return null;
         if (path.EndsWith(".tpf", StringComparison.OrdinalIgnoreCase) || path.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
-            return path;
+            return Path.GetFullPath(path);
         return null;
     }
-    private static bool AddMod(string file_path, ref List<string> dlls_out, ref List<string> texmods_out)
+    private static bool AddMod(string filePath, ref List<string> dllsOut, ref List<string> texmodsOut)
     {
-        var actual = GetDllPath(file_path);
+        var actual = GetDllPath(filePath);
         if (actual != null)
         {
-            dlls_out.Add(actual);
+            dllsOut.Add(actual);
             return true;
         }
-        actual = GetTpfPath(file_path);
+        actual = GetTpfPath(filePath);
         if (actual != null)
         {
-            texmods_out.Add(actual);
+            texmodsOut.Add(actual);
             return true;
         }
         return false;
