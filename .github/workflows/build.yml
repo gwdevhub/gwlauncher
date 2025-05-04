@@ -75,8 +75,13 @@ jobs:
                     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
                 with:
                     configuration: '.github/changelog-config.json'
-                    commitMode: true
-                    ignorePreReleases: true
+                    toTag: ${{ github.ref }}
+                    fromTag: ${{ github.event.before }}
+                    fetchReleaseInformation: true
+                    fetchReviewers: true
+                    fetchReviews: true
+                    failOnError: false
+                    ignorePreReleases: false
 
             -   name: Create Release
                 if: github.event_name == 'push' && github.ref == 'refs/heads/master'

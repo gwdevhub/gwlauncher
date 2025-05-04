@@ -19,6 +19,10 @@
     {
       "title": "## 🔧 Maintenance",
       "labels": ["chore", "refactor"]
+    },
+    {
+      "title": "## 🔄 Other Changes",
+      "labels": []
     }
   ],
   "template": "${{CHANGELOG}}\n\n## 👥 Contributors\n\n${{CONTRIBUTORS}}",
@@ -28,26 +32,29 @@
     "order": "ASC",
     "on_property": "mergedAt"
   },
-  "transformers": [
-    {
-      "pattern": "[\\s\\S]*", 
-      "target": ""
-    }
+  "base_branches": [
+    "master"
   ],
+  "transformers": [],
   "ignore_labels": [
     "ignore"
   ],
   "max_tags_to_fetch": 200,
   "max_pull_requests": 200,
   "max_back_track_time_days": 365,
-  "exclude_merge_branches": [
-    "Owner/qa"
-  ],
+  "exclude_merge_branches": [],
   "tag_resolver": {
-    "method": "semver",
-    "filter": {
-      "pattern": "r\\d+\\.\\d+",
-      "flags": "gu"
-    }
+    "method": "semver"
+  },
+  "pull_request_resolver": {
+    "method": "merge_commits",
+    "pattern": "^Merge pull request #(\\d+) from (.*)$",
+    "on_error_pr_pattern": "(?<=\\()[0-9]+(?=\\))"
+  },
+  "include_unlabeled_prs": true,
+  "duplicate_filter": {
+    "pattern": ".*",
+    "on_property": "title",
+    "method": "equals"
   }
 }
