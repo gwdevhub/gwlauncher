@@ -175,6 +175,12 @@ internal static class Program
 			}, timeout);
 		}
 
+        if (!memory.process.Responding)
+        {
+            memory.process.Kill();
+            return "Failed to wait for process to respond after " + (timeout / 1000) + " seconds.";
+        }
+
         return null;
     }
 
