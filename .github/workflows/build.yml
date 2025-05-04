@@ -82,7 +82,15 @@ jobs:
                     fetchReviews: true
                     failOnError: false
                     ignorePreReleases: false
-
+                    
+            -   name: Debug Before Release
+                if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+                run: |
+                    Write-Host "Latest tags:"
+                    git tag -l | Sort-Object -Descending | Select-Object -First 5
+                    Write-Host "Changelog output:"
+                    Write-Host "${{ steps.generate_release_notes.outputs.changelog }}"
+                    
             -   name: Create Release
                 if: github.event_name == 'push' && github.ref == 'refs/heads/master'
                 env:

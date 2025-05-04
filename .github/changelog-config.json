@@ -44,7 +44,9 @@
   "max_back_track_time_days": 365,
   "exclude_merge_branches": [],
   "tag_resolver": {
-    "method": "semver"
+    "method": "regex",
+    "pattern": "r(\\d+)\\.(\\d+)",
+    "result": "$1.$2"
   },
   "pull_request_resolver": {
     "method": "merge_commits",
