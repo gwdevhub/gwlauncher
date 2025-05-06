@@ -131,9 +131,10 @@ internal static class MulticlientPatch
 
         process = Process.GetProcessById(procinfo.dwProcessId);
 
-        if (!McPatch(process.Handle))
+        var res = McPatch(process.Handle);
+		if (res != "ok")
         {
-            err = GetErrorMessage("McPatch(process.Handle)", Marshal.GetLastWin32Error());
+            err = GetErrorMessage(res, Marshal.GetLastWin32Error());
             goto cleanup;
         }
 
@@ -268,7 +269,7 @@ internal static class MulticlientPatch
         return -1;
     }
 
-    private static bool McPatch(IntPtr processHandle)
+    private static string McPatch(IntPtr processHandle)
     {
         Debug.Assert(processHandle != IntPtr.Zero, "processHandle != IntPtr.Zero");
         byte[] sigPatch =
@@ -277,25 +278,32 @@ internal static class MulticlientPatch
             0x00
         };
         var moduleBase = GetProcessModuleBase(processHandle);
-        var gwdata = new byte[0x48D000];
+        if(moduleBase == IntPtr.Zero)
+		{
+			return "GetProcessModuleBase returned IntPtr.Zero";
+		}
+		var gwdata = new byte[0x48D000];
 
         if (!WinApi.ReadProcessMemory(processHandle, moduleBase, gwdata, gwdata.Length, out _))
         {
-            return false;
+            return "WinApi.ReadProcessMemory failed";
         }
 
         var idx = SearchBytes(gwdata, sigPatch);
 
         if (idx == -1)
         {
-            return false;
-        }
+			return "SearchBytes failed to find patch signature";
+		}
 
         var mcpatch = moduleBase + idx - 0x1A;
 
         byte[] payload = { 0x31, 0xC0, 0x90, 0xC3 };
-
-        return WinApi.WriteProcessMemory(processHandle, mcpatch, payload, payload.Length, out _);
+		if (!WinApi.WriteProcessMemory(processHandle, mcpatch, payload, payload.Length, out _))
+		{
+			return "WinApi.WriteProcessMemory failed";
+		}
+        return "ok";
     }
 
     private static bool SetRegistryValue(string registryPath, string valueName, object newValue)
