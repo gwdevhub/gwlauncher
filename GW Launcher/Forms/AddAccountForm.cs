@@ -5,7 +5,6 @@ namespace GW_Launcher.Forms;
 public partial class AddAccountForm : Form
 {
     public Account account;
-    public bool finished;
 
     public AddAccountForm()
     {
