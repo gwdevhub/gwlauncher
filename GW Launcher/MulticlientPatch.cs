@@ -94,12 +94,19 @@ internal static class MulticlientPatch
                 if (File.Exists(gmoddll_modlist_path))
 					gmoddll_modlist_original_contents = File.ReadAllText(gmoddll_modlist_path);
 				File.WriteAllText(gmoddll_modlist_path, texmods);
-				if (File.Exists(gwexe_modlist_path) && gmoddll_modlist_path != gwexe_modlist_path)
-				{
-					gwexe_modlist_original_contents = File.ReadAllText(gwexe_modlist_path);
-					File.WriteAllText(gwexe_modlist_path, "");
-				}
-			}
+                try
+                {
+                    if (File.Exists(gwexe_modlist_path) && gmoddll_modlist_path != gwexe_modlist_path)
+                    {
+                        gwexe_modlist_original_contents = File.ReadAllText(gwexe_modlist_path);
+                        File.WriteAllText(gwexe_modlist_path, "");
+                    }
+                }
+                catch
+                {
+                    // Silent fail
+                }
+            }
             catch (UnauthorizedAccessException)
             {
                 err = GetErrorMessage($"UnauthorizedAccessException, Failed to write texmods to {gmoddll_modlist_path}", 0);

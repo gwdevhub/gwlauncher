@@ -48,7 +48,7 @@ public class ModManager
         }
         return false;
     }
-    private static int AddMods(string directory, ref List<string> dlls_out, ref List<string> texmods_out)
+    private static int AddMods(string directory, ref List<string> dllsOut, ref List<string> texmodsOut)
     {
         if (!Directory.Exists(directory))
             return 0;
@@ -56,7 +56,7 @@ public class ModManager
         var added = 0;
         foreach (var path in links)
         {
-            if (AddMod(path, ref dlls_out, ref texmods_out))
+            if (AddMod(path, ref dllsOut, ref texmodsOut))
                 added++;
         }
         return added;
