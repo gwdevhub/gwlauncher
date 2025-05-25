@@ -43,7 +43,7 @@ internal static class Program
     {
 		
 		var fileNameBuilder = new StringBuilder(1024);
-        uint bufferLength = (uint)fileNameBuilder.Capacity + 1;
+        var bufferLength = (uint)fileNameBuilder.Capacity + 1;
         return QueryFullProcessImageName(process.Handle, 0, fileNameBuilder, ref bufferLength) ?
             fileNameBuilder.ToString() :
             null;
@@ -54,7 +54,7 @@ internal static class Program
     {
         var basename = Path.GetFileNameWithoutExtension(name);
         var processes = Process.GetProcesses();
-		foreach (Process clsProcess in processes)
+		foreach (var clsProcess in processes)
         {
             if (!clsProcess.ProcessName.Equals(basename))
                 continue;
@@ -68,7 +68,7 @@ internal static class Program
     static bool WaitFor(Func<bool> test_func, uint timeout_ms = 10000)
     {
         uint elapsed = 0;
-        bool ok = test_func();
+        var ok = test_func();
 
         while (!ok)
         {
@@ -84,7 +84,7 @@ internal static class Program
 
     private static string? LaunchAccount(string account_name)
     {
-        int found = accounts.IndexOf(account_name);
+        var found = accounts.IndexOf(account_name);
         if (found == -1)
             return "Failed to find account for " + account_name;
         return LaunchAccount(found);
@@ -123,7 +123,7 @@ internal static class Program
             return "Failed to launch account.";
 
         uint timeout = 10000;
-        bool ok = WaitFor(() =>
+        var ok = WaitFor(() =>
         {
             memory.process.Refresh();
             return memory.process.MainWindowHandle != IntPtr.Zero;
@@ -195,6 +195,8 @@ internal static class Program
             Exit();
             return; // Error message already displayed
         }
+
+        WarnIfInGwDirectory();
 
         if (settings.CheckForUpdates)
         {
@@ -377,6 +379,26 @@ internal static class Program
         {
             mutex.ReleaseMutex();
             gotMutex = false;
+        }
+    }
+
+    private static void WarnIfInGwDirectory()
+    {
+        var exePath = Application.ExecutablePath;
+        var exeDirectory = Path.GetDirectoryName(exePath) ?? string.Empty;
+        var exeLower = exePath.ToLowerInvariant();
+
+        var inProgramFiles = exeLower.Contains(@"program files\") || exeLower.Contains(@"program files (x86)\");
+        var hasGwExe = File.Exists(Path.Combine(exeDirectory, "gw.exe"));
+
+        if (inProgramFiles || hasGwExe)
+        {
+            MessageBox.Show(
+                "This application should not be run from Program Files or the Guild Wars directory.\n\nPlease move GW Launcher to its own folder in your User folder.",
+                "Warning",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Warning
+            );
         }
     }
 
