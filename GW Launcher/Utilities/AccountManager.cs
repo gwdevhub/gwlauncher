@@ -89,81 +89,89 @@ public class AccountManager : IEnumerable<Account>, IDisposable
         }
         return -1;
     }
+	public void Load(string? filePath = null)
+	{
+		if (Program.settings.Encrypt)
+		{
+			// First try to get cached password
+			_cryptPass = CryptPassForm.GetCachedPassword();
 
-    public void Load(string? filePath = null)
-    {
-        if (Program.settings.Encrypt)
-        {
-            var form = new CryptPassForm();
-            form.ShowDialog();
-            _cryptPass = form.Password;
-        }
+			// If no cached password, show the form
+			if (_cryptPass == null)
+			{
+				var form = new CryptPassForm();
+				form.ShowDialog();
+				_cryptPass = form.Password;
+			}
+		}
 
-        filePath ??= _filePath;
+		filePath ??= _filePath;
 
-        if (!Program.settings.Encrypt)
-        {
-            try
-            {
-                var text = File.ReadAllText(filePath);
-                _accounts = JsonConvert.DeserializeObject<List<Account>>(text) ?? _accounts;
-            }
-            catch (FileNotFoundException)
-            {
-                // silent
-                File.WriteAllText(filePath, "[]");
-                _accounts.Clear();
-            }
-        }
-        else
-        {
-            Debug.Assert(_cryptPass != null, nameof(_cryptPass) + " != null");
-            try
-            {
-                var textBytes = File.ReadAllBytes(filePath);
-                using var decrypt = _crypt.CreateDecryptor(_cryptPass, _salsaIv);
-                try
-                {
-                    var cryptBytes = decrypt.TransformFinalBlock(textBytes, 0, textBytes.Length);
-                    var rawJson = Encoding.UTF8.GetString(cryptBytes);
-                    if (!rawJson.StartsWith("SHIT"))
-                    {
-                        throw new Exception();
-                    }
+		if (!Program.settings.Encrypt)
+		{
+			try
+			{
+				var text = File.ReadAllText(filePath);
+				_accounts = JsonConvert.DeserializeObject<List<Account>>(text) ?? _accounts;
+			}
+			catch (FileNotFoundException)
+			{
+				// silent
+				File.WriteAllText(filePath, "[]");
+				_accounts.Clear();
+			}
+		}
+		else
+		{
+			Debug.Assert(_cryptPass != null, nameof(_cryptPass) + " != null");
+			try
+			{
+				var textBytes = File.ReadAllBytes(filePath);
+				using var decrypt = _crypt.CreateDecryptor(_cryptPass, _salsaIv);
+				try
+				{
+					var cryptBytes = decrypt.TransformFinalBlock(textBytes, 0, textBytes.Length);
+					var rawJson = Encoding.UTF8.GetString(cryptBytes);
+					if (!rawJson.StartsWith("SHIT"))
+					{
+						throw new Exception();
+					}
 
-                    var text = rawJson[4..];
-                    _accounts = JsonConvert.DeserializeObject<List<Account>>(text) ?? _accounts;
-                }
-                catch (Exception)
-                {
-                    MessageBox.Show("Incorrect password.\nRestart launcher and try again.",
-                        @"GW Launcher - Invalid Password");
-                    throw new Exception("Wrong password");
-                }
-            }
-            catch (FileNotFoundException)
-            {
-                // silent
-                var bytes = Encoding.UTF8.GetBytes("SHIT[]");
-                using (var encrypt = _crypt.CreateEncryptor(_cryptPass, _salsaIv))
-                {
-                    var cryptBytes = encrypt.TransformFinalBlock(bytes, 0, bytes.Length);
-                    File.WriteAllBytes(filePath, cryptBytes);
-                }
+					var text = rawJson[4..];
+					_accounts = JsonConvert.DeserializeObject<List<Account>>(text) ?? _accounts;
+				}
+				catch (Exception)
+				{
+					// Clear cached password on wrong password
+					CryptPassForm.ClearCachedPassword();
 
-                _accounts.Clear();
-            }
-        }
+					MessageBox.Show("Incorrect password.\nRestart launcher and try again.",
+						@"GW Launcher - Invalid Password");
+					throw new Exception("Wrong password");
+				}
+			}
+			catch (FileNotFoundException)
+			{
+				// silent
+				var bytes = Encoding.UTF8.GetBytes("SHIT[]");
+				using (var encrypt = _crypt.CreateEncryptor(_cryptPass, _salsaIv))
+				{
+					var cryptBytes = encrypt.TransformFinalBlock(bytes, 0, bytes.Length);
+					File.WriteAllBytes(filePath, cryptBytes);
+				}
 
-        foreach (var account in _accounts)
-        {
-            account.active = false;
-            account.guid ??= Guid.NewGuid();
-            account.mods ??= new List<Mod>();
-        }
-    }
+				_accounts.Clear();
+			}
+		}
 
-    public void Save(string? filePath = null)
+		foreach (var account in _accounts)
+		{
+			account.active = false;
+			account.guid ??= Guid.NewGuid();
+			account.mods ??= new List<Mod>();
+		}
+	}
+	public void Save(string? filePath = null)
     {
         filePath ??= _filePath;
 

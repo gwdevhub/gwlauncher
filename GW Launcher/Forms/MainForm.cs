@@ -89,7 +89,21 @@ public partial class MainForm : Form
         base.OnFormClosing(e);
     }
 
-    public static void OnAccountSaved(Account account)
+	// Add this method to your MainForm.cs file
+
+	private void ToolStripMenuItemSettings_Click(object sender, EventArgs e)
+	{
+		using var settingsForm = new SettingsForm();
+		var result = settingsForm.ShowDialog(this);
+
+		if (result == DialogResult.OK)
+		{
+			// Settings have been saved, but some might require a restart
+			// You could add logic here to handle immediate setting changes
+			// that don't require a restart
+		}
+	}
+	public static void OnAccountSaved(Account account)
     {
         Program.mutex.WaitOne();
         var found = Program.accounts[account.guid];
