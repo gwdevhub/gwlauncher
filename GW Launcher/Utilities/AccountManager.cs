@@ -1,14 +1,10 @@
-﻿using GW_Launcher.Forms;
+using GW_Launcher.Forms;
 
 namespace GW_Launcher.Utilities;
 
 public class AccountManager : IEnumerable<Account>, IDisposable
 {
-    private readonly SymmetricAlgorithm _crypt = Aes.Create();
     private readonly string _filePath = "Accounts.json";
-
-    private readonly byte[] _salsaIv =
-        { 0xc8, 0x93, 0x48, 0x45, 0xcf, 0xa0, 0xfa, 0x85, 0xc8, 0x93, 0x48, 0x45, 0xcf, 0xa0, 0xfa, 0x85 };
 
     private List<Account> _accounts = new();
     private byte[]? _cryptPass;
@@ -65,7 +61,6 @@ public class AccountManager : IEnumerable<Account>, IDisposable
     void IDisposable.Dispose()
     {
         GC.SuppressFinalize(this);
-        _crypt.Dispose();
     }
 
     IEnumerator<Account> IEnumerable<Account>.GetEnumerator()
@@ -80,7 +75,7 @@ public class AccountManager : IEnumerable<Account>, IDisposable
 
     public int IndexOf(string account_name)
     {
-        for (var i = 0; i < Length;i++)
+        for (var i = 0; i < Length; i++)
         {
             if (this[i].Name == account_name)
             {
@@ -89,89 +84,156 @@ public class AccountManager : IEnumerable<Account>, IDisposable
         }
         return -1;
     }
-	public void Load(string? filePath = null)
-	{
-		if (Program.settings.Encrypt)
-		{
-			// First try to get cached password
-			_cryptPass = CryptPassForm.GetCachedPassword();
 
-			// If no cached password, show the form
-			if (_cryptPass == null)
-			{
-				var form = new CryptPassForm();
-				form.ShowDialog();
-				_cryptPass = form.Password;
-			}
-		}
+    // Class to handle AES encryption and decryption with PBKDF2 key derivation, utilizing a random salt and IV for each encryption operation
+    public static class SecureAES
+    {
+        private const int SaltSize = 16;
+        private const int IvSize = 16;
+        private const int KeySize = 32;
+        private const int Iterations = 600_000; // Number of iterations for PBKDF2-HMAC-SHA256. 600k per OWASP standards, but can be drastically adjusted based on performance needs
 
-		filePath ??= _filePath;
+        // Encrypt using AES with a password-based key derivation function (PBKDF2), embedding a random salt and IV to the ciphertext output
+        public static byte[] Encrypt(string plainText, string password)
+        {
+            byte[] salt = GenerateRandomBytes(SaltSize);
+            byte[] iv = GenerateRandomBytes(IvSize);
+            byte[] key = DeriveKey(password, salt);
 
-		if (!Program.settings.Encrypt)
-		{
-			try
-			{
-				var text = File.ReadAllText(filePath);
-				_accounts = JsonConvert.DeserializeObject<List<Account>>(text) ?? _accounts;
-			}
-			catch (FileNotFoundException)
-			{
-				// silent
-				File.WriteAllText(filePath, "[]");
-				_accounts.Clear();
-			}
-		}
-		else
-		{
-			Debug.Assert(_cryptPass != null, nameof(_cryptPass) + " != null");
-			try
-			{
-				var textBytes = File.ReadAllBytes(filePath);
-				using var decrypt = _crypt.CreateDecryptor(_cryptPass, _salsaIv);
-				try
-				{
-					var cryptBytes = decrypt.TransformFinalBlock(textBytes, 0, textBytes.Length);
-					var rawJson = Encoding.UTF8.GetString(cryptBytes);
-					if (!rawJson.StartsWith("SHIT"))
-					{
-						throw new Exception();
-					}
+            using var aes = Aes.Create();
+            aes.Key = key;
+            aes.IV = iv;
 
-					var text = rawJson[4..];
-					_accounts = JsonConvert.DeserializeObject<List<Account>>(text) ?? _accounts;
-				}
-				catch (Exception)
-				{
-					// Clear cached password on wrong password
-					CryptPassForm.ClearCachedPassword();
+            using var ms = new MemoryStream();
+            using var cs = new CryptoStream(ms, aes.CreateEncryptor(), CryptoStreamMode.Write);
+            using var writer = new StreamWriter(cs, Encoding.UTF8);
+            writer.Write(plainText);
+            writer.Close();
 
-					MessageBox.Show("Incorrect password.\nRestart launcher and try again.",
-						@"GW Launcher - Invalid Password");
-					throw new Exception("Wrong password");
-				}
-			}
-			catch (FileNotFoundException)
-			{
-				// silent
-				var bytes = Encoding.UTF8.GetBytes("SHIT[]");
-				using (var encrypt = _crypt.CreateEncryptor(_cryptPass, _salsaIv))
-				{
-					var cryptBytes = encrypt.TransformFinalBlock(bytes, 0, bytes.Length);
-					File.WriteAllBytes(filePath, cryptBytes);
-				}
+            byte[] ciphertext = ms.ToArray();
 
-				_accounts.Clear();
-			}
-		}
+            byte[] result = new byte[SaltSize + IvSize + ciphertext.Length];
+            Buffer.BlockCopy(salt, 0, result, 0, SaltSize);
+            Buffer.BlockCopy(iv, 0, result, SaltSize, IvSize);
+            Buffer.BlockCopy(ciphertext, 0, result, SaltSize + IvSize, ciphertext.Length);
 
-		foreach (var account in _accounts)
-		{
-			account.active = false;
-			account.guid ??= Guid.NewGuid();
-			account.mods ??= new List<Mod>();
-		}
-	}
-	public void Save(string? filePath = null)
+            return result;
+        }
+
+        // Decrypt by reading the prepended Salt and IV from the ciphertext, then using PBKDF2 to derive the key
+        public static string Decrypt(byte[] encryptedData, string password)
+        {
+            if (encryptedData.Length < SaltSize + IvSize)
+                throw new ArgumentException("Encrypted data too short to contain salt and IV.");
+
+            byte[] salt = new byte[SaltSize];
+            byte[] iv = new byte[IvSize];
+            byte[] ciphertext = new byte[encryptedData.Length - SaltSize - IvSize];
+
+            Buffer.BlockCopy(encryptedData, 0, salt, 0, SaltSize);
+            Buffer.BlockCopy(encryptedData, SaltSize, iv, 0, IvSize);
+            Buffer.BlockCopy(encryptedData, SaltSize + IvSize, ciphertext, 0, ciphertext.Length);
+
+            byte[] key = DeriveKey(password, salt);
+
+            using var aes = Aes.Create();
+            aes.Key = key;
+            aes.IV = iv;
+
+            using var ms = new MemoryStream(ciphertext);
+            using var cs = new CryptoStream(ms, aes.CreateDecryptor(), CryptoStreamMode.Read);
+            using var reader = new StreamReader(cs, Encoding.UTF8);
+            return reader.ReadToEnd();
+        }
+
+        // Derive key using PBKDF2 with the specified password, salt and iterations
+        private static byte[] DeriveKey(string password, byte[] salt)
+        {
+            using var pbkdf2 = new Rfc2898DeriveBytes(password, salt, Iterations, HashAlgorithmName.SHA256);
+            return pbkdf2.GetBytes(KeySize);
+        }
+
+        // Generate a random byte array of the specified length to use as salt or IV
+        private static byte[] GenerateRandomBytes(int length)
+        {
+            byte[] bytes = new byte[length];
+            using var rng = RandomNumberGenerator.Create();
+            rng.GetBytes(bytes);
+            return bytes;
+        }
+    }
+
+    public void Load(string? filePath = null)
+    {
+        if (Program.settings.Encrypt)
+        {
+            // First try to get cached password
+            _cryptPass = CryptPassForm.GetCachedPassword();
+
+            // If no cached password, show the form
+            if (_cryptPass == null)
+            {
+                var form = new CryptPassForm();
+                form.ShowDialog();
+                _cryptPass = form.Password;
+            }
+        }
+
+        filePath ??= _filePath;
+
+        if (!Program.settings.Encrypt)
+        {
+            try
+            {
+                var text = File.ReadAllText(filePath);
+                _accounts = JsonConvert.DeserializeObject<List<Account>>(text) ?? _accounts;
+            }
+            catch (FileNotFoundException)
+            {
+                // silent
+                File.WriteAllText(filePath, "[]");
+                _accounts.Clear();
+            }
+        }
+        else
+        {
+            Debug.Assert(_cryptPass != null, nameof(_cryptPass) + " != null");
+            try
+            {
+                var textBytes = File.ReadAllBytes(filePath);
+                var password = Encoding.UTF8.GetString(_cryptPass);
+                var rawJson = SecureAES.Decrypt(textBytes, password);
+                _accounts = JsonConvert.DeserializeObject<List<Account>>(rawJson) ?? _accounts;
+            }
+            catch (FileNotFoundException)
+            {
+                // silent
+                var rawJson = "[]";
+                var password = Encoding.UTF8.GetString(_cryptPass);
+                var encrypted = SecureAES.Encrypt(rawJson, password);
+                File.WriteAllBytes(filePath, encrypted);
+                _accounts.Clear();
+            }
+            catch (Exception)
+            {
+                // Clear cached password on wrong password
+                CryptPassForm.ClearCachedPassword();
+
+                MessageBox.Show("Incorrect password.\nRestart launcher and try again.",
+                    @"GW Launcher - Invalid Password");
+                throw new Exception("Wrong password");
+            }
+        }
+
+        foreach (var account in _accounts)
+        {
+            account.active = false;
+            account.guid ??= Guid.NewGuid();
+            account.mods ??= new List<Mod>();
+        }
+    }
+
+    public void Save(string? filePath = null)
     {
         filePath ??= _filePath;
 
@@ -182,12 +244,10 @@ public class AccountManager : IEnumerable<Account>, IDisposable
         }
         else
         {
-            text = "SHIT" + text;
-            var bytes = Encoding.UTF8.GetBytes(text);
             Debug.Assert(_cryptPass != null, nameof(_cryptPass) + " != null");
-            using var encrypt = _crypt.CreateEncryptor(_cryptPass, _salsaIv);
-            var cryptBytes = encrypt.TransformFinalBlock(bytes, 0, bytes.Length);
-            File.WriteAllBytes(filePath, cryptBytes);
+            var password = Encoding.UTF8.GetString(_cryptPass);
+            var encryptedBytes = SecureAES.Encrypt(text, password);
+            File.WriteAllBytes(filePath, encryptedBytes);
         }
     }
 
