@@ -163,6 +163,27 @@ public class AccountManager : IEnumerable<Account>, IDisposable
         }
     }
 
+    // Legacy decryption method for backwards compatibility with old format
+    private static string DecryptLegacy(byte[] textBytes, byte[] cryptPass)
+    {
+        // Legacy hardcoded IV from the original implementation
+        var legacyIv = new byte[]
+            { 0xc8, 0x93, 0x48, 0x45, 0xcf, 0xa0, 0xfa, 0x85, 0xc8, 0x93, 0x48, 0x45, 0xcf, 0xa0, 0xfa, 0x85 };
+
+        using var aes = Aes.Create();
+        using var decrypt = aes.CreateDecryptor(cryptPass, legacyIv);
+
+        var cryptBytes = decrypt.TransformFinalBlock(textBytes, 0, textBytes.Length);
+        var rawJson = Encoding.UTF8.GetString(cryptBytes);
+
+        if (!rawJson.StartsWith("SHIT"))
+        {
+            throw new Exception("Invalid legacy format");
+        }
+
+        return rawJson[4..]; // Remove "SHIT" prefix
+    }
+
     public void Load(string? filePath = null)
     {
         if (Program.settings.Encrypt)
@@ -202,8 +223,40 @@ public class AccountManager : IEnumerable<Account>, IDisposable
             {
                 var textBytes = File.ReadAllBytes(filePath);
                 var password = Encoding.UTF8.GetString(_cryptPass);
-                var rawJson = SecureAES.Decrypt(textBytes, password);
+
+                string rawJson;
+                bool requiresMigration = false;
+
+                // First try legacy decryption method
+                try
+                {
+                    rawJson = DecryptLegacy(textBytes, _cryptPass);
+                    requiresMigration = true;
+                }
+                catch
+                {
+                    // Legacy decryption failed, try new SecureAES method
+                    try
+                    {
+                        rawJson = SecureAES.Decrypt(textBytes, password);
+                    }
+                    catch
+                    {
+                        // Both methods failed - wrong password
+                        CryptPassForm.ClearCachedPassword();
+                        MessageBox.Show("Incorrect password.\nRestart launcher and try again.",
+                            @"GW Launcher - Invalid Password");
+                        throw new Exception("Wrong password");
+                    }
+                }
+
                 _accounts = JsonConvert.DeserializeObject<List<Account>>(rawJson) ?? _accounts;
+
+                // If we used legacy decryption, migrate to new SecureAES format immediately
+                if (requiresMigration)
+                {
+                    Save(filePath); // This will save using the new SecureAES format
+                }
             }
             catch (FileNotFoundException)
             {
@@ -213,15 +266,6 @@ public class AccountManager : IEnumerable<Account>, IDisposable
                 var encrypted = SecureAES.Encrypt(rawJson, password);
                 File.WriteAllBytes(filePath, encrypted);
                 _accounts.Clear();
-            }
-            catch (Exception)
-            {
-                // Clear cached password on wrong password
-                CryptPassForm.ClearCachedPassword();
-
-                MessageBox.Show("Incorrect password.\nRestart launcher and try again.",
-                    @"GW Launcher - Invalid Password");
-                throw new Exception("Wrong password");
             }
         }
 
