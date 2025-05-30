@@ -225,20 +225,22 @@ public class AccountManager : IEnumerable<Account>, IDisposable
                 var password = Encoding.UTF8.GetString(_cryptPass);
 
                 string rawJson;
-                bool requiresMigration = false;
 
-                // First try legacy decryption method
+                // First try new SecureAES method
                 try
                 {
-                    rawJson = DecryptLegacy(textBytes, _cryptPass);
-                    requiresMigration = true;
+                    rawJson = SecureAES.Decrypt(textBytes, password);
+                    _accounts = JsonConvert.DeserializeObject<List<Account>>(rawJson) ?? _accounts;
                 }
                 catch
                 {
-                    // Legacy decryption failed, try new SecureAES method
+                    // SecureAES failed, try legacy decryption method
                     try
                     {
-                        rawJson = SecureAES.Decrypt(textBytes, password);
+                        rawJson = DecryptLegacy(textBytes, _cryptPass);
+                        // Legacy decryption succeeded, migrate to new encryption immediately by forcing a save
+                        _accounts = JsonConvert.DeserializeObject<List<Account>>(rawJson) ?? _accounts;
+                        Save(filePath); // This will save using the new SecureAES format
                     }
                     catch
                     {
@@ -248,14 +250,6 @@ public class AccountManager : IEnumerable<Account>, IDisposable
                             @"GW Launcher - Invalid Password");
                         throw new Exception("Wrong password");
                     }
-                }
-
-                _accounts = JsonConvert.DeserializeObject<List<Account>>(rawJson) ?? _accounts;
-
-                // If we used legacy decryption, migrate to new SecureAES format immediately
-                if (requiresMigration)
-                {
-                    Save(filePath); // This will save using the new SecureAES format
                 }
             }
             catch (FileNotFoundException)
