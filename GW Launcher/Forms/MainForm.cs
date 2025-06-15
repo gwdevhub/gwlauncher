@@ -357,6 +357,52 @@ public partial class MainForm : Form
         addAccountForm.ShowDialog();
     }
 
+    private void ToolStripMenuItemMoveUp_Click(object sender, EventArgs e)
+    {
+        _selectedItems = listViewAccounts.SelectedIndices;
+        if (_selectedItems.Count == 0)
+        {
+            return;
+        }
+
+        Program.mutex.WaitOne();
+        var indexes = from int index in _selectedItems orderby index descending select index;
+        foreach (var index in indexes)
+        {
+            if (index > 0)
+            {
+                Program.accounts.Move(index, index - 1);
+            }
+        }
+
+        Program.accounts.Save();
+        RefreshUI();
+        Program.mutex.ReleaseMutex();
+    }
+
+    private void ToolStripMenuItemMoveDown_Click(object sender, EventArgs e)
+    {
+        _selectedItems = listViewAccounts.SelectedIndices;
+        if (_selectedItems.Count == 0)
+        {
+            return;
+        }
+
+        Program.mutex.WaitOne();
+        var indexes = from int index in _selectedItems orderby index select index;
+        foreach (var index in indexes)
+        {
+            if (index < Program.accounts.Length - 1)
+            {
+                Program.accounts.Move(index, index + 1);
+            }
+        }
+
+        Program.accounts.Save();
+        RefreshUI();
+        Program.mutex.ReleaseMutex();
+    }
+
     private void MainForm_Deactivate(object sender, EventArgs e)
     {
         if (!_keepOpen)
