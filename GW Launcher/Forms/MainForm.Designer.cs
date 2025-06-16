@@ -40,6 +40,8 @@ partial class MainForm
 		toolStripSeparator3 = new ToolStripSeparator();
 		toolStripMenuItemAddNew = new ToolStripMenuItem();
 		toolStripMenuItemEditSelected = new ToolStripMenuItem();
+		toolStripMenuItemMoveUp = new ToolStripMenuItem();
+		toolStripMenuItemMoveDown = new ToolStripMenuItem();
 		toolStripMenuItemCreateShortcut = new ToolStripMenuItem();
 		toolStripMenuItemRemoveSelected = new ToolStripMenuItem();
 		toolStripMenuItemLaunchSelected = new ToolStripMenuItem();
@@ -80,7 +82,7 @@ partial class MainForm
 		// 
 		// contextMenuStripAccounts
 		// 
-		contextMenuStripAccounts.Items.AddRange(new ToolStripItem[] { toolStripMenuItemRefreshAccounts, toolStripSeparator3, toolStripMenuItemAddNew, toolStripMenuItemEditSelected, toolStripMenuItemCreateShortcut, toolStripMenuItemRemoveSelected, toolStripMenuItemLaunchSelected, toolStripSeparator1, toolStripMenuItemLaunchGWInstance, toolStripMenuItemUpdateAllClients, toolStripSeparator2, toolStripMenuItemSettings });
+		contextMenuStripAccounts.Items.AddRange(new ToolStripItem[] { toolStripMenuItemRefreshAccounts, toolStripSeparator3, toolStripMenuItemAddNew, toolStripMenuItemEditSelected, toolStripMenuItemMoveUp, toolStripMenuItemMoveDown,toolStripMenuItemCreateShortcut, toolStripMenuItemRemoveSelected, toolStripMenuItemLaunchSelected, toolStripSeparator1, toolStripMenuItemLaunchGWInstance, toolStripMenuItemUpdateAllClients, toolStripSeparator2, toolStripMenuItemSettings });
 		contextMenuStripAccounts.Name = "contextMenuStripAccounts";
 		contextMenuStripAccounts.Size = new Size(211, 214);
 		contextMenuStripAccounts.Text = "Options.";
@@ -110,6 +112,20 @@ partial class MainForm
 		toolStripMenuItemEditSelected.Size = new Size(210, 22);
 		toolStripMenuItemEditSelected.Text = "Edit Selected";
 		toolStripMenuItemEditSelected.Click += ToolStripMenuItemEditSelected_Click;
+		//
+        // toolStripMenuItemMoveUp
+        //
+        toolStripMenuItemMoveUp.Name = "toolStripMenuItemMoveUp";
+        toolStripMenuItemMoveUp.Size = new Size(210, 22);
+        toolStripMenuItemMoveUp.Text = "Move Up";
+        toolStripMenuItemMoveUp.Click += ToolStripMenuItemMoveUp_Click;
+        //
+        // toolStripMenuItemMoveDown
+        //
+        toolStripMenuItemMoveDown.Name = "toolStripMenuItemMoveDown";
+        toolStripMenuItemMoveDown.Size = new Size(210, 22);
+        toolStripMenuItemMoveDown.Text = "Move Down";
+        toolStripMenuItemMoveDown.Click += ToolStripMenuItemMoveDown_Click;
 		// 
 		// toolStripMenuItemCreateShortcut
 		// 
@@ -203,6 +219,8 @@ partial class MainForm
 	private System.Windows.Forms.ToolStripMenuItem toolStripMenuItemLaunchGWInstance;
 	private System.Windows.Forms.ToolStripMenuItem toolStripMenuItemRefreshAccounts;
 	private System.Windows.Forms.ToolStripMenuItem toolStripMenuItemEditSelected;
+	private System.Windows.Forms.ToolStripMenuItem toolStripMenuItemMoveUp;
+    private System.Windows.Forms.ToolStripMenuItem toolStripMenuItemMoveDown;
 	private System.Windows.Forms.ToolStripMenuItem toolStripMenuItemCreateShortcut;
 	private System.Windows.Forms.ToolStripSeparator toolStripSeparator1;
 	private System.Windows.Forms.ToolStripMenuItem toolStripMenuItemLaunchSelected;

@@ -85,6 +85,19 @@ public class AccountManager : IEnumerable<Account>, IDisposable
         return -1;
     }
 
+    public void Move(int oldIndex, int newIndex)
+    {
+        if (oldIndex < 0 || oldIndex >= Length || newIndex < 0 || newIndex >= Length)
+        {
+            throw new ArgumentOutOfRangeException();
+        }
+
+        var account = _accounts[oldIndex];
+        _accounts.RemoveAt(oldIndex);
+        _accounts.Insert(newIndex, account);
+        Save(_filePath);
+    }
+
     public void Load(string? filePath = null)
     {
         if (Program.settings.Encrypt)
