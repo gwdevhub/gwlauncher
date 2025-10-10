@@ -3,7 +3,7 @@
 ### Antivirus Warning Notice
 
 Antivirus alerts are expected. The launcher can inject mods (GWToolbox, Texmods) into the game for you, which can resemble malicious behavior.
-The laucnher is safe, it’s developed by the creators of [GWToolbox](https://github.com/gwdevhub/gwtoolboxpp) and has been safely used since 2010.
+The launcher is safe, it’s developed by the creators of [GWToolbox](https://github.com/gwdevhub/gwtoolboxpp) and has been safely used since 2010.
 Every part used by this project ([gMod](https://github.com/gwdevhub/gmod), [GWToolbox](https://github.com/gwdevhub/gwtoolboxpp)) is open source, as is this launcher itself, and you're free to look at it above.
 
 If your Antivirus software or Windows Defender tells you it's a virus, either tell it to shut up, or don't use the software. Please do not bother us with antivirus reports. The only reliable way to reduce these false positives is to buy a code signing certificate and build SmartScreen reputation. This requires paying a trusted certificate authority, often involving Microsoft’s trust chain. Manual submissions don’t work in practice - we've tried.
@@ -95,5 +95,6 @@ If you encounter issues with that, visit https://github.com/gwdevhub/gMod and fo
 It will convert your invalid .tpf file into a valid .zip file. Delete the tpf file afterwards and use the zip as mod.
 
 64 bit hashes from uMod v2 are supported with GW Launcher version 16 and up.
+
 
 
