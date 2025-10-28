@@ -1,14 +1,10 @@
-﻿using GW_Launcher.Forms;
+using GW_Launcher.Forms;
 
 namespace GW_Launcher.Utilities;
 
 public class AccountManager : IEnumerable<Account>, IDisposable
 {
-    private readonly SymmetricAlgorithm _crypt = Aes.Create();
     private readonly string _filePath = "Accounts.json";
-
-    private readonly byte[] _salsaIv =
-        { 0xc8, 0x93, 0x48, 0x45, 0xcf, 0xa0, 0xfa, 0x85, 0xc8, 0x93, 0x48, 0x45, 0xcf, 0xa0, 0xfa, 0x85 };
 
     private List<Account> _accounts = new();
     private byte[]? _cryptPass;
@@ -65,7 +61,6 @@ public class AccountManager : IEnumerable<Account>, IDisposable
     void IDisposable.Dispose()
     {
         GC.SuppressFinalize(this);
-        _crypt.Dispose();
     }
 
     IEnumerator<Account> IEnumerable<Account>.GetEnumerator()
@@ -78,11 +73,11 @@ public class AccountManager : IEnumerable<Account>, IDisposable
         return _accounts.GetEnumerator();
     }
 
-    public int IndexOf(string account_name)
+    public int IndexOf(string accountName)
     {
-        for (var i = 0; i < Length;i++)
+        for (var i = 0; i < Length; i++)
         {
-            if (this[i].Name == account_name)
+            if (this[i].Name == accountName)
             {
                 return i;
             }
@@ -90,13 +85,33 @@ public class AccountManager : IEnumerable<Account>, IDisposable
         return -1;
     }
 
+    public void Move(int oldIndex, int newIndex)
+    {
+        if (oldIndex < 0 || oldIndex >= Length || newIndex < 0 || newIndex >= Length)
+        {
+            throw new ArgumentOutOfRangeException();
+        }
+
+        var account = _accounts[oldIndex];
+        _accounts.RemoveAt(oldIndex);
+        _accounts.Insert(newIndex, account);
+        Save(_filePath);
+    }
+
     public void Load(string? filePath = null)
     {
         if (Program.settings.Encrypt)
         {
-            var form = new CryptPassForm();
-            form.ShowDialog();
-            _cryptPass = form.Password;
+            // First try to get cached password
+            _cryptPass = CryptPassForm.GetCachedPassword();
+
+            // If no cached password, show the form
+            if (_cryptPass == null)
+            {
+                var form = new CryptPassForm();
+                form.ShowDialog();
+                _cryptPass = form.Password;
+            }
         }
 
         filePath ??= _filePath;
@@ -121,36 +136,43 @@ public class AccountManager : IEnumerable<Account>, IDisposable
             try
             {
                 var textBytes = File.ReadAllBytes(filePath);
-                using var decrypt = _crypt.CreateDecryptor(_cryptPass, _salsaIv);
+                var password = Encoding.UTF8.GetString(_cryptPass);
+
+                string rawJson;
+
+                // First try new SecureAES method
                 try
                 {
-                    var cryptBytes = decrypt.TransformFinalBlock(textBytes, 0, textBytes.Length);
-                    var rawJson = Encoding.UTF8.GetString(cryptBytes);
-                    if (!rawJson.StartsWith("SHIT"))
-                    {
-                        throw new Exception();
-                    }
-
-                    var text = rawJson[4..];
-                    _accounts = JsonConvert.DeserializeObject<List<Account>>(text) ?? _accounts;
+                    rawJson = Encryption.SecureAES.Decrypt(textBytes, password);
+                    _accounts = JsonConvert.DeserializeObject<List<Account>>(rawJson) ?? _accounts;
                 }
-                catch (Exception)
+                catch
                 {
-                    MessageBox.Show("Incorrect password.\nRestart launcher and try again.",
-                        @"GW Launcher - Invalid Password");
-                    throw new Exception("Wrong password");
+                    // SecureAES failed, try legacy decryption method
+                    try
+                    {
+                        rawJson = Encryption.DecryptLegacy(textBytes, _cryptPass);
+                        // Legacy decryption succeeded, migrate to new encryption immediately by forcing a save
+                        _accounts = JsonConvert.DeserializeObject<List<Account>>(rawJson) ?? _accounts;
+                        Save(filePath); // This will save using the new SecureAES format
+                    }
+                    catch
+                    {
+                        // Both methods failed - wrong password
+                        CryptPassForm.ClearCachedPassword();
+                        MessageBox.Show("Incorrect password.\nRestart launcher and try again.",
+                            @"GW Launcher - Invalid Password");
+                        throw new Exception("Wrong password");
+                    }
                 }
             }
             catch (FileNotFoundException)
             {
                 // silent
-                var bytes = Encoding.UTF8.GetBytes("SHIT[]");
-                using (var encrypt = _crypt.CreateEncryptor(_cryptPass, _salsaIv))
-                {
-                    var cryptBytes = encrypt.TransformFinalBlock(bytes, 0, bytes.Length);
-                    File.WriteAllBytes(filePath, cryptBytes);
-                }
-
+                var rawJson = "[]";
+                var password = Encoding.UTF8.GetString(_cryptPass);
+                var encrypted = Encryption.SecureAES.Encrypt(rawJson, password);
+                File.WriteAllBytes(filePath, encrypted);
                 _accounts.Clear();
             }
         }
@@ -174,12 +196,10 @@ public class AccountManager : IEnumerable<Account>, IDisposable
         }
         else
         {
-            text = "SHIT" + text;
-            var bytes = Encoding.UTF8.GetBytes(text);
             Debug.Assert(_cryptPass != null, nameof(_cryptPass) + " != null");
-            using var encrypt = _crypt.CreateEncryptor(_cryptPass, _salsaIv);
-            var cryptBytes = encrypt.TransformFinalBlock(bytes, 0, bytes.Length);
-            File.WriteAllBytes(filePath, cryptBytes);
+            var password = Encoding.UTF8.GetString(_cryptPass);
+            var encryptedBytes = Encryption.SecureAES.Encrypt(text, password);
+            File.WriteAllBytes(filePath, encryptedBytes);
         }
     }
 
