@@ -85,7 +85,13 @@ public class ModManager
         {
             var found = dllsToLoad.Find(str => str.EndsWith("gMod.dll", StringComparison.OrdinalIgnoreCase));
             if (found == null)
-                AddMod(Path.Combine(Directory.GetCurrentDirectory(), "gMod.dll"), ref dllsToLoad, ref texsToLoad);
+            {
+				var gmod = Path.Combine(Path.GetDirectoryName(AppContext.BaseDirectory)!, "gMod.dll");
+				if (!File.Exists(gmod))
+					gmod = Path.Combine(Directory.GetCurrentDirectory()!, "gMod.dll");
+				AddMod(gmod, ref dllsToLoad, ref texsToLoad);
+			}
+                
         }
 
         return Tuple.Create(
