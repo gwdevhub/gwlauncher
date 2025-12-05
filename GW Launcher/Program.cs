@@ -610,7 +610,11 @@ internal static class Program
             {
                 if (accsChecked.Select(a => a.gwpath).Contains(account.gwpath)) continue;
                 if (!File.Exists(account.gwpath)) continue;
-                var currentFileId = FileIdFinder.GetFileId(account.gwpath);
+                var currentFileId = FileIdFinder.GetFileIdNew(account.gwpath);
+                if (currentFileId is 0)
+                {
+                    currentFileId = FileIdFinder.GetFileIdLegacy(account.gwpath);
+                }
 
                 accsChecked.Add(account);
                 if (currentFileId == latestFileId)

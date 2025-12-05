@@ -32,7 +32,9 @@ internal sealed class IntegratedGuildwarsInstaller
 
             var (context, manifest) = result.Value;
             maybeContext = context;
-            if (File.Exists(exeName) && FileIdFinder.GetFileId(exeName) == manifest.LatestExe)
+            if (File.Exists(exeName) && 
+                (FileIdFinder.GetFileIdNew(exeName) == manifest.LatestExe ||
+                 FileIdFinder.GetFileIdLegacy(exeName) == manifest.LatestExe))
             {
                 progress.Report(("Exe already downloaded", 0.9));
                 return true;
