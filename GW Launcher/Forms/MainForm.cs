@@ -89,7 +89,21 @@ public partial class MainForm : Form
         base.OnFormClosing(e);
     }
 
-    public static void OnAccountSaved(Account account)
+	// Add this method to your MainForm.cs file
+
+	private void ToolStripMenuItemSettings_Click(object sender, EventArgs e)
+	{
+		using var settingsForm = new SettingsForm();
+		var result = settingsForm.ShowDialog(this);
+
+		if (result == DialogResult.OK)
+		{
+			// Settings have been saved, but some might require a restart
+			// You could add logic here to handle immediate setting changes
+			// that don't require a restart
+		}
+	}
+	public static void OnAccountSaved(Account account)
     {
         Program.mutex.WaitOne();
         var found = Program.accounts[account.guid];
@@ -341,6 +355,52 @@ public partial class MainForm : Form
         addAccountForm.account = account;
 
         addAccountForm.ShowDialog();
+    }
+
+    private void ToolStripMenuItemMoveUp_Click(object sender, EventArgs e)
+    {
+        _selectedItems = listViewAccounts.SelectedIndices;
+        if (_selectedItems.Count == 0)
+        {
+            return;
+        }
+
+        Program.mutex.WaitOne();
+        var indexes = from int index in _selectedItems orderby index descending select index;
+        foreach (var index in indexes)
+        {
+            if (index > 0)
+            {
+                Program.accounts.Move(index, index - 1);
+            }
+        }
+
+        Program.accounts.Save();
+        RefreshUI();
+        Program.mutex.ReleaseMutex();
+    }
+
+    private void ToolStripMenuItemMoveDown_Click(object sender, EventArgs e)
+    {
+        _selectedItems = listViewAccounts.SelectedIndices;
+        if (_selectedItems.Count == 0)
+        {
+            return;
+        }
+
+        Program.mutex.WaitOne();
+        var indexes = from int index in _selectedItems orderby index select index;
+        foreach (var index in indexes)
+        {
+            if (index < Program.accounts.Length - 1)
+            {
+                Program.accounts.Move(index, index + 1);
+            }
+        }
+
+        Program.accounts.Save();
+        RefreshUI();
+        Program.mutex.ReleaseMutex();
     }
 
     private void MainForm_Deactivate(object sender, EventArgs e)
