@@ -82,6 +82,7 @@ public class AccountManager : IEnumerable<Account>, IDisposable
                 return i;
             }
         }
+
         return -1;
     }
 
@@ -104,78 +105,84 @@ public class AccountManager : IEnumerable<Account>, IDisposable
 
         filePath ??= _filePath;
 
-		try
-		{
-			var text = File.ReadAllText(filePath);
-			_accounts = JsonConvert.DeserializeObject<List<Account>>(text) ?? _accounts;
-		}
-		catch (FileNotFoundException)
-		{
-			// silent
-			File.WriteAllText(filePath, "[]");
-			_accounts.Clear();
-		}
-        catch
+        switch (Program.settings.Encrypt)
         {
-			if (Program.settings.Encrypt)
-			{
-				// First try to get cached password
-				_cryptPass = CryptPassForm.GetCachedPassword();
+            case false:
+                try
+                {
+                    var text = File.ReadAllText(filePath);
+                    _accounts = JsonConvert.DeserializeObject<List<Account>>(text) ?? _accounts;
+                }
+                catch (FileNotFoundException)
+                {
+                    // silent
+                    File.WriteAllText(filePath, "[]");
+                    _accounts.Clear();
+                }
 
-				// If no cached password, show the form
-				if (_cryptPass == null)
-				{
-					var form = new CryptPassForm();
-					form.ShowDialog();
-					_cryptPass = form.Password;
-				}
-			}
-			if (_cryptPass != null && _cryptPass.Length > 0)
-			{
-				try
-				{
-					var textBytes = File.ReadAllBytes(filePath);
-					var password = Encoding.UTF8.GetString(_cryptPass);
+                break;
+            case true:
+            {
+                // First try to get cached password
+                _cryptPass = CryptPassForm.GetCachedPassword();
 
-					string rawJson;
+                // If no cached password, show the form
+                if (_cryptPass == null)
+                {
+                    var form = new CryptPassForm();
+                    form.ShowDialog();
+                    _cryptPass = form.Password;
+                }
 
-					// First try new SecureAES method
-					try
-					{
-						rawJson = Encryption.SecureAES.Decrypt(textBytes, password);
-						_accounts = JsonConvert.DeserializeObject<List<Account>>(rawJson) ?? _accounts;
-					}
-					catch
-					{
-						// SecureAES failed, try legacy decryption method
-						try
-						{
-							rawJson = Encryption.DecryptLegacy(textBytes, _cryptPass);
-							// Legacy decryption succeeded, migrate to new encryption immediately by forcing a save
-							_accounts = JsonConvert.DeserializeObject<List<Account>>(rawJson) ?? _accounts;
-							Save(filePath); // This will save using the new SecureAES format
-						}
-						catch
-						{
-							// Both methods failed - wrong password
-							CryptPassForm.ClearCachedPassword();
-							MessageBox.Show("Incorrect password.\nRestart launcher and try again.",
-								@"GW Launcher - Invalid Password");
-							throw new Exception("Wrong password");
-						}
-					}
-				}
-				catch (FileNotFoundException)
-				{
-					// silent
-					var rawJson = "[]";
-					var password = Encoding.UTF8.GetString(_cryptPass);
-					var encrypted = Encryption.SecureAES.Encrypt(rawJson, password);
-					File.WriteAllBytes(filePath, encrypted);
-					_accounts.Clear();
-				}
-			}
-		}
+                if (_cryptPass is { Length: > 0 })
+                {
+                    try
+                    {
+                        var textBytes = File.ReadAllBytes(filePath);
+                        var password = Encoding.UTF8.GetString(_cryptPass);
+
+                        string rawJson;
+
+                        // First try new SecureAES method
+                        try
+                        {
+                            rawJson = Encryption.SecureAES.Decrypt(textBytes, password);
+                            _accounts = JsonConvert.DeserializeObject<List<Account>>(rawJson) ?? _accounts;
+                        }
+                        catch
+                        {
+                            // SecureAES failed, try legacy decryption method
+                            try
+                            {
+                                rawJson = Encryption.DecryptLegacy(textBytes, _cryptPass);
+                                // Legacy decryption succeeded, migrate to new encryption immediately by forcing a save
+                                _accounts = JsonConvert.DeserializeObject<List<Account>>(rawJson) ?? _accounts;
+                                Save(filePath); // This will save using the new SecureAES format
+                            }
+                            catch
+                            {
+                                // Both methods failed - wrong password
+                                CryptPassForm.ClearCachedPassword();
+                                MessageBox.Show("Incorrect password.\nRestart launcher and try again.",
+                                    @"GW Launcher - Invalid Password");
+                                throw new Exception("Wrong password");
+                            }
+                        }
+                    }
+                    catch (FileNotFoundException)
+                    {
+                        // silent
+                        var rawJson = "[]";
+                        var password = Encoding.UTF8.GetString(_cryptPass);
+                        var encrypted = Encryption.SecureAES.Encrypt(rawJson, password);
+                        File.WriteAllBytes(filePath, encrypted);
+                        _accounts.Clear();
+                    }
+                }
+
+                break;
+            }
+        }
 
         foreach (var account in _accounts)
         {
