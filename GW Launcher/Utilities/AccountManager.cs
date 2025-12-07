@@ -85,8 +85,20 @@ public class AccountManager : IEnumerable<Account>, IDisposable
 
         return -1;
     }
+	public int IndexOf(Account account)
+	{
+		for (var i = 0; i < Length; i++)
+		{
+			if (this[i] == account)
+			{
+				return i;
+			}
+		}
 
-    public void Move(int oldIndex, int newIndex)
+		return -1;
+	}
+
+	public void Move(int oldIndex, int newIndex)
     {
         if (oldIndex < 0 || oldIndex >= Length || newIndex < 0 || newIndex >= Length)
         {
