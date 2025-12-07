@@ -121,9 +121,10 @@ internal static class Program
         var found = accounts.IndexOf(account_name);
         if (found == -1)
             return "Failed to find account for " + account_name;
-        var result = CreateSteamAppIdFile(accounts[found]);
-        if (result != null)
-            return result;
+		var result = DeleteSteamAppIdFile(accounts[found]);
+		if (result != null) return result;
+		result = CreateSteamAppIdFile(accounts[found]);
+        if (result != null) return result;
 		result = LaunchAccount(accounts[found]);
         DeleteSteamAppIdFile(accounts[found]);
         return result;
