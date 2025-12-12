@@ -1,6 +1,7 @@
 ﻿using GW_Launcher.Forms;
 using GW_Launcher.Guildwars;
 using Octokit;
+using System.IO;
 using Account = GW_Launcher.Classes.Account;
 using Application = System.Windows.Forms.Application;
 using Assembly = System.Reflection.Assembly;
@@ -82,12 +83,51 @@ internal static class Program
         return ok;
     }
 
-    private static string? LaunchAccount(string account_name)
+    private static string? CreateSteamAppIdFile(Account account)
+    {
+		var gwDirectory = Path.GetDirectoryName(account.gwpath);
+		if (string.IsNullOrEmpty(gwDirectory))
+			return "Failed to determine Guild Wars directory path.";
+		var steamAppIdPath = Path.Combine(gwDirectory, "steam_appid.txt");
+		if (account.is_steam_account)
+		{
+			// Create steam_appid.txt with value 29720 in the same folder as the gwpath
+			try
+			{
+				File.WriteAllText(steamAppIdPath, "29720");
+			}
+			catch (Exception ex)
+			{
+				return $"Failed to create steam_appid.txt: {ex.Message}";
+			}
+		}
+        return null;
+	}
+    private static string? DeleteSteamAppIdFile(Account account)
+    {
+        var gwDirectory = Path.GetDirectoryName(account.gwpath);
+        if (string.IsNullOrEmpty(gwDirectory))
+            return "Failed to determine Guild Wars directory path.";
+        var steamAppIdPath = Path.Combine(gwDirectory, "steam_appid.txt");
+        if (File.Exists(steamAppIdPath))
+        {
+            File.Delete(steamAppIdPath);
+        }
+		return null;
+	}
+
+	private static string? LaunchAccount(string account_name)
     {
         var found = accounts.IndexOf(account_name);
         if (found == -1)
             return "Failed to find account for " + account_name;
-        return LaunchAccount(found);
+		var result = DeleteSteamAppIdFile(accounts[found]);
+		if (result != null) return result;
+		result = CreateSteamAppIdFile(accounts[found]);
+        if (result != null) return result;
+		result = LaunchAccount(accounts[found]);
+        DeleteSteamAppIdFile(accounts[found]);
+        return result;
     }
 
     static Account? GetAccountByIndex(int account_index)
@@ -101,88 +141,104 @@ internal static class Program
         return account == null ? "" : account.Name;
     }
 
-    private static string? LaunchAccount(int account_index)
+    private static string? LaunchAccount(Account account)
     {
-        var account = accounts[account_index];
-        mainForm?.SetAccountState(account_index, "Launching");
-        GWCAMemory? memory = null;
-        if (!File.Exists(account.gwpath))
-            return "Path to the Guild Wars executable incorrect, aborting launch.";
-        if (account.process != null)
-            memory = account.process;
-        if (memory == null)
-        {
-            if (IsProcessOpen(account.gwpath))
-                return "The Guild Wars executable at " + account.gwpath + " is already running";
-            var res = MulticlientPatch.LaunchClient(account, out memory);
-            if (res != null)
-                return res;
-        }
+		mainForm?.SetAccountState(accounts.IndexOf(account), "Launching");
+		GWCAMemory? memory = null;
+		if (!File.Exists(account.gwpath))
+			return "Path to the Guild Wars executable incorrect, aborting launch.";
+		if (account.process != null)
+			memory = account.process;
+		var gwDirectory = Path.GetDirectoryName(account.gwpath);
+		if (string.IsNullOrEmpty(gwDirectory))
+			return "Failed to determine Guild Wars directory path.";
+		var steamAppIdPath = Path.Combine(gwDirectory, "steam_appid.txt");
+		if (account.is_steam_account)
+		{
+			var steamProcesses = Process.GetProcessesByName("steam");
+			if (steamProcesses.Length == 0)
+			{
+				return "Steam is not running. Please start Steam before launching a Steam account.";
+			}
+		}
+		if (memory == null)
+		{
+			if (IsProcessOpen(account.gwpath))
+				return "The Guild Wars executable at " + account.gwpath + " is already running";
+			var res = MulticlientPatch.LaunchClient(account, out memory);
+			if (res != null)
+				return res;
+		}
 
-        if (memory == null)
-            return "Failed to launch account.";
+		if (memory == null)
+			return "Failed to launch account.";
 
-        uint timeout = 10000;
-        var ok = WaitFor(() =>
-        {
-            memory.process.Refresh();
-            return memory.process.MainWindowHandle != IntPtr.Zero;
-        }, timeout);
-        if (!ok)
-        {
-            memory.process.Kill();
-            return "Failed to wait for MainWindowHandle after " + (timeout / 1000) + " seconds.";
-        }
+		uint timeout = 10000;
+		var ok = WaitFor(() =>
+		{
+			memory.process.Refresh();
+			return memory.process.MainWindowHandle != IntPtr.Zero;
+		}, timeout);
+		if (!ok)
+		{
+			memory.process.Kill();
+			return "Failed to wait for MainWindowHandle after " + (timeout / 1000) + " seconds.";
+		}
 
-        ok = WaitFor(() =>
-        {
-            memory.process.Refresh();
-            return memory.process.WaitForInputIdle(1000);
-        }, timeout);
-        if (!ok)
-        {
-            memory.process.Kill();
-            return "Failed to wait for WaitForInputIdle after " + (timeout / 1000) + " seconds.";
-        }
-
-        SetForegroundWindow(memory.process.MainWindowHandle);
-
-        account.process = memory;
-
-        GWMemory.FindAddressesIfNeeded(memory);
-        ok = WaitFor(() => memory.Read<ushort>(GWMemory.CharnamePtr) != 0 && memory.process.Responding, timeout);
-        if (!ok)
-        {
-            // memory.process.Kill();
-            Console.WriteLine("Failed to wait for CharnamePtr after " + (timeout / 1000) + " seconds.");
-        }
-        timeout = 5000;
 		ok = WaitFor(() =>
 		{
 			memory.process.Refresh();
-            return memory.process.MainWindowTitle != "";
+			return memory.process.WaitForInputIdle(1000);
+		}, timeout);
+		if (!ok)
+		{
+			memory.process.Kill();
+			return "Failed to wait for WaitForInputIdle after " + (timeout / 1000) + " seconds.";
+		}
+
+		SetForegroundWindow(memory.process.MainWindowHandle);
+
+		account.process = memory;
+
+		GWMemory.FindAddressesIfNeeded(memory);
+		ok = WaitFor(() => memory.Read<ushort>(GWMemory.CharnamePtr) != 0 && memory.process.Responding, timeout);
+		if (!ok)
+		{
+			// memory.process.Kill();
+			Console.WriteLine("Failed to wait for CharnamePtr after " + (timeout / 1000) + " seconds.");
+		}
+		timeout = 5000;
+		ok = WaitFor(() =>
+		{
+			memory.process.Refresh();
+			return memory.process.MainWindowTitle != "";
 		}, timeout);
 		if (ok && memory.process.MainWindowTitle == "Guild Wars")
 		{
-            // NB: Window may not be ready for title change, or GW may be (re)setting window title as part of render process.
+			// NB: Window may not be ready for title change, or GW may be (re)setting window title as part of render process.
 			ok = WaitFor(() =>
 			{
 				memory.process.Refresh();
 				var chars = Marshal.StringToHGlobalAnsi(account.Name);
 				SendMessage(memory.process.MainWindowHandle, 0xc, 0, chars);
 				memory.process.Refresh();
-                return memory.process.MainWindowTitle != "Guild Wars";
+				return memory.process.MainWindowTitle != "Guild Wars";
 			}, timeout);
 		}
 
-        if (!memory.process.Responding)
-        {
-            memory.process.Kill();
-            return "Failed to wait for process to respond after " + (timeout / 1000) + " seconds.";
-        }
+		if (!memory.process.Responding)
+		{
+			memory.process.Kill();
+			return "Failed to wait for process to respond after " + (timeout / 1000) + " seconds.";
+		}
 
-        return null;
-    }
+		return null;
+	}
+
+    private static string? LaunchAccount(int account_index)
+    {
+		return LaunchAccount(accounts[account_index]);
+	}
 
     [STAThread]
     internal static void Main()

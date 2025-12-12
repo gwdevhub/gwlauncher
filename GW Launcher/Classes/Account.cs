@@ -8,6 +8,7 @@ public class Account
     [JsonRequired] public string password = "";
     public string extraargs = "";
     public bool elevated = false;
+    public bool is_steam_account = false;
     public string title = "";
     public bool usePluginFolderMods = true;
     public List<Mod> mods = new();
