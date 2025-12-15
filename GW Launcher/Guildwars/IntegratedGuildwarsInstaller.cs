@@ -8,64 +8,72 @@ internal sealed class IntegratedGuildwarsInstaller
     private const string ExeName = "Gw.exe";
     private const string TempExeName = "Gw.exe.temp";
     
-    public async Task<bool> InstallGuildwars(string destinationPath, IProgress<(string Stage, double Progress)> progress, CancellationToken cancellationToken)
+    public async Task<(string filePath, string Error)> InstallGuildwars(string destinationPath, IProgress<(string Stage, double Progress)> progress, CancellationToken cancellationToken)
     {
         return await new TaskFactory().StartNew(_ => InstallGuildwarsInternal(destinationPath, progress, cancellationToken), TaskCreationOptions.LongRunning, cancellationToken).Unwrap();
     }
 
-    private async Task<bool> InstallGuildwarsInternal(string destinationPath, IProgress<(string Stage, double Progress)> progress, CancellationToken cancellationToken)
-    {
-        GuildwarsClientContext? maybeContext = default;
-        try
-        {
-            var tempName = Path.Combine(destinationPath, TempExeName);
-            var exeName = Path.Combine(destinationPath, ExeName);
+	private async Task<(string? filePath, string? Error)> InstallGuildwarsInternal(string destinationPath, IProgress<(string Stage, double Progress)> progress, CancellationToken cancellationToken)
+	{
+		GuildwarsClientContext? maybeContext = default;
+		try
+		{
+			var tempName = Path.Combine(destinationPath, TempExeName);
+			var exeName = Path.Combine(destinationPath, ExeName);
 
-            // Initialize the download client
-            var guildWarsClient = new GuildwarsClient();
-            var result = await guildWarsClient.Connect(cancellationToken);
-            if (!result.HasValue)
-            {
-                MessageBox.Show("Failed to connect to ArenaNet servers");
-                return false;
-            }
+			// Get latest exe info
+			var (fileResponse, error) = await GwDownloader.GetLatestGwExeInfoAsync(cancellationToken);
+			if (fileResponse == null || !string.IsNullOrEmpty(error))
+			{
+				return (null, error ?? "Failed to get latest exe info");
+			}
 
-            var (context, manifest) = result.Value;
-            maybeContext = context;
-            if (File.Exists(exeName) && 
-                (FileIdFinder.GetFileIdNew(exeName) == manifest.LatestExe ||
-                 FileIdFinder.GetFileIdLegacy(exeName) == manifest.LatestExe))
-            {
-                progress.Report(("Exe already downloaded", 0.9));
-                return true;
-            }
-            var (downloadResult, expectedFinalSize) = await DownloadCompressedExecutable(tempName, guildWarsClient, context, manifest, progress, cancellationToken);
-            if (!downloadResult)
-            {
-                MessageBox.Show("Failed to download compressed executable");
-                return false;
-            }
+			var expectedSize = fileResponse.Value.SizeDecompressed;
 
-            if (!DecompressExecutable(tempName, exeName, expectedFinalSize, progress))
-            {
-                MessageBox.Show("Failed to decompress executable");
-                return false;
-            }
-            File.Delete(tempName);
-            return true;
-        }
-        catch (Exception e)
-        {
-            MessageBox.Show("Download failed. Encountered exception" + e.Message);
-            return false;
-        }
-        finally
-        {
-            maybeContext?.Dispose();
-        }
-    }
+			// Check if exe already exists with correct size
+			if (File.Exists(exeName))
+			{
+				var fileInfo = new FileInfo(exeName);
+				if (fileInfo.Length == expectedSize)
+				{
+					progress.Report(("Exe already downloaded", 0.9));
+					return (destinationPath, null);
+				}
+			}
 
-    private async Task<(bool Success, int ExpectedSize)> DownloadCompressedExecutable(
+			// Initialize the download client
+			var guildWarsClient = new GuildwarsClient();
+			var result = await guildWarsClient.Connect(cancellationToken);
+			if (!result.HasValue)
+			{
+				return (null, "Failed to connect to ArenaNet servers");
+			}
+			var (context, manifest) = result.Value;
+			maybeContext = context;
+
+			var (downloadResult, expectedFinalSize) = await DownloadCompressedExecutable(tempName, guildWarsClient, context, manifest, progress, cancellationToken);
+			if (!downloadResult)
+			{
+				return (null, "Failed to download compressed executable");
+			}
+			if (!DecompressExecutable(tempName, exeName, expectedFinalSize, progress))
+			{
+				return (null, "Failed to decompress executable");
+			}
+			File.Delete(tempName);
+			return (destinationPath, null);
+		}
+		catch (Exception e)
+		{
+			return (null, "Download failed. Encountered exception: " + e.Message);
+		}
+		finally
+		{
+			maybeContext?.Dispose();
+		}
+	}
+
+	private async Task<(bool Success, int ExpectedSize)> DownloadCompressedExecutable(
         string fileName,
         GuildwarsClient guildWarsClient,
         GuildwarsClientContext context,

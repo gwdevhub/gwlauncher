@@ -1,42 +1,69 @@
+using GW_Launcher.Guildwars.Models;
 using GW_Launcher.Guildwars.Utils;
 
 namespace GW_Launcher.Guildwars;
 
 public static class GwDownloader
 {
-    public static async Task<int> GetLatestGwExeFileIdAsync(CancellationToken cancellationToken = default)
-    {
-        // Initialize the download client
-        var guildWarsClient = new GuildwarsClient();
-        var result = await guildWarsClient.Connect(cancellationToken);
-        if (!result.HasValue)
-        {
-            MessageBox.Show("Failed to connect to ArenaNet servers");
-            return 0;
-        }
-        var (_, manifest) = result.Value;
-        return manifest.LatestExe;
-    }
+	public static async Task<(FileResponse? Response, string Error)> GetLatestGwExeInfoAsync(CancellationToken cancellationToken = default)
+	{
+		var guildWarsClient = new GuildwarsClient();
+		var result = await guildWarsClient.Connect(cancellationToken);
+		if (!result.HasValue)
+		{
+			return (null, "Failed to connect to ArenaNet servers");
+		}
 
-    private static async Task<string> DownloadGwExeAsync(IProgress<(string Stage, double Progress)> progress, CancellationToken cancellationToken = default)
+		var (context, manifest) = result.Value;
+
+		try
+		{
+			await guildWarsClient.Send(new FileRequest
+			{
+				Field1 = 0x3F2,
+				Field2 = 0xC,
+				FileId = manifest.LatestExe,
+				Version = 0
+			}, context, cancellationToken);
+
+			var metadata = await guildWarsClient.ReceiveWait<FileMetadataResponse>(context, cancellationToken);
+			if (metadata.Field1 == 0x4F2)
+			{
+				return (null, "Error 0x4F2: Could not find file");
+			}
+			else if (metadata.Field1 != 0x5F2)
+			{
+				return (null, $"Error: Unexpected field response; expected 0x5F2, got 0x{metadata.Field1:X}");
+			}
+
+			var response = await guildWarsClient.ReceiveWait<FileResponse>(context, cancellationToken);
+			return (response, string.Empty);
+		}
+		finally
+		{
+			context.Socket?.Dispose();
+		}
+	}
+
+    private static async Task<(string? filePath, string? Error)> DownloadGwExeAsync(IProgress<(string Stage, double Progress)> progress, CancellationToken cancellationToken = default)
     {
         var installer = new IntegratedGuildwarsInstaller();
         string destinationPath = Path.Combine(Directory.GetCurrentDirectory(), "GwTemp");
         Directory.CreateDirectory(destinationPath);
 
-        bool result = await installer.InstallGuildwars(destinationPath, progress, cancellationToken);
-        if (!result)
+        var result = await installer.InstallGuildwars(destinationPath, progress, cancellationToken);
+        if(result.Error != null)
         {
-            throw new InvalidOperationException("Failed to download and install Guild Wars executable");
+            return (null, result.Error);
         }
 
-        string gwExePath = Path.Combine(destinationPath, "Gw.exe");
+        string gwExePath = result.filePath;
         if (!File.Exists(gwExePath))
         {
-            throw new FileNotFoundException("Gw.exe not found after installation");
+			return (null, "Gw.exe not found after installation");
         }
 
-        return gwExePath;
+        return (gwExePath, null);
     }
 
     private static void CopyGwExeToAccountPaths(IEnumerable<string> accountPaths,

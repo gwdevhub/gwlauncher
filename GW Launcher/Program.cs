@@ -254,7 +254,7 @@ internal static class Program
 
         WarnIfInGwDirectory();
 
-        if (settings.CheckForUpdates)
+		if (settings.CheckForUpdates)
         {
             Task.Run(CheckGitHubNewerVersion);
             Task.Run(CheckGitHubGModVersion);
@@ -652,13 +652,21 @@ internal static class Program
         await using var fs = new FileStream(gmod, FileMode.Create);
         await s.CopyToAsync(fs);
     }
-
-    private static async Task CheckForGwExeUpdates()
+    public static async Task CheckForGwExeUpdates()
     {
         try
         {
-            var latestFileId = await GwDownloader.GetLatestGwExeFileIdAsync();
-            if (latestFileId == 0) return;
+            var (response, error) = await GwDownloader.GetLatestGwExeInfoAsync();
+            if (response == null || !string.IsNullOrEmpty(error))
+            {
+                if (!string.IsNullOrEmpty(error))
+                {
+                    Console.WriteLine($"Error getting latest GW exe info: {error}");
+                }
+                return;
+            }
+
+            var latestSize = response.Value.SizeDecompressed;
             var accsToUpdate = new List<Account>();
             var accsChecked = new List<Account>();
 
@@ -666,14 +674,22 @@ internal static class Program
             {
                 if (accsChecked.Select(a => a.gwpath).Contains(account.gwpath)) continue;
                 if (!File.Exists(account.gwpath)) continue;
-                var currentFileId = FileIdFinder.GetFileIdNew(account.gwpath);
-                if (currentFileId is 0)
+
+                // Get file size
+                long currentSize;
+                try
                 {
-                    currentFileId = FileIdFinder.GetFileIdLegacy(account.gwpath);
+                    var fileInfo = new FileInfo(account.gwpath);
+                    currentSize = fileInfo.Length;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error getting file size for {account.gwpath}: {ex.Message}");
+                    continue;
                 }
 
                 accsChecked.Add(account);
-                if (currentFileId == latestFileId)
+                if (currentSize == latestSize)
                 {
                     continue;
                 }
