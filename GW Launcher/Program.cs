@@ -213,7 +213,7 @@ internal static class Program
 			memory.process.Refresh();
 			return memory.process.MainWindowTitle != "";
 		}, timeout);
-		if (ok && memory.process.MainWindowTitle == "Guild Wars")
+		if (ok && memory.process.MainWindowTitle == "Guild Wars" || memory.process.MainWindowTitle == "Guild Wars Reforged")
 		{
 			// NB: Window may not be ready for title change, or GW may be (re)setting window title as part of render process.
 			ok = WaitFor(() =>
@@ -222,7 +222,7 @@ internal static class Program
 				var chars = Marshal.StringToHGlobalAnsi(account.Name);
 				SendMessage(memory.process.MainWindowHandle, 0xc, 0, chars);
 				memory.process.Refresh();
-				return memory.process.MainWindowTitle != "Guild Wars";
+                return memory.process.MainWindowTitle != "Guild Wars" && memory.process.MainWindowTitle != "Guild Wars Reforged";
 			}, timeout);
 		}
 
