@@ -5,7 +5,6 @@ internal class GWMemory
     public static IntPtr WinTitle = IntPtr.Zero;
     public static IntPtr EmailAddPtr = IntPtr.Zero;
     public static IntPtr CharnamePtr = IntPtr.Zero;
-    public static IntPtr GameContextPtr = IntPtr.Zero;
 
     internal static void FindAddressesIfNeeded(GWCAMemory cli)
     {
@@ -21,8 +20,6 @@ internal class GWMemory
         CharnamePtr =
             cli.ScanForPtr(new byte[] { 0x8B, 0xF8, 0x6A, 0x03, 0x68, 0x0F, 0x00, 0x00, 0xC0, 0x8B, 0xCF, 0xE8 }, -0x42,
                 true);
-
-        GameContextPtr = cli.ScanForPtr(new byte[] { 0x75, 0x14, 0x68, 0x64, 0x08, 0x00, 0x00 }, 0x5, true);
 
         cli.TerminateScanner();
     }
