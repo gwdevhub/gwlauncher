@@ -222,7 +222,7 @@ internal static class Program
 				var chars = Marshal.StringToHGlobalAnsi(account.Name);
 				SendMessage(memory.process.MainWindowHandle, 0xc, 0, chars);
 				memory.process.Refresh();
-        return memory.process.MainWindowTitle != "Guild Wars" && memory.process.MainWindowTitle != "Guild Wars Reforged";
+                return memory.process.MainWindowTitle != "Guild Wars" && memory.process.MainWindowTitle != "Guild Wars Reforged";
 			}, timeout);
 		}
 
