@@ -55,12 +55,12 @@ public partial class ModManagerForm : Form
 
     private void ListViewAvailableMods_ItemChecked(object sender, ItemCheckedEventArgs e)
     {
-        Program.mutex.WaitOne();
+        Program.Mutex.WaitOne();
         var mod = _account.mods[e.Item.Index];
         mod.active = e.Item.Checked;
         Refresh();
-        Program.accounts.Save();
-        Program.mutex.ReleaseMutex();
+        Program.Accounts.Save();
+        Program.Mutex.ReleaseMutex();
     }
 
     private void ToolStripMenuItemAddMod_Click(object sender, EventArgs e)
@@ -77,7 +77,7 @@ public partial class ModManagerForm : Form
             return;
         }
 
-        if (!Program.mutex.WaitOne(10000))
+        if (!Program.Mutex.WaitOne(10000))
         {
             return;
         }
@@ -109,15 +109,15 @@ public partial class ModManagerForm : Form
             _account.mods.Add(mod);
         }
 
-        Program.accounts.Save();
+        Program.Accounts.Save();
         RefreshUI();
 
-        Program.mutex.ReleaseMutex();
+        Program.Mutex.ReleaseMutex();
     }
 
     private void ToolStripMenuItemRemoveSelected_Click(object sender, EventArgs e)
     {
-        if (!Program.mutex.WaitOne(10000))
+        if (!Program.Mutex.WaitOne(10000))
         {
             return;
         }
@@ -128,9 +128,9 @@ public partial class ModManagerForm : Form
             _account.mods.RemoveAt(index);
         }
 
-        Program.accounts.Save();
+        Program.Accounts.Save();
         RefreshUI();
-        Program.mutex.ReleaseMutex();
+        Program.Mutex.ReleaseMutex();
     }
 
     private void ListViewAvailableMods_DrawColumnHeader(object sender, DrawListViewColumnHeaderEventArgs e)

@@ -1,7 +1,6 @@
 ﻿using GW_Launcher.Forms;
 using GW_Launcher.Guildwars;
 using Octokit;
-using System.IO;
 using Account = GW_Launcher.Classes.Account;
 using Application = System.Windows.Forms.Application;
 using Assembly = System.Reflection.Assembly;
@@ -14,22 +13,22 @@ namespace GW_Launcher;
 internal static class Program
 {
     private const string GwlMutexName = "gwl_instance_mutex";
-    public static volatile bool shouldClose = false;
-    private static volatile bool mainThreadRunning = false;
-    public static AccountManager accounts = new();
-    public static Thread mainthread = null!;
-    public static Mutex mutex = new();
-    internal static Mutex? gwlMutex;
-    private static MainForm? mainForm;
-    private static bool gotMutex = false;
-    public static GlobalSettings settings = GlobalSettings.Load();
+    public static volatile bool ShouldClose = false;
+    private static volatile bool _mainThreadRunning = false;
+    public static AccountManager Accounts = new();
+    public static Thread Mainthread = null!;
+    public static Mutex Mutex = new();
+    internal static Mutex? GwlMutex;
+    private static MainForm? _mainForm;
+    private static bool _gotMutex = false;
+    public static GlobalSettings Settings = GlobalSettings.Load();
 
-    private static Queue<int> needtolaunch = new Queue<int>();
+    private static Queue<int> _needtolaunch = new Queue<int>();
 
-    private static string command_arg_launch_account_name = "";
+    private static string _commandArgLaunchAccountName = "";
 
 	[DllImport("user32.dll")]
-    public static extern int SendMessage(IntPtr hWnd, int wMsg, IntPtr wParam, IntPtr lParam);
+    private static extern int SendMessage(IntPtr hWnd, int wMsg, IntPtr wParam, IntPtr lParam);
 
 
 	[DllImport("user32.dll")]
@@ -37,12 +36,12 @@ internal static class Program
     private static extern bool SetForegroundWindow(IntPtr hWnd);
 
 
-	[DllImport("Kernel32.dll")]
+	[DllImport("Kernel32.dll", CharSet = CharSet.Unicode)]
     private static extern bool QueryFullProcessImageName([In] IntPtr hProcess, [In] uint dwFlags, [Out] StringBuilder lpExeName, [In, Out] ref uint lpdwSize);
 
-	public static string? GetProcessPath(Process process)
+    private static string? GetProcessPath(Process process)
     {
-		
+
 		var fileNameBuilder = new StringBuilder(1024);
         var bufferLength = (uint)fileNameBuilder.Capacity + 1;
         return QueryFullProcessImageName(process.Handle, 0, fileNameBuilder, ref bufferLength) ?
@@ -51,7 +50,7 @@ internal static class Program
 
     }
 
-	static bool IsProcessOpen(string name)
+    private static bool IsProcessOpen(string name)
     {
         var basename = Path.GetFileNameWithoutExtension(name);
         var processes = Process.GetProcesses();
@@ -66,18 +65,18 @@ internal static class Program
         return false;
     }
 
-    static bool WaitFor(Func<bool> test_func, uint timeout_ms = 10000)
+    private static bool WaitFor(Func<bool> testFunc, uint timeoutMs = 10000)
     {
         uint elapsed = 0;
-        var ok = test_func();
+        var ok = testFunc();
 
         while (!ok)
         {
-            if (elapsed > timeout_ms)
+            if (elapsed > timeoutMs)
                 break;
             Thread.Sleep(200);
             elapsed += 200;
-            ok = test_func();
+            ok = testFunc();
         }
 
         return ok;
@@ -116,34 +115,34 @@ internal static class Program
 		return null;
 	}
 
-	private static string? LaunchAccount(string account_name)
+	private static string? LaunchAccount(string accountName)
     {
-        var found = accounts.IndexOf(account_name);
+        var found = Accounts.IndexOf(accountName);
         if (found == -1)
-            return "Failed to find account for " + account_name;
-		var result = DeleteSteamAppIdFile(accounts[found]);
+            return "Failed to find account for " + accountName;
+		var result = DeleteSteamAppIdFile(Accounts[found]);
 		if (result != null) return result;
-		result = CreateSteamAppIdFile(accounts[found]);
+		result = CreateSteamAppIdFile(Accounts[found]);
         if (result != null) return result;
-		result = LaunchAccount(accounts[found]);
-        DeleteSteamAppIdFile(accounts[found]);
+		result = LaunchAccount(Accounts[found]);
+        DeleteSteamAppIdFile(Accounts[found]);
         return result;
     }
 
-    static Account? GetAccountByIndex(int account_index)
+    static Account? GetAccountByIndex(int accountIndex)
     {
-        return accounts[account_index];
+        return Accounts[accountIndex];
     }
 
-    static string GetAccountName(int account_index)
+    static string GetAccountName(int accountIndex)
     {
-        var account = GetAccountByIndex(account_index);
+        var account = GetAccountByIndex(accountIndex);
         return account == null ? "" : account.Name;
     }
 
     private static string? LaunchAccount(Account account)
     {
-		mainForm?.SetAccountState(accounts.IndexOf(account), "Launching");
+		_mainForm?.SetAccountState(Accounts.IndexOf(account), "Launching");
 		GWCAMemory? memory = null;
 		if (!File.Exists(account.gwpath))
 			return "Path to the Guild Wars executable incorrect, aborting launch.";
@@ -243,9 +242,9 @@ internal static class Program
 		return null;
 	}
 
-    private static string? LaunchAccount(int account_index)
+    private static string? LaunchAccount(int accountIndex)
     {
-		return LaunchAccount(accounts[account_index]);
+		return LaunchAccount(Accounts[accountIndex]);
 	}
 
     [STAThread]
@@ -262,23 +261,23 @@ internal static class Program
 
         WarnIfInGwDirectory();
 
-		if (settings.CheckForUpdates)
+		if (Settings.CheckForUpdates)
         {
             Task.Run(CheckGitHubNewerVersion);
             Task.Run(CheckGitHubGModVersion);
             Task.Run(async () => await CheckForGwExeUpdates(false));
         }
 
-        settings.Save();
+        Settings.Save();
 
-        var hasMutex = InitialiseGWLauncherMutex();
+        var hasMutex = InitialiseGwLauncherMutex();
 
-        if (command_arg_launch_account_name.Length > 0 && LoadAccountsJson())
+        if (_commandArgLaunchAccountName.Length > 0 && LoadAccountsJson())
         {
-            var res = LaunchAccount(command_arg_launch_account_name);
+            var res = LaunchAccount(_commandArgLaunchAccountName);
             if (res != null)
             {
-                MessageBox.Show(@"Failed to launch account " + command_arg_launch_account_name + "\n" + res);
+                MessageBox.Show(@"Failed to launch account " + _commandArgLaunchAccountName + "\n" + res);
             }
 
             Exit();
@@ -298,16 +297,16 @@ internal static class Program
             return; // Error message already displayed
         }
 
-        mainThreadRunning = true;
-        mainthread = new Thread(() =>
+        _mainThreadRunning = true;
+        Mainthread = new Thread(() =>
         {
-            while (!shouldClose)
+            while (!ShouldClose)
             {
                 UnlockMutex();
-                if (needtolaunch.Any())
+                if (_needtolaunch.Any())
                 {
                     if (!LockMutex()) break;
-                    var accountName = GetAccountName(needtolaunch.Dequeue());
+                    var accountName = GetAccountName(_needtolaunch.Dequeue());
 
                     var res = LaunchAccount(accountName);
                     UnlockMutex();
@@ -319,23 +318,23 @@ internal static class Program
 
                 if (!LockMutex()) continue;
 
-                for (var i = 0; mainForm != null && i < accounts.Length; i++)
+                for (var i = 0; _mainForm != null && i < Accounts.Length; i++)
                 {
                     var state = "Inactive";
-                    var gwcaMemory = accounts[i].process;
+                    var gwcaMemory = Accounts[i].process;
                     if (gwcaMemory != null && gwcaMemory.process != null && !gwcaMemory.process.HasExited)
                     {
                         state = "Active";
                     }
 
-                    if (state != "Active" && accounts[i].process != null)
+                    if (state != "Active" && Accounts[i].process != null)
                     {
-                        accounts[i].process = null;
+                        Accounts[i].process = null;
                     }
 
-                    if (accounts[i].state != state)
+                    if (Accounts[i].state != state)
                     {
-                        mainForm?.SetAccountState(i, state);
+                        _mainForm?.SetAccountState(i, state);
                     }
                 }
 
@@ -344,34 +343,34 @@ internal static class Program
                 Thread.Sleep(1000);
             }
 
-            mainThreadRunning = false;
+            _mainThreadRunning = false;
         });
 
         // Main application
-        mainForm = new MainForm(settings.LaunchMinimized);
-        mainForm.FormClosed += (_, _) => { Exit(); };
-        Application.Run(mainForm);
+        _mainForm = new MainForm(Settings.LaunchMinimized);
+        _mainForm.FormClosed += (_, _) => { Exit(); };
+        Application.Run(_mainForm);
     }
 
     public static bool QueueLaunch(int index)
     {
-        if (index < 0 || accounts.Length <= index)
+        if (index < 0 || Accounts.Length <= index)
             return false;
-        needtolaunch.Enqueue(index);
+        _needtolaunch.Enqueue(index);
         return true;
     }
 
     public static void Exit()
     {
-        while (needtolaunch.Count > 0)
+        while (_needtolaunch.Count > 0)
             Thread.Sleep(16);
-        shouldClose = true;
-        while (mainThreadRunning)
+        ShouldClose = true;
+        while (_mainThreadRunning)
             Thread.Sleep(16);
-        if (gwlMutex != null)
+        if (GwlMutex != null)
         {
-            gwlMutex.Close();
-            gwlMutex = null;
+            GwlMutex.Close();
+            GwlMutex = null;
         }
     }
 
@@ -390,7 +389,7 @@ internal static class Program
                         return false;
                     }
 
-                    command_arg_launch_account_name = args[i];
+                    _commandArgLaunchAccountName = args[i];
                     break;
             }
         }
@@ -398,16 +397,16 @@ internal static class Program
         return true;
     }
 
-    private static bool InitialiseGWLauncherMutex()
+    private static bool InitialiseGwLauncherMutex()
     {
         // Check to see if another instance is running
-        if (Mutex.TryOpenExisting(GwlMutexName, out gwlMutex))
+        if (Mutex.TryOpenExisting(GwlMutexName, out GwlMutex))
         {
             //MessageBox.Show(@"GW Launcher already running. GW Launcher will close.");
             return false;
         }
 
-        gwlMutex = new Mutex(true, GwlMutexName);
+        GwlMutex = new Mutex(true, GwlMutexName);
         return true;
     }
 
@@ -416,12 +415,12 @@ internal static class Program
         // Load accounts
         try
         {
-            accounts = new AccountManager("Accounts.json");
+            Accounts = new AccountManager("Accounts.json");
             return true;
         }
         catch (Exception)
         {
-            if (settings.Encrypt) return false; // error message already shown
+            if (Settings.Encrypt) return false; // error message already shown
             MessageBox.Show("""
                             Couldn't load account information, there might be an error in the .json.
                             GW Launcher will close.
@@ -433,16 +432,16 @@ internal static class Program
 
     private static bool LockMutex()
     {
-        gotMutex = gotMutex || mutex.WaitOne(1000);
-        return gotMutex;
+        _gotMutex = _gotMutex || Mutex.WaitOne(1000);
+        return _gotMutex;
     }
 
     private static void UnlockMutex()
     {
-        if (gotMutex)
+        if (_gotMutex)
         {
-            mutex.ReleaseMutex();
-            gotMutex = false;
+            Mutex.ReleaseMutex();
+            _gotMutex = false;
         }
     }
 
@@ -470,7 +469,7 @@ internal static class Program
     {
         const string oldName = ".old.exe";
         const string newName = ".new.exe";
-        if (settings.AutoUpdate && (File.Exists(oldName) || File.Exists(newName)))
+        if (Settings.AutoUpdate && (File.Exists(oldName) || File.Exists(newName)))
         {
             File.Delete(oldName);
             File.Delete(newName);
@@ -513,7 +512,7 @@ internal static class Program
         var latest = releases[0];
         var runtimeInstalled = IsDotNet8DesktopInstalled();
 
-        if (!settings.AutoUpdate)
+        if (!Settings.AutoUpdate)
         {
             var msgBoxResult = MessageBox.Show(
                 $@"New version {tagName} available online. Visit page?{(runtimeInstalled ? "\nYou can download the Framework Dependent version." : "")}",
@@ -553,15 +552,15 @@ internal static class Program
             await s.CopyToAsync(fs);
         }
 
-        mutex.WaitOne();
-        shouldClose = true;
-        if (mainthread.ThreadState == ThreadState.Running && !mainthread.Join(5000))
+        Mutex.WaitOne();
+        ShouldClose = true;
+        if (Mainthread.ThreadState == ThreadState.Running && !Mainthread.Join(5000))
         {
             return;
         }
 
-        mutex.Close();
-        gwlMutex?.Close();
+        Mutex.Close();
+        GwlMutex?.Close();
 
         File.Move(currentName, oldName);
         File.Move(newName, currentName);
@@ -678,7 +677,7 @@ internal static class Program
             var accsToUpdate = new List<Account>();
             var accsChecked = new List<Account>();
 
-            foreach (var account in accounts)
+            foreach (var account in Accounts)
             {
                 if (accsChecked.Select(a => a.gwpath).Contains(account.gwpath)) continue;
                 if (!File.Exists(account.gwpath))
@@ -726,18 +725,18 @@ internal static class Program
             if (ok == DialogResult.Yes)
             {
                 AdminAccess.RestartAsAdminPrompt(true);
-                if (mainForm is not null)
+                if (_mainForm is not null)
                 {
-                    await mainForm.Invoke(async () =>
+                    await _mainForm.Invoke(async () =>
                     {
                         try
                         {
-                            mutex.WaitOne();
-                            await mainForm.UpdateAccountsGui(accsToUpdate);
+                            Mutex.WaitOne();
+                            await _mainForm.UpdateAccountsGui(accsToUpdate);
                         }
                         finally
                         {
-                            mutex.ReleaseMutex();
+                            Mutex.ReleaseMutex();
                         }
                     });
                 }

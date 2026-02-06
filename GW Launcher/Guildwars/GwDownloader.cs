@@ -92,7 +92,7 @@ public static class GwDownloader
         {
             await DownloadGwExeAsync(progress, cancellationToken);
 
-            accountsToUpdate ??= Program.accounts;
+            accountsToUpdate ??= Program.Accounts;
 
             var uniquePaths = accountsToUpdate.Select(a => a.gwpath).Distinct().ToList();
             progress.Report(("Copying Gw.exe to client paths", 0.9));

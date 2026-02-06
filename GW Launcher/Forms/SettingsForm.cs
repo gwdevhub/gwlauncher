@@ -8,7 +8,7 @@ public partial class SettingsForm : Form
 
 	public SettingsForm()
 	{
-		_settings = Program.settings;
+		_settings = Program.Settings;
 		InitializeComponent();
 		LoadSettings();
 	}
@@ -33,7 +33,7 @@ public partial class SettingsForm : Form
 		_settings.LaunchMinimized = checkBoxLaunchMinimized.Checked;
 		_settings.TimeoutOnModlaunch = (uint)numericUpDownTimeout.Value;
 
-		Program.settings = _settings;
+		Program.Settings = _settings;
 		_settings.Save();
 	}
 
@@ -62,7 +62,7 @@ public partial class SettingsForm : Form
 
 	private void CheckBoxEncrypt_CheckedChanged(object sender, EventArgs e)
 	{
-		if (checkBoxEncrypt.Checked != Program.settings.Encrypt)
+		if (checkBoxEncrypt.Checked != Program.Settings.Encrypt)
 		{
 			MessageBox.Show(
 				"Changing encryption settings will require restarting the application to take effect.",

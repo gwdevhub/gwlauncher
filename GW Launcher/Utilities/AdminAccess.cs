@@ -30,8 +30,8 @@ internal static class AdminAccess
 
         try
         {
-            Program.shouldClose = true;
-            Program.gwlMutex?.Close();
+            Program.ShouldClose = true;
+            Program.GwlMutex?.Close();
             Process.Start(processInfo);
             Environment.Exit(0);
             return false;
@@ -41,7 +41,7 @@ internal static class AdminAccess
             // This will be thrown if the user cancels the prompt
             if (force)
             {
-                Program.shouldClose = true;
+                Program.ShouldClose = true;
                 Application.Exit();
             }
             return true;

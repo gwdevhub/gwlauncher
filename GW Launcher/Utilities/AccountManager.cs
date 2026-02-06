@@ -117,7 +117,7 @@ public class AccountManager : IEnumerable<Account>, IDisposable
 
         filePath ??= _filePath;
 
-        switch (Program.settings.Encrypt)
+        switch (Program.Settings.Encrypt)
         {
             case false:
                 try
@@ -209,7 +209,7 @@ public class AccountManager : IEnumerable<Account>, IDisposable
         filePath ??= _filePath;
 
         var text = JsonConvert.SerializeObject(_accounts, Formatting.Indented);
-        if (!Program.settings.Encrypt)
+        if (!Program.Settings.Encrypt)
         {
             File.WriteAllText(filePath, text);
         }

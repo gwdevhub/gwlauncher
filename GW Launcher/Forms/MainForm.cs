@@ -105,19 +105,19 @@ public partial class MainForm : Form
 	}
 	public static void OnAccountSaved(Account account)
     {
-        Program.mutex.WaitOne();
-        var found = Program.accounts[account.guid];
+        Program.Mutex.WaitOne();
+        var found = Program.Accounts[account.guid];
         if (found != null)
         {
-            Program.accounts[account.guid] = account;
+            Program.Accounts[account.guid] = account;
         }
         else
         {
-            Program.accounts.Add(account);
+            Program.Accounts.Add(account);
         }
 
-        Program.accounts.Save();
-        Program.mutex.ReleaseMutex();
+        Program.Accounts.Save();
+        Program.Mutex.ReleaseMutex();
         _instance?.RefreshUI();
     }
 
@@ -153,7 +153,7 @@ public partial class MainForm : Form
                 var memory = new GWCAMemory(process);
                 GWMemory.FindAddressesIfNeeded(memory);
                 var email = memory.ReadWString(GWMemory.EmailAddPtr, 64, Encoding.Default);
-                foreach (var account in Program.accounts)
+                foreach (var account in Program.Accounts)
                 {
                     if (email != account.email)
                     {
@@ -186,7 +186,7 @@ public partial class MainForm : Form
         }
 
         // Fill out data.
-        foreach (var account in Program.accounts)
+        foreach (var account in Program.Accounts)
         {
             listViewAccounts.Items.Add(new ListViewItem(
                 new[]
@@ -230,7 +230,7 @@ public partial class MainForm : Form
         }
         else
         {
-            Program.accounts[index].state = state;
+            Program.Accounts[index].state = state;
             listViewAccounts.Items[index].SubItems[1].Text = state;
         }
     }
@@ -242,7 +242,7 @@ public partial class MainForm : Form
         imageList.Images.Add("gwlauncher", Resources.gwlauncher);
         listViewAccounts.SmallImageList = imageList;
         RefreshUI();
-        Program.mainthread.Start();
+        Program.Mainthread.Start();
     }
 
 	protected override void OnClosed(EventArgs e)
@@ -293,16 +293,16 @@ public partial class MainForm : Form
         {
             return;
         }
-        Program.mutex.WaitOne();
+        Program.Mutex.WaitOne();
         var indices = from int indice in listViewAccounts.SelectedIndices orderby indice descending select indice;
         foreach (var indice in indices)
         {
-            Program.accounts.Remove(indice);
+            Program.Accounts.Remove(indice);
         }
 
-        Program.accounts.Save();
+        Program.Accounts.Save();
         RefreshUI();
-        Program.mutex.ReleaseMutex();
+        Program.Mutex.ReleaseMutex();
         _keepOpen = oldKeepOpen;
     }
 
@@ -330,10 +330,10 @@ public partial class MainForm : Form
     {
         var oldKeepOpen = _keepOpen;
         _keepOpen = true;
-        Program.mutex.WaitOne();
-        Program.accounts.Load("Accounts.json");
+        Program.Mutex.WaitOne();
+        Program.Accounts.Load("Accounts.json");
         RefreshUI();
-        Program.mutex.ReleaseMutex();
+        Program.Mutex.ReleaseMutex();
         _keepOpen = oldKeepOpen;
     }
 
@@ -360,7 +360,7 @@ public partial class MainForm : Form
             return;
         }
 
-        var account = Program.accounts[(int)index];
+        var account = Program.Accounts[(int)index];
         using var addAccountForm = new AddAccountForm();
         addAccountForm.Text = @"Modify Account";
         addAccountForm.account = account;
@@ -377,19 +377,19 @@ public partial class MainForm : Form
             return;
         }
 
-        Program.mutex.WaitOne();
+        Program.Mutex.WaitOne();
         var indexes = from int index in _selectedItems orderby index descending select index;
         foreach (var index in indexes)
         {
             if (index > 0)
             {
-                Program.accounts.Move(index, index - 1);
+                Program.Accounts.Move(index, index - 1);
             }
         }
 
-        Program.accounts.Save();
+        Program.Accounts.Save();
         RefreshUI();
-        Program.mutex.ReleaseMutex();
+        Program.Mutex.ReleaseMutex();
     }
 
     private void ToolStripMenuItemMoveDown_Click(object sender, EventArgs e)
@@ -400,19 +400,19 @@ public partial class MainForm : Form
             return;
         }
 
-        Program.mutex.WaitOne();
+        Program.Mutex.WaitOne();
         var indexes = from int index in _selectedItems orderby index select index;
         foreach (var index in indexes)
         {
-            if (index < Program.accounts.Length - 1)
+            if (index < Program.Accounts.Length - 1)
             {
-                Program.accounts.Move(index, index + 1);
+                Program.Accounts.Move(index, index + 1);
             }
         }
 
-        Program.accounts.Save();
+        Program.Accounts.Save();
         RefreshUI();
-        Program.mutex.ReleaseMutex();
+        Program.Mutex.ReleaseMutex();
     }
 
     private void MainForm_Deactivate(object sender, EventArgs e)
@@ -481,7 +481,7 @@ public partial class MainForm : Form
         {
             return;
         }
-        var account = Program.accounts[_selectedItems[0]];
+        var account = Program.Accounts[_selectedItems[0]];
         var shell = new IWshRuntimeLibrary.WshShell();
         string shortcutAddress = Environment.GetFolderPath(Environment.SpecialFolder.Desktop) + @"\" + account.Name + ".lnk";
         IWshRuntimeLibrary.IWshShortcut shortcut = shell.CreateShortcut(shortcutAddress);
