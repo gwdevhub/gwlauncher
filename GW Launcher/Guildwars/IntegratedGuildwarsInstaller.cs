@@ -33,12 +33,25 @@ internal sealed class IntegratedGuildwarsInstaller
 			// Check if exe already exists with correct size
 			if (File.Exists(exeName))
 			{
-				var fileInfo = new FileInfo(exeName);
-				if (fileInfo.Length == expectedSize)
-				{
-					progress.Report(("Exe already downloaded", 0.9));
-					return (destinationPath, null);
-				}
+                try
+                {
+					var fileInfo = new FileInfo(exeName);
+					if (fileInfo.Length == expectedSize)
+                    {
+						var parser = new GuildWarsExecutableParser(exeName);
+						var currentFileId = parser.GetFileId();
+						if (currentFileId == fileResponse.Value.FileId)
+						{
+							progress.Report(("Exe already downloaded", 0.9));
+							return (destinationPath, null);
+						}
+					}
+			
+                }
+                catch (Exception)
+                {
+                    // Silent fail, just re-download
+                }
 			}
 
 			// Initialize the download client

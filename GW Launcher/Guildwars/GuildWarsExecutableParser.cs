@@ -14,34 +14,28 @@ internal sealed class GuildWarsExecutableParser
     private readonly PeFile peFile;
     private readonly ImageSectionHeader textSection;
 
-    private GuildWarsExecutableParser(string path)
+    public GuildWarsExecutableParser(string path)
     {
         this.peFile = new PeFile(path);
         this.textSection = this.peFile.ImageSectionHeaders?.FirstOrDefault(s => s.Name == ".text") ?? throw new InvalidOperationException("Unable to find .text section");
     }
 
-    public Task<int> GetVersionLegacy(CancellationToken cancellationToken)
+    public int GetVersionLegacy()
     {
-        return Task.Run(() =>
-        {
-            var offset = this.Find(VersionPattern);
-            var functionRva = this.FollowCall(offset - 5);
-            var fileId = (int)this.Read(functionRva + 1);
-            return fileId;
-        }, cancellationToken);
-    }
+		var offset = this.Find(VersionPattern);
+		var functionRva = this.FollowCall(offset - 5);
+		var fileId = (int)this.Read(functionRva + 1);
+		return fileId;
+	}
 
-    public Task<int> GetFileId(CancellationToken cancellationToken)
+    public int GetFileId()
     {
-        return Task.Run(() =>
-        {
-            var patternRva = this.FindWithWildcards(FileIdFunctionPattern);
-            var callRva = patternRva + 0x32;
-            var fileIdFunctionRva = this.FollowCall(callRva);
-            var fileId = (int)this.Read(fileIdFunctionRva + 1);
-            return fileId;
-        }, cancellationToken);
-    }
+		var patternRva = this.FindWithWildcards(FileIdFunctionPattern);
+		var callRva = patternRva + 0x32;
+		var fileIdFunctionRva = this.FollowCall(callRva);
+		var fileId = (int)this.Read(fileIdFunctionRva + 1);
+		return fileId;
+	}
 
     private uint FindWithWildcards(byte?[] pattern, int offset = 0)
     {
@@ -119,18 +113,5 @@ internal sealed class GuildWarsExecutableParser
         }
 
         return -1;
-    }
-
-    public static GuildWarsExecutableParser? TryParse(string filePath)
-    {
-        try
-        {
-            var parser = new GuildWarsExecutableParser(filePath);
-            return parser;
-        }
-        catch
-        {
-            return default;
-        }
     }
 }

@@ -659,95 +659,139 @@ internal static class Program
         await using var fs = new FileStream(gmod, FileMode.Create);
         await s.CopyToAsync(fs);
     }
-    public static async Task CheckForGwExeUpdates(bool messageIfUpToDate)
-    {
-        try
-        {
-            var (response, error) = await GwDownloader.GetLatestGwExeInfoAsync();
-            if (response == null || !string.IsNullOrEmpty(error))
-            {
-                if (!string.IsNullOrEmpty(error))
-                {
-                    Console.WriteLine($"Error getting latest GW exe info: {error}");
-                }
-                return;
-            }
+	public static async Task CheckForGwExeUpdates(bool messageIfUpToDate)
+	{
+		using var cts = new CancellationTokenSource();
+		using var checkingDialog = new Form
+		{
+			Text = "GW Update",
+			Size = new System.Drawing.Size(300, 120),
+			FormBorderStyle = FormBorderStyle.FixedDialog,
+			StartPosition = FormStartPosition.CenterScreen,
+			MaximizeBox = false,
+			MinimizeBox = false
+		};
+		var label = new System.Windows.Forms.Label
+		{
+			Text = "Checking for updates...",
+			Dock = DockStyle.Fill,
+			TextAlign = System.Drawing.ContentAlignment.MiddleCenter
+		};
+		var cancelBtn = new Button
+		{
+			Text = "Cancel",
+			Dock = DockStyle.Bottom,
+			DialogResult = DialogResult.Cancel
+		};
+		cancelBtn.Click += (_, _) => cts.Cancel();
+		checkingDialog.Controls.Add(label);
+		checkingDialog.Controls.Add(cancelBtn);
+		checkingDialog.FormClosing += (_, e) =>
+		{
+			if (!cts.IsCancellationRequested)
+				cts.Cancel();
+		};
 
-            var latestFileId = response.Value.FileId;
-            var accsToUpdate = new List<Account>();
-            var accsChecked = new List<Account>();
+		// Run the check in the background, close dialog when done
+		var checkTask = Task.Run(async () =>
+		{
+			try
+			{
+				await RunUpdateCheck(messageIfUpToDate, cts.Token);
+			}
+			finally
+			{
+				checkingDialog.Invoke(() => checkingDialog.Close());
+			}
+		}, cts.Token);
 
-            foreach (var account in Accounts)
-            {
-                if (accsChecked.Select(a => a.gwpath).Contains(account.gwpath)) continue;
-                if (!File.Exists(account.gwpath))
-                {
-                    accsToUpdate.Add(account);
-                    continue;
-                }
+		checkingDialog.ShowDialog();
+		await checkTask; // propagate exceptions / await completion
+	}
 
-                accsChecked.Add(account);
-                if (GuildWarsExecutableParser.TryParse(account.gwpath) is not { } parser)
-                {
-                    Console.WriteLine($"Failed to parse Guild Wars executable at {account.gwpath}");
-                    continue;
-                }
+	private static async Task RunUpdateCheck(bool messageIfUpToDate, CancellationToken ct)
+	{
+		try
+		{
+			var (response, error) = await GwDownloader.GetLatestGwExeInfoAsync();
+			ct.ThrowIfCancellationRequested();
 
-                try
-                {
-                    var currentFileId = await parser.GetFileId(CancellationToken.None);
-                    if (currentFileId == latestFileId)
-                    {
-                        continue;
-                    }
-                }
-                catch(Exception e)
-                {
-                    Console.WriteLine($"Error checking version for {account.gwpath}: {e}");
-                    continue;
-                }
+			if (response == null || !string.IsNullOrEmpty(error))
+			{
+				if (!string.IsNullOrEmpty(error))
+					Console.WriteLine($"Error getting latest GW exe info: {error}");
+				return;
+			}
 
-                accsToUpdate.Add(account);
-            }
+			var latestFileId = response.Value.FileId;
+			var accsToUpdate = new List<Account>();
+			var accsChecked = new List<Account>();
 
-            if (accsToUpdate.Count == 0)
-            {
-                if (messageIfUpToDate)
-                {
-                    MessageBox.Show($"No accounts are out of date.", "GW Update");
-                }
+			foreach (var account in Accounts)
+			{
+				ct.ThrowIfCancellationRequested();
 
-                return;
-            }
-            var accNames = string.Join(',', accsToUpdate.Select(acc => acc.Name));
-            var ok = MessageBox.Show($"Accounts {accNames} are out of date. Update now?", "GW Update",
-                MessageBoxButtons.YesNo);
-            if (ok == DialogResult.Yes)
-            {
-                AdminAccess.RestartAsAdminPrompt(true);
-                if (_mainForm is not null)
-                {
-                    await _mainForm.Invoke(async () =>
-                    {
-                        try
-                        {
-                            Mutex.WaitOne();
-                            await _mainForm.UpdateAccountsGui(accsToUpdate);
-                        }
-                        finally
-                        {
-                            Mutex.ReleaseMutex();
-                        }
-                    });
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            // Log the exception
-            Console.WriteLine($"Error checking for Gw.exe updates: {ex.Message}");
-            MessageBox.Show($"Error checking for updates: {ex.Message}", "Update Check Error", MessageBoxButtons.OK,
-                MessageBoxIcon.Error);
-        }
-    }
+				if (accsChecked.Select(a => a.gwpath).Contains(account.gwpath)) continue;
+				if (!File.Exists(account.gwpath))
+				{
+					accsToUpdate.Add(account);
+					continue;
+				}
+				accsChecked.Add(account);
+				try
+				{
+					var parser = new GuildWarsExecutableParser(account.gwpath);
+					if (parser.GetFileId() == latestFileId)
+						continue;
+				}
+				catch (Exception e)
+				{
+					Console.WriteLine($"Error checking version for {account.gwpath}: {e}");
+					continue;
+				}
+				accsToUpdate.Add(account);
+			}
+
+			if (accsToUpdate.Count == 0)
+			{
+				if (messageIfUpToDate)
+					MessageBox.Show("No accounts are out of date.", "GW Update");
+				return;
+			}
+
+			var accNames = string.Join(',', accsToUpdate.Select(acc => acc.Name));
+			var ok = MessageBox.Show($"Accounts {accNames} are out of date. Update now?", "GW Update",
+				MessageBoxButtons.YesNo);
+
+			if (ok == DialogResult.Yes)
+			{
+				AdminAccess.RestartAsAdminPrompt(true);
+				if (_mainForm is not null)
+				{
+					await _mainForm.Invoke(async () =>
+					{
+						try
+						{
+							Mutex.WaitOne();
+							await _mainForm.UpdateAccountsGui(accsToUpdate);
+						}
+						finally
+						{
+							Mutex.ReleaseMutex();
+						}
+					});
+				}
+			}
+		}
+		catch (OperationCanceledException)
+		{
+			// User cancelled — exit silently
+		}
+		catch (Exception ex)
+		{
+			Console.WriteLine($"Error checking for Gw.exe updates: {ex.Message}");
+			MessageBox.Show($"Error checking for updates: {ex.Message}", "Update Check Error",
+				MessageBoxButtons.OK, MessageBoxIcon.Error);
+		}
+	}
 }
