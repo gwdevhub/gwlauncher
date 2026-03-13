@@ -114,14 +114,7 @@ internal static class MulticlientPatch
             }
 		}
 
-        var args = $"-email \"{account.email}\" -password \"{account.password}\"";
-
-        if (!string.IsNullOrEmpty(account.character))
-        {
-            args += $" -character \" \"";
-        }
-
-        args += $" {account.extraargs}";
+        var args = $"-email \"{account.email}\" -password \"{account.password}\" -character \" \" {account.extraargs}";
 
         err = LaunchClient(path, args, account.elevated, out var procinfo);
         if (err != null)
