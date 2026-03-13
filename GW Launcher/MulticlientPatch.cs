@@ -118,7 +118,7 @@ internal static class MulticlientPatch
 
         if (!string.IsNullOrEmpty(account.character))
         {
-            args += $" -character \"{account.character}\"";
+            args += $" -character \" \"";
         }
 
         args += $" {account.extraargs}";
