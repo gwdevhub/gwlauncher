@@ -12,78 +12,78 @@ namespace GW_Launcher;
 
 internal static class Program
 {
-    private const string GwlMutexName = "gwl_instance_mutex";
-    public static volatile bool ShouldClose = false;
-    private static volatile bool _mainThreadRunning = false;
-    public static AccountManager Accounts = new();
-    public static Thread Mainthread = null!;
-    public static Mutex Mutex = new();
-    internal static Mutex? GwlMutex;
-    private static MainForm? _mainForm;
-    private static bool _gotMutex = false;
-    public static GlobalSettings Settings = GlobalSettings.Load();
+	private const string GwlMutexName = "gwl_instance_mutex";
+	public static volatile bool ShouldClose = false;
+	private static volatile bool _mainThreadRunning = false;
+	public static AccountManager Accounts = new();
+	public static Thread Mainthread = null!;
+	public static Mutex Mutex = new();
+	internal static Mutex? GwlMutex;
+	private static MainForm? _mainForm;
+	private static bool _gotMutex = false;
+	public static GlobalSettings Settings = GlobalSettings.Load();
 
-    private static Queue<int> _needtolaunch = new Queue<int>();
+	private static Queue<int> _needtolaunch = new Queue<int>();
 
-    private static string _commandArgLaunchAccountName = "";
-
-	[DllImport("user32.dll")]
-    private static extern int SendMessage(IntPtr hWnd, int wMsg, IntPtr wParam, IntPtr lParam);
-
+	private static string _commandArgLaunchAccountName = "";
 
 	[DllImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool SetForegroundWindow(IntPtr hWnd);
+	private static extern int SendMessage(IntPtr hWnd, int wMsg, IntPtr wParam, IntPtr lParam);
+
+
+	[DllImport("user32.dll")]
+	[return: MarshalAs(UnmanagedType.Bool)]
+	private static extern bool SetForegroundWindow(IntPtr hWnd);
 
 
 	[DllImport("Kernel32.dll", CharSet = CharSet.Unicode)]
-    private static extern bool QueryFullProcessImageName([In] IntPtr hProcess, [In] uint dwFlags, [Out] StringBuilder lpExeName, [In, Out] ref uint lpdwSize);
+	private static extern bool QueryFullProcessImageName([In] IntPtr hProcess, [In] uint dwFlags, [Out] StringBuilder lpExeName, [In, Out] ref uint lpdwSize);
 
-    private static string? GetProcessPath(Process process)
-    {
+	private static string? GetProcessPath(Process process)
+	{
 
 		var fileNameBuilder = new StringBuilder(1024);
-        var bufferLength = (uint)fileNameBuilder.Capacity + 1;
-        return QueryFullProcessImageName(process.Handle, 0, fileNameBuilder, ref bufferLength) ?
-            fileNameBuilder.ToString() :
-            null;
+		var bufferLength = (uint)fileNameBuilder.Capacity + 1;
+		return QueryFullProcessImageName(process.Handle, 0, fileNameBuilder, ref bufferLength) ?
+			fileNameBuilder.ToString() :
+			null;
 
-    }
+	}
 
-    private static bool IsProcessOpen(string name)
-    {
-        var basename = Path.GetFileNameWithoutExtension(name);
-        var processes = Process.GetProcesses();
+	private static bool IsProcessOpen(string name)
+	{
+		var basename = Path.GetFileNameWithoutExtension(name);
+		var processes = Process.GetProcesses();
 		foreach (var clsProcess in processes)
-        {
-            if (!clsProcess.ProcessName.Equals(basename))
-                continue;
-            var path = GetProcessPath(clsProcess);
-            if (path != null && path.Contains(name))
-                return true;
-        }
-        return false;
-    }
+		{
+			if (!clsProcess.ProcessName.Equals(basename))
+				continue;
+			var path = GetProcessPath(clsProcess);
+			if (path != null && path.Contains(name))
+				return true;
+		}
+		return false;
+	}
 
-    private static bool WaitFor(Func<bool> testFunc, uint timeoutMs = 10000)
-    {
-        uint elapsed = 0;
-        var ok = testFunc();
+	private static bool WaitFor(Func<bool> testFunc, uint timeoutMs = 10000)
+	{
+		uint elapsed = 0;
+		var ok = testFunc();
 
-        while (!ok)
-        {
-            if (elapsed > timeoutMs)
-                break;
-            Thread.Sleep(200);
-            elapsed += 200;
-            ok = testFunc();
-        }
+		while (!ok)
+		{
+			if (elapsed > timeoutMs)
+				break;
+			Thread.Sleep(200);
+			elapsed += 200;
+			ok = testFunc();
+		}
 
-        return ok;
-    }
+		return ok;
+	}
 
-    private static string? CreateSteamAppIdFile(Account account)
-    {
+	private static string? CreateSteamAppIdFile(Account account)
+	{
 		var gwDirectory = Path.GetDirectoryName(account.gwpath);
 		if (string.IsNullOrEmpty(gwDirectory))
 			return "Failed to determine Guild Wars directory path.";
@@ -100,48 +100,48 @@ internal static class Program
 				return $"Failed to create steam_appid.txt: {ex.Message}";
 			}
 		}
-        return null;
+		return null;
 	}
-    private static string? DeleteSteamAppIdFile(Account account)
-    {
-        var gwDirectory = Path.GetDirectoryName(account.gwpath);
-        if (string.IsNullOrEmpty(gwDirectory))
-            return "Failed to determine Guild Wars directory path.";
-        var steamAppIdPath = Path.Combine(gwDirectory, "steam_appid.txt");
-        if (File.Exists(steamAppIdPath))
-        {
-            File.Delete(steamAppIdPath);
-        }
+	private static string? DeleteSteamAppIdFile(Account account)
+	{
+		var gwDirectory = Path.GetDirectoryName(account.gwpath);
+		if (string.IsNullOrEmpty(gwDirectory))
+			return "Failed to determine Guild Wars directory path.";
+		var steamAppIdPath = Path.Combine(gwDirectory, "steam_appid.txt");
+		if (File.Exists(steamAppIdPath))
+		{
+			File.Delete(steamAppIdPath);
+		}
 		return null;
 	}
 
 	private static string? LaunchAccount(string accountName)
-    {
-        var found = Accounts.IndexOf(accountName);
-        if (found == -1)
-            return "Failed to find account for " + accountName;
+	{
+		var found = Accounts.IndexOf(accountName);
+		if (found == -1)
+			return "Failed to find account for " + accountName;
 		var result = DeleteSteamAppIdFile(Accounts[found]);
 		if (result != null) return result;
 		result = CreateSteamAppIdFile(Accounts[found]);
-        if (result != null) return result;
+		if (result != null) return result;
 		result = LaunchAccount(Accounts[found]);
-        DeleteSteamAppIdFile(Accounts[found]);
-        return result;
-    }
+		DeleteSteamAppIdFile(Accounts[found]);
+		return result;
+	}
 
-    static Account? GetAccountByIndex(int accountIndex)
-    {
-        return Accounts[accountIndex];
-    }
+	static Account? GetAccountByIndex(int accountIndex)
+	{
+		return Accounts[accountIndex];
+	}
 
-    static string GetAccountName(int accountIndex)
-    {
-        var account = GetAccountByIndex(accountIndex);
-        return account == null ? "" : account.Name;
-    }
+	static string GetAccountName(int accountIndex)
+	{
+		var account = GetAccountByIndex(accountIndex);
+		return account == null ? "" : account.Name;
+	}
 
-    private static string? LaunchAccount(Account account)
-    {
+	private static string? LaunchAccount(Account account)
+	{
 		_mainForm?.SetAccountState(Accounts.IndexOf(account), "Launching");
 		GWCAMemory? memory = null;
 		if (!File.Exists(account.gwpath))
@@ -162,17 +162,17 @@ internal static class Program
 		}
 		if (memory == null)
 		{
-            try
-            {
-                if (IsProcessOpen(account.gwpath))
-                    return "The Guild Wars executable at " + account.gwpath + " is already running";
-            }
-            catch (Exception ex)
-            {
-                return ex.Message;
-            }
+			try
+			{
+				if (IsProcessOpen(account.gwpath))
+					return "The Guild Wars executable at " + account.gwpath + " is already running";
+			}
+			catch (Exception ex)
+			{
+				return ex.Message;
+			}
 
-            var res = MulticlientPatch.LaunchClient(account, out memory);
+			var res = MulticlientPatch.LaunchClient(account, out memory);
 			if (res != null)
 				return res;
 		}
@@ -229,7 +229,7 @@ internal static class Program
 				var chars = Marshal.StringToHGlobalAnsi(account.Name);
 				SendMessage(memory.process.MainWindowHandle, 0xc, 0, chars);
 				memory.process.Refresh();
-                return memory.process.MainWindowTitle != "Guild Wars" && memory.process.MainWindowTitle != "Guild Wars Reforged";
+				return memory.process.MainWindowTitle != "Guild Wars" && memory.process.MainWindowTitle != "Guild Wars Reforged";
 			}, timeout);
 		}
 
@@ -242,423 +242,423 @@ internal static class Program
 		return null;
 	}
 
-    private static string? LaunchAccount(int accountIndex)
-    {
+	private static string? LaunchAccount(int accountIndex)
+	{
 		return LaunchAccount(Accounts[accountIndex]);
 	}
 
-    [STAThread]
-    internal static void Main()
-    {
-        Application.EnableVisualStyles();
-        Application.SetCompatibleTextRenderingDefault(false);
+	[STAThread]
+	internal static void Main()
+	{
+		Application.EnableVisualStyles();
+		Application.SetCompatibleTextRenderingDefault(false);
 
-        if (!ParseCommandLineArgs())
-        {
-            Exit();
-            return; // Error message already displayed
-        }
+		if (!ParseCommandLineArgs())
+		{
+			Exit();
+			return; // Error message already displayed
+		}
 
-        WarnIfInGwDirectory();
+		WarnIfInGwDirectory();
 
 		if (Settings.CheckForUpdates)
-        {
-            Task.Run(CheckGitHubNewerVersion);
-            Task.Run(CheckGitHubGModVersion);
-            Task.Run(async () => await CheckForGwExeUpdates(false));
-        }
+		{
+			Task.Run(CheckGitHubNewerVersion);
+			Task.Run(CheckGitHubGModVersion);
+			Task.Run(async () => await CheckForGwExeUpdates(false));
+		}
 
-        Settings.Save();
+		Settings.Save();
 
-        var hasMutex = InitialiseGwLauncherMutex();
+		var hasMutex = InitialiseGwLauncherMutex();
 
-        if (_commandArgLaunchAccountName.Length > 0 && LoadAccountsJson())
-        {
-            var res = LaunchAccount(_commandArgLaunchAccountName);
-            if (res != null)
-            {
-                MessageBox.Show(@"Failed to launch account " + _commandArgLaunchAccountName + "\n" + res);
-            }
+		if (_commandArgLaunchAccountName.Length > 0 && LoadAccountsJson())
+		{
+			var res = LaunchAccount(_commandArgLaunchAccountName);
+			if (res != null)
+			{
+				MessageBox.Show(@"Failed to launch account " + _commandArgLaunchAccountName + "\n" + res);
+			}
 
-            Exit();
-            return; // Error message already displayed
-        }
+			Exit();
+			return; // Error message already displayed
+		}
 
-        // Only try to create and grab the mutex if we're in the main program
-        if (!hasMutex)
-        {
-            Exit();
-            return; // Error message already displayed
-        }
+		// Only try to create and grab the mutex if we're in the main program
+		if (!hasMutex)
+		{
+			Exit();
+			return; // Error message already displayed
+		}
 
-        if (!LoadAccountsJson())
-        {
-            Exit();
-            return; // Error message already displayed
-        }
+		if (!LoadAccountsJson())
+		{
+			Exit();
+			return; // Error message already displayed
+		}
 
-        _mainThreadRunning = true;
-        Mainthread = new Thread(() =>
-        {
-            while (!ShouldClose)
-            {
-                UnlockMutex();
-                if (_needtolaunch.Any())
-                {
-                    if (!LockMutex()) break;
-                    var accountName = GetAccountName(_needtolaunch.Dequeue());
+		_mainThreadRunning = true;
+		Mainthread = new Thread(() =>
+		{
+			while (!ShouldClose)
+			{
+				UnlockMutex();
+				if (_needtolaunch.Any())
+				{
+					if (!LockMutex()) break;
+					var accountName = GetAccountName(_needtolaunch.Dequeue());
 
-                    var res = LaunchAccount(accountName);
-                    UnlockMutex();
-                    if (res != null)
-                    {
-                        MessageBox.Show(@"Failed to launch account " + accountName + "\n" + res);
-                    }
-                }
+					var res = LaunchAccount(accountName);
+					UnlockMutex();
+					if (res != null)
+					{
+						MessageBox.Show(@"Failed to launch account " + accountName + "\n" + res);
+					}
+				}
 
-                if (!LockMutex()) continue;
+				if (!LockMutex()) continue;
 
-                for (var i = 0; _mainForm != null && i < Accounts.Length; i++)
-                {
-                    var state = "Inactive";
-                    var gwcaMemory = Accounts[i].process;
-                    if (gwcaMemory != null && gwcaMemory.process != null && !gwcaMemory.process.HasExited)
-                    {
-                        state = "Active";
-                    }
+				for (var i = 0; _mainForm != null && i < Accounts.Length; i++)
+				{
+					var state = "Inactive";
+					var gwcaMemory = Accounts[i].process;
+					if (gwcaMemory != null && gwcaMemory.process != null && !gwcaMemory.process.HasExited)
+					{
+						state = "Active";
+					}
 
-                    if (state != "Active" && Accounts[i].process != null)
-                    {
-                        Accounts[i].process = null;
-                    }
+					if (state != "Active" && Accounts[i].process != null)
+					{
+						Accounts[i].process = null;
+					}
 
-                    if (Accounts[i].state != state)
-                    {
-                        _mainForm?.SetAccountState(i, state);
-                    }
-                }
+					if (Accounts[i].state != state)
+					{
+						_mainForm?.SetAccountState(i, state);
+					}
+				}
 
-                UnlockMutex();
+				UnlockMutex();
 
-                Thread.Sleep(1000);
-            }
+				Thread.Sleep(1000);
+			}
 
-            _mainThreadRunning = false;
-        });
+			_mainThreadRunning = false;
+		});
 
-        // Main application
-        _mainForm = new MainForm(Settings.LaunchMinimized);
-        _mainForm.FormClosed += (_, _) => { Exit(); };
-        Application.Run(_mainForm);
-    }
+		// Main application
+		_mainForm = new MainForm(Settings.LaunchMinimized);
+		_mainForm.FormClosed += (_, _) => { Exit(); };
+		Application.Run(_mainForm);
+	}
 
-    public static bool QueueLaunch(int index)
-    {
-        if (index < 0 || Accounts.Length <= index)
-            return false;
-        _needtolaunch.Enqueue(index);
-        return true;
-    }
+	public static bool QueueLaunch(int index)
+	{
+		if (index < 0 || Accounts.Length <= index)
+			return false;
+		_needtolaunch.Enqueue(index);
+		return true;
+	}
 
-    public static void Exit()
-    {
-        while (_needtolaunch.Count > 0)
-            Thread.Sleep(16);
-        ShouldClose = true;
-        while (_mainThreadRunning)
-            Thread.Sleep(16);
-        if (GwlMutex != null)
-        {
-            GwlMutex.Close();
-            GwlMutex = null;
-        }
-    }
+	public static void Exit()
+	{
+		while (_needtolaunch.Count > 0)
+			Thread.Sleep(16);
+		ShouldClose = true;
+		while (_mainThreadRunning)
+			Thread.Sleep(16);
+		if (GwlMutex != null)
+		{
+			GwlMutex.Close();
+			GwlMutex = null;
+		}
+	}
 
-    private static bool ParseCommandLineArgs()
-    {
-        var args = Environment.GetCommandLineArgs();
-        for (var i = 1; i < args.Length; i++)
-        {
-            switch (args[i])
-            {
-                case "-launch":
-                    i++;
-                    if (i >= args.Length)
-                    {
-                        MessageBox.Show(@"No value for command line argument -launch");
-                        return false;
-                    }
+	private static bool ParseCommandLineArgs()
+	{
+		var args = Environment.GetCommandLineArgs();
+		for (var i = 1; i < args.Length; i++)
+		{
+			switch (args[i])
+			{
+				case "-launch":
+					i++;
+					if (i >= args.Length)
+					{
+						MessageBox.Show(@"No value for command line argument -launch");
+						return false;
+					}
 
-                    _commandArgLaunchAccountName = args[i];
-                    break;
-            }
-        }
+					_commandArgLaunchAccountName = args[i];
+					break;
+			}
+		}
 
-        return true;
-    }
+		return true;
+	}
 
-    private static bool InitialiseGwLauncherMutex()
-    {
-        // Check to see if another instance is running
-        if (Mutex.TryOpenExisting(GwlMutexName, out GwlMutex))
-        {
-            //MessageBox.Show(@"GW Launcher already running. GW Launcher will close.");
-            return false;
-        }
+	private static bool InitialiseGwLauncherMutex()
+	{
+		// Check to see if another instance is running
+		if (Mutex.TryOpenExisting(GwlMutexName, out GwlMutex))
+		{
+			//MessageBox.Show(@"GW Launcher already running. GW Launcher will close.");
+			return false;
+		}
 
-        GwlMutex = new Mutex(true, GwlMutexName);
-        return true;
-    }
+		GwlMutex = new Mutex(true, GwlMutexName);
+		return true;
+	}
 
-    private static bool LoadAccountsJson()
-    {
-        // Load accounts
-        try
-        {
-            Accounts = new AccountManager("Accounts.json");
-            return true;
-        }
-        catch (Exception)
-        {
-            if (Settings.Encrypt) return false; // error message already shown
-            MessageBox.Show("""
+	private static bool LoadAccountsJson()
+	{
+		// Load accounts
+		try
+		{
+			Accounts = new AccountManager("Accounts.json");
+			return true;
+		}
+		catch (Exception)
+		{
+			if (Settings.Encrypt) return false; // error message already shown
+			MessageBox.Show("""
                             Couldn't load account information, there might be an error in the .json.
                             GW Launcher will close.
                             """);
 
-            return false;
-        }
-    }
+			return false;
+		}
+	}
 
-    private static bool LockMutex()
-    {
-        _gotMutex = _gotMutex || Mutex.WaitOne(1000);
-        return _gotMutex;
-    }
+	private static bool LockMutex()
+	{
+		_gotMutex = _gotMutex || Mutex.WaitOne(1000);
+		return _gotMutex;
+	}
 
-    private static void UnlockMutex()
-    {
-        if (_gotMutex)
-        {
-            Mutex.ReleaseMutex();
-            _gotMutex = false;
-        }
-    }
+	private static void UnlockMutex()
+	{
+		if (_gotMutex)
+		{
+			Mutex.ReleaseMutex();
+			_gotMutex = false;
+		}
+	}
 
-    private static void WarnIfInGwDirectory()
-    {
-        var exePath = Application.ExecutablePath;
-        var exeDirectory = Path.GetDirectoryName(exePath) ?? string.Empty;
-        var exeLower = exePath.ToLowerInvariant();
+	private static void WarnIfInGwDirectory()
+	{
+		var exePath = Application.ExecutablePath;
+		var exeDirectory = Path.GetDirectoryName(exePath) ?? string.Empty;
+		var exeLower = exePath.ToLowerInvariant();
 
-        var inProgramFiles = exeLower.Contains(@"program files\") || exeLower.Contains(@"program files (x86)\");
-        var hasGwExe = File.Exists(Path.Combine(exeDirectory, "gw.exe"));
+		var inProgramFiles = exeLower.Contains(@"program files\") || exeLower.Contains(@"program files (x86)\");
+		var hasGwExe = File.Exists(Path.Combine(exeDirectory, "gw.exe"));
 
-        if (inProgramFiles || hasGwExe)
-        {
-            MessageBox.Show(
-                "This application should not be run from Program Files or the Guild Wars directory.\n\nPlease move GW Launcher to its own folder in your User folder.",
-                "Warning",
-                MessageBoxButtons.OK,
-                MessageBoxIcon.Warning
-            );
-        }
-    }
+		if (inProgramFiles || hasGwExe)
+		{
+			MessageBox.Show(
+				"This application should not be run from Program Files or the Guild Wars directory.\n\nPlease move GW Launcher to its own folder in your User folder.",
+				"Warning",
+				MessageBoxButtons.OK,
+				MessageBoxIcon.Warning
+			);
+		}
+	}
 
-    private static async Task CheckGitHubNewerVersion()
-    {
-        const string oldName = ".old.exe";
-        const string newName = ".new.exe";
-        if (Settings.AutoUpdate && (File.Exists(oldName) || File.Exists(newName)))
-        {
-            File.Delete(oldName);
-            File.Delete(newName);
-        }
+	private static async Task CheckGitHubNewerVersion()
+	{
+		const string oldName = ".old.exe";
+		const string newName = ".new.exe";
+		if (Settings.AutoUpdate && (File.Exists(oldName) || File.Exists(newName)))
+		{
+			File.Delete(oldName);
+			File.Delete(newName);
+		}
 
-        var client = new GitHubClient(new ProductHeaderValue("GWLauncher"));
-        var releases = await client.Repository.Release.GetAll("gwdevhub", "gwlauncher");
+		var client = new GitHubClient(new ProductHeaderValue("GWLauncher"));
+		var releases = await client.Repository.Release.GetAll("gwdevhub", "gwlauncher");
 
-        if (!releases.Any(r => !r.Prerelease && !r.Draft))
-        {
-            return;
-        }
+		if (!releases.Any(r => !r.Prerelease && !r.Draft))
+		{
+			return;
+		}
 
-        var release = releases.First(r => !r.Prerelease && !r.Draft);
-        var tagName = Regex.Replace(release.TagName, @"[^\d\.]", "");
-        var latestVersion = new Version(tagName);
-        var minVersion = new Version("13.0");
-        if (latestVersion.CompareTo(minVersion) <= 0)
-        {
-            return;
-        }
+		var release = releases.First(r => !r.Prerelease && !r.Draft);
+		var tagName = Regex.Replace(release.TagName, @"[^\d\.]", "");
+		var latestVersion = new Version(tagName);
+		var minVersion = new Version("13.0");
+		if (latestVersion.CompareTo(minVersion) <= 0)
+		{
+			return;
+		}
 
-        var assembly = Assembly.GetExecutingAssembly();
-        var fvi = FileVersionInfo.GetVersionInfo(Environment.ProcessPath ?? "");
-        var version = assembly.GetName().Version?.ToString();
-        if (version == null && fvi.FileVersion == null)
-        {
-            return;
-        }
+		var assembly = Assembly.GetExecutingAssembly();
+		var fvi = FileVersionInfo.GetVersionInfo(Environment.ProcessPath ?? "");
+		var version = assembly.GetName().Version?.ToString();
+		if (version == null && fvi.FileVersion == null)
+		{
+			return;
+		}
 
-        var strVersion = fvi.FileVersion ?? version ?? "";
-        var localVersion = new Version(strVersion);
+		var strVersion = fvi.FileVersion ?? version ?? "";
+		var localVersion = new Version(strVersion);
 
-        var versionComparison = localVersion.CompareTo(latestVersion);
-        if (versionComparison >= 0)
-        {
-            return;
-        }
+		var versionComparison = localVersion.CompareTo(latestVersion);
+		if (versionComparison >= 0)
+		{
+			return;
+		}
 
-        var latest = releases[0];
-        var runtimeInstalled = IsDotNet8DesktopInstalled();
+		var latest = releases[0];
+		var runtimeInstalled = IsDotNet8DesktopInstalled();
 
-        if (!Settings.AutoUpdate)
-        {
-            var msgBoxResult = MessageBox.Show(
-                $@"New version {tagName} available online. Visit page?{(runtimeInstalled ? "\nYou can download the Framework Dependent version." : "")}",
-                @"GW Launcher",
-                MessageBoxButtons.YesNo,
-                MessageBoxIcon.Information,
-                MessageBoxDefaultButton.Button2);
-            if (msgBoxResult == DialogResult.Yes)
-            {
-                Process.Start("explorer.exe", latest.HtmlUrl);
-            }
+		if (!Settings.AutoUpdate)
+		{
+			var msgBoxResult = MessageBox.Show(
+				$@"New version {tagName} available online. Visit page?{(runtimeInstalled ? "\nYou can download the Framework Dependent version." : "")}",
+				@"GW Launcher",
+				MessageBoxButtons.YesNo,
+				MessageBoxIcon.Information,
+				MessageBoxDefaultButton.Button2);
+			if (msgBoxResult == DialogResult.Yes)
+			{
+				Process.Start("explorer.exe", latest.HtmlUrl);
+			}
 
-            return;
-        }
+			return;
+		}
 
-        var currentName = Path.GetFileName(Process.GetCurrentProcess().MainModule?.FileName);
-        if (currentName == null)
-        {
-            return;
-        }
+		var currentName = Path.GetFileName(Process.GetCurrentProcess().MainModule?.FileName);
+		if (currentName == null)
+		{
+			return;
+		}
 
-        var assetName = runtimeInstalled
-            ? "GW_Launcher_Framework_Dependent.exe"
-            : "GW_Launcher.exe";
+		var assetName = runtimeInstalled
+			? "GW_Launcher_Framework_Dependent.exe"
+			: "GW_Launcher.exe";
 
-        var asset = latest.Assets.FirstOrDefault(a => a.Name == assetName);
-        if (asset == null)
-        {
-            return;
-        }
+		var asset = latest.Assets.FirstOrDefault(a => a.Name == assetName);
+		if (asset == null)
+		{
+			return;
+		}
 
-        var uri = new Uri(asset.BrowserDownloadUrl);
-        var httpClient = new HttpClient();
-        await using (var s = await httpClient.GetStreamAsync(uri))
-        {
-            await using var fs = new FileStream(newName, FileMode.Create);
-            await s.CopyToAsync(fs);
-        }
+		var uri = new Uri(asset.BrowserDownloadUrl);
+		var httpClient = new HttpClient();
+		await using (var s = await httpClient.GetStreamAsync(uri))
+		{
+			await using var fs = new FileStream(newName, FileMode.Create);
+			await s.CopyToAsync(fs);
+		}
 
-        Mutex.WaitOne();
-        ShouldClose = true;
-        if (Mainthread.ThreadState == ThreadState.Running && !Mainthread.Join(5000))
-        {
-            return;
-        }
+		Mutex.WaitOne();
+		ShouldClose = true;
+		if (Mainthread.ThreadState == ThreadState.Running && !Mainthread.Join(5000))
+		{
+			return;
+		}
 
-        Mutex.Close();
-        GwlMutex?.Close();
+		Mutex.Close();
+		GwlMutex?.Close();
 
-        File.Move(currentName, oldName);
-        File.Move(newName, currentName);
+		File.Move(currentName, oldName);
+		File.Move(newName, currentName);
 
-        var fileName = Environment.ProcessPath;
-        var processInfo = new ProcessStartInfo
-        {
-            UseShellExecute = true,
-            FileName = fileName,
-            Arguments = "restart"
-        };
+		var fileName = Environment.ProcessPath;
+		var processInfo = new ProcessStartInfo
+		{
+			UseShellExecute = true,
+			FileName = fileName,
+			Arguments = "restart"
+		};
 
-        Application.Restart();
-        Process.Start(processInfo);
-        Environment.Exit(0);
-    }
+		Application.Restart();
+		Process.Start(processInfo);
+		Environment.Exit(0);
+	}
 
-    private static bool IsDotNet8DesktopInstalled()
-    {
-        try
-        {
-            var processInfo = new ProcessStartInfo
-            {
-                FileName = "dotnet",
-                Arguments = "--list-runtimes",
-                RedirectStandardOutput = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
+	private static bool IsDotNet8DesktopInstalled()
+	{
+		try
+		{
+			var processInfo = new ProcessStartInfo
+			{
+				FileName = "dotnet",
+				Arguments = "--list-runtimes",
+				RedirectStandardOutput = true,
+				UseShellExecute = false,
+				CreateNoWindow = true
+			};
 
-            using var process = Process.Start(processInfo);
-            using var reader = process!.StandardOutput;
-            var output = reader.ReadToEnd();
-            process.WaitForExit();
+			using var process = Process.Start(processInfo);
+			using var reader = process!.StandardOutput;
+			var output = reader.ReadToEnd();
+			process.WaitForExit();
 
-            return output.Contains("Microsoft.WindowsDesktop.App 8");
-        }
-        catch (Exception)
-        {
-            return false;
-        }
-    }
+			return output.Contains("Microsoft.WindowsDesktop.App 8");
+		}
+		catch (Exception)
+		{
+			return false;
+		}
+	}
 
-    private static async Task CheckGitHubGModVersion()
-    {
-        var location = Path.GetDirectoryName(AppContext.BaseDirectory);
-        var gmod = Path.Combine(location!, "gMod.dll");
-        //Get all releases from GitHub
-        var client = new GitHubClient(new ProductHeaderValue("gMod"));
-        var releases = await client.Repository.Release.GetAll("gwdevhub", "gMod");
+	private static async Task CheckGitHubGModVersion()
+	{
+		var location = Path.GetDirectoryName(AppContext.BaseDirectory);
+		var gmod = Path.Combine(location!, "gMod.dll");
+		//Get all releases from GitHub
+		var client = new GitHubClient(new ProductHeaderValue("gMod"));
+		var releases = await client.Repository.Release.GetAll("gwdevhub", "gMod");
 
-        if (!releases.Any(r => !r.Prerelease && !r.Draft))
-        {
-            return;
-        }
+		if (!releases.Any(r => !r.Prerelease && !r.Draft))
+		{
+			return;
+		}
 
-        var release = releases.First(r => !r.Prerelease && !r.Draft);
-        var tagName = Regex.Replace(release.TagName, @"[^\d\.]", "");
-        var latestVersion = new Version(tagName);
-        var minVersion = new Version("1.5.2");
-        if (latestVersion.CompareTo(minVersion) <= 0)
-        {
-            return;
-        }
+		var release = releases.First(r => !r.Prerelease && !r.Draft);
+		var tagName = Regex.Replace(release.TagName, @"[^\d\.]", "");
+		var latestVersion = new Version(tagName);
+		var minVersion = new Version("1.5.2");
+		if (latestVersion.CompareTo(minVersion) <= 0)
+		{
+			return;
+		}
 
-        string strVersion;
-        try
-        {
-            var fvi = FileVersionInfo.GetVersionInfo(gmod);
-            strVersion = fvi.FileVersion!;
-        }
-        catch (FileNotFoundException)
-        {
-            strVersion = "1.0.0";
-        }
+		string strVersion;
+		try
+		{
+			var fvi = FileVersionInfo.GetVersionInfo(gmod);
+			strVersion = fvi.FileVersion!;
+		}
+		catch (FileNotFoundException)
+		{
+			strVersion = "1.0.0";
+		}
 
-        var localVersion = new Version(strVersion);
+		var localVersion = new Version(strVersion);
 
-        var versionComparison = localVersion.CompareTo(latestVersion);
-        if (versionComparison >= 0)
-        {
-            return;
-        }
+		var versionComparison = localVersion.CompareTo(latestVersion);
+		if (versionComparison >= 0)
+		{
+			return;
+		}
 
-        var latest = releases[0];
+		var latest = releases[0];
 
-        var asset = latest.Assets.First(a => a.Name == "gMod.dll");
-        if (asset == null)
-        {
-            return;
-        }
+		var asset = latest.Assets.First(a => a.Name == "gMod.dll");
+		if (asset == null)
+		{
+			return;
+		}
 
-        var uri = new Uri(asset.BrowserDownloadUrl);
-        var httpClient = new HttpClient();
-        await using var s = await httpClient.GetStreamAsync(uri);
-        await using var fs = new FileStream(gmod, FileMode.Create);
-        await s.CopyToAsync(fs);
-    }
+		var uri = new Uri(asset.BrowserDownloadUrl);
+		var httpClient = new HttpClient();
+		await using var s = await httpClient.GetStreamAsync(uri);
+		await using var fs = new FileStream(gmod, FileMode.Create);
+		await s.CopyToAsync(fs);
+	}
 	public static async Task CheckForGwExeUpdates(bool messageIfUpToDate)
 	{
 		using var cts = new CancellationTokenSource();
@@ -725,42 +725,59 @@ internal static class Program
 
 			var latestFileId = response.Value.FileId;
 			var accsToUpdate = new List<Account>();
-			var accsChecked = new List<Account>();
+			var addsFailedToCheck = new List<Account>();
 
-			foreach (var account in Accounts)
+			// Group accounts by exe path so each distinct exe is only parsed once,
+			// then check all unique paths in parallel.
+			var accountsByPath = Accounts
+				.GroupBy(a => a.gwpath, StringComparer.OrdinalIgnoreCase)
+				.ToList();
+
+			var checkTasks = accountsByPath.Select(async group =>
 			{
 				ct.ThrowIfCancellationRequested();
+				var gwpath = group.Key;
+				var accountsForPath = group.ToList();
 
-				if (accsChecked.Select(a => a.gwpath).Contains(account.gwpath)) continue;
-				if (!File.Exists(account.gwpath))
-				{
-					accsToUpdate.Add(account);
-					continue;
-				}
-				accsChecked.Add(account);
+				if (!File.Exists(gwpath))
+					return (toUpdate: accountsForPath, failedToCheck: new List<Account>());
+
 				try
 				{
-					var parser = new GuildWarsExecutableParser(account.gwpath);
-					if (parser.GetFileId() == latestFileId)
-						continue;
+					var fileId = await Task.Run(() => new GuildWarsExecutableParser(gwpath).GetFileId(), ct);
+					if (fileId == 0)
+						return (toUpdate: new List<Account>(), failedToCheck: accountsForPath);
+					if (fileId == latestFileId)
+						return (toUpdate: new List<Account>(), failedToCheck: new List<Account>());
 				}
 				catch (Exception e)
 				{
-					Console.WriteLine($"Error checking version for {account.gwpath}: {e}");
-					continue;
+					Console.WriteLine($"Error checking version for {gwpath}: {e}");
+					return (toUpdate: new List<Account>(), failedToCheck: accountsForPath);
 				}
-				accsToUpdate.Add(account);
-			}
 
+				return (toUpdate: accountsForPath, failedToCheck: new List<Account>());
+			});
+
+			var results = await Task.WhenAll(checkTasks);
+			foreach (var (toUpdate, failedToCheck) in results)
+			{
+				accsToUpdate.AddRange(toUpdate);
+				addsFailedToCheck.AddRange(failedToCheck);
+			}
+			if (addsFailedToCheck.Count != 0 && messageIfUpToDate)
+			{
+				var failedAccNames = string.Join(',', addsFailedToCheck.Select(acc => acc.Name));
+				MessageBox.Show($"Failed to check the version number on these accounts:\n{failedAccNames}", "GW Update");
+			}
 			if (accsToUpdate.Count == 0)
 			{
 				if (messageIfUpToDate)
 					MessageBox.Show("No accounts are out of date.", "GW Update");
 				return;
 			}
-
 			var accNames = string.Join(',', accsToUpdate.Select(acc => acc.Name));
-			var ok = MessageBox.Show($"Accounts {accNames} are out of date. Update now?", "GW Update",
+			var ok = MessageBox.Show($"These Accounts are out-of-date:\n{accNames}\nUpdate now?", "GW Update",
 				MessageBoxButtons.YesNo);
 
 			if (ok == DialogResult.Yes)
