@@ -692,123 +692,145 @@ internal static class Program
 				cts.Cancel();
 		};
 
+		List<Account> accsToUpdate = new();
+		List<Account> failedToCheck = new();
+		Exception? checkError = null;
+
 		// Run the check in the background, close dialog when done
 		var checkTask = Task.Run(async () =>
 		{
 			try
 			{
-				await RunUpdateCheck(messageIfUpToDate, cts.Token);
+				(accsToUpdate, failedToCheck) = await RunUpdateCheck(cts.Token);
+			}
+			catch (OperationCanceledException)
+			{
+				// User cancelled — exit silently
+			}
+			catch (Exception ex)
+			{
+				checkError = ex;
 			}
 			finally
 			{
-				checkingDialog.Invoke(() => checkingDialog.Close());
+				try
+				{
+					checkingDialog.Invoke(() => checkingDialog.Close());
+				}
+				catch
+				{
+					// Dialog may already be disposed if cancelled
+				}
 			}
 		}, cts.Token);
 
 		checkingDialog.ShowDialog();
 		await checkTask; // propagate exceptions / await completion
-	}
 
-	private static async Task RunUpdateCheck(bool messageIfUpToDate, CancellationToken ct)
-	{
-		try
+		// Dialog is closed by here — show prompts and run updates without it on screen.
+
+		if (checkError != null)
 		{
-			var (response, error) = await GwDownloader.GetLatestGwExeInfoAsync();
-			ct.ThrowIfCancellationRequested();
+			Console.WriteLine($"Error checking for Gw.exe updates: {checkError.Message}");
+			MessageBox.Show($"Error checking for updates: {checkError.Message}", "Update Check Error",
+				MessageBoxButtons.OK, MessageBoxIcon.Error);
+			return;
+		}
 
-			if (response == null || !string.IsNullOrEmpty(error))
+		if (cts.IsCancellationRequested)
+			return;
+
+		if (failedToCheck.Count != 0 && messageIfUpToDate)
+		{
+			var failedAccNames = string.Join(',', failedToCheck.Select(acc => acc.Name));
+			MessageBox.Show($"Failed to check the version number on these accounts:\n{failedAccNames}", "GW Update");
+		}
+		if (accsToUpdate.Count == 0)
+		{
+			if (messageIfUpToDate)
+				MessageBox.Show("No accounts are out of date.", "GW Update");
+			return;
+		}
+		var accNames = string.Join(',', accsToUpdate.Select(acc => acc.Name));
+		var ok = MessageBox.Show($"These Accounts are out-of-date:\n{accNames}\nUpdate now?", "GW Update",
+			MessageBoxButtons.YesNo);
+
+		if (ok != DialogResult.Yes)
+			return;
+
+		AdminAccess.RestartAsAdminPrompt(true);
+		if (_mainForm is not null)
+		{
+			await _mainForm.Invoke(async () =>
 			{
-				if (!string.IsNullOrEmpty(error))
-					Console.WriteLine($"Error getting latest GW exe info: {error}");
-				return;
-			}
-
-			var latestFileId = response.Value.FileId;
-			var accsToUpdate = new List<Account>();
-			var addsFailedToCheck = new List<Account>();
-
-			// Group accounts by exe path so each distinct exe is only parsed once,
-			// then check all unique paths in parallel.
-			var accountsByPath = Accounts
-				.GroupBy(a => a.gwpath, StringComparer.OrdinalIgnoreCase)
-				.ToList();
-
-			var checkTasks = accountsByPath.Select(async group =>
-			{
-				ct.ThrowIfCancellationRequested();
-				var gwpath = group.Key;
-				var accountsForPath = group.ToList();
-
-				if (!File.Exists(gwpath))
-					return (toUpdate: accountsForPath, failedToCheck: new List<Account>());
-
 				try
 				{
-					var fileId = await Task.Run(() => new GuildWarsExecutableParser(gwpath).GetFileId(), ct);
-					if (fileId == 0)
-						return (toUpdate: new List<Account>(), failedToCheck: accountsForPath);
-					if (fileId == latestFileId)
-						return (toUpdate: new List<Account>(), failedToCheck: new List<Account>());
+					Mutex.WaitOne();
+					await _mainForm.UpdateAccountsGui(accsToUpdate);
 				}
-				catch (Exception e)
+				finally
 				{
-					Console.WriteLine($"Error checking version for {gwpath}: {e}");
-					return (toUpdate: new List<Account>(), failedToCheck: accountsForPath);
+					Mutex.ReleaseMutex();
 				}
-
-				return (toUpdate: accountsForPath, failedToCheck: new List<Account>());
 			});
+		}
+	}
 
-			var results = await Task.WhenAll(checkTasks);
-			foreach (var (toUpdate, failedToCheck) in results)
-			{
-				accsToUpdate.AddRange(toUpdate);
-				addsFailedToCheck.AddRange(failedToCheck);
-			}
-			if (addsFailedToCheck.Count != 0 && messageIfUpToDate)
-			{
-				var failedAccNames = string.Join(',', addsFailedToCheck.Select(acc => acc.Name));
-				MessageBox.Show($"Failed to check the version number on these accounts:\n{failedAccNames}", "GW Update");
-			}
-			if (accsToUpdate.Count == 0)
-			{
-				if (messageIfUpToDate)
-					MessageBox.Show("No accounts are out of date.", "GW Update");
-				return;
-			}
-			var accNames = string.Join(',', accsToUpdate.Select(acc => acc.Name));
-			var ok = MessageBox.Show($"These Accounts are out-of-date:\n{accNames}\nUpdate now?", "GW Update",
-				MessageBoxButtons.YesNo);
+	private static async Task<(List<Account> toUpdate, List<Account> failedToCheck)> RunUpdateCheck(CancellationToken ct)
+	{
+		var (response, error) = await GwDownloader.GetLatestGwExeInfoAsync();
+		ct.ThrowIfCancellationRequested();
 
-			if (ok == DialogResult.Yes)
+		if (response == null || !string.IsNullOrEmpty(error))
+		{
+			if (!string.IsNullOrEmpty(error))
+				Console.WriteLine($"Error getting latest GW exe info: {error}");
+			return (new List<Account>(), new List<Account>());
+		}
+
+		var latestFileId = response.Value.FileId;
+		var accsToUpdate = new List<Account>();
+		var addsFailedToCheck = new List<Account>();
+
+		// Group accounts by exe path so each distinct exe is only parsed once,
+		// then check all unique paths in parallel.
+		var accountsByPath = Accounts
+			.GroupBy(a => a.gwpath, StringComparer.OrdinalIgnoreCase)
+			.ToList();
+
+		var checkTasks = accountsByPath.Select(async group =>
+		{
+			ct.ThrowIfCancellationRequested();
+			var gwpath = group.Key;
+			var accountsForPath = group.ToList();
+
+			if (!File.Exists(gwpath))
+				return (toUpdate: accountsForPath, failedToCheck: new List<Account>());
+
+			try
 			{
-				AdminAccess.RestartAsAdminPrompt(true);
-				if (_mainForm is not null)
-				{
-					await _mainForm.Invoke(async () =>
-					{
-						try
-						{
-							Mutex.WaitOne();
-							await _mainForm.UpdateAccountsGui(accsToUpdate);
-						}
-						finally
-						{
-							Mutex.ReleaseMutex();
-						}
-					});
-				}
+				var fileId = await Task.Run(() => new GuildWarsExecutableParser(gwpath).GetFileId(), ct);
+				if (fileId == 0)
+					return (toUpdate: new List<Account>(), failedToCheck: accountsForPath);
+				if (fileId == latestFileId)
+					return (toUpdate: new List<Account>(), failedToCheck: new List<Account>());
 			}
-		}
-		catch (OperationCanceledException)
+			catch (Exception e)
+			{
+				Console.WriteLine($"Error checking version for {gwpath}: {e}");
+				return (toUpdate: new List<Account>(), failedToCheck: accountsForPath);
+			}
+
+			return (toUpdate: accountsForPath, failedToCheck: new List<Account>());
+		});
+
+		var results = await Task.WhenAll(checkTasks);
+		foreach (var (toUpdate, failedToCheck) in results)
 		{
-			// User cancelled — exit silently
+			accsToUpdate.AddRange(toUpdate);
+			addsFailedToCheck.AddRange(failedToCheck);
 		}
-		catch (Exception ex)
-		{
-			Console.WriteLine($"Error checking for Gw.exe updates: {ex.Message}");
-			MessageBox.Show($"Error checking for updates: {ex.Message}", "Update Check Error",
-				MessageBoxButtons.OK, MessageBoxIcon.Error);
-		}
+
+		return (accsToUpdate, addsFailedToCheck);
 	}
 }
