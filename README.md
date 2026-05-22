@@ -118,6 +118,8 @@ It will convert your invalid .tpf file into a valid .zip file. Delete the tpf fi
 
 64 bit hashes from uMod v2 are supported with GW Launcher version 16 and up.
 
+### Toolbox integration
 
+Coming, perhaps.
 
 
