@@ -686,15 +686,17 @@ internal static class Program
 		cancelBtn.Click += (_, _) => cts.Cancel();
 		checkingDialog.Controls.Add(label);
 		checkingDialog.Controls.Add(cancelBtn);
-		checkingDialog.FormClosing += (_, e) =>
-		{
-			if (!cts.IsCancellationRequested)
-				cts.Cancel();
-		};
 
 		List<Account> accsToUpdate = new();
 		List<Account> failedToCheck = new();
 		Exception? checkError = null;
+		var checkCompleted = false;
+
+		checkingDialog.FormClosing += (_, e) =>
+		{
+			if (!checkCompleted && !cts.IsCancellationRequested)
+				cts.Cancel();
+		};
 
 		// Run the check in the background, close dialog when done
 		var checkTask = Task.Run(async () =>
@@ -713,6 +715,7 @@ internal static class Program
 			}
 			finally
 			{
+				checkCompleted = true;
 				try
 				{
 					checkingDialog.Invoke(() => checkingDialog.Close());
