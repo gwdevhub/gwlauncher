@@ -620,7 +620,7 @@ internal static class Program
 		var release = releases.First(r => !r.Prerelease && !r.Draft);
 		var tagName = Regex.Replace(release.TagName, @"[^\d\.]", "");
 		var latestVersion = new Version(tagName);
-		var minVersion = new Version("1.5.2");
+		var minVersion = new Version("1.6.0");
 		if (latestVersion.CompareTo(minVersion) <= 0)
 		{
 			return;
