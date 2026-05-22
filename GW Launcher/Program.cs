@@ -808,7 +808,7 @@ internal static class Program
 			var accountsForPath = group.ToList();
 
 			if (!File.Exists(gwpath))
-				return (toUpdate: accountsForPath, failedToCheck: new List<Account>());
+				return (toUpdate: new List<Account>(), failedToCheck: new List<Account>());
 
 			try
 			{
