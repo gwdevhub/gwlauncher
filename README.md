@@ -120,6 +120,6 @@ It will convert your invalid .tpf file into a valid .zip file. Delete the tpf fi
 
 ### Toolbox integration
 
-Coming, perhaps.
+Coming, with live-reload support, perhaps.
 
 
