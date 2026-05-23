@@ -23,7 +23,7 @@ internal static class Program
 	private static bool _gotMutex = false;
 	public static GlobalSettings Settings = GlobalSettings.Load();
 
-	private static Queue<int> _needtolaunch = new Queue<int>();
+	private static Queue<(int index, bool ctrlHeld)> _needtolaunch = new();
 
 	private static string _commandArgLaunchAccountName = "";
 
@@ -115,7 +115,7 @@ internal static class Program
 		return null;
 	}
 
-	private static string? LaunchAccount(string accountName)
+	private static string? LaunchAccount(string accountName, bool ctrlHeld = false)
 	{
 		var found = Accounts.IndexOf(accountName);
 		if (found == -1)
@@ -124,7 +124,7 @@ internal static class Program
 		if (result != null) return result;
 		result = CreateSteamAppIdFile(Accounts[found]);
 		if (result != null) return result;
-		result = LaunchAccount(Accounts[found]);
+		result = LaunchAccount(Accounts[found], ctrlHeld);
 		DeleteSteamAppIdFile(Accounts[found]);
 		return result;
 	}
@@ -140,7 +140,7 @@ internal static class Program
 		return account == null ? "" : account.Name;
 	}
 
-	private static string? LaunchAccount(Account account)
+	private static string? LaunchAccount(Account account, bool ctrlHeld = false)
 	{
 		_mainForm?.SetAccountState(Accounts.IndexOf(account), "Launching");
 		GWCAMemory? memory = null;
@@ -172,7 +172,7 @@ internal static class Program
 				return ex.Message;
 			}
 
-			var res = MulticlientPatch.LaunchClient(account, out memory);
+			var res = MulticlientPatch.LaunchClient(account, ctrlHeld, out memory);
 			if (res != null)
 				return res;
 		}
@@ -306,9 +306,10 @@ internal static class Program
 				if (_needtolaunch.Any())
 				{
 					if (!LockMutex()) break;
-					var accountName = GetAccountName(_needtolaunch.Dequeue());
+					var (queuedIndex, queuedCtrlHeld) = _needtolaunch.Dequeue();
+					var accountName = GetAccountName(queuedIndex);
 
-					var res = LaunchAccount(accountName);
+					var res = LaunchAccount(accountName, queuedCtrlHeld);
 					UnlockMutex();
 					if (res != null)
 					{
@@ -352,11 +353,11 @@ internal static class Program
 		Application.Run(_mainForm);
 	}
 
-	public static bool QueueLaunch(int index)
+	public static bool QueueLaunch(int index, bool ctrlHeld = false)
 	{
 		if (index < 0 || Accounts.Length <= index)
 			return false;
-		_needtolaunch.Enqueue(index);
+		_needtolaunch.Enqueue((index, ctrlHeld));
 		return true;
 	}
 

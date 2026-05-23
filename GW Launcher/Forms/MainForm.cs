@@ -258,7 +258,8 @@ public partial class MainForm : Form
         {
             return;
         }
-        Program.QueueLaunch(selectedItems[0]);
+        var ctrlHeld = (ModifierKeys & Keys.Control) == Keys.Control;
+        Program.QueueLaunch(selectedItems[0], ctrlHeld);
     }
 
     private void ToolStripMenuItemLaunchSelected_Click(object sender, EventArgs e)
@@ -269,9 +270,10 @@ public partial class MainForm : Form
             return;
         }
 
+        var ctrlHeld = (ModifierKeys & Keys.Control) == Keys.Control;
         foreach (int selectedItem in _selectedItems)
         {
-            Program.QueueLaunch(selectedItem);
+            Program.QueueLaunch(selectedItem, ctrlHeld);
         }
     }
 

@@ -36,9 +36,6 @@ internal static class MulticlientPatch
         return peb.ImageBaseAddress + 0x1000;
     }
 
-    [DllImport("user32.dll")]
-    public static extern short GetAsyncKeyState(int vKey);
-
     private static string? ResumeThread(IntPtr hThread)
     {
         if (hThread != IntPtr.Zero)
@@ -64,7 +61,7 @@ internal static class MulticlientPatch
         return null;
     }
 
-    public static string? LaunchClient(Account account, out GWCAMemory? memory)
+    public static string? LaunchClient(Account account, bool ctrlHeld, out GWCAMemory? memory)
     {
         var path = account.gwpath;
         Process? process = null;
@@ -140,9 +137,7 @@ internal static class MulticlientPatch
 
         memory = new GWCAMemory(process);
 
-        const int VK_CONTROL = 0x11;
-        //NB: Because account launching is done on another thread, we can't rely on WPF/WinForms API to tell us if ctrl is pressed
-        if ((GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0)
+        if (ctrlHeld)
         {
             var result =
                 MessageBox.Show("Guild Wars is in a suspended state, plugins are not yet loaded.\n\nContinue?",
@@ -192,7 +187,17 @@ internal static class MulticlientPatch
         {
             try
             {
-                process?.Kill();
+                if (ctrlHeld && process is { HasExited: false })
+                {
+                    // Ctrl-launch implies the user is taking manual control (e.g. attaching a
+                    // debugger), which can legitimately cause injection to time out. Resume the
+                    // suspended game instead of killing it so they can keep using it.
+                    process.Resume();
+                }
+                else
+                {
+                    process?.Kill();
+                }
             }
             finally
             {
