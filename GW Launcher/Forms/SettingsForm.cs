@@ -15,7 +15,7 @@ public partial class SettingsForm : Form
 
 	private void LoadSettings()
 	{
-		checkBoxEncrypt.Checked = _settings.Encrypt;
+		textBoxPassword.Text = Program.Accounts.CurrentPassword;
 		checkBoxCheckForUpdates.Checked = _settings.CheckForUpdates;
 		checkBoxAutoUpdate.Checked = _settings.AutoUpdate;
 		checkBoxLaunchMinimized.Checked = _settings.LaunchMinimized;
@@ -27,7 +27,6 @@ public partial class SettingsForm : Form
 
 	private void SaveSettings()
 	{
-		_settings.Encrypt = checkBoxEncrypt.Checked;
 		_settings.CheckForUpdates = checkBoxCheckForUpdates.Checked;
 		_settings.AutoUpdate = checkBoxAutoUpdate.Checked;
 		_settings.LaunchMinimized = checkBoxLaunchMinimized.Checked;
@@ -60,15 +59,36 @@ public partial class SettingsForm : Form
 		}
 	}
 
-	private void CheckBoxEncrypt_CheckedChanged(object sender, EventArgs e)
+	private void ButtonApplyPassword_Click(object sender, EventArgs e)
 	{
-		if (checkBoxEncrypt.Checked != Program.Settings.Encrypt)
+		var newPassword = textBoxPassword.Text;
+		if (newPassword == Program.Accounts.CurrentPassword)
 		{
-			MessageBox.Show(
-				"Changing encryption settings will require restarting the application to take effect.",
-				"Encryption Setting",
-				MessageBoxButtons.OK,
-				MessageBoxIcon.Information);
+			MessageBox.Show("The master password is unchanged.", "GW Launcher - Encryption",
+				MessageBoxButtons.OK, MessageBoxIcon.Information);
+			return;
 		}
+
+		try
+		{
+			Program.Accounts.SetPassword(newPassword);
+		}
+		catch (Exception ex)
+		{
+			MessageBox.Show("Failed to re-save account storage:\n" + ex.Message,
+				"GW Launcher - Encryption", MessageBoxButtons.OK, MessageBoxIcon.Error);
+			return;
+		}
+
+		MessageBox.Show(
+			newPassword.Length == 0
+				? "Account storage is now unencrypted."
+				: "Account storage re-saved with the new master password.",
+			"GW Launcher - Encryption", MessageBoxButtons.OK, MessageBoxIcon.Information);
+	}
+
+	private void CheckBoxShowPassword_CheckedChanged(object sender, EventArgs e)
+	{
+		textBoxPassword.UseSystemPasswordChar = !checkBoxShowPassword.Checked;
 	}
 }

@@ -2,6 +2,30 @@
 
 public class Encryption
 {
+    // Magic marker written at the very start of an encrypted Accounts.json so the
+    // launcher can sniff a file and know whether it needs to prompt for a password,
+    // independent of any setting. Plain JSON starts with '[' / '{' and never matches.
+    public static readonly byte[] MagicPrefix = Encoding.ASCII.GetBytes("encrypted");
+
+    // True when the given file content begins with the "encrypted" magic marker.
+    public static bool IsEncrypted(byte[] data)
+    {
+        if (data.Length < MagicPrefix.Length)
+        {
+            return false;
+        }
+
+        for (var i = 0; i < MagicPrefix.Length; i++)
+        {
+            if (data[i] != MagicPrefix[i])
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     // Class to handle AES encryption and decryption with PBKDF2 key derivation, utilizing a random salt and IV for each encryption operation
     public static class SecureAES
     {
