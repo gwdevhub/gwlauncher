@@ -1,0 +1,46 @@
+---
+title: Run Multiple Accounts
+description: Multi-box several Guild Wars clients at once, each from its own installation.
+section: getting-started
+---
+import LauncherPath from '../../components/LauncherPath.astro';
+
+Guild Wars only lets one client run per installation folder. To play several accounts at the
+same time, give each one its **own copy** of the game, then point an account at each copy.
+
+## 1. Copy your Guild Wars installation
+
+For every extra client you want running simultaneously, make a full copy of the game folder:
+
+- Copy `C:\Program Files (x86)\Guild Wars\` to a new folder, e.g. `Guild Wars (Copy 2)`, `Guild Wars (Copy 3)`…
+- Each copy **must contain both `Gw.exe` and `Gw.dat`**.
+
+<div class="note">
+
+Once your copies are set up, GW Launcher can keep each one current — see
+[Updating clients](/docs/updating/) to pull the latest `Gw.exe` for every account at once.
+
+</div>
+
+## 2. Point one account at each copy
+
+Add (or edit) an account per copy and set its **Path** to the `Gw.exe` inside that copy:
+
+<LauncherPath kind="account" steps={['Add / Edit account', 'Path', '...']} />
+
+So account A → `Guild Wars\Gw.exe`, account B → `Guild Wars (Copy 2)\Gw.exe`, and so on.
+
+## 3. Launch them
+
+Double-click each account, or select several and use **Launch Selected**:
+
+<LauncherPath kind="menu" steps={['Select accounts', 'Launch Selected']} />
+
+Each client runs from its own folder, and the **Active** column shows which accounts are
+currently in. The launcher renames each window to its character/title so you can tell them apart.
+
+## Notes
+
+- Each copy keeps its **own** settings, screenshots, and `GWToolbox`/plugin folder. They start as a clone of the original but diverge from then on.
+- Running many clients is CPU/RAM heavy — that's a hardware limit, not a launcher one.
+- Per-installation plugins live in `<that copy>\plugins\`; see [DLL Plugins](/docs/plugins/).

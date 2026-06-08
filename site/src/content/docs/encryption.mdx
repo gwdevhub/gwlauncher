@@ -1,0 +1,39 @@
+---
+title: Encryption & Passwords
+description: Protect your saved account logins behind a master password.
+section: accounts
+---
+import LauncherPath from '../../components/LauncherPath.astro';
+
+GW Launcher stores your accounts in [`Accounts.json`](/docs/files/). You choose whether that
+file is **encrypted** behind a master password or saved as plain text.
+
+## Choosing at first run
+
+The first time you launch, GW Launcher asks whether to encrypt your account info. **Yes** is
+recommended — it keeps your logins from being readable by anything that can open the file.
+
+## Turning it on or off later
+
+Toggle it in Settings:
+
+<LauncherPath kind="settings" steps={['Settings', 'General', 'Encrypt account storage']} />
+
+- **Enabling** it prompts you to set a master password and re-saves `Accounts.json` encrypted.
+- **Disabling** it re-saves the file as plain JSON.
+
+You can also flip the `Encrypt` flag directly in [`Settings.json`](/docs/files/).
+
+## How it works
+
+- When encryption is on, you're asked for your **master password** on launch; it unlocks the
+  stored logins for that session.
+- The password is **not recoverable**. If you forget it, you can't decrypt the file — delete
+  `Accounts.json` and re-add your accounts.
+
+<div class="note">
+
+Encryption protects the file at rest on your disk. Your actual Guild Wars password is still
+sent to the game to log in, exactly as if you typed it.
+
+</div>

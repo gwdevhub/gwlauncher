@@ -1,0 +1,63 @@
+---
+title: Managing Accounts
+description: Add, edit, remove, and reorder accounts in the GW Launcher list.
+section: accounts
+---
+import LauncherPath from '../../components/LauncherPath.astro';
+
+Everything that touches the account list lives in one place: **right-click the list** to open
+the context menu.
+
+## Add an account
+
+<LauncherPath kind="menu" steps={['Right-click the list', 'Add New']} />
+
+The Add Account window has these fields:
+
+| Field | Meaning |
+| --- | --- |
+| **Email** | Guild Wars account email. Leave blank for a [Steam account](/docs/steam/). |
+| **Pass** | Account password. Use the **`*`** button to reveal it while typing. |
+| **Char** | Character name — used as the list/window label if no Title is set. |
+| **Title** | Optional custom label. Overrides Char in the list and window title. |
+| **Path** | Full path to this account's `Gw.exe`. Use **`...`** to browse. |
+| **Ex Args** | Extra command-line arguments passed to `Gw.exe` (e.g. `-lodfull`, `-windowed`). |
+| **Run elevated** | Launch this client as administrator. |
+| **Steam Account** | Tick if the copy was bought on Steam and has no email/password. |
+| **Use mods in plugin folders** | When on, auto-load DLLs/TexMods from the `plugins` folders. See [Mods](/docs/mods/). |
+| **Mods** | Opens the [per-account mod manager](/docs/mods/). |
+
+Click **Save** to add it to the list.
+
+## Edit an account
+
+<LauncherPath kind="menu" steps={['Select an account', 'Edit Selected']} />
+
+Opens the same window pre-filled. You can also edit
+[`Accounts.json`](/docs/files/) directly in a text editor, then
+**Refresh Accounts** to reload it.
+
+## Remove an account
+
+<LauncherPath kind="menu" steps={['Select account(s)', 'Remove Selected']} />
+
+Removes the selected accounts from the list (after a confirmation). This does **not** delete any
+game files — only the launcher entry.
+
+## Reorder the list
+
+<LauncherPath kind="menu" steps={['Select an account', 'Move Up / Move Down']} />
+
+Reordering is purely cosmetic — it sets the order accounts appear in the list.
+
+## Refresh
+
+<LauncherPath kind="menu" steps={['Right-click the list', 'Refresh Accounts']} />
+
+Reloads `Accounts.json` from disk. Use this after editing the file by hand, and to update the
+**Active** column if it looks out of sync.
+
+## The Active / Status column
+
+Each row shows its live state — **Inactive**, **Launching**, or **Active** — so you can see at a
+glance which accounts are currently running.

@@ -1,0 +1,33 @@
+---
+title: Steam Accounts
+description: Add a Guild Wars copy bought through Steam, which has no email or password.
+section: accounts
+---
+import LauncherPath from '../../components/LauncherPath.astro';
+
+If you bought Guild Wars on **Steam**, the account has no separate email/password — Steam handles
+the login. GW Launcher supports these as a special account type.
+
+## Add a Steam account
+
+In the Add/Edit Account window, tick **Steam Account**:
+
+<LauncherPath kind="account" steps={['Add account', 'Steam Account']} />
+
+With it ticked:
+
+- The **Email** and **Pass** fields are no longer required.
+- Set **Path** to the `Gw.exe` of your Steam installation.
+- Give it a **Char** or **Title** so it's easy to spot in the list.
+
+## Before you launch
+
+<div class="note warn">
+
+**Steam must already be running.** If Steam isn't open, the launch is aborted with a reminder to
+start it first. Launch Steam, then double-click the account.
+
+</div>
+
+Everything else — [mods](/docs/mods/), [multi-boxing](/docs/multiboxing/), window renaming —
+works the same as a regular account.

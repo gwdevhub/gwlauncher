@@ -1,0 +1,40 @@
+---
+title: Settings
+description: Every GW Launcher setting and what it does.
+section: reference
+---
+import LauncherPath from '../../components/LauncherPath.astro';
+
+Open the settings window from the account list's right-click menu:
+
+<LauncherPath kind="menu" steps={['Right-click the list', 'Settings']} />
+
+Settings are saved to [`Settings.json`](/docs/files/) and can also be edited there directly.
+
+## General
+
+| Setting | Default | What it does |
+| --- | --- | --- |
+| **Encrypt account storage** | On | Encrypts `Accounts.json` behind a master password. See [Encryption](/docs/encryption/). |
+| **Launch minimized** | Off | Starts GW Launcher hidden in the [system tray](/docs/tray/). |
+
+## Updates
+
+| Setting | Default | What it does |
+| --- | --- | --- |
+| **Check for updates** | On | Checks for a new GW Launcher release on startup. |
+| **Auto update** | Off | Downloads and applies launcher updates automatically. |
+
+## Advanced
+
+| Setting | Default | What it does |
+| --- | --- | --- |
+| **Timeout on mod launch (ms)** | 5000 | How long to wait for mods to finish injecting before giving up. Raise it if plugin-heavy launches time out on a slow machine. |
+
+<div class="note">
+
+These settings configure the **launcher**. Per-account options (path, extra arguments, run
+elevated, which mods to load) live in each account's window — see
+[Managing Accounts](/docs/accounts/).
+
+</div>

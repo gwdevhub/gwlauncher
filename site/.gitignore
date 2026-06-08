@@ -1,0 +1,29 @@
+# The repo root .gitignore has a blanket `*.json` rule (for the C# project).
+# The Astro site genuinely needs its JSON tracked, so re-include it here.
+!*.json
+!package.json
+!package-lock.json
+!tsconfig.json
+!site.config.json
+
+# build output
+dist/
+.astro/
+
+# dependencies
+node_modules/
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# environment
+.env
+.env.production
+
+# editor
+.vscode/
+.idea/
+.DS_Store

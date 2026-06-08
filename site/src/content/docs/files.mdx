@@ -1,0 +1,63 @@
+---
+title: Files & Storage
+description: What GW Launcher writes to disk — Accounts.json, Settings.json, and d3d9.dll.
+section: reference
+---
+
+GW Launcher writes its files **next to the executable**, which is why it should live in its own
+folder ([see install](/docs/installation/)).
+
+## Files it creates
+
+| File | What it is |
+| --- | --- |
+| **`Accounts.json`** | Your account list — logins, paths, per-account mods. Encrypted if [encryption](/docs/encryption/) is on. |
+| **`Settings.json`** | Launcher [settings](/docs/settings/). |
+| **`d3d9.dll`** | The gMod shim used to load [TexMods](/docs/texmods/). |
+| **`plugins\`** | Optional folder you create for [mods](/docs/mods/) that apply to every account. |
+
+## Accounts.json format
+
+When encryption is **off**, `Accounts.json` is plain JSON you can edit by hand — then
+**Refresh Accounts** to reload it:
+
+```json
+[
+  {
+    "email": "you@example.com",
+    "password": "hunter2",
+    "character": "My Character",
+    "gwpath": "C:\\Program Files (x86)\\Guild Wars\\Gw.exe",
+    "extraargs": "-lodfull",
+    "title": "Main",
+    "elevated": false,
+    "is_steam_account": false,
+    "usePluginFolderMods": true,
+    "mods": []
+  }
+]
+```
+
+| Key | Meaning |
+| --- | --- |
+| `email` / `password` | Login credentials (omit for Steam accounts). |
+| `character` | Character name shown in the list. |
+| `gwpath` | Full path to this account's `Gw.exe`. |
+| `extraargs` | Extra command-line arguments for the client. |
+| `title` | Optional label; overrides `character` in the list/window title. |
+| `elevated` | Launch as administrator. |
+| `is_steam_account` | Marks a [Steam copy](/docs/steam/). |
+| `usePluginFolderMods` | Load mods from the `plugins` folders. |
+| `mods` | Per-account mod list (managed via the [Mod Manager](/docs/mods/)). |
+
+<div class="note warn">
+
+If encryption is on, `Accounts.json` is not human-readable. Edit accounts through the launcher
+window instead, or temporarily disable encryption in [Settings](/docs/settings/).
+
+</div>
+
+## Backing up
+
+To move GW Launcher to a new machine, copy the whole folder — `Accounts.json` and `Settings.json`
+carry everything. If encryption is on, you'll need your master password on the new machine.

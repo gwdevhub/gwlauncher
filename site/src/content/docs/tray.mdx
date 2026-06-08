@@ -1,0 +1,44 @@
+---
+title: Tray & Shortcuts
+description: Run GW Launcher from the system tray and create one-click account shortcuts.
+section: launching
+---
+import LauncherPath from '../../components/LauncherPath.astro';
+
+## System tray
+
+GW Launcher lives in the **system tray** (next to the clock). The main window hides itself when
+it loses focus rather than cluttering your taskbar.
+
+- **Left-click** the tray icon to bring the window back.
+- **Right-click** the tray icon to open it and keep it pinned open.
+
+Want it to start hidden? Enable **Launch minimized** in [Settings](/docs/settings/) — useful if
+you launch GW Launcher on Windows startup.
+
+## Desktop shortcuts
+
+Create a shortcut that launches one specific account with a single double-click — no need to
+open the launcher window first:
+
+<LauncherPath kind="menu" steps={['Select an account', 'Create Desktop Shortcut']} />
+
+This drops a `<Account Name>.lnk` on your Desktop. Double-clicking it runs GW Launcher with
+`-launch "<Account Name>"`, which launches just that account and then gets out of the way.
+
+<div class="note">
+
+The shortcut matches accounts by their **display name** (Title, or character name). If you rename
+an account, recreate its shortcut.
+
+</div>
+
+## Command line
+
+The shortcut uses the same flag you can run yourself:
+
+```text
+GW_Launcher.exe -launch "Account Name"
+```
+
+Handy for batch files or other launchers that want to start a specific Guild Wars account.

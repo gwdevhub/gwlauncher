@@ -1,0 +1,24 @@
+{
+  "title": "GW Launcher",
+  "tagline": "Launch and manage multiple Guild Wars accounts",
+  "githubUrl": "https://github.com/gwdevhub/gwlauncher",
+  "discordUrl": "https://discord.gg/pGS5pFn",
+  "donateUrl": "https://opencollective.com/gwdevhub_collective",
+  "otherProjects": [
+    { "label": "GWToolbox++", "url": "https://www.gwtoolbox.com/", "desc": "The all-in-one toolkit for Guild Wars" },
+    { "label": "LFG", "url": "https://lfg.gwtoolbox.com/", "desc": "Live party-search board" },
+    { "label": "TTS", "url": "https://tts.gwtoolbox.com/", "desc": "Free text-to-speech API used by the in-game TTS module" },
+    { "label": "Kamadan", "url": "https://kamadan.gwtoolbox.com/", "desc": "Kamadan AE1 trade chat archive" }
+  ],
+  "launcherVersion": "17.18",
+  "fallbackDownloadUrl": "https://github.com/gwdevhub/gwlauncher/releases/latest",
+  "issueUrls": {
+    "bug": "https://github.com/gwdevhub/gwlauncher/issues/new?labels=bug&title=%5BBug%5D+",
+    "idea": "https://github.com/gwdevhub/gwlauncher/issues/new?labels=enhancement&title=%5BIdea%5D+"
+  },
+  "maintainers": [
+    { "name": "gwdevhub", "url": "https://github.com/gwdevhub" },
+    { "name": "GregLando113", "url": "https://github.com/GregLando113" },
+    { "name": "DubbleClick", "url": "https://github.com/DubbleClick" }
+  ]
+}

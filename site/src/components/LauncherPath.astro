@@ -1,0 +1,97 @@
+---
+/**
+ * Inline annotation telling the reader where in the GW Launcher UI to find
+ * the control being described. Render with a list of breadcrumb steps from
+ * the entry point down to the leaf control. The last step is emphasised
+ * because it's the actual button, menu item, or field the user is after.
+ *
+ * Examples:
+ *   <LauncherPath kind="menu" steps={['Right-click the list', 'Add New']} />
+ *   <LauncherPath kind="account" steps={['Add Account', 'Steam Account']} />
+ *   <LauncherPath kind="settings" steps={['Settings', 'Updates', 'Auto update']} />
+ *   <LauncherPath kind="mods" steps={['Edit account', 'Mods', 'Add Mod']} />
+ *   <LauncherPath kind="file" steps={['Settings.json', 'Encrypt']} />
+ *
+ * Rendered as a small bordered chip so the eye picks it out as "this is a UI
+ * path, not part of the surrounding sentence".
+ */
+
+type Kind = 'menu' | 'account' | 'settings' | 'mods' | 'tray' | 'file';
+
+interface Props {
+  /** Ordered breadcrumb steps; the last is the actual control label. */
+  steps: string[];
+  /** What kind of UI path this is. Picks the leading glyph. */
+  kind?: Kind;
+}
+
+const { steps, kind = 'menu' } = Astro.props;
+
+const glyphs: Record<Kind, string> = {
+  menu:     '☰',
+  account:  '◆',
+  settings: '⚙',
+  mods:     '▣',
+  tray:     '▾',
+  file:     '◇',
+};
+const labels: Record<Kind, string> = {
+  menu:     'Right-click menu',
+  account:  'Account window',
+  settings: 'Settings window',
+  mods:     'Mod manager',
+  tray:     'System tray menu',
+  file:     'Config file',
+};
+---
+
+<span class="lp-path" data-kind={kind} role="note" aria-label={labels[kind]}>
+  <span class="lp-path-icon" aria-hidden="true">{glyphs[kind]}</span>
+  {steps.map((step, i) => (
+    <>
+      {i > 0 && <span class="lp-path-sep" aria-hidden="true">›</span>}
+      <span class={i === steps.length - 1 ? 'lp-path-leaf' : 'lp-path-step'}>{step}</span>
+    </>
+  ))}
+</span>
+
+<style>
+  .lp-path {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.2rem 0.35rem;
+    padding: 0.2rem 0.55rem;
+    font-size: 0.78rem;
+    line-height: 1.35;
+    color: var(--color-fg-sub);
+    background: var(--color-glass);
+    border: 1px solid var(--color-border-glass);
+    border-radius: 0.375rem;
+    vertical-align: middle;
+  }
+  .lp-path-icon {
+    color: var(--color-accent);
+    font-size: 0.9em;
+    line-height: 1;
+  }
+  .lp-path[data-kind='file'] {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: -0.01em;
+  }
+  .lp-path-step {
+    color: var(--color-fg-sub);
+  }
+  .lp-path-sep {
+    color: var(--color-fg-faint);
+  }
+  .lp-path-leaf {
+    color: var(--color-accent);
+    font-weight: 600;
+  }
+  :global(.prose li) > .lp-path,
+  :global(.prose p) > .lp-path {
+    margin-top: 0.15rem;
+  }
+</style>

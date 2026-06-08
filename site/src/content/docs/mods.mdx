@@ -1,0 +1,41 @@
+---
+title: Mods Overview
+description: How GW Launcher loads DLL plugins and TexMods — globally, per-folder, and per-account.
+section: mods
+---
+import LauncherPath from '../../components/LauncherPath.astro';
+
+GW Launcher can inject two kinds of mods into the game as it launches:
+
+- **DLL plugins** (`.dll`, or `.lnk` shortcuts to a `.dll`) — code mods like **GWToolbox**. See [DLL Plugins](/docs/plugins/).
+- **TexMods** (`.tpf`, `.zip`) — texture replacements, loaded natively via **gMod** (no uMod needed). See [TexMods](/docs/texmods/).
+
+## Three ways to load a mod
+
+There are three sources, and they stack:
+
+| Source | Applies to | How |
+| --- | --- | --- |
+| **`gwlauncher\plugins\`** | **Every** account | Drop files in a `plugins` folder next to `GW_Launcher.exe`. |
+| **`<gw-install>\plugins\`** | Only accounts launched from **that** game folder | Drop files in a `plugins` folder next to that copy's `Gw.exe`. |
+| **Per-account list** | One specific account | Add them in the account's [Mod Manager](#per-account-mods). |
+
+The two `plugins`-folder sources are only used for an account when its **Use mods in plugin
+folders** box is ticked.
+
+<LauncherPath kind="account" steps={['Edit account', 'Use mods in plugin folders']} />
+
+## Per-account mods
+
+To attach mods to a single account regardless of folders:
+
+<LauncherPath kind="mods" steps={['Edit account', 'Mods', 'Add Mod']} />
+
+The Mod Manager lists your mods grouped into **DLLs** and **TexMods**. Pick **Add Mod** to browse
+for files and **Remove Selected** to drop them.
+
+## Load order
+
+Mods load in **alphabetical order of filename**. This matters for TexMods: a texture already
+replaced by `1_FirstTexmod.tpf` won't be overridden by `2_SecondTexmod.tpf`. Name files with a
+numeric prefix to control precedence — see [TexMods](/docs/texmods/).

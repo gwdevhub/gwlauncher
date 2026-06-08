@@ -1,0 +1,48 @@
+---
+title: Troubleshooting
+description: Antivirus warnings, launch failures, and other common GW Launcher issues.
+section: reference
+---
+
+## "My antivirus flagged GW Launcher"
+
+This is **expected** and a false positive. GW Launcher injects mods (GWToolbox, TexMods) into the
+game, which resembles the behaviour antivirus tools watch for. The launcher is open source and
+has been used by the Guild Wars community since 2010 — every component
+([gMod](https://github.com/gwdevhub/gMod), [GWToolbox](https://github.com/gwdevhub/GWToolboxpp),
+and the launcher itself) is on GitHub for you to inspect.
+
+If your antivirus quarantines it, add an exclusion for the GW Launcher folder.
+
+## "The game is already running" / can't launch a second account
+
+Guild Wars allows one client per installation folder. To run multiple accounts you need a
+separate copy of the game for each — see [Run Multiple Accounts](/docs/multiboxing/).
+
+## A plugin or TexMod isn't loading
+
+- Confirm **Use mods in plugin folders** is ticked on the account, or that the mod is in the account's [Mod Manager](/docs/mods/).
+- Check the file is in the right `plugins\` folder (next to `GW_Launcher.exe` for all accounts, or next to that copy's `Gw.exe` for one installation).
+- Remember mods load in **alphabetical order**, and for TexMods the **first to claim a texture wins**.
+- Garbled textures usually mean an invalid `.tpf` — convert it with **TpfConvert** ([TexMods](/docs/texmods/)).
+
+## "Failed to wait for MainWindowHandle / WaitForInputIdle"
+
+The client took too long to start. Try launching again. On a slow machine, raise the
+**Timeout on mod launch** value in [Settings](/docs/settings/).
+
+## A launch needs admin rights
+
+Some plugins and game paths (e.g. inside `Program Files`) need elevation. Tick **Run elevated**
+on the account, or run GW Launcher as administrator. **Update All Clients** will prompt to
+restart as admin when required.
+
+## I forgot my encryption password
+
+The master password can't be recovered. Delete `Accounts.json` and re-add your accounts. See
+[Encryption & Passwords](/docs/encryption/).
+
+## Still stuck?
+
+Ask in the [Discord](https://discord.gg/pGS5pFn) or open an
+[issue on GitHub](https://github.com/gwdevhub/gwlauncher/issues).
