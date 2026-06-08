@@ -30,7 +30,10 @@
 		{
 			this.groupBoxGeneral = new System.Windows.Forms.GroupBox();
 			this.checkBoxLaunchMinimized = new System.Windows.Forms.CheckBox();
-			this.checkBoxEncrypt = new System.Windows.Forms.CheckBox();
+			this.labelPassword = new System.Windows.Forms.Label();
+			this.textBoxPassword = new System.Windows.Forms.TextBox();
+			this.buttonApplyPassword = new System.Windows.Forms.Button();
+			this.checkBoxShowPassword = new System.Windows.Forms.CheckBox();
 			this.groupBoxUpdates = new System.Windows.Forms.GroupBox();
 			this.checkBoxAutoUpdate = new System.Windows.Forms.CheckBox();
 			this.checkBoxCheckForUpdates = new System.Windows.Forms.CheckBox();
@@ -48,40 +51,70 @@
 			// groupBoxGeneral
 			// 
 			this.groupBoxGeneral.Controls.Add(this.checkBoxLaunchMinimized);
-			this.groupBoxGeneral.Controls.Add(this.checkBoxEncrypt);
+			this.groupBoxGeneral.Controls.Add(this.labelPassword);
+			this.groupBoxGeneral.Controls.Add(this.textBoxPassword);
+			this.groupBoxGeneral.Controls.Add(this.buttonApplyPassword);
+			this.groupBoxGeneral.Controls.Add(this.checkBoxShowPassword);
 			this.groupBoxGeneral.Location = new System.Drawing.Point(12, 12);
 			this.groupBoxGeneral.Name = "groupBoxGeneral";
-			this.groupBoxGeneral.Size = new System.Drawing.Size(360, 80);
+			this.groupBoxGeneral.Size = new System.Drawing.Size(360, 110);
 			this.groupBoxGeneral.TabIndex = 0;
 			this.groupBoxGeneral.TabStop = false;
 			this.groupBoxGeneral.Text = "General";
-			// 
+			//
+			// labelPassword
+			//
+			this.labelPassword.AutoSize = true;
+			this.labelPassword.Location = new System.Drawing.Point(12, 25);
+			this.labelPassword.Name = "labelPassword";
+			this.labelPassword.Size = new System.Drawing.Size(101, 15);
+			this.labelPassword.TabIndex = 0;
+			this.labelPassword.Text = "Master password:";
+			//
+			// textBoxPassword
+			//
+			this.textBoxPassword.Location = new System.Drawing.Point(119, 22);
+			this.textBoxPassword.Name = "textBoxPassword";
+			this.textBoxPassword.Size = new System.Drawing.Size(151, 23);
+			this.textBoxPassword.TabIndex = 1;
+			this.textBoxPassword.UseSystemPasswordChar = true;
+			//
+			// buttonApplyPassword
+			//
+			this.buttonApplyPassword.Location = new System.Drawing.Point(276, 21);
+			this.buttonApplyPassword.Name = "buttonApplyPassword";
+			this.buttonApplyPassword.Size = new System.Drawing.Size(70, 25);
+			this.buttonApplyPassword.TabIndex = 2;
+			this.buttonApplyPassword.Text = "Apply";
+			this.buttonApplyPassword.UseVisualStyleBackColor = true;
+			this.buttonApplyPassword.Click += new System.EventHandler(this.ButtonApplyPassword_Click);
+			//
+			// checkBoxShowPassword
+			//
+			this.checkBoxShowPassword.AutoSize = true;
+			this.checkBoxShowPassword.Location = new System.Drawing.Point(119, 51);
+			this.checkBoxShowPassword.Name = "checkBoxShowPassword";
+			this.checkBoxShowPassword.Size = new System.Drawing.Size(133, 19);
+			this.checkBoxShowPassword.TabIndex = 3;
+			this.checkBoxShowPassword.Text = "Show password";
+			this.checkBoxShowPassword.UseVisualStyleBackColor = true;
+			this.checkBoxShowPassword.CheckedChanged += new System.EventHandler(this.CheckBoxShowPassword_CheckedChanged);
+			//
 			// checkBoxLaunchMinimized
-			// 
+			//
 			this.checkBoxLaunchMinimized.AutoSize = true;
-			this.checkBoxLaunchMinimized.Location = new System.Drawing.Point(15, 48);
+			this.checkBoxLaunchMinimized.Location = new System.Drawing.Point(15, 80);
 			this.checkBoxLaunchMinimized.Name = "checkBoxLaunchMinimized";
 			this.checkBoxLaunchMinimized.Size = new System.Drawing.Size(116, 19);
-			this.checkBoxLaunchMinimized.TabIndex = 1;
+			this.checkBoxLaunchMinimized.TabIndex = 4;
 			this.checkBoxLaunchMinimized.Text = "Launch minimized";
 			this.checkBoxLaunchMinimized.UseVisualStyleBackColor = true;
-			// 
-			// checkBoxEncrypt
-			// 
-			this.checkBoxEncrypt.AutoSize = true;
-			this.checkBoxEncrypt.Location = new System.Drawing.Point(15, 22);
-			this.checkBoxEncrypt.Name = "checkBoxEncrypt";
-			this.checkBoxEncrypt.Size = new System.Drawing.Size(149, 19);
-			this.checkBoxEncrypt.TabIndex = 0;
-			this.checkBoxEncrypt.Text = "Encrypt account storage";
-			this.checkBoxEncrypt.UseVisualStyleBackColor = true;
-			this.checkBoxEncrypt.CheckedChanged += new System.EventHandler(this.CheckBoxEncrypt_CheckedChanged);
-			// 
+			//
 			// groupBoxUpdates
-			// 
+			//
 			this.groupBoxUpdates.Controls.Add(this.checkBoxAutoUpdate);
 			this.groupBoxUpdates.Controls.Add(this.checkBoxCheckForUpdates);
-			this.groupBoxUpdates.Location = new System.Drawing.Point(12, 98);
+			this.groupBoxUpdates.Location = new System.Drawing.Point(12, 128);
 			this.groupBoxUpdates.Name = "groupBoxUpdates";
 			this.groupBoxUpdates.Size = new System.Drawing.Size(360, 80);
 			this.groupBoxUpdates.TabIndex = 1;
@@ -113,7 +146,7 @@
 			// 
 			this.groupBoxAdvanced.Controls.Add(this.numericUpDownTimeout);
 			this.groupBoxAdvanced.Controls.Add(this.labelTimeout);
-			this.groupBoxAdvanced.Location = new System.Drawing.Point(12, 184);
+			this.groupBoxAdvanced.Location = new System.Drawing.Point(12, 214);
 			this.groupBoxAdvanced.Name = "groupBoxAdvanced";
 			this.groupBoxAdvanced.Size = new System.Drawing.Size(360, 60);
 			this.groupBoxAdvanced.TabIndex = 2;
@@ -153,7 +186,7 @@
 			// 
 			// buttonOK
 			// 
-			this.buttonOK.Location = new System.Drawing.Point(216, 260);
+			this.buttonOK.Location = new System.Drawing.Point(216, 290);
 			this.buttonOK.Name = "buttonOK";
 			this.buttonOK.Size = new System.Drawing.Size(75, 28);
 			this.buttonOK.TabIndex = 3;
@@ -163,7 +196,7 @@
 			// 
 			// buttonCancel
 			// 
-			this.buttonCancel.Location = new System.Drawing.Point(297, 260);
+			this.buttonCancel.Location = new System.Drawing.Point(297, 290);
 			this.buttonCancel.Name = "buttonCancel";
 			this.buttonCancel.Size = new System.Drawing.Size(75, 28);
 			this.buttonCancel.TabIndex = 4;
@@ -175,7 +208,7 @@
 			// 
 			this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
 			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-			this.ClientSize = new System.Drawing.Size(384, 300);
+			this.ClientSize = new System.Drawing.Size(384, 330);
 			this.Controls.Add(this.buttonCancel);
 			this.Controls.Add(this.buttonOK);
 			this.Controls.Add(this.groupBoxAdvanced);
@@ -202,7 +235,10 @@
 
 		private System.Windows.Forms.GroupBox groupBoxGeneral;
 		private System.Windows.Forms.CheckBox checkBoxLaunchMinimized;
-		private System.Windows.Forms.CheckBox checkBoxEncrypt;
+		private System.Windows.Forms.Label labelPassword;
+		private System.Windows.Forms.TextBox textBoxPassword;
+		private System.Windows.Forms.Button buttonApplyPassword;
+		private System.Windows.Forms.CheckBox checkBoxShowPassword;
 		private System.Windows.Forms.GroupBox groupBoxUpdates;
 		private System.Windows.Forms.CheckBox checkBoxAutoUpdate;
 		private System.Windows.Forms.CheckBox checkBoxCheckForUpdates;

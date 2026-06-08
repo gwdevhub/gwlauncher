@@ -2,8 +2,6 @@
 
 public class GlobalSettings
 {
-    public bool Encrypt { get; set; } = true;
-
     public bool CheckForUpdates { get; set; } = true;
 
     public bool AutoUpdate { get; set; } = false;
@@ -26,15 +24,9 @@ public class GlobalSettings
         }
         catch (FileNotFoundException)
         {
-            var settings = new GlobalSettings();
-            var result = MessageBox.Show(@"Would you like to encrypt the account info?", @"Encryption",
-                MessageBoxButtons.YesNo);
-            if (result == DialogResult.No)
-            {
-                settings.Encrypt = false;
-            }
-
-            return settings;
+            // Encryption is now opt-in via the master password field in Settings, and is
+            // auto-detected from Accounts.json, so there is nothing to ask about on first run.
+            return new GlobalSettings();
         }
     }
 }

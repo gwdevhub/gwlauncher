@@ -419,9 +419,13 @@ internal static class Program
 			Accounts = new AccountManager("Accounts.json");
 			return true;
 		}
+		catch (OperationCanceledException)
+		{
+			// Wrong/cancelled master password - the prompt already told the user.
+			return false;
+		}
 		catch (Exception)
 		{
-			if (Settings.Encrypt) return false; // error message already shown
 			MessageBox.Show("""
                             Couldn't load account information, there might be an error in the .json.
                             GW Launcher will close.
