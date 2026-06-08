@@ -6,27 +6,29 @@ section: accounts
 import LauncherPath from '../../components/LauncherPath.astro';
 
 GW Launcher stores your accounts in [`Accounts.json`](/docs/files/). You choose whether that
-file is **encrypted** behind a master password or saved as plain text.
+file is **encrypted** behind a master password or saved as plain text. New installs start
+unencrypted — set a master password whenever you want the protection.
 
-## Choosing at first run
+## Setting or changing the master password
 
-The first time you launch, GW Launcher asks whether to encrypt your account info. **Yes** is
-recommended — it keeps your logins from being readable by anything that can open the file.
+Encryption is controlled by a single field in Settings:
 
-## Turning it on or off later
+<LauncherPath kind="settings" steps={['Settings', 'General', 'Master password']} />
 
-Toggle it in Settings:
+Type a password and press **Apply**. The field is pre-filled with the current password (if any),
+so you can see and change it at any time.
 
-<LauncherPath kind="settings" steps={['Settings', 'General', 'Encrypt account storage']} />
+- **Setting** a password re-saves `Accounts.json` encrypted, straight away.
+- **Clearing** the field and pressing **Apply** re-saves the file as plain JSON.
 
-- **Enabling** it prompts you to set a master password and re-saves `Accounts.json` encrypted.
-- **Disabling** it re-saves the file as plain JSON.
-
-You can also flip the `Encrypt` flag directly in [`Settings.json`](/docs/files/).
+Changes apply immediately — there's **no restart** required.
 
 ## How it works
 
-- When encryption is on, you're asked for your **master password** on launch; it unlocks the
+- GW Launcher detects whether `Accounts.json` is encrypted by reading the file itself, so it
+  only asks for a password when one is actually needed. You can drop in any `Accounts.json`
+  and the launcher does the right thing — no setting to keep in sync.
+- When the file is encrypted, you're asked for your **master password** on launch; it unlocks the
   stored logins for that session.
 - The password is **not recoverable**. If you forget it, you can't decrypt the file — delete
   `Accounts.json` and re-add your accounts.
