@@ -1,11 +1,12 @@
 ---
 /**
- * Site background — a fixed Guild Wars wallpaper (the Catacombs key art) shown
- * at low opacity beneath a darkening overlay, the same approach the GWToolbox++
- * site uses for its continent maps. The overlay is dark in the centre column
- * where content sits and fades toward the edges so the art shows through in the
- * gutters, with a steel-blue top glow to match the launcher's theme. Persisted
- * across view transitions so it never repaints mid-navigation.
+ * Site background — the Guild Wars armored-knights key art (echoing the
+ * launcher's helmet icon) shown at low opacity beneath a darkening overlay, the
+ * same approach the GWToolbox++ site uses for its continent maps. The overlay is
+ * dark in the centre column where content sits and fades toward the edges so the
+ * art shows through in the gutters, with a steel-blue top glow to match the
+ * launcher's theme. Persisted across view transitions so it never repaints
+ * mid-navigation.
  */
 ---
 
@@ -25,25 +26,25 @@
   .page-bg-image {
     position: absolute;
     inset: 0;
-    background-image: url('/backgrounds/catacombs.webp');
+    background-image: url('/backgrounds/gw-knights.webp');
     background-size: cover;
     background-repeat: no-repeat;
-    background-position: center;
-    opacity: 0.35;
+    background-position: center top;
+    opacity: 0.32;
   }
   .page-bg-overlay {
     position: absolute;
     inset: 0;
     /* Dark in the centre column where content sits, fading toward the viewport
        edges so the wallpaper shows through in the gutters; plus a cool steel
-       glow from the top to tie it to the launcher's accent. */
+       glow from the top to tie the warm art to the launcher's accent. */
     background:
-      radial-gradient(ellipse 55% 50% at 50% -5%, rgba(47, 111, 168, 0.18) 0%, transparent 60%),
+      radial-gradient(ellipse 55% 50% at 50% -5%, rgba(47, 111, 168, 0.16) 0%, transparent 60%),
       radial-gradient(
-        ellipse 55% 75% at center,
-        rgba(8, 9, 11, 0.82) 0%,
-        rgba(8, 9, 11, 0.7) 45%,
-        rgba(8, 9, 11, 0.2) 100%
+        ellipse 60% 80% at center,
+        rgba(8, 9, 11, 0.88) 0%,
+        rgba(8, 9, 11, 0.78) 45%,
+        rgba(8, 9, 11, 0.3) 100%
       );
   }
 </style>
