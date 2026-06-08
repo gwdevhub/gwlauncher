@@ -1,14 +1,16 @@
 ---
 /**
- * Site background — the launcher's metallic counterpart to the GWToolbox
- * continent maps. Pure CSS, no images: a faint diamond/plate lattice (echoing
- * the angular facets of the helmet icon) over a cool steel vignette. Persisted
- * across view transitions so it never re-paints mid-navigation.
+ * Site background — a fixed Guild Wars wallpaper (the Catacombs key art) shown
+ * at low opacity beneath a darkening overlay, the same approach the GWToolbox++
+ * site uses for its continent maps. The overlay is dark in the centre column
+ * where content sits and fades toward the edges so the art shows through in the
+ * gutters, with a steel-blue top glow to match the launcher's theme. Persisted
+ * across view transitions so it never repaints mid-navigation.
  */
 ---
 
 <div class="page-bg" aria-hidden="true" transition:persist="page-bg">
-  <div class="page-bg-lattice"></div>
+  <div class="page-bg-image"></div>
   <div class="page-bg-overlay"></div>
 </div>
 
@@ -20,36 +22,28 @@
     pointer-events: none;
     overflow: hidden;
   }
-  /* Faceted diamond lattice — two crossing line sets form a brushed-plate
-     pattern. Kept very low contrast so content stays legible. */
-  .page-bg-lattice {
+  .page-bg-image {
     position: absolute;
-    inset: -10%;
-    background-image:
-      repeating-linear-gradient(
-        45deg,
-        rgba(203, 213, 225, 0.035) 0,
-        rgba(203, 213, 225, 0.035) 1px,
-        transparent 1px,
-        transparent 44px
-      ),
-      repeating-linear-gradient(
-        -45deg,
-        rgba(203, 213, 225, 0.035) 0,
-        rgba(203, 213, 225, 0.035) 1px,
-        transparent 1px,
-        transparent 44px
-      );
-    mask-image: radial-gradient(ellipse 70% 80% at 50% 0%, black 0%, transparent 75%);
-    -webkit-mask-image: radial-gradient(ellipse 70% 80% at 50% 0%, black 0%, transparent 75%);
+    inset: 0;
+    background-image: url('/backgrounds/catacombs.webp');
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center;
+    opacity: 0.35;
   }
-  /* Cool steel glow from the top, fading to near-black so the page reads as a
-     dark armory backdrop. */
   .page-bg-overlay {
     position: absolute;
     inset: 0;
+    /* Dark in the centre column where content sits, fading toward the viewport
+       edges so the wallpaper shows through in the gutters; plus a cool steel
+       glow from the top to tie it to the launcher's accent. */
     background:
-      radial-gradient(ellipse 60% 50% at 50% -10%, rgba(47, 111, 168, 0.14) 0%, transparent 60%),
-      radial-gradient(ellipse 90% 70% at 50% 110%, rgba(20, 23, 28, 0.6) 0%, transparent 70%);
+      radial-gradient(ellipse 55% 50% at 50% -5%, rgba(47, 111, 168, 0.18) 0%, transparent 60%),
+      radial-gradient(
+        ellipse 55% 75% at center,
+        rgba(8, 9, 11, 0.82) 0%,
+        rgba(8, 9, 11, 0.7) 45%,
+        rgba(8, 9, 11, 0.2) 100%
+      );
   }
 </style>
