@@ -139,22 +139,14 @@ public class AccountManager : IEnumerable<Account>, IDisposable
         var magicEncrypted = Encryption.IsEncrypted(raw);
 
         // Without a magic marker the file is either plain JSON or pre-magic ciphertext.
-        // Old ciphertext starts with a random salt byte, so it usually doesn't look like
-        // JSON - but it can by chance. So when it looks like JSON we try to parse it and
-        // only treat it as legacy ciphertext if parsing fails, which keeps existing
-        // encrypted accounts reachable rather than locking the user out.
-        if (!magicEncrypted && LooksLikePlaintextJson(raw))
+        // Rather than guessing from the leading bytes, just try to parse it as JSON: if it
+        // parses it's plain text, and if it doesn't it's encrypted and needs a password.
+        // This keeps legacy ciphertext reachable no matter what bytes it happens to start with.
+        if (!magicEncrypted && TryParseAccounts(raw, out var plainAccounts))
         {
-            try
-            {
-                _accounts = JsonConvert.DeserializeObject<List<Account>>(Encoding.UTF8.GetString(raw)) ?? _accounts;
-                PostProcess();
-                return;
-            }
-            catch
-            {
-                // Not actually plain JSON - fall through and try to decrypt it.
-            }
+            _accounts = plainAccounts;
+            PostProcess();
+            return;
         }
 
         var legacyEncrypted = !magicEncrypted;
@@ -249,20 +241,21 @@ public class AccountManager : IEnumerable<Account>, IDisposable
         return Encoding.UTF8.GetString(SHA256.HashData(Encoding.UTF8.GetBytes(password)));
     }
 
-    private static bool LooksLikePlaintextJson(byte[] data)
+    // Try to read the raw bytes as a plain-text JSON account list. Returns false when the
+    // content isn't valid JSON (e.g. encrypted ciphertext). An empty or whitespace file is
+    // treated as a valid, empty list.
+    private static bool TryParseAccounts(byte[] raw, out List<Account> accounts)
     {
-        foreach (var b in data)
+        try
         {
-            if (b is (byte)' ' or (byte)'\t' or (byte)'\r' or (byte)'\n')
-            {
-                continue;
-            }
-
-            return b is (byte)'[' or (byte)'{';
+            accounts = JsonConvert.DeserializeObject<List<Account>>(Encoding.UTF8.GetString(raw)) ?? new List<Account>();
+            return true;
         }
-
-        // All whitespace (or empty) - safe to treat as an empty plaintext list.
-        return true;
+        catch
+        {
+            accounts = new List<Account>();
+            return false;
+        }
     }
 
     private void PostProcess()
