@@ -613,18 +613,40 @@ internal static class Program
     {
         var location = Path.GetDirectoryName(AppContext.BaseDirectory);
         var gmod = Path.Combine(location!, "gMod.dll");
-        //Get all releases from GitHub
         var client = new GitHubClient(new ProductHeaderValue("gMod"));
         var releases = await client.Repository.Release.GetAll("gwdevhub", "gMod");
 
-        if (!releases.Any(r => !r.Prerelease && !r.Draft))
+        // Pick version and asset from the same release so they can't diverge.
+        Version? latestVersion = null;
+        ReleaseAsset? asset = null;
+        foreach (var release in releases)
+        {
+            if (release.Prerelease || release.Draft)
+            {
+                continue;
+            }
+
+            var candidateAsset = release.Assets.FirstOrDefault(a => a.Name == "gMod.dll");
+            if (candidateAsset == null)
+            {
+                continue;
+            }
+
+            var tagName = Regex.Replace(release.TagName, @"[^\d\.]", "");
+            if (!Version.TryParse(tagName, out var candidateVersion))
+            {
+                continue;
+            }
+
+            latestVersion = candidateVersion;
+            asset = candidateAsset;
+            break;
+        }
+
+        if (latestVersion == null || asset == null)
         {
             return;
         }
-
-        var release = releases.First(r => !r.Prerelease && !r.Draft);
-        var tagName = Regex.Replace(release.TagName, @"[^\d\.]", "");
-        var latestVersion = new Version(tagName);
 
         string strVersion;
         try
@@ -641,14 +663,6 @@ internal static class Program
 
         var versionComparison = localVersion.CompareTo(latestVersion);
         if (versionComparison >= 0)
-        {
-            return;
-        }
-
-        var latest = releases[0];
-
-        var asset = latest.Assets.First(a => a.Name == "gMod.dll");
-        if (asset == null)
         {
             return;
         }
