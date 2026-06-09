@@ -248,7 +248,11 @@ public class AccountManager : IEnumerable<Account>, IDisposable
     {
         try
         {
-            accounts = JsonConvert.DeserializeObject<List<Account>>(Encoding.UTF8.GetString(raw)) ?? new List<Account>();
+            // Strip a leading UTF-8 BOM: Encoding.UTF8.GetString keeps it as U+FEFF (unlike
+            // File.ReadAllText), and Newtonsoft rejects it, which would misflag a hand-edited
+            // plaintext file as encrypted and wrongly prompt for a master password.
+            var text = Encoding.UTF8.GetString(raw).TrimStart('\uFEFF');
+            accounts = JsonConvert.DeserializeObject<List<Account>>(text) ?? new List<Account>();
             return true;
         }
         catch
