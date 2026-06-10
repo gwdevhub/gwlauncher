@@ -649,20 +649,22 @@ internal static class Program
         }
 
         string strVersion;
+        long localSize;
         try
         {
             var fvi = FileVersionInfo.GetVersionInfo(gmod);
             strVersion = fvi.FileVersion!;
+            localSize = new FileInfo(gmod).Length;
         }
         catch (FileNotFoundException)
         {
             strVersion = "1.0.0";
+            localSize = -1;
         }
 
         var localVersion = new Version(strVersion);
 
-        var versionComparison = localVersion.CompareTo(latestVersion);
-        if (versionComparison >= 0)
+        if (localVersion == latestVersion && localSize == asset.Size)
         {
             return;
         }
