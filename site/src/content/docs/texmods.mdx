@@ -1,0 +1,50 @@
+---
+title: TexMods
+description: Load .tpf / .zip texture mods natively through gMod — no uMod required.
+section: mods
+---
+import LauncherPath from '../../components/LauncherPath.astro';
+
+GW Launcher loads texture mods for you through **[gMod](https://github.com/gwdevhub/gMod)**, so
+you **don't need uMod** running separately for basic TexMod functionality.
+
+## Add TexMods
+
+Same three sources as any [mod](/docs/mods/):
+
+- **`plugins\`** next to `GW_Launcher.exe` — applies to every account.
+- **`plugins\`** next to a copy's `Gw.exe` — applies to that installation only.
+- **Per account**, via the Mod Manager:
+
+<LauncherPath kind="mods" steps={['Edit account', 'Mods', 'Add Mod']} />
+
+Supported files: **`.tpf`** and **`.zip`**. They show up under the **TexMods** group.
+
+## Load order matters
+
+TexMods apply in **alphabetical filename order**, and **first wins** — once a texture is replaced
+by `1_FirstTexmod.tpf`, a later `2_SecondTexmod.tpf` can't override that same texture. Prefix
+filenames with numbers to set priority:
+
+```text
+plugins\
+├─ 1_UI_overhaul.tpf
+├─ 2_armor_retexture.tpf
+└─ 3_environment.zip
+```
+
+## Broken or invalid .tpf files
+
+<div class="note warn">
+
+Some old TexMods contain technically invalid image files that won't display correctly. If a mod
+looks wrong, convert it: grab **TpfConvert** from
+<a href="https://github.com/gwdevhub/gMod" target="_blank" rel="noopener">gMod</a> (instructions at
+the bottom of its README) to turn the bad `.tpf` into a valid `.zip`. Delete the original `.tpf`
+and use the `.zip` instead.
+
+</div>
+
+## Compatibility
+
+64-bit hashes from **uMod v2** are supported in GW Launcher **version 16 and up**.

@@ -1,0 +1,50 @@
+---
+title: DLL Plugins
+description: Auto-inject GWToolbox and other .dll plugins on launch, globally or per account.
+section: mods
+---
+import LauncherPath from '../../components/LauncherPath.astro';
+
+DLL plugins are code mods injected into the game at launch — the most common being
+**GWToolbox**. GW Launcher loads them so you don't have to inject anything by hand.
+
+## Add plugins for every account
+
+Create a folder named **`plugins`** next to `GW_Launcher.exe` and drop your `.dll` files in it.
+Every account with **Use mods in plugin folders** ticked will load them.
+
+```text
+GW Launcher\
+├─ GW_Launcher.exe
+└─ plugins\
+   └─ GWToolbox.dll
+```
+
+You can also use a **`.lnk` shortcut** to a `.dll` instead of copying the file — handy for
+pointing at a build that lives elsewhere.
+
+## Add plugins for one installation
+
+Put a `plugins` folder next to a specific copy's `Gw.exe` to load those DLLs **only** for
+accounts launched from that folder:
+
+```text
+Guild Wars (Copy 2)\
+├─ Gw.exe
+└─ plugins\
+   └─ SomePlugin.dll
+```
+
+## Add a plugin to a single account
+
+Skip the folders and attach a DLL to just one account:
+
+<LauncherPath kind="mods" steps={['Edit account', 'Mods', 'Add Mod']} />
+
+The file appears under the **DLLs** group in the Mod Manager.
+
+## Notes
+
+- Plugins load in **alphabetical filename order**.
+- A plugin that needs admin rights will require the account's **Run elevated** option (or running GW Launcher as administrator).
+- If a DLL fails to inject, the launch is aborted with the error — see [Troubleshooting](/docs/troubleshooting/).

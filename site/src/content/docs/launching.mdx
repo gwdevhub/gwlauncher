@@ -1,0 +1,48 @@
+---
+title: Launching Clients
+description: Launch accounts, the default client, and what the launch process does.
+section: launching
+---
+import LauncherPath from '../../components/LauncherPath.astro';
+
+## Launch an account
+
+**Double-click** any account in the list, or:
+
+<LauncherPath kind="menu" steps={['Select account(s)', 'Launch Selected']} />
+
+On launch GW Launcher:
+
+1. Starts that account's `Gw.exe` (as administrator if **Run elevated** is set).
+2. Logs in with the saved email/password — except [Steam accounts](/docs/steam/), where Steam handles login.
+3. Injects any [DLL plugins and TexMods](/docs/mods/) for that account.
+4. Renames the game window to the account's **Title** (or character name).
+
+The **Status** column tracks progress: **Launching → Active**.
+
+## Launch a plain client
+
+To start a Guild Wars client with **no account login and no mods** — useful for making a fresh
+copy log in manually, or testing — use:
+
+<LauncherPath kind="menu" steps={['Right-click the list', 'Launch Default GW Client']} />
+
+## Multiple at once
+
+Select several accounts (Ctrl/Shift-click) and **Launch Selected**, or just double-click each in
+turn. Each needs its own game installation — see [Run Multiple Accounts](/docs/multiboxing/).
+
+## Common launch errors
+
+| Message | Fix |
+| --- | --- |
+| *Path to the Guild Wars executable incorrect* | The account's **Path** doesn't point at a real `Gw.exe`. Edit the account and fix it. |
+| *…is already running* | That exact `Gw.exe` is already open. Use a separate copy to multi-box. |
+| *Steam is not running* | Start Steam before launching a [Steam account](/docs/steam/). |
+| *Failed to wait for MainWindowHandle…* | The client took too long to start. Try again; raise the [mod-launch timeout](/docs/settings/) if it persists. |
+
+## Advanced: suspended (Ctrl) launch
+
+Hold **Ctrl** while launching an account to start the client **paused before plugins load**. The
+launcher asks to continue — handy for attaching a debugger. Cancel to abort, or continue to
+finish injecting and resume the game.

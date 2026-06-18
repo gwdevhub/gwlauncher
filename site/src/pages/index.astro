@@ -1,0 +1,173 @@
+---
+import Base from '../layouts/Base.astro';
+import Search from '../components/Search.tsx';
+import { getLatestRelease } from '../lib/release';
+import { navGroups } from '../lib/nav';
+import siteConfig from '../../site.config.json';
+
+const release = await getLatestRelease();
+
+const featureCards = [
+  {
+    title: 'Multiple accounts',
+    href: '/docs/accounts/',
+    desc: 'Keep all your accounts in one list. Double-click to launch — passwords filled in for you.',
+  },
+  {
+    title: 'Multi-boxing',
+    href: '/docs/multiboxing/',
+    desc: 'Run several Guild Wars clients side by side, each launched from its own installation.',
+  },
+  {
+    title: 'DLL plugins',
+    href: '/docs/plugins/',
+    desc: 'Auto-inject GWToolbox and other .dll plugins globally or per account, on launch.',
+  },
+  {
+    title: 'TexMods',
+    href: '/docs/texmods/',
+    desc: 'Load .tpf / .zip texture mods with no separate uMod — gMod handles it natively.',
+  },
+  {
+    title: 'Keeps clients updated',
+    href: '/docs/updating/',
+    desc: 'Check every account for an out-of-date Gw.exe and pull the latest build in one click.',
+  },
+  {
+    title: 'Encrypted storage',
+    href: '/docs/encryption/',
+    desc: 'Optionally protect your saved logins behind a master password on disk.',
+  },
+];
+---
+
+<Base>
+  <section class="border-b border-(--color-border-glass) flex justify-center">
+    <div class="mx-auto 2xl:max-w-7xl max-w-full px-4 py-16 sm:px-6 md:py-24">
+      <div class="flex flex-col items-start gap-6 md:flex-row md:items-center">
+        <img
+          src="/brand/gwlauncher-helmet.png"
+          alt=""
+          width="96"
+          height="96"
+          class="h-20 w-20 shrink-0 drop-shadow-[0_4px_16px_rgba(47,111,168,0.35)] sm:h-24 sm:w-24"
+          aria-hidden="true"
+        />
+        <h1 class="font-display text-4xl leading-tight text-(--color-fg) sm:text-5xl md:text-6xl">
+          GW Launcher
+          <span class="mt-2 block text-lg font-normal text-(--color-fg-sub) sm:text-xl">
+            Launch and manage every Guild Wars account from one window.
+          </span>
+        </h1>
+      </div>
+      <p class="mt-6 lg:max-w-2xl max-w-full text-lg text-(--color-fg-sub)">
+        A lightweight launcher from the makers of GWToolbox++. Store your accounts, multi-box
+        with a double-click, and auto-load DLL plugins and texture mods — no uMod required.
+      </p>
+      <div class="mt-8 flex flex-wrap items-center gap-3">
+        <a
+          href={release.url}
+          class="inline-flex items-center gap-2 rounded bg-(--color-accent) px-5 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-(--color-accent-soft)"
+        >
+          <svg viewBox="0 0 16 16" class="h-4 w-4 fill-current" aria-hidden="true">
+            <path d="M8 1.5a.75.75 0 0 1 .75.75v6.69l2.22-2.22a.75.75 0 1 1 1.06 1.06l-3.5 3.5a.75.75 0 0 1-1.06 0l-3.5-3.5a.75.75 0 1 1 1.06-1.06l2.22 2.22V2.25A.75.75 0 0 1 8 1.5zM3.25 13.5a.75.75 0 0 0 0 1.5h9.5a.75.75 0 0 0 0-1.5h-9.5z" />
+          </svg>
+          Download {release.source === 'github' ? `v${release.version}` : 'latest'}
+        </a>
+        <a
+          href="/docs/installation/"
+          class="inline-flex items-center gap-2 rounded border border-(--color-border-glass) bg-(--color-glass) px-5 py-2.5 text-sm font-semibold text-(--color-fg) transition-colors hover:bg-(--color-glass-hover)"
+        >
+          Get started
+        </a>
+        <a
+          href={siteConfig.githubUrl}
+          target="_blank"
+          rel="noopener"
+          class="inline-flex items-center gap-2 rounded px-3 py-2.5 text-sm font-medium text-(--color-fg-sub) transition-colors hover:text-(--color-fg)"
+        >
+          View source →
+        </a>
+      </div>
+      <p class="mt-4 text-xs text-(--color-fg-meta)">
+        Free, open source, MIT licensed. Windows only.
+      </p>
+
+      <div class="mt-10 max-w-full">
+        <p class="mb-2 text-xs font-semibold uppercase tracking-widest text-(--color-fg-meta)">
+          Looking for something specific?
+        </p>
+        <Search
+          variant="hero"
+          placeholder="Search the docs — accounts, multi-boxing, plugins, texmods…"
+          client:load
+        />
+        <p class="mt-2 text-xs text-(--color-fg-faint)">
+          Press <kbd class="rounded border border-(--color-border-glass) bg-(--color-glass) px-1.5 py-0.5 font-mono text-[0.65rem]">/</kbd> on any page to open search.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section class="mx-auto max-w-full 2xl:max-w-7xl px-4 py-16 sm:px-6">
+    <div class="mb-10 flex items-end justify-between gap-4">
+      <div>
+        <h2 class="font-display text-2xl text-(--color-fg) sm:text-3xl">
+          What it does
+        </h2>
+        <p class="mt-2 text-(--color-fg-sub)">The features most people come here for.</p>
+      </div>
+      <a
+        href="/docs/installation/"
+        class="hidden text-sm text-(--color-accent) hover:underline sm:inline"
+      >
+        Browse all docs →
+      </a>
+    </div>
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {
+        featureCards.map((card) => (
+          <a
+            href={card.href}
+            class="group rounded-lg border border-(--color-border-glass) bg-(--color-card) p-5 transition-colors hover:border-(--color-accent-deep) hover:bg-(--color-card-hover)"
+          >
+            <h3 class="mb-2 font-display text-lg text-(--color-fg) group-hover:text-(--color-accent)">
+              {card.title}
+            </h3>
+            <p class="text-sm text-(--color-fg-sub) leading-relaxed">{card.desc}</p>
+          </a>
+        ))
+      }
+    </div>
+  </section>
+
+  <section class="mx-auto max-w-full 2xl:max-w-7xl px-4 pb-20 sm:px-6">
+    <div class="mb-6">
+      <h2 class="font-display text-2xl text-(--color-fg) sm:text-3xl">All topics</h2>
+      <p class="mt-2 text-(--color-fg-sub)">Everything the launcher can do, end to end.</p>
+    </div>
+    <div class="grid gap-x-1 gap-y-6 lg:gap-x-6 grid-cols-2 lg:grid-cols-5">
+      {
+        navGroups.map((group) => (
+          <div>
+            <h3 class="mb-3 text-xs font-semibold uppercase tracking-wider text-(--color-fg-meta)">
+              {group.label}
+            </h3>
+            <ul class="space-y-1.5 text-sm">
+              {group.items.map((item) => (
+                <li>
+                  <a
+                    href={`/docs/${item.slug}/`}
+                    class="text-(--color-fg-sub) transition-colors hover:text-(--color-accent)"
+                  >
+                    {item.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))
+      }
+    </div>
+  </section>
+</Base>

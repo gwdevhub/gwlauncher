@@ -1,0 +1,62 @@
+---
+title: Install & First Launch
+description: Download GW Launcher, put it in its own folder, and add your first account.
+section: getting-started
+---
+import LauncherPath from '../../components/LauncherPath.astro';
+
+Get from zero to a launched account in a couple of minutes.
+
+## 1. Download
+
+Grab the latest **`GW_Launcher.exe`** from the
+[releases page](https://github.com/gwdevhub/gwlauncher/releases). Two builds are published:
+
+| Build | When to use it |
+| --- | --- |
+| **Self-contained** (`GW_Launcher.exe`) | The default. Runs on any Windows machine — no extra installs. |
+| **Framework-dependent** | Smaller, but needs the [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0) installed. |
+
+When in doubt, take the self-contained build.
+
+## 2. Put it in its own folder
+
+<div class="note warn">
+
+GW Launcher writes files next to itself — `Settings.json`, `Accounts.json`, and a `d3d9.dll`
+shim. Always place the `.exe` in a dedicated empty folder (e.g. `C:\GW Launcher\`) before running
+it, never loose in Downloads or on the Desktop.
+
+</div>
+
+## 3. Run it
+
+Double-click the executable. On first run it asks whether to **encrypt your account info** —
+choose **Yes** to protect saved logins behind a master password, or **No** to store them as
+plain JSON. You can change this later. See [Encryption & Passwords](/docs/encryption/).
+
+An expected **antivirus warning** may appear on first launch — GW Launcher injects mods into the
+game (just like GWToolbox), which some scanners flag. It's a false positive; see
+[Troubleshooting](/docs/troubleshooting/).
+
+## 4. Add your first account
+
+Right-click the empty account list and pick **Add New**:
+
+<LauncherPath kind="menu" steps={['Right-click the list', 'Add New']} />
+
+Fill in the account window, then **Save**:
+
+- **Email** / **Pass** — your Guild Wars login (or tick **Steam Account** for a Steam copy — see [Steam Accounts](/docs/steam/)).
+- **Char** — the character to display in the list.
+- **Path** — click **`...`** and point it at your `Gw.exe`. The launcher can later [update it to the latest build](/docs/updating/) for you.
+- **Title** — optional custom label shown in the list and window title.
+
+Full details on every field are in [Managing Accounts](/docs/accounts/).
+
+## 5. Launch
+
+**Double-click** the account in the list. The launcher logs you in, renames the game window
+to the character/title, and the **Status** column flips to **Active**.
+
+Want to run several accounts at once? See [Run Multiple Accounts](/docs/multiboxing/).

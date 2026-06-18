@@ -1,0 +1,40 @@
+---
+title: Installing & Updating GW
+description: Keep every account's Gw.exe up to date with the built-in updater.
+section: launching
+---
+import LauncherPath from '../../components/LauncherPath.astro';
+
+Guild Wars updates its own game data when it launches, but the **`Gw.exe`** itself occasionally
+gets a new build. GW Launcher can check every account and fetch the latest executable for you.
+
+## Update all clients
+
+<LauncherPath kind="menu" steps={['Right-click the list', 'Update All Clients']} />
+
+This:
+
+1. Prompts to **restart as administrator** if needed (writing into `Program Files` requires it).
+2. Checks each account's `Gw.exe` version against the latest available build.
+3. Lists any out-of-date accounts and asks to **Update now?**
+4. Downloads and replaces the executable for the accounts you confirm, with a progress window.
+
+If everything is current you'll see *"No accounts are out of date."*
+
+<div class="note">
+
+The download uses Guild Wars' own file-delivery protocol (the same tech behind
+<a href="https://github.com/gwdevhub/gMod" target="_blank" rel="noopener">gMod</a>), so you get the
+official executable — not a third-party mirror.
+
+</div>
+
+## Automatic checks
+
+GW Launcher also checks for client updates in the background when it starts, so you're nudged
+when a new build lands. You can still trigger a manual check any time with **Update All Clients**.
+
+## Updating the launcher itself
+
+That's separate from updating the game. See [Settings → Updates](/docs/settings/) for the
+**Check for updates** and **Auto update** options that keep GW Launcher current.

@@ -9,18 +9,19 @@ public partial class CryptPassForm : Form
 
 	public CryptPassForm()
 	{
-		Password = Array.Empty<byte>();
+		PasswordText = "";
 		InitializeComponent();
 	}
 
-	public byte[] Password { get; private set; }
+	// The master password the user typed, in plaintext.
+	public string PasswordText { get; private set; }
 
-	public static byte[]? GetCachedPassword()
+	public static string? GetCachedPassword()
 	{
 		try
 		{
 			using var key = Registry.CurrentUser.OpenSubKey(REGISTRY_KEY);
-			if (key?.GetValue(PASSWORD_VALUE) is byte[] cachedPassword)
+			if (key?.GetValue(PASSWORD_VALUE) is string cachedPassword)
 			{
 				return cachedPassword;
 			}
@@ -52,7 +53,7 @@ public partial class CryptPassForm : Form
 		try
 		{
 			using var key = Registry.CurrentUser.CreateSubKey(REGISTRY_KEY);
-			key.SetValue(PASSWORD_VALUE, Password, RegistryValueKind.Binary);
+			key.SetValue(PASSWORD_VALUE, PasswordText, RegistryValueKind.String);
 		}
 		catch
 		{
@@ -67,8 +68,7 @@ public partial class CryptPassForm : Form
 			return;
 		}
 
-		var sha = SHA256.Create();
-		Password = sha.ComputeHash(Encoding.UTF8.GetBytes(textBoxPassword.Text));
+		PasswordText = textBoxPassword.Text;
 
 		// Store password in registry if checkbox is checked
 		StoreCachedPassword();
