@@ -88,6 +88,9 @@ public partial class AddAccountForm : Form
 
 	private void ButtonMods_Click(object sender, EventArgs e)
 	{
+		// Mods are scanned relative to gwpath/this setting, so reflect unsaved edits before opening.
+		account.gwpath = textBoxPath.Text;
+		account.usePluginFolderMods = checkBoxUsePluginFolderMods.Checked;
 		using var modForm = new ModManagerForm(account);
 		modForm.ShowDialog();
 	}
