@@ -15,10 +15,10 @@ internal class GWMemory
 
         // Signatures mirror the GWToolbox launcher (GWToolbox/Inject.cpp); offset lands on the pushed pointer.
         EmailAddPtr =
-            cli.ScanForPtr(new byte[] { 0x68, 0x80, 0x00, 0x00, 0x00, 0x51, 0x68 }, 0x7, true);
+            cli.ScanForPtr(new byte[] { 0x68, 0x80, 0x00, 0x00, 0x00, 0x51, 0x68 }, 0x7, true, "xxxxxxx");
 
         CharnamePtr =
-            cli.ScanForPtr(new byte[] { 0x6A, 0x14, 0x83, 0xC0, 0x18, 0x50, 0x68 }, 0x7, true);
+            cli.ScanForPtr(new byte[] { 0x6A, 0x14, 0x83, 0xC0, 0x18, 0x50, 0x68 }, 0x7, true, "xxxxxxx");
 
         cli.TerminateScanner();
     }

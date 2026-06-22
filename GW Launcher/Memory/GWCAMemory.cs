@@ -285,10 +285,22 @@ public class GWCAMemory
     /// </summary>
     /// <param name="signature">Group of bytes to match</param>
     /// <param name="offset">Offset from matched sig to pointer.</param>
+    /// <param name="mask">
+    ///     Optional 'x'/'?' mask the same length as <paramref name="signature" />: 'x' matches exactly,
+    ///     '?' is a wildcard. When null, a 0x00 signature byte is treated as a wildcard.
+    /// </param>
     /// <returns>Address found if successful, IntPtr.Zero if not.</returns>
-    public IntPtr ScanForPtr(byte[] signature, int offset = 0, bool readptr = false)
+    public IntPtr ScanForPtr(byte[] signature, int offset = 0, bool readptr = false, string? mask = null)
     {
+        if (mask != null && mask.Length != signature.Length)
+        {
+            throw new ArgumentException("Mask must be the same length as the signature.", nameof(mask));
+        }
+
+        bool IsWildcard(int i) => mask != null ? mask[i] != 'x' : signature[i] == 0x00;
+
         var first = signature[0];
+        var firstWildcard = IsWildcard(0);
         var sigLength = signature.Length;
 
         // For start to end of scan range...
@@ -296,7 +308,7 @@ public class GWCAMemory
         {
             // Skip iteration if first byte does not match
             Debug.Assert(memory_dump != null, nameof(memory_dump) + " != null");
-            if (memory_dump[scan] != first)
+            if (!firstWildcard && memory_dump[scan] != first)
             {
                 continue;
             }
@@ -306,7 +318,7 @@ public class GWCAMemory
             // For sig size... check for matching signature.
             for (var sig = 0; sig < sigLength; ++sig)
             {
-                if (memory_dump[scan + sig] != signature[sig] && signature[sig] != 0x00)
+                if (!IsWildcard(sig) && memory_dump[scan + sig] != signature[sig])
                 {
                     match = false;
                     break;
