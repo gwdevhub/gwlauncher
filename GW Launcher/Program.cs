@@ -756,87 +756,20 @@ internal static class Program
     }
     public static async Task CheckForGwExeUpdates(bool messageIfUpToDate)
     {
-        using var cts = new CancellationTokenSource();
-        using var checkingDialog = new Form
+        // Check silently in the background; only the prompts and the update itself are shown.
+        List<Account> accsToUpdate;
+        List<Account> failedToCheck;
+        try
         {
-            Text = "GW Update",
-            Size = new System.Drawing.Size(300, 120),
-            FormBorderStyle = FormBorderStyle.FixedDialog,
-            StartPosition = FormStartPosition.CenterScreen,
-            MaximizeBox = false,
-            MinimizeBox = false
-        };
-        var label = new System.Windows.Forms.Label
+            (accsToUpdate, failedToCheck) = await Task.Run(() => RunUpdateCheck(CancellationToken.None));
+        }
+        catch (Exception ex)
         {
-            Text = "Checking for updates...",
-            Dock = DockStyle.Fill,
-            TextAlign = System.Drawing.ContentAlignment.MiddleCenter
-        };
-        var cancelBtn = new Button
-        {
-            Text = "Cancel",
-            Dock = DockStyle.Bottom,
-            DialogResult = DialogResult.Cancel
-        };
-        cancelBtn.Click += (_, _) => cts.Cancel();
-        checkingDialog.Controls.Add(label);
-        checkingDialog.Controls.Add(cancelBtn);
-
-        List<Account> accsToUpdate = new();
-        List<Account> failedToCheck = new();
-        Exception? checkError = null;
-        var checkCompleted = false;
-
-        checkingDialog.FormClosing += (_, e) =>
-        {
-            if (!checkCompleted && !cts.IsCancellationRequested)
-                cts.Cancel();
-        };
-
-        // Run the check in the background, close dialog when done
-        var checkTask = Task.Run(async () =>
-        {
-            try
-            {
-                (accsToUpdate, failedToCheck) = await RunUpdateCheck(cts.Token);
-            }
-            catch (OperationCanceledException)
-            {
-                // User cancelled — exit silently
-            }
-            catch (Exception ex)
-            {
-                checkError = ex;
-            }
-            finally
-            {
-                checkCompleted = true;
-                try
-                {
-                    checkingDialog.Invoke(() => checkingDialog.Close());
-                }
-                catch
-                {
-                    // Dialog may already be disposed if cancelled
-                }
-            }
-        }, cts.Token);
-
-        checkingDialog.ShowDialog();
-        await checkTask; // propagate exceptions / await completion
-
-        // Dialog is closed by here — show prompts and run updates without it on screen.
-
-        if (checkError != null)
-        {
-            Console.WriteLine($"Error checking for Gw.exe updates: {checkError.Message}");
-            MessageBox.Show($"Error checking for updates: {checkError.Message}", "Update Check Error",
+            Console.WriteLine($"Error checking for Gw.exe updates: {ex.Message}");
+            MessageBox.Show($"Error checking for updates: {ex.Message}", "Update Check Error",
                 MessageBoxButtons.OK, MessageBoxIcon.Error);
             return;
         }
-
-        if (cts.IsCancellationRequested)
-            return;
 
         if (failedToCheck.Count != 0 && messageIfUpToDate)
         {
