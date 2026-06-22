@@ -65,12 +65,12 @@ partial class ModManagerForm
             // columnHeaderName
             // 
             this.columnHeaderName.Text = "Name";
-            this.columnHeaderName.Width = 160;
-            // 
+            this.columnHeaderName.Width = 250;
+            //
             // columnHeaderPath
-            // 
+            //
             this.columnHeaderPath.Text = "Full Path";
-            this.columnHeaderPath.Width = 229;
+            this.columnHeaderPath.Width = 346;
             // 
             // listViewAvailableMods
             // 
@@ -97,6 +97,7 @@ partial class ModManagerForm
             this.listViewAvailableMods.TabIndex = 0;
             this.listViewAvailableMods.UseCompatibleStateImageBehavior = false;
             this.listViewAvailableMods.View = System.Windows.Forms.View.Details;
+            this.listViewAvailableMods.SizeChanged += new System.EventHandler(this.ListViewAvailableMods_SizeChanged);
             this.listViewAvailableMods.ColumnClick += new System.Windows.Forms.ColumnClickEventHandler(this.ListViewAvailableMods_ColumnClick);
             this.listViewAvailableMods.DrawColumnHeader += new System.Windows.Forms.DrawListViewColumnHeaderEventHandler(this.ListViewAvailableMods_DrawColumnHeader);
             this.listViewAvailableMods.DrawItem += new System.Windows.Forms.DrawListViewItemEventHandler(this.ListViewAvailableMods_DrawItem);
@@ -107,7 +108,7 @@ partial class ModManagerForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(458, 351);
+            this.ClientSize = new System.Drawing.Size(600, 351);
             this.Controls.Add(this.listViewAvailableMods);
             this.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             this.Name = "ModManager";

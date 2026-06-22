@@ -79,6 +79,15 @@ public partial class ModManagerForm : Form
         RefreshUI();
     }
 
+    private void ListViewAvailableMods_SizeChanged(object sender, EventArgs e)
+    {
+        var remaining = listViewAvailableMods.ClientSize.Width - columnHeaderName.Width;
+        if (remaining > 0)
+        {
+            columnHeaderPath.Width = remaining;
+        }
+    }
+
     private void ListViewAvailableMods_ItemChecked(object sender, ItemCheckedEventArgs e)
     {
         if (_refreshing)
