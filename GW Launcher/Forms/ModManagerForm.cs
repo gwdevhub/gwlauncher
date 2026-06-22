@@ -5,6 +5,7 @@ namespace GW_Launcher.Forms;
 public partial class ModManagerForm : Form
 {
     private readonly Account _account;
+    private bool _refreshing;
 
     public ModManagerForm(Account account)
     {
@@ -17,34 +18,59 @@ public partial class ModManagerForm : Form
 
     private void RefreshUI()
     {
+        _refreshing = true;
         listViewAvailableMods.Items.Clear();
 
         _account.mods.Sort((a, b) => string.CompareOrdinal(a.fileName, b.fileName));
         foreach (var mod in _account.mods)
         {
-            var name = Path.GetFileName(mod.fileName);
-            var path = Path.GetDirectoryName(mod.fileName);
             var item = new ListViewItem(new[]
             {
-                name,
-                path ?? string.Empty
+                Path.GetFileName(mod.fileName),
+                Path.GetDirectoryName(mod.fileName) ?? string.Empty
             }, mod.fileName)
             {
-                Checked = mod.active
+                Checked = mod.active,
+                Tag = mod
             };
 
-            switch (mod.type)
-            {
-                case ModType.kModTypeTexmod:
-                    listViewAvailableMods.Groups[0].Items.Add(item);
-                    break;
-
-                case ModType.kModTypeDLL:
-                    listViewAvailableMods.Groups[1].Items.Add(item);
-                    break;
-            }
-
+            AddToTypeGroup(item, mod.type);
             listViewAvailableMods.Items.Add(item);
+        }
+
+        foreach (var plugin in ModManager.GetPluginFolderMods(_account))
+        {
+            var item = new ListViewItem(new[]
+            {
+                Path.GetFileName(plugin.filePath),
+                Path.GetDirectoryName(plugin.filePath) ?? string.Empty
+            }, plugin.filePath)
+            {
+                Checked = true,
+                ForeColor = SystemColors.GrayText,
+                ToolTipText =
+                    $"Auto-loaded from the plugins folder at:\n{plugin.sourceFolder}\n\n" +
+                    "This entry is read-only. Remove the file from that folder to stop loading it."
+            };
+
+            AddToTypeGroup(item, plugin.type);
+            listViewAvailableMods.Items.Add(item);
+        }
+
+        _refreshing = false;
+    }
+
+    private void AddToTypeGroup(ListViewItem item, ModType type)
+    {
+        switch (type)
+        {
+            case ModType.kModTypeTexmod:
+                listViewAvailableMods.Groups[0].Items.Add(item);
+                break;
+
+            case ModType.kModTypeDLL:
+                listViewAvailableMods.Groups[1].Items.Add(item);
+                break;
         }
     }
 
@@ -55,8 +81,23 @@ public partial class ModManagerForm : Form
 
     private void ListViewAvailableMods_ItemChecked(object sender, ItemCheckedEventArgs e)
     {
+        if (_refreshing)
+        {
+            return;
+        }
+
+        if (e.Item.Tag is not Mod mod)
+        {
+            // Side-loaded plugin folder rows are read-only and always loaded.
+            if (!e.Item.Checked)
+            {
+                e.Item.Checked = true;
+            }
+
+            return;
+        }
+
         Program.Mutex.WaitOne();
-        var mod = _account.mods[e.Item.Index];
         mod.active = e.Item.Checked;
         Refresh();
         Program.Accounts.Save();
@@ -122,10 +163,14 @@ public partial class ModManagerForm : Form
             return;
         }
 
-        var list = listViewAvailableMods.SelectedIndices.Cast<int>().ToList().OrderByDescending(i => i);
-        foreach (var index in list)
+        var modsToRemove = listViewAvailableMods.SelectedItems
+            .Cast<ListViewItem>()
+            .Select(item => item.Tag)
+            .OfType<Mod>()
+            .ToList();
+        foreach (var mod in modsToRemove)
         {
-            _account.mods.RemoveAt(index);
+            _account.mods.Remove(mod);
         }
 
         Program.Accounts.Save();
@@ -172,7 +217,10 @@ public partial class ModManagerForm : Form
         listViewAvailableMods.Columns[e.Column].Tag = value;
         foreach (ListViewItem item in listViewAvailableMods.Items)
         {
-            item.Checked = value;
+            if (item.Tag is Mod)
+            {
+                item.Checked = value;
+            }
         }
 
         listViewAvailableMods.Invalidate();

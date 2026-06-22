@@ -92,6 +92,7 @@ partial class ModManagerForm
             this.listViewAvailableMods.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             this.listViewAvailableMods.Name = "listViewAvailableMods";
             this.listViewAvailableMods.OwnerDraw = true;
+            this.listViewAvailableMods.ShowItemToolTips = true;
             this.listViewAvailableMods.Size = new System.Drawing.Size(458, 351);
             this.listViewAvailableMods.TabIndex = 0;
             this.listViewAvailableMods.UseCompatibleStateImageBehavior = false;

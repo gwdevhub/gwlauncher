@@ -3,6 +3,13 @@ using File = System.IO.File;
 
 namespace GW_Launcher.Utilities;
 
+public class SideloadedMod
+{
+    public string filePath = "";
+    public ModType type;
+    public string sourceFolder = "";
+}
+
 public class ModManager
 {
     public static IOrderedEnumerable<string> GetDlls(Account account)
@@ -13,6 +20,48 @@ public class ModManager
     public static IOrderedEnumerable<string> GetTexmods(Account account)
     {
         return GetMods(account).Item2;
+    }
+
+    // Plugins side-loaded from the "plugins" folders, in the same order GetMods scans them.
+    private static IEnumerable<string> GetPluginFolders(Account account)
+    {
+        yield return Path.Combine(Directory.GetCurrentDirectory(), "plugins");
+
+        if (account.gwpath != "")
+        {
+            var dir = Path.GetDirectoryName(account.gwpath);
+            if (dir != null)
+                yield return Path.Combine(dir, "plugins");
+        }
+    }
+
+    public static List<SideloadedMod> GetPluginFolderMods(Account account)
+    {
+        var result = new List<SideloadedMod>();
+        if (!account.usePluginFolderMods)
+            return result;
+
+        foreach (var folder in GetPluginFolders(account))
+        {
+            if (!Directory.Exists(folder))
+                continue;
+
+            foreach (var path in Directory.GetFiles(folder))
+            {
+                var dll = GetDllPath(path);
+                if (dll != null)
+                {
+                    result.Add(new SideloadedMod { filePath = dll, type = ModType.kModTypeDLL, sourceFolder = folder });
+                    continue;
+                }
+
+                var tpf = GetTpfPath(path);
+                if (tpf != null)
+                    result.Add(new SideloadedMod { filePath = tpf, type = ModType.kModTypeTexmod, sourceFolder = folder });
+            }
+        }
+
+        return result;
     }
 
     private static string? GetDllPath(string? path)
@@ -75,21 +124,10 @@ public class ModManager
     {
         var dllsToLoad = new List<string>();
         var texsToLoad = new List<string>();
-        var path = account.gwpath;
         if (account.usePluginFolderMods)
         {
-            var directory = Path.Combine(Directory.GetCurrentDirectory(), "plugins");
-            AddMods(directory, ref dllsToLoad, ref texsToLoad);
-
-            if (path != "")
-            {
-                var dir = Path.GetDirectoryName(path);
-                if (dir != null)
-                {
-                    directory = Path.Combine(dir, "plugins");
-                    AddMods(directory, ref dllsToLoad, ref texsToLoad);
-                }
-            }
+            foreach (var directory in GetPluginFolders(account))
+                AddMods(directory, ref dllsToLoad, ref texsToLoad);
         }
 
         foreach (var mod in account.mods.Where(mod => mod.active))
