@@ -563,10 +563,12 @@ internal static class Program
         {
             UseShellExecute = true,
             FileName = fileName,
+            WorkingDirectory = Path.GetDirectoryName(fileName) ?? "",
             Arguments = "restart"
         };
 
-        Application.Restart();
+        // Start the updated exe before exiting; Application.Restart() races the background
+        // thread this runs on and can tear down before the new process is spawned.
         Process.Start(processInfo);
         Environment.Exit(0);
     }
