@@ -17,6 +17,10 @@ partial class ModManagerForm
         {
             components.Dispose();
         }
+        if (disposing)
+        {
+            _missingFont?.Dispose();
+        }
         base.Dispose(disposing);
     }
 

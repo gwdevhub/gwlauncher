@@ -5,6 +5,7 @@ namespace GW_Launcher.Forms;
 public partial class ModManagerForm : Form
 {
     private readonly Account _account;
+    private readonly Font _missingFont;
     private bool _refreshing;
 
     public ModManagerForm(Account account)
@@ -13,6 +14,7 @@ public partial class ModManagerForm : Form
 
         InitializeComponent();
 
+        _missingFont = new Font(listViewAvailableMods.Font, FontStyle.Strikeout);
         Text = $@"Mod Manager for {_account.Name}";
     }
 
@@ -33,6 +35,15 @@ public partial class ModManagerForm : Form
                 Checked = mod.active,
                 Tag = mod
             };
+
+            if (!ModManager.ModFileExists(mod.fileName))
+            {
+                item.Font = _missingFont;
+                item.ForeColor = SystemColors.GrayText;
+                item.ToolTipText =
+                    $"File not found:\n{mod.fileName}\n\n" +
+                    "This mod no longer exists at that path and won't be loaded. Remove it or restore the file.";
+            }
 
             AddToTypeGroup(item, mod.type);
             listViewAvailableMods.Items.Add(item);

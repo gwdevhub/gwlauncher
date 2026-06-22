@@ -64,6 +64,13 @@ public class ModManager
         return result;
     }
 
+    public static bool ModFileExists(string path)
+    {
+        if (path.EndsWith(".lnk", StringComparison.OrdinalIgnoreCase))
+            path = GetShortcutPath(path) ?? "";
+        return File.Exists(path);
+    }
+
     private static string? GetDllPath(string? path)
     {
         if (path != null && path.EndsWith(".lnk", StringComparison.OrdinalIgnoreCase))
