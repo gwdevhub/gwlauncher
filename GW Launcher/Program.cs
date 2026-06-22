@@ -263,7 +263,7 @@ internal static class Program
         {
             Task.Run(CheckGitHubNewerVersion);
             Task.Run(CheckGitHubGModVersion);
-            Task.Run(async () => await CheckForGwExeUpdates(false));
+            Task.Run(async () => await CheckForGwExeUpdates(false, false));
         }
 
         Settings.Save();
@@ -756,22 +756,100 @@ internal static class Program
         await using var fs = new FileStream(gmod, FileMode.Create);
         await s.CopyToAsync(fs);
     }
-    public static async Task CheckForGwExeUpdates(bool messageIfUpToDate)
+    public static async Task CheckForGwExeUpdates(bool messageIfUpToDate, bool showCheckingDialog)
     {
-        // Check silently in the background; only the prompts and the update itself are shown.
-        List<Account> accsToUpdate;
-        List<Account> failedToCheck;
-        try
+        List<Account> accsToUpdate = new();
+        List<Account> failedToCheck = new();
+        Exception? checkError = null;
+        var cancelled = false;
+
+        if (showCheckingDialog)
         {
-            (accsToUpdate, failedToCheck) = await Task.Run(() => RunUpdateCheck(CancellationToken.None));
+            using var cts = new CancellationTokenSource();
+            using var checkingDialog = new Form
+            {
+                Text = "GW Update",
+                Size = new System.Drawing.Size(300, 120),
+                FormBorderStyle = FormBorderStyle.FixedDialog,
+                StartPosition = FormStartPosition.CenterScreen,
+                MaximizeBox = false,
+                MinimizeBox = false
+            };
+            var label = new System.Windows.Forms.Label
+            {
+                Text = "Checking for updates...",
+                Dock = DockStyle.Fill,
+                TextAlign = System.Drawing.ContentAlignment.MiddleCenter
+            };
+            var cancelBtn = new Button
+            {
+                Text = "Cancel",
+                Dock = DockStyle.Bottom,
+                DialogResult = DialogResult.Cancel
+            };
+            cancelBtn.Click += (_, _) => cts.Cancel();
+            checkingDialog.Controls.Add(label);
+            checkingDialog.Controls.Add(cancelBtn);
+
+            var checkCompleted = false;
+            checkingDialog.FormClosing += (_, _) =>
+            {
+                if (!checkCompleted && !cts.IsCancellationRequested)
+                    cts.Cancel();
+            };
+
+            Task? checkTask = null;
+            checkingDialog.Shown += (_, _) => checkTask = Task.Run(async () =>
+            {
+                try
+                {
+                    (accsToUpdate, failedToCheck) = await RunUpdateCheck(cts.Token);
+                }
+                catch (OperationCanceledException)
+                {
+                    // User cancelled — exit silently.
+                }
+                catch (Exception ex)
+                {
+                    checkError = ex;
+                }
+                finally
+                {
+                    checkCompleted = true;
+                    try { checkingDialog.Invoke(() => checkingDialog.Close()); }
+                    catch { /* dialog may already be disposed */ }
+                }
+            });
+
+            checkingDialog.ShowDialog();
+            if (checkTask != null)
+                await checkTask;
+
+            cancelled = cts.IsCancellationRequested;
         }
-        catch (Exception ex)
+        else
         {
-            Console.WriteLine($"Error checking for Gw.exe updates: {ex.Message}");
-            MessageBox.Show($"Error checking for updates: {ex.Message}", "Update Check Error",
+            // Automatically triggered: check silently in the background.
+            try
+            {
+                (accsToUpdate, failedToCheck) = await Task.Run(() => RunUpdateCheck(CancellationToken.None));
+            }
+            catch (Exception ex)
+            {
+                checkError = ex;
+            }
+        }
+
+        if (checkError != null)
+        {
+            Console.WriteLine($"Error checking for Gw.exe updates: {checkError.Message}");
+            MessageBox.Show($"Error checking for updates: {checkError.Message}", "Update Check Error",
                 MessageBoxButtons.OK, MessageBoxIcon.Error);
             return;
         }
+
+        if (cancelled)
+            return;
 
         if (failedToCheck.Count != 0 && messageIfUpToDate)
         {
