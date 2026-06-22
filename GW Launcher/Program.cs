@@ -472,7 +472,7 @@ internal static class Program
     {
         const string oldName = ".old.exe";
         const string newName = ".new.exe";
-        if (Settings.AutoUpdate && (File.Exists(oldName) || File.Exists(newName)))
+        if (File.Exists(oldName) || File.Exists(newName))
         {
             File.Delete(oldName);
             File.Delete(newName);
@@ -515,17 +515,15 @@ internal static class Program
         if (!Settings.AutoUpdate)
         {
             var msgBoxResult = MessageBox.Show(
-                $@"New version {tagName} available online. Visit page?{(runtimeInstalled ? "\nYou can download the Framework Dependent version." : "")}",
+                $@"New version {tagName} available. Download and install it now?",
                 @"GW Launcher",
                 MessageBoxButtons.YesNo,
                 MessageBoxIcon.Information,
                 MessageBoxDefaultButton.Button2);
-            if (msgBoxResult == DialogResult.Yes)
+            if (msgBoxResult != DialogResult.Yes)
             {
-                Process.Start("explorer.exe", release.HtmlUrl);
+                return;
             }
-
-            return;
         }
 
         var currentName = Path.GetFileName(Process.GetCurrentProcess().MainModule?.FileName);
@@ -535,11 +533,16 @@ internal static class Program
         }
 
         var uri = new Uri(asset.DownloadUrl);
-        var httpClient = new HttpClient();
-        await using (var s = await httpClient.GetStreamAsync(uri))
+        if (Settings.AutoUpdate)
         {
+            var httpClient = new HttpClient();
+            await using var s = await httpClient.GetStreamAsync(uri);
             await using var fs = new FileStream(newName, FileMode.Create);
             await s.CopyToAsync(fs);
+        }
+        else if (!await DownloadFileWithProgress(uri, newName, $"Updating GW Launcher to {tagName}"))
+        {
+            return;
         }
 
         Mutex.WaitOne();
@@ -566,6 +569,123 @@ internal static class Program
         Application.Restart();
         Process.Start(processInfo);
         Environment.Exit(0);
+    }
+
+    private static async Task<bool> DownloadFileWithProgress(Uri uri, string destPath, string title)
+    {
+        using var cts = new CancellationTokenSource();
+        using var dialog = new Form
+        {
+            Text = title,
+            Size = new System.Drawing.Size(360, 130),
+            FormBorderStyle = FormBorderStyle.FixedDialog,
+            StartPosition = FormStartPosition.CenterScreen,
+            MaximizeBox = false,
+            MinimizeBox = false
+        };
+        var label = new System.Windows.Forms.Label
+        {
+            Text = "Downloading update...",
+            Dock = DockStyle.Fill,
+            TextAlign = System.Drawing.ContentAlignment.MiddleCenter
+        };
+        var progressBar = new ProgressBar
+        {
+            Dock = DockStyle.Bottom,
+            Minimum = 0,
+            Maximum = 100,
+            Style = ProgressBarStyle.Marquee
+        };
+        var cancelBtn = new Button
+        {
+            Text = "Cancel",
+            Dock = DockStyle.Bottom,
+            DialogResult = DialogResult.Cancel
+        };
+        cancelBtn.Click += (_, _) => cts.Cancel();
+        dialog.Controls.Add(label);
+        dialog.Controls.Add(progressBar);
+        dialog.Controls.Add(cancelBtn);
+
+        var success = false;
+        var completed = false;
+
+        dialog.FormClosing += (_, _) =>
+        {
+            if (!completed && !cts.IsCancellationRequested)
+                cts.Cancel();
+        };
+
+        Task? downloadTask = null;
+        dialog.Shown += (_, _) => downloadTask = Task.Run(async () =>
+        {
+            try
+            {
+                using var http = new HttpClient();
+                using var response =
+                    await http.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead, cts.Token);
+                response.EnsureSuccessStatusCode();
+
+                var total = response.Content.Headers.ContentLength;
+                if (total is > 0)
+                {
+                    try { progressBar.Invoke(() => progressBar.Style = ProgressBarStyle.Continuous); }
+                    catch { /* dialog gone */ }
+                }
+
+                await using var src = await response.Content.ReadAsStreamAsync(cts.Token);
+                await using var dst = new FileStream(destPath, FileMode.Create, FileAccess.Write, FileShare.None);
+                var buffer = new byte[81920];
+                long readTotal = 0;
+                int read;
+                while ((read = await src.ReadAsync(buffer, cts.Token)) > 0)
+                {
+                    await dst.WriteAsync(buffer.AsMemory(0, read), cts.Token);
+                    readTotal += read;
+                    if (total is > 0)
+                    {
+                        var pct = (int)Math.Min(100, readTotal * 100 / total.Value);
+                        try { progressBar.Invoke(() => progressBar.Value = pct); }
+                        catch { /* dialog gone */ }
+                    }
+                }
+
+                success = true;
+            }
+            catch (OperationCanceledException)
+            {
+                // User cancelled — leave success false.
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error downloading update: {ex.Message}");
+            }
+            finally
+            {
+                completed = true;
+                try { dialog.Invoke(() => dialog.Close()); }
+                catch { /* already disposed */ }
+            }
+        }, cts.Token);
+
+        dialog.ShowDialog();
+        if (downloadTask != null)
+            await downloadTask;
+
+        if (!success)
+        {
+            try
+            {
+                if (File.Exists(destPath))
+                    File.Delete(destPath);
+            }
+            catch
+            {
+                // best effort cleanup
+            }
+        }
+
+        return success;
     }
 
     private static bool IsDotNet8DesktopInstalled()
