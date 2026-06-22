@@ -1,9 +1,7 @@
 ﻿using GW_Launcher.Forms;
 using GW_Launcher.Guildwars;
-using Octokit;
 using Account = GW_Launcher.Classes.Account;
 using Application = System.Windows.Forms.Application;
-using Assembly = System.Reflection.Assembly;
 using File = System.IO.File;
 using FileMode = System.IO.FileMode;
 using ThreadState = System.Threading.ThreadState;
@@ -480,8 +478,7 @@ internal static class Program
             File.Delete(newName);
         }
 
-        var client = new GitHubClient(new ProductHeaderValue("GWLauncher"));
-        var releases = await client.Repository.Release.GetAll("gwdevhub", "gwlauncher");
+        var releases = await GitHubAssets.GetReleasesAsync("gwdevhub", "gwlauncher");
 
         if (!releases.Any(r => !r.Prerelease && !r.Draft))
         {
@@ -497,25 +494,23 @@ internal static class Program
             return;
         }
 
-        var assembly = Assembly.GetExecutingAssembly();
-        var fvi = FileVersionInfo.GetVersionInfo(Environment.ProcessPath ?? "");
-        var version = assembly.GetName().Version?.ToString();
-        if (version == null && fvi.FileVersion == null)
-        {
-            return;
-        }
-
-        var strVersion = fvi.FileVersion ?? version ?? "";
-        var localVersion = new Version(strVersion);
-
-        var versionComparison = localVersion.CompareTo(latestVersion);
-        if (versionComparison >= 0)
-        {
-            return;
-        }
-
-        var latest = releases[0];
         var runtimeInstalled = IsDotNet8DesktopInstalled();
+        var assetName = runtimeInstalled
+            ? "GW_Launcher_Framework_Dependent.exe"
+            : "GW_Launcher.exe";
+
+        var asset = release.Assets.FirstOrDefault(a => a.Name == assetName);
+        if (asset == null)
+        {
+            return;
+        }
+
+        // Already running the published build for this release.
+        var localPath = Environment.ProcessPath;
+        if (localPath != null && GitHubAssets.IsUpToDate(localPath, asset.Sha256))
+        {
+            return;
+        }
 
         if (!Settings.AutoUpdate)
         {
@@ -527,7 +522,7 @@ internal static class Program
                 MessageBoxDefaultButton.Button2);
             if (msgBoxResult == DialogResult.Yes)
             {
-                Process.Start("explorer.exe", latest.HtmlUrl);
+                Process.Start("explorer.exe", release.HtmlUrl);
             }
 
             return;
@@ -539,17 +534,7 @@ internal static class Program
             return;
         }
 
-        var assetName = runtimeInstalled
-            ? "GW_Launcher_Framework_Dependent.exe"
-            : "GW_Launcher.exe";
-
-        var asset = latest.Assets.FirstOrDefault(a => a.Name == assetName);
-        if (asset == null)
-        {
-            return;
-        }
-
-        var uri = new Uri(asset.BrowserDownloadUrl);
+        var uri = new Uri(asset.DownloadUrl);
         var httpClient = new HttpClient();
         await using (var s = await httpClient.GetStreamAsync(uri))
         {
@@ -613,12 +598,9 @@ internal static class Program
     {
         var location = Path.GetDirectoryName(AppContext.BaseDirectory);
         var gmod = Path.Combine(location!, "gMod.dll");
-        var client = new GitHubClient(new ProductHeaderValue("gMod"));
-        var releases = await client.Repository.Release.GetAll("gwdevhub", "gMod");
+        var releases = await GitHubAssets.GetReleasesAsync("gwdevhub", "gMod");
 
-        // Pick version and asset from the same release so they can't diverge.
-        Version? latestVersion = null;
-        ReleaseAsset? asset = null;
+        GitHubAsset? asset = null;
         foreach (var release in releases)
         {
             if (release.Prerelease || release.Draft)
@@ -632,44 +614,21 @@ internal static class Program
                 continue;
             }
 
-            var tagName = Regex.Replace(release.TagName, @"[^\d\.]", "");
-            if (!Version.TryParse(tagName, out var candidateVersion))
-            {
-                continue;
-            }
-
-            latestVersion = candidateVersion;
             asset = candidateAsset;
             break;
         }
 
-        if (latestVersion == null || asset == null)
+        if (asset == null)
         {
             return;
         }
 
-        string strVersion;
-        long localSize;
-        try
-        {
-            var fvi = FileVersionInfo.GetVersionInfo(gmod);
-            strVersion = fvi.FileVersion!;
-            localSize = new FileInfo(gmod).Length;
-        }
-        catch (FileNotFoundException)
-        {
-            strVersion = "1.0.0";
-            localSize = -1;
-        }
-
-        var localVersion = new Version(strVersion);
-
-        if (localVersion == latestVersion && localSize == asset.Size)
+        if (GitHubAssets.IsUpToDate(gmod, asset.Sha256))
         {
             return;
         }
 
-        var uri = new Uri(asset.BrowserDownloadUrl);
+        var uri = new Uri(asset.DownloadUrl);
         var httpClient = new HttpClient();
         await using var s = await httpClient.GetStreamAsync(uri);
         await using var fs = new FileStream(gmod, FileMode.Create);

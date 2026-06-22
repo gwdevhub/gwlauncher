@@ -49,7 +49,6 @@
 
     <ItemGroup>
         <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-        <PackageReference Include="Octokit" Version="13.0.1" />
         <PackageReference Include="PeNet" Version="4.1.0" />
         <PackageReference Include="System.Formats.Asn1" Version="9.0.0" />
         <PackageReference Include="SystemExtensions.NetCore" Version="1.6.11" />
