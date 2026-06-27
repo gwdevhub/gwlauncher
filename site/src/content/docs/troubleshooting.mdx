@@ -1,8 +1,35 @@
 ---
 title: Troubleshooting
-description: Antivirus warnings, launch failures, and other common GW Launcher issues.
+description: Fixing browser and antivirus download blocks, launch failures, and other common GW Launcher issues.
 section: reference
 ---
+
+## Your browser blocked the download
+
+Chromium-based browsers (Chrome, Edge, Brave, Opera, and others) increasingly block `GW_Launcher.exe`
+**before the download even finishes**, showing a warning like *"This file isn't commonly downloaded"*
+or *"Failed – Virus detected"* with no obvious way to keep it. As with the
+[antivirus warning](#my-antivirus-flagged-gw-launcher) below, this is a **false positive** — the
+browser's **Safe Browsing** feature distrusts an unsigned, infrequently-downloaded executable — not a
+real threat.
+
+If your browser won't let you keep the file, lower its Safe Browsing level, download, then turn it
+back up if you like:
+
+1. Paste this into your browser's address bar and press Enter:
+   - Chrome / Brave / Opera: `chrome://settings/security`
+   - Edge: `edge://settings/privacy`
+2. Find **Safe Browsing** (Edge calls it **Microsoft Defender SmartScreen**).
+3. Switch it from **Enhanced protection** to **Standard protection**, or temporarily turn it **Off** /
+   to **No protection**.
+4. Re-download `GW_Launcher.exe` from the [releases page](https://github.com/gwdevhub/gwlauncher/releases/latest).
+
+You may still see a "keep anyway" prompt on the download itself — that one you *can* dismiss to keep
+the file. Once you have `GW_Launcher.exe`, you can set Safe Browsing back to its previous level.
+
+> **Note:** managed browsers (a work or school computer, or an enterprise antivirus that locks browser
+> settings) can grey this out entirely. If so, download on a personal device, or ask whoever manages
+> the machine to allow it.
 
 ## "My antivirus flagged GW Launcher"
 
