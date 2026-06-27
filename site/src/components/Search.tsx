@@ -44,9 +44,14 @@ export default function Search({ variant = 'button', placeholder = 'Search…' }
     initialised.current = true;
     (async () => {
       try {
-        // Path is hidden from Vite's static analyser; the file only exists in
-        // the deployed dist/ after `pagefind --site dist` runs.
-        await import(/* @vite-ignore */ `${import.meta.env.BASE_URL}pagefind/pagefind-ui.js`);
+        // The pagefind UI only exists in the deployed dist/ after
+        // `pagefind --site dist` runs, so it must stay out of the bundle.
+        // Astro 7's rolldown bundler ignores /* @vite-ignore */ and tries to
+        // resolve the literal specifier at build time, so we hide the import
+        // behind an indirect call it can't statically analyse.
+        const pagefindUrl = `${import.meta.env.BASE_URL}pagefind/pagefind-ui.js`;
+        const dynamicImport = new Function('u', 'return import(u)');
+        await dynamicImport(pagefindUrl);
         // @ts-expect-error — PagefindUI is attached to window by the import above
         new window.PagefindUI({
           element: mountRef.current,
