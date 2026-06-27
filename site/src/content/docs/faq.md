@@ -15,6 +15,11 @@ made by the team behind [GWToolbox++](https://www.gwtoolbox.com/).
 Yes. It's open source and has been used since 2010. Antivirus warnings are a false positive
 caused by mod injection — see [Troubleshooting](/docs/troubleshooting/).
 
+If your **browser** blocks the download itself (Chrome, Edge, Brave, etc. flagging
+`GW_Launcher.exe`), that's the same false positive — lower your browser's Safe Browsing level
+before re-downloading. See
+[Your browser blocked the download](/docs/troubleshooting/#your-browser-blocked-the-download).
+
 ### Is it free?
 
 Free and open source (MIT licensed). Windows only.
