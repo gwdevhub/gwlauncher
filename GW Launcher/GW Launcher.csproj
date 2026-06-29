@@ -2,7 +2,7 @@
 
     <PropertyGroup>
         <OutputType>WinExe</OutputType>
-        <TargetFramework>net8.0-windows</TargetFramework>
+        <TargetFramework>net10.0-windows</TargetFramework>
         <RootNamespace>GW_Launcher</RootNamespace>
         <Nullable>enable</Nullable>
         <UseWindowsForms>true</UseWindowsForms>
@@ -13,7 +13,7 @@
         <Platforms>x86;AnyCPU</Platforms>
         <PlatformTarget>x86</PlatformTarget>
         <DebugType>portable</DebugType>
-        <Copyright>2015-2024 GregLando113, DubbleClick</Copyright>
+        <Copyright>2015 GregLando113</Copyright>
         <EnforceCodeStyleInBuild>True</EnforceCodeStyleInBuild>
         <LangVersion>latest</LangVersion>
         <IsPackable>false</IsPackable>
@@ -50,7 +50,6 @@
     <ItemGroup>
         <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
         <PackageReference Include="PeNet" Version="4.1.0" />
-        <PackageReference Include="System.Formats.Asn1" Version="9.0.0" />
         <PackageReference Include="SystemExtensions.NetCore" Version="1.6.11" />
         <PackageReference Include="SystemExtensions.NetStandard" Version="1.6.11" />
     </ItemGroup>

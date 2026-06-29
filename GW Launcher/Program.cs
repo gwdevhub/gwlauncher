@@ -494,7 +494,7 @@ internal static class Program
             return;
         }
 
-        var runtimeInstalled = IsDotNet8DesktopInstalled();
+        var runtimeInstalled = IsDotNet10DesktopInstalled();
         var assetName = runtimeInstalled
             ? "GW_Launcher_Framework_Dependent.exe"
             : "GW_Launcher.exe";
@@ -690,7 +690,7 @@ internal static class Program
         return success;
     }
 
-    private static bool IsDotNet8DesktopInstalled()
+    private static bool IsDotNet10DesktopInstalled()
     {
         try
         {
@@ -708,7 +708,7 @@ internal static class Program
             var output = reader.ReadToEnd();
             process.WaitForExit();
 
-            return output.Contains("Microsoft.WindowsDesktop.App 8");
+            return output.Contains("Microsoft.WindowsDesktop.App 10");
         }
         catch (Exception)
         {
