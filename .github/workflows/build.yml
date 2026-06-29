@@ -4,16 +4,26 @@ on:
         branches: [ "master" ]
         paths:
             - 'GW Launcher/**'
+            - '.github/workflows/build.yml'
     pull_request:
         branches: [ "master" ]
         paths:
             - 'GW Launcher/**'
+            - '.github/workflows/build.yml'
 defaults:
     run:
         shell: pwsh
 jobs:
     build:
         runs-on: windows-2025
+        permissions:
+            contents: write
+        # Exposed at job level so the signing steps can gate on `env.CERTUM_OTP_URI`
+        # (secrets can't be referenced directly in an `if:` expression).
+        env:
+            CERTUM_OTP_URI: ${{ secrets.CERTUM_OTP_URI }}
+            CERTUM_USERID: ${{ secrets.CERTUM_USERID }}
+            CERTUM_CERT_SHA1: ${{ secrets.CERTUM_CERT_SHA1 }}
         steps:
             -   name: Checkout
                 uses: actions/checkout@v4
@@ -61,6 +71,28 @@ jobs:
             -   name: Rename FrameworkDependent Executable
                 run: |
                     Move-Item -Path "Publish\GW Launcher.exe" -Destination "Publish\GW_Launcher_Framework_Dependent.exe" -Force
+
+            # Certum SimplySign code signing. The executables are signed in place
+            # in Publish\ before the artifact upload and release. Each step is
+            # gated on the CERTUM_OTP_URI secret, so forks and un-provisioned
+            # environments still build (and release) unsigned instead of failing.
+            -   name: Set up Certum SimplySign
+                if: github.event_name == 'push' && github.ref == 'refs/heads/master' && env.CERTUM_OTP_URI != ''
+                shell: bash
+                run: |
+                    chmod +x ./.github/scripts/install-simplysign.sh
+                    ./.github/scripts/install-simplysign.sh
+                    powershell -ExecutionPolicy Bypass -File "./.github/scripts/configure-simplysign.ps1"
+
+            -   name: Authenticate Certum SimplySign
+                if: github.event_name == 'push' && github.ref == 'refs/heads/master' && env.CERTUM_OTP_URI != ''
+                shell: bash
+                run: powershell -ExecutionPolicy Bypass -File "./.github/scripts/connect-simplysign.ps1"
+
+            -   name: Sign release binaries
+                if: github.event_name == 'push' && github.ref == 'refs/heads/master' && env.CERTUM_OTP_URI != ''
+                run: |
+                    ./.github/scripts/sign-certum.ps1 -Files @("Publish/GW_Launcher.exe", "Publish/GW_Launcher_Framework_Dependent.exe")
 
             -   name: Upload Artifact
                 uses: actions/upload-artifact@v4
