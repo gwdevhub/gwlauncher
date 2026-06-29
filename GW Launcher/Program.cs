@@ -470,12 +470,22 @@ internal static class Program
 
     private static async Task CheckGitHubNewerVersion()
     {
-        const string oldName = ".old.exe";
-        const string newName = ".new.exe";
-        if (File.Exists(oldName) || File.Exists(newName))
+        var currentPath = Environment.ProcessPath;
+        var exeDir = Path.GetDirectoryName(currentPath);
+        if (currentPath == null || exeDir == null)
         {
-            File.Delete(oldName);
-            File.Delete(newName);
+            return;
+        }
+
+        // Anchor the staging files to the exe's own folder rather than the process working
+        // directory, which is e.g. System32 when the launcher is started from the Startup
+        // folder — there the relative-path swap silently failed and the new exe never ran.
+        var oldPath = Path.Combine(exeDir, ".old.exe");
+        var newPath = Path.Combine(exeDir, ".new.exe");
+        if (File.Exists(oldPath) || File.Exists(newPath))
+        {
+            try { File.Delete(oldPath); } catch { /* may be locked; best effort */ }
+            try { File.Delete(newPath); } catch { /* best effort */ }
         }
 
         var releases = await GitHubAssets.GetReleasesAsync("gwdevhub", "gwlauncher");
@@ -494,7 +504,7 @@ internal static class Program
             return;
         }
 
-        var runtimeInstalled = IsDotNet8DesktopInstalled();
+        var runtimeInstalled = IsDotNet10DesktopInstalled();
         var assetName = runtimeInstalled
             ? "GW_Launcher_Framework_Dependent.exe"
             : "GW_Launcher.exe";
@@ -526,21 +536,15 @@ internal static class Program
             }
         }
 
-        var currentName = Path.GetFileName(Process.GetCurrentProcess().MainModule?.FileName);
-        if (currentName == null)
-        {
-            return;
-        }
-
         var uri = new Uri(asset.DownloadUrl);
         if (Settings.AutoUpdate)
         {
             var httpClient = new HttpClient();
             await using var s = await httpClient.GetStreamAsync(uri);
-            await using var fs = new FileStream(newName, FileMode.Create);
+            await using var fs = new FileStream(newPath, FileMode.Create);
             await s.CopyToAsync(fs);
         }
-        else if (!await DownloadFileWithProgress(uri, newName, $"Updating GW Launcher to {tagName}"))
+        else if (!await DownloadFileWithProgress(uri, newPath, $"Updating GW Launcher to {tagName}"))
         {
             return;
         }
@@ -555,22 +559,64 @@ internal static class Program
         Mutex.Close();
         GwlMutex?.Close();
 
-        File.Move(currentName, oldName);
-        File.Move(newName, currentName);
-
-        var fileName = Environment.ProcessPath;
-        var processInfo = new ProcessStartInfo
+        // Swap the freshly downloaded exe in for the running one. On failure roll back so the
+        // exe at currentPath is always a working launcher, then relaunch whatever is there.
+        try
         {
-            UseShellExecute = true,
-            FileName = fileName,
-            WorkingDirectory = Path.GetDirectoryName(fileName) ?? "",
-            Arguments = "restart"
+            File.Move(currentPath, oldPath);
+            try
+            {
+                File.Move(newPath, currentPath);
+            }
+            catch
+            {
+                File.Move(oldPath, currentPath);
+                throw;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Self-update failed to install the new exe; keeping the current version: {ex.Message}");
+        }
+
+        Relaunch(currentPath, exeDir);
+        Environment.Exit(0);
+    }
+
+    private static void Relaunch(string exePath, string workingDir)
+    {
+        // This runs on a thread-pool thread that immediately calls Environment.Exit. Prefer a
+        // direct CreateProcess (UseShellExecute = false): it returns only once the child is
+        // actually running, so the relaunch can't lose a race with our teardown. ShellExecute
+        // hands off to the shell and could return before — or be torn down with — this process,
+        // which is what intermittently left the updated instance unstarted. Fall back to a
+        // shell launch only if the direct start throws.
+        ProcessStartInfo Info(bool useShellExecute) => new()
+        {
+            FileName = exePath,
+            Arguments = "restart",
+            WorkingDirectory = workingDir,
+            UseShellExecute = useShellExecute
         };
 
-        // Start the updated exe before exiting; Application.Restart() races the background
-        // thread this runs on and can tear down before the new process is spawned.
-        Process.Start(processInfo);
-        Environment.Exit(0);
+        try
+        {
+            if (Process.Start(Info(false)) != null)
+                return;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Self-update direct relaunch failed, trying shell launch: {ex.Message}");
+        }
+
+        try
+        {
+            Process.Start(Info(true));
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Self-update relaunch failed: {ex.Message}");
+        }
     }
 
     private static async Task<bool> DownloadFileWithProgress(Uri uri, string destPath, string title)
@@ -690,7 +736,7 @@ internal static class Program
         return success;
     }
 
-    private static bool IsDotNet8DesktopInstalled()
+    private static bool IsDotNet10DesktopInstalled()
     {
         try
         {
@@ -708,7 +754,7 @@ internal static class Program
             var output = reader.ReadToEnd();
             process.WaitForExit();
 
-            return output.Contains("Microsoft.WindowsDesktop.App 8");
+            return output.Contains("Microsoft.WindowsDesktop.App 10");
         }
         catch (Exception)
         {

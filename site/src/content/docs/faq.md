@@ -27,7 +27,7 @@ Free and open source (MIT licensed). Windows only.
 ### Which download do I pick?
 
 The **self-contained** `GW_Launcher.exe` — it runs anywhere with no extra installs. The
-framework-dependent build is smaller but needs the .NET 8 Desktop Runtime. See
+framework-dependent build is smaller but needs the .NET 10 Desktop Runtime. See
 [Install](/docs/installation/).
 
 ### Why does it need its own folder?
