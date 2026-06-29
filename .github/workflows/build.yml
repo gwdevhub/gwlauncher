@@ -15,7 +15,7 @@ defaults:
         shell: pwsh
 jobs:
     build:
-        runs-on: windows-2025
+        runs-on: windows-2025-vs2026
         permissions:
             contents: write
         # Exposed at job level so the signing steps can gate on `env.CERTUM_OTP_URI`
