@@ -3,7 +3,7 @@
 ### Antivirus Warning Notice
 
 Antivirus alerts are expected. The launcher can inject mods (GWToolbox, Texmods) into the game for you, which can resemble malicious behavior.
-The launcher is safe, it’s developed by the creators of [GWToolbox](https://github.com/gwdevhub/gwtoolboxpp) and has been used since 2010.
+The launcher is safe, it’s developed by the creators of [GWToolbox](https://github.com/gwdevhub/gwtoolboxpp) and has been used since 2015.
 Every part used by this project ([gMod](https://github.com/gwdevhub/gmod), [GWToolbox](https://github.com/gwdevhub/gwtoolboxpp)) is open source, as is this launcher itself, and you're free to look at it above.
 
 * * *
