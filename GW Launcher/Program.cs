@@ -524,8 +524,15 @@ internal static class Program
 
         if (!Settings.AutoUpdate)
         {
+            // The version can match while the published binary changed (e.g. a re-signed release). The launcher
+            // decides up-to-date purely by sha256, so surface a short hash to make those rebuilds intelligible
+            // instead of a confusing "new version X" prompt when X is already installed.
+            var localSha = localPath != null ? GitHubAssets.ComputeSha256(localPath) : null;
+            var hashLine = GitHubAssets.ShortSha(localSha) is { } current
+                ? $"Installed: {tagName} ({current})\nLatest: {tagName} ({GitHubAssets.ShortSha(asset.Sha256)})"
+                : $"Latest: {tagName} ({GitHubAssets.ShortSha(asset.Sha256)})";
             var msgBoxResult = MessageBox.Show(
-                $@"New version {tagName} available. Download and install it now?",
+                $"A different build of GW Launcher is available.\n{hashLine}\nDownload and install it now?",
                 @"GW Launcher",
                 MessageBoxButtons.YesNo,
                 MessageBoxIcon.Information,
