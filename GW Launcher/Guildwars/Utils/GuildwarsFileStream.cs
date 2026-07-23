@@ -16,7 +16,7 @@ internal sealed class GuildwarsFileStream(
 {
     private readonly GuildwarsClient guildwarsClient = guildwarsClient.ThrowIfNull();
 
-    private const int ReceiveBufferSize = 64 * 1024;
+    private const int ReceiveBufferSize = 256 * 1024;
 
     private byte[]? chunkBuffer;
     private readonly byte[] receiveBuffer = new byte[ReceiveBufferSize];
