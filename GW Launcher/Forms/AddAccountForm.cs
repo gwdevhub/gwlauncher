@@ -20,12 +20,15 @@ public partial class AddAccountForm : Form
 
 	protected override void OnFormClosing(FormClosingEventArgs e)
 	{
-		SaveAccount();
+		// buttonDone has DialogResult = OK set in the designer, so a Save click closes the
+		// form with DialogResult.OK. Any other close (X button, Escape, Alt+F4) must not
+		// persist the account.
+		if (DialogResult == DialogResult.OK)
+		{
+			SaveAccount();
+		}
+
 		base.OnFormClosing(e);
-	}
-	private void ButtonDone_Click(object sender, EventArgs e)
-	{
-		SaveAccount();
 	}
 	private void SaveAccount()
 	{

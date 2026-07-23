@@ -121,8 +121,7 @@ namespace GW_Launcher.Forms
 			buttonDone.Text = "Save";
 			buttonDone.UseCompatibleTextRendering = true;
 			buttonDone.UseVisualStyleBackColor = true;
-			buttonDone.Click += ButtonDone_Click;
-			// 
+			//
 			// labelPath
 			// 
 			labelPath.AutoSize = true;
