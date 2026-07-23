@@ -129,19 +129,26 @@ internal sealed class IntegratedGuildwarsInstaller
         try
         {
             using var readFileStream = new FileStream(tempName, FileMode.Open, FileAccess.Read);
-            using var finalExeStream = new FileStream(exeName, FileMode.Create, FileAccess.ReadWrite);
             var bitStream = new BitStream(readFileStream);
             bitStream.Consume(4);
             var first4Bits = bitStream.Read(4);
             progress?.Report(("Decompressing downloaded executable", 0.45));
-            while (finalExeStream.Length < expectedFinalSize)
+
+            // Decompress into an in-memory buffer instead of seeking on disk for every byte:
+            // the original implementation did a Seek+ReadByte+Seek+WriteByte round trip per
+            // decompressed byte (including every LZ77 backreference byte), which is orders of
+            // magnitude slower than plain array indexing, especially under antivirus real-time
+            // scanning that hooks every file I/O call.
+            var output = new byte[expectedFinalSize];
+            var outputLength = 0;
+            while (outputLength < expectedFinalSize)
             {
                 var litHuffman = HuffmanTable.BuildHuffmanTable(bitStream);
                 var distHuffman = HuffmanTable.BuildHuffmanTable(bitStream);
                 var blockSize = (bitStream.Read(4) + 1) * 4096;
                 for (var i = 0; i < blockSize; i++)
                 {
-                    if (finalExeStream.Length == expectedFinalSize)
+                    if (outputLength == expectedFinalSize)
                     {
                         break;
                     }
@@ -149,7 +156,7 @@ internal sealed class IntegratedGuildwarsInstaller
                     var code = litHuffman.GetNextCode(bitStream);
                     if (code < 0x100)
                     {
-                        finalExeStream.WriteByte((byte)code);
+                        output[outputLength++] = (byte)code;
                     }
                     else
                     {
@@ -169,29 +176,30 @@ internal sealed class IntegratedGuildwarsInstaller
                             backtrack |= bitStream.Read((int)blen);
                         }
 
-                        if (backtrack >= finalExeStream.Length)
+                        if (backtrack >= outputLength)
                         {
-                            throw new InvalidOperationException("Failed to decompress executable. backtrack >= finalExeStream.Length");
+                            throw new InvalidOperationException("Failed to decompress executable. backtrack >= outputLength");
                         }
 
-                        var src = finalExeStream.Length - (backtrack + 1);
+                        // Copied one byte at a time (not Array.Copy) because backreferences can
+                        // overlap with the bytes being written, e.g. runs of repeated bytes.
+                        var src = outputLength - (backtrack + 1);
                         for (var j = src; j < src + backtrackCount; j++)
                         {
-                            finalExeStream.Seek(j, SeekOrigin.Begin);
-                            var b = finalExeStream.ReadByte();
-                            finalExeStream.Seek(0, SeekOrigin.End);
-                            finalExeStream.WriteByte((byte)b);
+                            output[outputLength++] = output[j];
                         }
                     }
 
                     // Report progress
                     if (i % 1000 == 0) // Update progress every 1000 iterations to avoid excessive updates
                     {
-                        double progressPercentage = 0.45 + ((double)finalExeStream.Length / expectedFinalSize) * 0.45;
+                        double progressPercentage = 0.45 + ((double)outputLength / expectedFinalSize) * 0.45;
                         progress?.Report(("Decompressing downloaded executable", progressPercentage));
                     }
                 }
             }
+
+            File.WriteAllBytes(exeName, output);
 
             // Ensure 90% progress is reported at the end of decompression
             progress?.Report(("Decompressed downloaded executable", 0.9));

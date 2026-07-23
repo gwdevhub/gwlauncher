@@ -16,7 +16,10 @@ internal sealed class GuildwarsFileStream(
 {
     private readonly GuildwarsClient guildwarsClient = guildwarsClient.ThrowIfNull();
 
+    private const int ReceiveBufferSize = 256 * 1024;
+
     private byte[]? chunkBuffer;
+    private readonly byte[] receiveBuffer = new byte[ReceiveBufferSize];
     private int positionInBuffer = 0;
     private int chunkSize = 0;
 
@@ -72,15 +75,15 @@ internal sealed class GuildwarsFileStream(
         var downloadedChunkSize = 0;
         do
         {
-            var buf = new byte[Math.Min(4096, this.chunkSize - downloadedChunkSize)];
-            var readTask = guildwarsClientContext.Socket.ReceiveAsync(buf, cancellationToken).AsTask();
+            var toRead = Math.Min(ReceiveBufferSize, this.chunkSize - downloadedChunkSize);
+            var readTask = guildwarsClientContext.Socket.ReceiveAsync(this.receiveBuffer.AsMemory(0, toRead), cancellationToken).AsTask();
             if (await Task.WhenAny(readTask, Task.Delay(5000, cancellationToken)) != readTask)
             {
                 throw new TaskCanceledException("Timed out waiting for download");
             }
 
             var read = await readTask;
-            Array.Copy(buf, 0, this.chunkBuffer, downloadedChunkSize, read);
+            Array.Copy(this.receiveBuffer, 0, this.chunkBuffer, downloadedChunkSize, read);
             downloadedChunkSize += read;
         } while (downloadedChunkSize < this.chunkSize);
 

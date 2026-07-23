@@ -61,6 +61,14 @@ internal static class GitHubAssets
         return expectedSha256 == null || string.Equals(local, expectedSha256, StringComparison.OrdinalIgnoreCase);
     }
 
+    // Short, human-readable prefix of a sha256 hex string for display in update prompts.
+    public static string? ShortSha(string? sha256, int chars = 8)
+    {
+        if (string.IsNullOrEmpty(sha256))
+            return null;
+        return sha256.Length <= chars ? sha256 : sha256[..chars];
+    }
+
     private static string? ParseSha256(string? digest)
     {
         if (digest == null || !digest.StartsWith("sha256:", StringComparison.OrdinalIgnoreCase))
