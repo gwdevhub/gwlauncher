@@ -16,6 +16,7 @@ public partial class MainForm : Form
     public MainForm(bool launchMinimized = false)
     {
         InitializeComponent();
+        panelEmptyState.BringToFront();
         _selectedItems = new ListView.SelectedIndexCollection(listViewAccounts);
         _instance = this;
         if(!launchMinimized)
@@ -197,6 +198,8 @@ public partial class MainForm : Form
                 "gwlauncher"
             ));
         }
+
+        panelEmptyState.Visible = listViewAccounts.Items.Count == 0;
 
         listViewAccounts.Columns[1].AutoResize(ColumnHeaderAutoResizeStyle.ColumnContent);
         listViewAccounts.Columns[0].Width = -2;
