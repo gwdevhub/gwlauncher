@@ -974,10 +974,11 @@ internal static class Program
             try
             {
                 var fileId = await Task.Run(() => new GuildWarsExecutableParser(gwpath).GetFileId(), ct);
-                if (fileId == 0)
-                    return (toUpdate: new List<Account>(), failedToCheck: accountsForPath);
                 if (fileId == latestFileId)
                     return (toUpdate: new List<Account>(), failedToCheck: new List<Account>());
+                // fileId == 0 means the build-id signature scan found nothing, which is what
+                // happens with an exe too old to match the current pattern. Treat that as
+                // out-of-date and offer an update rather than silently ignoring it.
             }
             catch (Exception e)
             {
