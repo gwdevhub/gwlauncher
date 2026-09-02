@@ -23,7 +23,9 @@ public partial class CryptPassForm : Form
 			using var key = Registry.CurrentUser.OpenSubKey(REGISTRY_KEY);
 			if (key?.GetValue(PASSWORD_VALUE) is string cachedPassword)
 			{
-				return cachedPassword;
+                var protectedPasswordBytes = Convert.FromBase64String(cachedPassword);
+                var passwordBytes = ProtectedData.Unprotect(protectedPasswordBytes, null, DataProtectionScope.CurrentUser);
+                return Encoding.UTF8.GetString(passwordBytes);
 			}
 		}
 		catch
@@ -53,7 +55,12 @@ public partial class CryptPassForm : Form
 		try
 		{
 			using var key = Registry.CurrentUser.CreateSubKey(REGISTRY_KEY);
-			key.SetValue(PASSWORD_VALUE, PasswordText, RegistryValueKind.String);
+
+            var passwordBytes = Encoding.UTF8.GetBytes(PasswordText);
+            var protectedPasswordBytes = ProtectedData.Protect(passwordBytes, null, DataProtectionScope.CurrentUser);
+            var protectedPasswordBytesBase64 = Convert.ToBase64String(protectedPasswordBytes);
+
+            key.SetValue(PASSWORD_VALUE, protectedPasswordBytesBase64, RegistryValueKind.String);
 		}
 		catch
 		{
