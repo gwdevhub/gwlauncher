@@ -160,6 +160,11 @@ internal static class Program
         }
         if (memory == null)
         {
+            var toolboxPlugin = ModManager.FindUnsupportedToolboxPlugin(account);
+            if (toolboxPlugin != null)
+                return "GWToolboxdll.dll was found in a plugins folder:\n" + toolboxPlugin +
+                       "\n\nGWToolboxdll.dll is only supported through the account's mod list, or as a shortcut in the plugins folder pointing to GWToolboxdll.dll. Remove the file and add it one of those ways instead.";
+
             try
             {
                 if (IsProcessOpen(account.gwpath))
