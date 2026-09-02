@@ -20,99 +20,95 @@
 			base.Dispose(disposing);
 		}
 
-		#region Windows Form Designer generated code
+        #region Windows Form Designer generated code
 
-		/// <summary>
-		/// Required method for Designer support - do not modify
-		/// the contents of this method with the code editor.
-		/// </summary>
-		private void InitializeComponent()
-		{
-			this.groupBox1 = new System.Windows.Forms.GroupBox();
-			this.checkBoxDontAsk = new System.Windows.Forms.CheckBox();
-			this.buttonEnter = new System.Windows.Forms.Button();
-			this.textBoxPassword = new System.Windows.Forms.TextBox();
-			this.groupBox1.SuspendLayout();
-			this.SuspendLayout();
-			// 
-			// groupBox1
-			// 
-			this.groupBox1.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)
-			| System.Windows.Forms.AnchorStyles.Left)
-			| System.Windows.Forms.AnchorStyles.Right)));
-			this.groupBox1.Controls.Add(this.checkBoxDontAsk);
-			this.groupBox1.Controls.Add(this.buttonEnter);
-			this.groupBox1.Controls.Add(this.textBoxPassword);
-			this.groupBox1.Location = new System.Drawing.Point(14, 14);
-			this.groupBox1.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
-			this.groupBox1.Name = "groupBox1";
-			this.groupBox1.Padding = new System.Windows.Forms.Padding(4, 3, 4, 3);
-			this.groupBox1.Size = new System.Drawing.Size(264, 123);
-			this.groupBox1.TabIndex = 0;
-			this.groupBox1.TabStop = false;
-			this.groupBox1.Text = "Specify GWLauncher Master Password";
-			// 
-			// checkBoxDontAsk
-			// 
-			this.checkBoxDontAsk.AutoSize = true;
-			this.checkBoxDontAsk.Location = new System.Drawing.Point(7, 52);
-			this.checkBoxDontAsk.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
-			this.checkBoxDontAsk.Name = "checkBoxDontAsk";
-			this.checkBoxDontAsk.Size = new System.Drawing.Size(199, 19);
-			this.checkBoxDontAsk.TabIndex = 2;
-			this.checkBoxDontAsk.Text = "Don't ask again until I next log on";
-			this.checkBoxDontAsk.UseVisualStyleBackColor = true;
-			// 
-			// buttonEnter
-			// 
-			this.buttonEnter.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)
-			| System.Windows.Forms.AnchorStyles.Left)
-			| System.Windows.Forms.AnchorStyles.Right)));
-			this.buttonEnter.Location = new System.Drawing.Point(169, 79);
-			this.buttonEnter.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
-			this.buttonEnter.Name = "buttonEnter";
-			this.buttonEnter.Size = new System.Drawing.Size(88, 27);
-			this.buttonEnter.TabIndex = 1;
-			this.buttonEnter.Text = "Enter";
-			this.buttonEnter.UseVisualStyleBackColor = true;
-			this.buttonEnter.Click += new System.EventHandler(this.ButtonEnter_Click);
-			// 
-			// textBoxPassword
-			// 
-			this.textBoxPassword.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)
-			| System.Windows.Forms.AnchorStyles.Left)
-			| System.Windows.Forms.AnchorStyles.Right)));
-			this.textBoxPassword.Location = new System.Drawing.Point(7, 22);
-			this.textBoxPassword.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
-			this.textBoxPassword.Name = "textBoxPassword";
-			this.textBoxPassword.Size = new System.Drawing.Size(249, 23);
-			this.textBoxPassword.TabIndex = 0;
-			this.textBoxPassword.UseSystemPasswordChar = true;
-			this.textBoxPassword.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.TextBoxPassword_KeyPress);
-			// 
-			// CryptPassForm
-			// 
-			this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
-			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-			this.ClientSize = new System.Drawing.Size(292, 169);
-			this.ControlBox = false;
-			this.Controls.Add(this.groupBox1);
-			this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
-			this.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
-			this.Name = "CryptPassForm";
-			this.SizeGripStyle = System.Windows.Forms.SizeGripStyle.Hide;
-			this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-			this.Text = "GW Launcher - Master Password";
-			this.TopMost = true;
-			this.groupBox1.ResumeLayout(false);
-			this.groupBox1.PerformLayout();
-			this.ResumeLayout(false);
+        /// <summary>
+        /// Required method for Designer support - do not modify
+        /// the contents of this method with the code editor.
+        /// </summary>
+        private void InitializeComponent()
+        {
+            groupBox1 = new GroupBox();
+            checkBoxDontAsk = new CheckBox();
+            buttonEnter = new Button();
+            textBoxPassword = new TextBox();
+            groupBox1.SuspendLayout();
+            SuspendLayout();
+            // 
+            // groupBox1
+            // 
+            groupBox1.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            groupBox1.Controls.Add(checkBoxDontAsk);
+            groupBox1.Controls.Add(buttonEnter);
+            groupBox1.Controls.Add(textBoxPassword);
+            groupBox1.Location = new Point(14, 14);
+            groupBox1.Margin = new Padding(4, 3, 4, 3);
+            groupBox1.Name = "groupBox1";
+            groupBox1.Padding = new Padding(4, 3, 4, 3);
+            groupBox1.Size = new Size(264, 123);
+            groupBox1.TabIndex = 0;
+            groupBox1.TabStop = false;
+            groupBox1.Text = "Specify GWLauncher Master Password";
+            // 
+            // checkBoxDontAsk
+            // 
+            checkBoxDontAsk.AutoSize = true;
+            checkBoxDontAsk.Location = new Point(7, 52);
+            checkBoxDontAsk.Margin = new Padding(4, 3, 4, 3);
+            checkBoxDontAsk.Name = "checkBoxDontAsk";
+            checkBoxDontAsk.Size = new Size(202, 19);
+            checkBoxDontAsk.TabIndex = 2;
+            checkBoxDontAsk.Text = "Don't ask again until I next log on";
+            checkBoxDontAsk.UseVisualStyleBackColor = true;
+            // 
+            // buttonEnter
+            // 
+            buttonEnter.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            buttonEnter.Location = new Point(169, 79);
+            buttonEnter.Margin = new Padding(4, 3, 4, 3);
+            buttonEnter.Name = "buttonEnter";
+            buttonEnter.Size = new Size(88, 27);
+            buttonEnter.TabIndex = 1;
+            buttonEnter.Text = "Enter";
+            buttonEnter.UseVisualStyleBackColor = true;
+            buttonEnter.Click += ButtonEnter_Click;
+            // 
+            // textBoxPassword
+            // 
+            textBoxPassword.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            textBoxPassword.Location = new Point(7, 22);
+            textBoxPassword.Margin = new Padding(4, 3, 4, 3);
+            textBoxPassword.Name = "textBoxPassword";
+            textBoxPassword.Size = new Size(249, 23);
+            textBoxPassword.TabIndex = 0;
+            textBoxPassword.UseSystemPasswordChar = true;
+            textBoxPassword.KeyPress += TextBoxPassword_KeyPress;
+            // 
+            // CryptPassForm
+            // 
+            AutoScaleDimensions = new SizeF(7F, 15F);
+            AutoScaleMode = AutoScaleMode.Font;
+            ClientSize = new Size(292, 169);
+            Controls.Add(groupBox1);
+            FormBorderStyle = FormBorderStyle.FixedSingle;
+            Margin = new Padding(4, 3, 4, 3);
+            MaximizeBox = false;
+            MinimizeBox = false;
+            Name = "CryptPassForm";
+            SizeGripStyle = SizeGripStyle.Hide;
+            StartPosition = FormStartPosition.CenterScreen;
+            Text = "GW Launcher - Master Password";
+            TopMost = true;
+            FormClosing += CryptPassForm_FormClosing;
+            groupBox1.ResumeLayout(false);
+            groupBox1.PerformLayout();
+            ResumeLayout(false);
 
-		}
+        }
 
-		#endregion
+        #endregion
 
-		private System.Windows.Forms.GroupBox groupBox1;
+        private System.Windows.Forms.GroupBox groupBox1;
 		private System.Windows.Forms.CheckBox checkBoxDontAsk;
 		private System.Windows.Forms.Button buttonEnter;
 		private System.Windows.Forms.TextBox textBoxPassword;
