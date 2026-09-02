@@ -4,88 +4,105 @@ namespace GW_Launcher.Forms;
 
 public partial class CryptPassForm : Form
 {
-	private const string REGISTRY_KEY = @"SOFTWARE\GW_Launcher\Session";
-	private const string PASSWORD_VALUE = "CachedPassword";
+    private const string REGISTRY_KEY = @"SOFTWARE\GW_Launcher\Session";
+    private const string PASSWORD_VALUE = "CachedPassword";
 
-	public CryptPassForm()
-	{
-		PasswordText = "";
-		InitializeComponent();
-	}
+    private bool passwordSubmitted = false;
 
-	// The master password the user typed, in plaintext.
-	public string PasswordText { get; private set; }
+    public CryptPassForm()
+    {
+        PasswordText = "";
+        InitializeComponent();
+    }
 
-	public static string? GetCachedPassword()
-	{
-		try
-		{
-			using var key = Registry.CurrentUser.OpenSubKey(REGISTRY_KEY);
-			if (key?.GetValue(PASSWORD_VALUE) is string cachedPassword)
-			{
-				return cachedPassword;
-			}
-		}
-		catch
-		{
-			// Ignore registry access errors
-		}
-		return null;
-	}
+    // The master password the user typed, in plaintext.
+    public string PasswordText { get; private set; }
 
-	public static void ClearCachedPassword()
-	{
-		try
-		{
-			using var key = Registry.CurrentUser.OpenSubKey(REGISTRY_KEY, true);
-			key?.DeleteValue(PASSWORD_VALUE, false);
-		}
-		catch
-		{
-			// Ignore registry access errors
-		}
-	}
+    public static string? GetCachedPassword()
+    {
+        try
+        {
+            using var key = Registry.CurrentUser.OpenSubKey(REGISTRY_KEY);
+            if (key?.GetValue(PASSWORD_VALUE) is string cachedPassword)
+            {
+                var protectedPasswordBytes = Convert.FromBase64String(cachedPassword);
+                var passwordBytes = ProtectedData.Unprotect(protectedPasswordBytes, null, DataProtectionScope.CurrentUser);
+                return Encoding.UTF8.GetString(passwordBytes);
+            }
+        }
+        catch
+        {
+            // Ignore registry access errors
+        }
+        return null;
+    }
 
-	private void StoreCachedPassword()
-	{
-		if (!checkBoxDontAsk.Checked) return;
+    public static void ClearCachedPassword()
+    {
+        try
+        {
+            using var key = Registry.CurrentUser.OpenSubKey(REGISTRY_KEY, true);
+            key?.DeleteValue(PASSWORD_VALUE, false);
+        }
+        catch
+        {
+            // Ignore registry access errors
+        }
+    }
 
-		try
-		{
-			using var key = Registry.CurrentUser.CreateSubKey(REGISTRY_KEY);
-			key.SetValue(PASSWORD_VALUE, PasswordText, RegistryValueKind.String);
-		}
-		catch
-		{
-			// Ignore registry access errors
-		}
-	}
+    private void StoreCachedPassword()
+    {
+        if (!checkBoxDontAsk.Checked) return;
 
-	private void Finish()
-	{
-		if (textBoxPassword.Text == "")
-		{
-			return;
-		}
+        try
+        {
+            using var key = Registry.CurrentUser.CreateSubKey(REGISTRY_KEY);
 
-		PasswordText = textBoxPassword.Text;
+            var passwordBytes = Encoding.UTF8.GetBytes(PasswordText);
+            var protectedPasswordBytes = ProtectedData.Protect(passwordBytes, null, DataProtectionScope.CurrentUser);
+            var protectedPasswordBytesBase64 = Convert.ToBase64String(protectedPasswordBytes);
 
-		// Store password in registry if checkbox is checked
-		StoreCachedPassword();
+            key.SetValue(PASSWORD_VALUE, protectedPasswordBytesBase64, RegistryValueKind.String);
+        }
+        catch
+        {
+            // Ignore registry access errors
+        }
+    }
 
-		Close();
-	}
+    private void Finish()
+    {
+        if (textBoxPassword.Text == "")
+        {
+            return;
+        }
 
-	private void ButtonEnter_Click(object sender, EventArgs e)
-	{
-		Finish();
-	}
+        PasswordText = textBoxPassword.Text;
 
-	private void TextBoxPassword_KeyPress(object sender, KeyPressEventArgs e)
-	{
-		if (e.KeyChar == 0x0D) // Enter key
-		{
-			Finish();
-		}
-	}
+        // Store password in registry if checkbox is checked
+        StoreCachedPassword();
+        passwordSubmitted = true;
+        Close();
+    }
+
+    private void ButtonEnter_Click(object sender, EventArgs e)
+    {
+        Finish();
+    }
+
+    private void TextBoxPassword_KeyPress(object sender, KeyPressEventArgs e)
+    {
+        if (e.KeyChar == 0x0D) // Enter key
+        {
+            Finish();
+        }
+    }
+
+    private void CryptPassForm_FormClosing(object sender, FormClosingEventArgs e)
+    {
+        if (e.CloseReason == CloseReason.UserClosing && !passwordSubmitted)
+        {
+            this.DialogResult = DialogResult.Abort;
+        }
+    }
 }

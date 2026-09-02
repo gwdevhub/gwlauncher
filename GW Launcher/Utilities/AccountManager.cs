@@ -156,7 +156,10 @@ public class AccountManager : IEnumerable<Account>, IDisposable
         if (password == null)
         {
             using var form = new CryptPassForm();
-            form.ShowDialog();
+            if (form.ShowDialog() == DialogResult.Abort)
+            {
+                throw new OperationCanceledException();
+            }
             password = form.PasswordText;
         }
 
