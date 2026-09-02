@@ -9,6 +9,7 @@ internal sealed record GitHubRelease(
     bool Prerelease,
     bool Draft,
     string HtmlUrl,
+    string Body,
     IReadOnlyList<GitHubAsset> Assets);
 
 internal static class GitHubAssets
@@ -37,6 +38,7 @@ internal static class GitHubAssets
                 (bool?)r["prerelease"] ?? false,
                 (bool?)r["draft"] ?? false,
                 (string?)r["html_url"] ?? "",
+                (string?)r["body"] ?? "",
                 assets));
         }
 

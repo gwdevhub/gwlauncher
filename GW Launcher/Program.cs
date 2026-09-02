@@ -536,13 +536,11 @@ internal static class Program
             var hashLine = GitHubAssets.ShortSha(localSha) is { } current
                 ? $"Installed: {tagName} ({current})\nLatest: {tagName} ({GitHubAssets.ShortSha(asset.Sha256)})"
                 : $"Latest: {tagName} ({GitHubAssets.ShortSha(asset.Sha256)})";
-            var msgBoxResult = MessageBox.Show(
-                $"A different build of GW Launcher is available.\n{hashLine}\nDownload and install it now?",
-                @"GW Launcher",
-                MessageBoxButtons.YesNo,
-                MessageBoxIcon.Information,
-                MessageBoxDefaultButton.Button2);
-            if (msgBoxResult != DialogResult.Yes)
+            using var prompt = new UpdatePromptForm(
+                $"A different build of GW Launcher is available.\n{hashLine}",
+                release.Body,
+                release.HtmlUrl);
+            if (prompt.ShowDialog() != DialogResult.Yes)
             {
                 return;
             }
