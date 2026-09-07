@@ -18,12 +18,8 @@ jobs:
         runs-on: windows-2025-vs2026
         permissions:
             contents: write
-        # Exposed at job level so the signing steps can gate on `env.CERTUM_OTP_URI`
-        # (secrets can't be referenced directly in an `if:` expression).
         env:
-            CERTUM_OTP_URI: ${{ secrets.CERTUM_OTP_URI }}
-            CERTUM_USERID: ${{ secrets.CERTUM_USERID }}
-            CERTUM_CERT_SHA1: ${{ secrets.CERTUM_CERT_SHA1 }}
+            HAS_CERTUM_CREDENTIALS: ${{ secrets.CERTUM_OTP_URI != '' && secrets.CERTUM_USERID != '' && secrets.CERTUM_CERT_SHA1 != '' }}
         steps:
             -   name: Checkout
                 uses: actions/checkout@v4
@@ -74,10 +70,10 @@ jobs:
 
             # Certum SimplySign code signing. The executables are signed in place
             # in Publish\ before the artifact upload and release. Each step is
-            # gated on the CERTUM_OTP_URI secret, so forks and un-provisioned
+            # gated on the presence of all credentials, so forks and un-provisioned
             # environments still build (and release) unsigned instead of failing.
             -   name: Set up Certum SimplySign
-                if: github.event_name == 'push' && github.ref == 'refs/heads/master' && env.CERTUM_OTP_URI != ''
+                if: github.event_name == 'push' && github.ref == 'refs/heads/master' && env.HAS_CERTUM_CREDENTIALS == 'true'
                 shell: bash
                 run: |
                     chmod +x ./.github/scripts/install-simplysign.sh
@@ -85,14 +81,24 @@ jobs:
                     powershell -ExecutionPolicy Bypass -File "./.github/scripts/configure-simplysign.ps1"
 
             -   name: Authenticate Certum SimplySign
-                if: github.event_name == 'push' && github.ref == 'refs/heads/master' && env.CERTUM_OTP_URI != ''
+                if: github.event_name == 'push' && github.ref == 'refs/heads/master' && env.HAS_CERTUM_CREDENTIALS == 'true'
                 shell: bash
+                env:
+                    CERTUM_OTP_URI: ${{ secrets.CERTUM_OTP_URI }}
+                    CERTUM_USERID: ${{ secrets.CERTUM_USERID }}
+                    CERTUM_CERT_SHA1: ${{ secrets.CERTUM_CERT_SHA1 }}
                 run: powershell -ExecutionPolicy Bypass -File "./.github/scripts/connect-simplysign.ps1"
 
             -   name: Sign release binaries
-                if: github.event_name == 'push' && github.ref == 'refs/heads/master' && env.CERTUM_OTP_URI != ''
+                if: github.event_name == 'push' && github.ref == 'refs/heads/master' && env.HAS_CERTUM_CREDENTIALS == 'true'
+                env:
+                    CERTUM_CERT_SHA1: ${{ secrets.CERTUM_CERT_SHA1 }}
                 run: |
                     ./.github/scripts/sign-certum.ps1 -Files @("Publish/GW_Launcher.exe", "Publish/GW_Launcher_Framework_Dependent.exe")
+
+            -   name: Disconnect Certum SimplySign
+                if: always() && github.event_name == 'push' && github.ref == 'refs/heads/master' && env.HAS_CERTUM_CREDENTIALS == 'true'
+                run: ./.github/scripts/disconnect-simplysign.ps1
 
             -   name: Upload Artifact
                 uses: actions/upload-artifact@v4
@@ -123,9 +129,17 @@ jobs:
                 if: github.event_name == 'push' && github.ref == 'refs/heads/master'
                 env:
                     GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                    CHANGELOG: ${{ steps.generate_release_notes.outputs.changelog }}
                 run: |
-                    gh release create "r${{ env.VERSION }}" `
-                      --title "Release ${{ env.VERSION }}" `
-                      --notes "${{ steps.generate_release_notes.outputs.changelog }}" `
-                      ./Publish/GW_Launcher.exe `
-                      ./Publish/GW_Launcher_Framework_Dependent.exe
+                    $notes = [System.IO.Path]::GetTempFileName()
+                    try {
+                        $env:CHANGELOG | Set-Content -LiteralPath $notes -Encoding utf8
+                        gh release create "r$env:VERSION" `
+                          --title "Release $env:VERSION" `
+                          --notes-file $notes `
+                          ./Publish/GW_Launcher.exe `
+                          ./Publish/GW_Launcher_Framework_Dependent.exe
+                    }
+                    finally {
+                        Remove-Item -LiteralPath $notes -Force -ErrorAction SilentlyContinue
+                    }
