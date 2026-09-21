@@ -22,17 +22,17 @@ jobs:
             HAS_CERTUM_CREDENTIALS: ${{ secrets.CERTUM_OTP_URI != '' && secrets.CERTUM_USERID != '' && secrets.CERTUM_CERT_SHA1 != '' }}
         steps:
             -   name: Checkout
-                uses: actions/checkout@v4
+                uses: actions/checkout@v7
                 with:
                     fetch-depth: 0
 
             -   name: Install .NET
-                uses: actions/setup-dotnet@v4
+                uses: actions/setup-dotnet@v6
                 with:
                     dotnet-version: 10.0.x
 
             -   name: Setup MSBuild
-                uses: microsoft/setup-msbuild@v2
+                uses: microsoft/setup-msbuild@v3
 
             -   name: .NET Tool Restore
                 run: dotnet tool restore
@@ -101,7 +101,7 @@ jobs:
                 run: ./.github/scripts/disconnect-simplysign.ps1
 
             -   name: Upload Artifact
-                uses: actions/upload-artifact@v4
+                uses: actions/upload-artifact@v7
                 with:
                     name: GW Launcher
                     path: |
