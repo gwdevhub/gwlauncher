@@ -5,13 +5,25 @@ updates:
     target-branch: dev
     schedule:
       interval: weekly
+    groups:
+      nuget-dependencies:
+        patterns:
+          - "*"
   - package-ecosystem: npm
     directory: /site
     target-branch: dev
     schedule:
       interval: weekly
+    groups:
+      npm-dependencies:
+        patterns:
+          - "*"
   - package-ecosystem: github-actions
     directory: /
     target-branch: dev
     schedule:
       interval: weekly
+    groups:
+      github-actions-dependencies:
+        patterns:
+          - "*"
