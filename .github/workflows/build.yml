@@ -112,7 +112,7 @@ jobs:
             -   name: Generate Release Notes
                 if: github.event_name == 'push' && github.ref == 'refs/heads/master'
                 id: generate_release_notes
-                uses: mikepenz/release-changelog-builder-action@v5
+                uses: mikepenz/release-changelog-builder-action@v6
                 env:
                     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
                 with:
