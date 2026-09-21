@@ -27,7 +27,7 @@ jobs:
                     fetch-depth: 0
 
             -   name: Install .NET
-                uses: actions/setup-dotnet@v4
+                uses: actions/setup-dotnet@v6
                 with:
                     dotnet-version: 10.0.x
 
