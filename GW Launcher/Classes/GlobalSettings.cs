@@ -4,9 +4,11 @@ public class GlobalSettings
 {
     public bool CheckForUpdates { get; set; } = true;
 
-    public bool AutoUpdate { get; set; } = false;
+    public bool AutoUpdate { get; set; } = true;
 
-    public bool LaunchMinimized { get; set; } = false;
+    public bool LaunchMinimized { get; set; } = true;
+
+    public bool KeepLauncherOpen { get; set; } = false;
 
     public uint TimeoutOnModlaunch { get; set; } = 5000;
 

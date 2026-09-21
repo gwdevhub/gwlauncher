@@ -19,7 +19,17 @@ public partial class MainForm : Form
         panelEmptyState.BringToFront();
         _selectedItems = new ListView.SelectedIndexCollection(listViewAccounts);
         _instance = this;
-        if(!launchMinimized)
+        ApplyWindowSettings();
+        if (Program.Settings.KeepLauncherOpen)
+        {
+            _allowVisible = true;
+            StartPosition = FormStartPosition.CenterScreen;
+            if (launchMinimized)
+            {
+                WindowState = FormWindowState.Minimized;
+            }
+        }
+        else if (!launchMinimized)
         {
             RepositionAndShow();
         }
@@ -90,20 +100,42 @@ public partial class MainForm : Form
         base.OnFormClosing(e);
     }
 
-	// Add this method to your MainForm.cs file
-
 	private void ToolStripMenuItemSettings_Click(object sender, EventArgs e)
 	{
-		using var settingsForm = new SettingsForm();
-		var result = settingsForm.ShowDialog(this);
-
-		if (result == DialogResult.OK)
+		var oldKeepOpen = _keepOpen;
+		_keepOpen = true;
+		try
 		{
-			// Settings have been saved, but some might require a restart
-			// You could add logic here to handle immediate setting changes
-			// that don't require a restart
+			using var settingsForm = new SettingsForm();
+			if (settingsForm.ShowDialog(this) == DialogResult.OK)
+			{
+				ApplyWindowSettings();
+			}
+		}
+		finally
+		{
+			_keepOpen = oldKeepOpen;
 		}
 	}
+
+    private void ApplyWindowSettings()
+    {
+        var oldKeepOpen = _keepOpen;
+        _keepOpen = true;
+        try
+        {
+            var keepLauncherOpen = Program.Settings.KeepLauncherOpen;
+            ShowInTaskbar = keepLauncherOpen;
+            MinimizeBox = keepLauncherOpen;
+            TopMost = !keepLauncherOpen;
+            notifyIcon.Visible = !keepLauncherOpen;
+        }
+        finally
+        {
+            _keepOpen = oldKeepOpen;
+        }
+    }
+
 	public static void OnAccountSaved(Account account)
     {
         Program.Mutex.WaitOne();
@@ -239,7 +271,10 @@ public partial class MainForm : Form
     }
     private void MainForm_Load(object sender, EventArgs e)
     {
-        Visible = false;
+        if (!Program.Settings.KeepLauncherOpen)
+        {
+            Visible = false;
+        }
         // Initialize things
         var imageList = new ImageList();
         imageList.Images.Add("gwlauncher", Resources.gwlauncher);
@@ -422,7 +457,7 @@ public partial class MainForm : Form
 
     private void MainForm_Deactivate(object sender, EventArgs e)
     {
-        if (!_keepOpen)
+        if (!Program.Settings.KeepLauncherOpen && !_keepOpen)
         {
             Visible = false;
         }

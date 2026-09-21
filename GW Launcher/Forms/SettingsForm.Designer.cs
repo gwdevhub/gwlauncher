@@ -30,6 +30,7 @@
 		{
 			this.groupBoxGeneral = new System.Windows.Forms.GroupBox();
 			this.checkBoxLaunchMinimized = new System.Windows.Forms.CheckBox();
+			this.checkBoxKeepLauncherOpen = new System.Windows.Forms.CheckBox();
 			this.labelPassword = new System.Windows.Forms.Label();
 			this.textBoxPassword = new System.Windows.Forms.TextBox();
 			this.buttonApplyPassword = new System.Windows.Forms.Button();
@@ -51,13 +52,14 @@
 			// groupBoxGeneral
 			// 
 			this.groupBoxGeneral.Controls.Add(this.checkBoxLaunchMinimized);
+			this.groupBoxGeneral.Controls.Add(this.checkBoxKeepLauncherOpen);
 			this.groupBoxGeneral.Controls.Add(this.labelPassword);
 			this.groupBoxGeneral.Controls.Add(this.textBoxPassword);
 			this.groupBoxGeneral.Controls.Add(this.buttonApplyPassword);
 			this.groupBoxGeneral.Controls.Add(this.checkBoxShowPassword);
 			this.groupBoxGeneral.Location = new System.Drawing.Point(12, 12);
 			this.groupBoxGeneral.Name = "groupBoxGeneral";
-			this.groupBoxGeneral.Size = new System.Drawing.Size(360, 110);
+			this.groupBoxGeneral.Size = new System.Drawing.Size(360, 136);
 			this.groupBoxGeneral.TabIndex = 0;
 			this.groupBoxGeneral.TabStop = false;
 			this.groupBoxGeneral.Text = "General";
@@ -110,11 +112,21 @@
 			this.checkBoxLaunchMinimized.Text = "Launch minimized";
 			this.checkBoxLaunchMinimized.UseVisualStyleBackColor = true;
 			//
+			// checkBoxKeepLauncherOpen
+			//
+			this.checkBoxKeepLauncherOpen.AutoSize = true;
+			this.checkBoxKeepLauncherOpen.Location = new System.Drawing.Point(15, 106);
+			this.checkBoxKeepLauncherOpen.Name = "checkBoxKeepLauncherOpen";
+			this.checkBoxKeepLauncherOpen.Size = new System.Drawing.Size(280, 19);
+			this.checkBoxKeepLauncherOpen.TabIndex = 5;
+			this.checkBoxKeepLauncherOpen.Text = "Keep launcher open (disable system tray)";
+			this.checkBoxKeepLauncherOpen.UseVisualStyleBackColor = true;
+			//
 			// groupBoxUpdates
 			//
 			this.groupBoxUpdates.Controls.Add(this.checkBoxAutoUpdate);
 			this.groupBoxUpdates.Controls.Add(this.checkBoxCheckForUpdates);
-			this.groupBoxUpdates.Location = new System.Drawing.Point(12, 128);
+			this.groupBoxUpdates.Location = new System.Drawing.Point(12, 154);
 			this.groupBoxUpdates.Name = "groupBoxUpdates";
 			this.groupBoxUpdates.Size = new System.Drawing.Size(360, 80);
 			this.groupBoxUpdates.TabIndex = 1;
@@ -146,7 +158,7 @@
 			// 
 			this.groupBoxAdvanced.Controls.Add(this.numericUpDownTimeout);
 			this.groupBoxAdvanced.Controls.Add(this.labelTimeout);
-			this.groupBoxAdvanced.Location = new System.Drawing.Point(12, 214);
+			this.groupBoxAdvanced.Location = new System.Drawing.Point(12, 240);
 			this.groupBoxAdvanced.Name = "groupBoxAdvanced";
 			this.groupBoxAdvanced.Size = new System.Drawing.Size(360, 60);
 			this.groupBoxAdvanced.TabIndex = 2;
@@ -186,7 +198,7 @@
 			// 
 			// buttonOK
 			// 
-			this.buttonOK.Location = new System.Drawing.Point(216, 290);
+			this.buttonOK.Location = new System.Drawing.Point(216, 316);
 			this.buttonOK.Name = "buttonOK";
 			this.buttonOK.Size = new System.Drawing.Size(75, 28);
 			this.buttonOK.TabIndex = 3;
@@ -196,7 +208,7 @@
 			// 
 			// buttonCancel
 			// 
-			this.buttonCancel.Location = new System.Drawing.Point(297, 290);
+			this.buttonCancel.Location = new System.Drawing.Point(297, 316);
 			this.buttonCancel.Name = "buttonCancel";
 			this.buttonCancel.Size = new System.Drawing.Size(75, 28);
 			this.buttonCancel.TabIndex = 4;
@@ -208,7 +220,7 @@
 			// 
 			this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
 			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-			this.ClientSize = new System.Drawing.Size(384, 330);
+			this.ClientSize = new System.Drawing.Size(384, 356);
 			this.Controls.Add(this.buttonCancel);
 			this.Controls.Add(this.buttonOK);
 			this.Controls.Add(this.groupBoxAdvanced);
@@ -235,6 +247,7 @@
 
 		private System.Windows.Forms.GroupBox groupBoxGeneral;
 		private System.Windows.Forms.CheckBox checkBoxLaunchMinimized;
+		private System.Windows.Forms.CheckBox checkBoxKeepLauncherOpen;
 		private System.Windows.Forms.Label labelPassword;
 		private System.Windows.Forms.TextBox textBoxPassword;
 		private System.Windows.Forms.Button buttonApplyPassword;

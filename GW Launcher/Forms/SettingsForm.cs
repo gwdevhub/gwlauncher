@@ -19,6 +19,7 @@ public partial class SettingsForm : Form
 		checkBoxCheckForUpdates.Checked = _settings.CheckForUpdates;
 		checkBoxAutoUpdate.Checked = _settings.AutoUpdate;
 		checkBoxLaunchMinimized.Checked = _settings.LaunchMinimized;
+		checkBoxKeepLauncherOpen.Checked = _settings.KeepLauncherOpen;
 		numericUpDownTimeout.Value = _settings.TimeoutOnModlaunch;
 
 		// Auto-update should only be enabled if check for updates is enabled
@@ -30,6 +31,7 @@ public partial class SettingsForm : Form
 		_settings.CheckForUpdates = checkBoxCheckForUpdates.Checked;
 		_settings.AutoUpdate = checkBoxAutoUpdate.Checked;
 		_settings.LaunchMinimized = checkBoxLaunchMinimized.Checked;
+		_settings.KeepLauncherOpen = checkBoxKeepLauncherOpen.Checked;
 		_settings.TimeoutOnModlaunch = (uint)numericUpDownTimeout.Value;
 
 		Program.Settings = _settings;

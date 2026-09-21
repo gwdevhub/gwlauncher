@@ -238,7 +238,6 @@ partial class MainForm
 		// 
 		notifyIcon.Icon = Resources.gwlauncher_ico;
 		notifyIcon.Text = "GW Launcher";
-		notifyIcon.Visible = true;
 		notifyIcon.MouseClick += NotifyIcon_MouseClick;
 		// 
 		// MainForm

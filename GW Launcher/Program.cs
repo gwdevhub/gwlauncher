@@ -264,15 +264,6 @@ internal static class Program
 
         WarnIfInGwDirectory();
 
-        if (Settings.CheckForUpdates)
-        {
-            Task.Run(CheckGitHubNewerVersion);
-            Task.Run(CheckGitHubGModVersion);
-            Task.Run(async () => await CheckForGwExeUpdates(false, false));
-        }
-
-        Settings.Save();
-
         var hasMutex = InitialiseGwLauncherMutex();
 
         if (_commandArgLaunchAccountName.Length > 0 && LoadAccountsJson())
@@ -298,6 +289,21 @@ internal static class Program
         {
             Exit();
             return; // Error message already displayed
+        }
+
+        if (!File.Exists("Settings.json"))
+        {
+            using var settingsForm = new SettingsForm();
+            settingsForm.ShowDialog();
+        }
+
+        Settings.Save();
+
+        if (Settings.CheckForUpdates)
+        {
+            Task.Run(CheckGitHubNewerVersion);
+            Task.Run(CheckGitHubGModVersion);
+            Task.Run(async () => await CheckForGwExeUpdates(false, false));
         }
 
         _mainThreadRunning = true;
