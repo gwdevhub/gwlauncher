@@ -1,4 +1,5 @@
-﻿using Microsoft.Win32;
+﻿using GW_Launcher.Utilities;
+using Microsoft.Win32;
 
 namespace GW_Launcher.Forms;
 
@@ -11,23 +12,22 @@ public partial class CryptPassForm : Form
 
     public CryptPassForm()
     {
-        PasswordText = "";
+        PasswordHash = Array.Empty<byte>();
         InitializeComponent();
     }
 
-    // The master password the user typed, in plaintext.
-    public string PasswordText { get; private set; }
+    // SHA-256 of the master password the user typed.
+    public byte[] PasswordHash { get; private set; }
 
-    public static string? GetCachedPassword()
+    public static byte[]? GetCachedPasswordHash()
     {
         try
         {
             using var key = Registry.CurrentUser.OpenSubKey(REGISTRY_KEY);
-            if (key?.GetValue(PASSWORD_VALUE) is string cachedPassword)
+            if (key?.GetValue(PASSWORD_VALUE) is string cachedHash)
             {
-                var protectedPasswordBytes = Convert.FromBase64String(cachedPassword);
-                var passwordBytes = ProtectedData.Unprotect(protectedPasswordBytes, null, DataProtectionScope.CurrentUser);
-                return Encoding.UTF8.GetString(passwordBytes);
+                var protectedHashBytes = Convert.FromBase64String(cachedHash);
+                return ProtectedData.Unprotect(protectedHashBytes, null, DataProtectionScope.CurrentUser);
             }
         }
         catch
@@ -58,11 +58,10 @@ public partial class CryptPassForm : Form
         {
             using var key = Registry.CurrentUser.CreateSubKey(REGISTRY_KEY);
 
-            var passwordBytes = Encoding.UTF8.GetBytes(PasswordText);
-            var protectedPasswordBytes = ProtectedData.Protect(passwordBytes, null, DataProtectionScope.CurrentUser);
-            var protectedPasswordBytesBase64 = Convert.ToBase64String(protectedPasswordBytes);
+            var protectedHashBytes = ProtectedData.Protect(PasswordHash, null, DataProtectionScope.CurrentUser);
+            var protectedHashBytesBase64 = Convert.ToBase64String(protectedHashBytes);
 
-            key.SetValue(PASSWORD_VALUE, protectedPasswordBytesBase64, RegistryValueKind.String);
+            key.SetValue(PASSWORD_VALUE, protectedHashBytesBase64, RegistryValueKind.String);
         }
         catch
         {
@@ -77,9 +76,10 @@ public partial class CryptPassForm : Form
             return;
         }
 
-        PasswordText = textBoxPassword.Text;
+        PasswordHash = AccountManager.HashPassword(textBoxPassword.Text);
+        textBoxPassword.Clear();
 
-        // Store password in registry if checkbox is checked
+        // Store password hash in registry if checkbox is checked
         StoreCachedPassword();
         passwordSubmitted = true;
         Close();

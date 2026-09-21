@@ -15,7 +15,7 @@ public partial class SettingsForm : Form
 
 	private void LoadSettings()
 	{
-		textBoxPassword.Text = Program.Accounts.CurrentPassword;
+		textBoxPassword.PlaceholderText = Program.Accounts.IsEncrypted ? "(set)" : "(none)";
 		checkBoxCheckForUpdates.Checked = _settings.CheckForUpdates;
 		checkBoxAutoUpdate.Checked = _settings.AutoUpdate;
 		checkBoxLaunchMinimized.Checked = _settings.LaunchMinimized;
@@ -64,16 +64,26 @@ public partial class SettingsForm : Form
 	private void ButtonApplyPassword_Click(object sender, EventArgs e)
 	{
 		var newPassword = textBoxPassword.Text;
-		if (newPassword == Program.Accounts.CurrentPassword)
+		if (Program.Accounts.IsCurrentPassword(newPassword))
 		{
 			MessageBox.Show("The master password is unchanged.", "GW Launcher - Encryption",
 				MessageBoxButtons.OK, MessageBoxIcon.Information);
 			return;
 		}
 
+		// The field is no longer pre-filled, so an empty Apply could remove encryption by accident.
+		if (newPassword.Length == 0 &&
+			MessageBox.Show("Remove the master password and store accounts unencrypted?",
+				"GW Launcher - Encryption", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes)
+		{
+			return;
+		}
+
 		try
 		{
 			Program.Accounts.SetPassword(newPassword);
+			textBoxPassword.Clear();
+			textBoxPassword.PlaceholderText = Program.Accounts.IsEncrypted ? "(set)" : "(none)";
 		}
 		catch (Exception ex)
 		{

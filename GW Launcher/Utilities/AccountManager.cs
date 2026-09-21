@@ -8,15 +8,10 @@ public class AccountManager : IEnumerable<Account>, IDisposable
 
     private List<Account> _accounts = new();
 
-    // The master password currently protecting Accounts.json, in plaintext.
-    // Empty means the file is stored unencrypted.
-    private string _password = "";
+    // SHA-256 of the master password protecting Accounts.json; null means unencrypted.
+    private byte[]? _passwordHash;
 
-    // Whether the account storage is currently encrypted (a master password is set).
-    public bool IsEncrypted => _password.Length > 0;
-
-    // The current master password, used to pre-fill the settings field.
-    public string CurrentPassword => _password;
+    public bool IsEncrypted => _passwordHash != null;
 
     public AccountManager(string? filePath = null)
     {
@@ -122,7 +117,7 @@ public class AccountManager : IEnumerable<Account>, IDisposable
 
     public void Load(string? filePath = null)
     {
-        _password = "";
+        _passwordHash = null;
         filePath ??= _filePath;
 
         if (!File.Exists(filePath))
@@ -152,22 +147,22 @@ public class AccountManager : IEnumerable<Account>, IDisposable
         var legacyEncrypted = !magicEncrypted;
 
         // Encrypted: get the master password from cache or by prompting.
-        var password = CryptPassForm.GetCachedPassword();
-        if (password == null)
+        var passwordHash = CryptPassForm.GetCachedPasswordHash();
+        if (passwordHash == null)
         {
             using var form = new CryptPassForm();
             if (form.ShowDialog() == DialogResult.Abort)
             {
                 throw new OperationCanceledException();
             }
-            password = form.PasswordText;
+            passwordHash = form.PasswordHash;
         }
 
         try
         {
-            var rawJson = Decrypt(raw, password, magicEncrypted);
+            var rawJson = Decrypt(raw, passwordHash, magicEncrypted);
             _accounts = JsonConvert.DeserializeObject<List<Account>>(rawJson) ?? _accounts;
-            _password = password;
+            _passwordHash = passwordHash;
 
             // Migrate legacy ciphertext to the current magic-prefixed format.
             if (legacyEncrypted)
@@ -191,13 +186,13 @@ public class AccountManager : IEnumerable<Account>, IDisposable
         filePath ??= _filePath;
 
         var text = JsonConvert.SerializeObject(_accounts, Formatting.Indented);
-        if (_password.Length == 0)
+        if (_passwordHash == null)
         {
             File.WriteAllText(filePath, text);
         }
         else
         {
-            var encrypted = Encryption.SecureAES.Encrypt(text, DeriveKey(_password));
+            var encrypted = Encryption.SecureAES.Encrypt(text, DeriveKey(_passwordHash));
             var output = new byte[Encryption.MagicPrefix.Length + encrypted.Length];
             Buffer.BlockCopy(Encryption.MagicPrefix, 0, output, 0, Encryption.MagicPrefix.Length);
             Buffer.BlockCopy(encrypted, 0, output, Encryption.MagicPrefix.Length, encrypted.Length);
@@ -209,16 +204,32 @@ public class AccountManager : IEnumerable<Account>, IDisposable
     // removes encryption and writes plain JSON. Applies immediately, no restart.
     public void SetPassword(string newPassword)
     {
-        _password = newPassword ?? "";
+        _passwordHash = string.IsNullOrEmpty(newPassword) ? null : HashPassword(newPassword);
         // A stale cached password would fail to decrypt on next launch; drop it so the
         // user is re-prompted (and can opt back into caching) with the new password.
         CryptPassForm.ClearCachedPassword();
         Save(_filePath);
     }
 
-    private static string Decrypt(byte[] raw, string password, bool magicEncrypted)
+    public bool IsCurrentPassword(string password)
     {
-        var key = DeriveKey(password);
+        if (string.IsNullOrEmpty(password))
+        {
+            return _passwordHash == null;
+        }
+
+        return _passwordHash != null &&
+               CryptographicOperations.FixedTimeEquals(_passwordHash, HashPassword(password));
+    }
+
+    public static byte[] HashPassword(string password)
+    {
+        return SHA256.HashData(Encoding.UTF8.GetBytes(password));
+    }
+
+    private static string Decrypt(byte[] raw, byte[] passwordHash, bool magicEncrypted)
+    {
+        var key = DeriveKey(passwordHash);
         if (magicEncrypted)
         {
             var payload = raw[Encryption.MagicPrefix.Length..];
@@ -233,15 +244,15 @@ public class AccountManager : IEnumerable<Account>, IDisposable
         }
         catch
         {
-            return Encryption.DecryptLegacy(raw, SHA256.HashData(Encoding.UTF8.GetBytes(password)));
+            return Encryption.DecryptLegacy(raw, passwordHash);
         }
     }
 
     // The SecureAES password string is the UTF-8 view of SHA-256(plaintext). This matches
     // how earlier versions derived it, so existing encrypted files still decrypt.
-    private static string DeriveKey(string password)
+    private static string DeriveKey(byte[] passwordHash)
     {
-        return Encoding.UTF8.GetString(SHA256.HashData(Encoding.UTF8.GetBytes(password)));
+        return Encoding.UTF8.GetString(passwordHash);
     }
 
     // Try to read the raw bytes as a plain-text JSON account list. Returns false when the
