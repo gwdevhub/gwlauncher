@@ -6,7 +6,7 @@ on:
             - 'GW Launcher/**'
             - '.github/workflows/build.yml'
     pull_request:
-        branches: [ "master" ]
+        branches: [ "dev" ]
         paths:
             - 'GW Launcher/**'
             - '.github/workflows/build.yml'
