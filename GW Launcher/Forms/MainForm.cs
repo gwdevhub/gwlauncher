@@ -283,9 +283,9 @@ public partial class MainForm : Form
         Program.Mainthread.Start();
     }
 
-	protected override void OnClosed(EventArgs e)
+	protected override void OnFormClosed(FormClosedEventArgs e)
  	{
- 		base.OnClosed(e);
+ 		base.OnFormClosed(e);
 		notifyIcon.Dispose();
  	}
   

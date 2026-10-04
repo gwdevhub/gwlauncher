@@ -57,7 +57,7 @@ public static class GwDownloader
             return (null, result.Error);
         }
 
-        string gwExePath = result.filePath;
+        string gwExePath = result.filePath!;
         if (!File.Exists(gwExePath))
         {
 			return (null, "Gw.exe not found after installation");

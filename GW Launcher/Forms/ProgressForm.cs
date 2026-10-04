@@ -1,25 +1,23 @@
 using System;
 using System.Windows.Forms;
 
-namespace GW_Launcher.Forms
+namespace GW_Launcher.Forms;
+public partial class ProgressForm : Form
 {
-    public partial class ProgressForm : Form
+    public ProgressForm()
     {
-        public ProgressForm()
+        InitializeComponent();
+    }
+
+    public void UpdateProgress(string stage, double progress)
+    {
+        if (InvokeRequired)
         {
-            InitializeComponent();
+            Invoke(new Action<string, double>(UpdateProgress), stage, progress);
+            return;
         }
 
-        public void UpdateProgress(string stage, double progress)
-        {
-            if (InvokeRequired)
-            {
-                Invoke(new Action<string, double>(UpdateProgress), stage, progress);
-                return;
-            }
-
-            labelStage.Text = stage;
-            progressBar.Value = (int)(progress * 100);
-        }
+        labelStage.Text = stage;
+        progressBar.Value = (int)(progress * 100);
     }
 }

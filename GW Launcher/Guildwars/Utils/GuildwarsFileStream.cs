@@ -95,7 +95,7 @@ internal sealed class GuildwarsFileStream(
 
     public override int Read(byte[] buffer, int offset, int count)
     {
-        return System.Extensions.TaskExtensions.RunSync(() => this.ReadAsync(buffer, offset, count));
+        return Task.Run(() => this.ReadAsync(buffer, offset, count)).GetAwaiter().GetResult();
     }
 
     public override long Seek(long offset, SeekOrigin origin)

@@ -123,3 +123,15 @@ It will convert your invalid .tpf file into a valid .zip file. Delete the tpf fi
 Coming, with live-reload support, perhaps.
 
 
+
+
+* * *
+
+### Building
+
+Requires the .NET 10 SDK and Visual Studio (the project's COM reference needs Visual Studio's MSBuild, so `dotnet build` won't work).
+
+1.  Run `bootstrap.bat`. It restores the dotnet tools and NuGet packages.
+2.  Open `GW Launcher.sln` in Visual Studio, or build from the command line with the MSBuild command it prints.
+
+The executable is written to `x86\<Configuration>\GW Launcher.exe`.
