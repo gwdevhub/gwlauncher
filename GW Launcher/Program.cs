@@ -24,6 +24,7 @@ internal static class Program
     private static Queue<(int index, bool ctrlHeld)> _needtolaunch = new();
 
     private static string _commandArgLaunchAccountName = "";
+    private static readonly TimeSpan GwUpdateCheckTimeout = TimeSpan.FromSeconds(3);
 
     [DllImport("user32.dll")]
     private static extern int SendMessage(IntPtr hWnd, int wMsg, IntPtr wParam, IntPtr lParam);
@@ -160,6 +161,11 @@ internal static class Program
         }
         if (memory == null)
         {
+            var toolboxPlugin = ModManager.FindUnsupportedToolboxPlugin(account);
+            if (toolboxPlugin != null)
+                return "GWToolboxdll.dll was found in a plugins folder:\n" + toolboxPlugin +
+                       "\n\nGWToolboxdll.dll is only supported through the account's mod list, or as a shortcut in the plugins folder pointing to GWToolboxdll.dll. Remove the file and add it one of those ways instead.";
+
             try
             {
                 if (IsProcessOpen(account.gwpath))
@@ -259,19 +265,11 @@ internal static class Program
 
         WarnIfInGwDirectory();
 
-        if (Settings.CheckForUpdates)
-        {
-            Task.Run(CheckGitHubNewerVersion);
-            Task.Run(CheckGitHubGModVersion);
-            Task.Run(async () => await CheckForGwExeUpdates(false, false));
-        }
-
-        Settings.Save();
-
         var hasMutex = InitialiseGwLauncherMutex();
 
         if (_commandArgLaunchAccountName.Length > 0 && LoadAccountsJson())
         {
+            EnsureGwExeUpToDate(_commandArgLaunchAccountName);
             var res = LaunchAccount(_commandArgLaunchAccountName);
             if (res != null)
             {
@@ -293,6 +291,21 @@ internal static class Program
         {
             Exit();
             return; // Error message already displayed
+        }
+
+        if (!File.Exists("Settings.json"))
+        {
+            using var settingsForm = new SettingsForm();
+            settingsForm.ShowDialog();
+        }
+
+        Settings.Save();
+
+        if (Settings.CheckForUpdates)
+        {
+            Task.Run(CheckGitHubNewerVersion);
+            Task.Run(CheckGitHubGModVersion);
+            Task.Run(async () => await CheckForGwExeUpdates(false, false));
         }
 
         _mainThreadRunning = true;
@@ -531,13 +544,11 @@ internal static class Program
             var hashLine = GitHubAssets.ShortSha(localSha) is { } current
                 ? $"Installed: {tagName} ({current})\nLatest: {tagName} ({GitHubAssets.ShortSha(asset.Sha256)})"
                 : $"Latest: {tagName} ({GitHubAssets.ShortSha(asset.Sha256)})";
-            var msgBoxResult = MessageBox.Show(
-                $"A different build of GW Launcher is available.\n{hashLine}\nDownload and install it now?",
-                @"GW Launcher",
-                MessageBoxButtons.YesNo,
-                MessageBoxIcon.Information,
-                MessageBoxDefaultButton.Button2);
-            if (msgBoxResult != DialogResult.Yes)
+            using var prompt = new UpdatePromptForm(
+                $"A different build of GW Launcher is available.\n{hashLine}",
+                release.Body,
+                release.HtmlUrl);
+            if (prompt.ShowDialog() != DialogResult.Yes)
             {
                 return;
             }
@@ -940,9 +951,76 @@ internal static class Program
         }
     }
 
-    private static async Task<(List<Account> toUpdate, List<Account> failedToCheck)> RunUpdateCheck(CancellationToken ct)
+    // Blocks a shortcut launch on the version check; fails open on timeout or error so offline launches still work.
+    private static void EnsureGwExeUpToDate(string accountName)
     {
-        var (response, error) = await GwDownloader.GetLatestGwExeInfoAsync();
+        if (!Settings.CheckForUpdates)
+            return;
+
+        var found = Accounts.IndexOf(accountName);
+        if (found == -1)
+            return;
+        var account = Accounts[found];
+
+        List<Account> toUpdate;
+        using (var cts = new CancellationTokenSource())
+        {
+            try
+            {
+                var check = Task.Run(() => RunUpdateCheck(cts.Token, [account]), cts.Token);
+                if (!check.Wait(GwUpdateCheckTimeout))
+                {
+                    cts.Cancel();
+                    Console.WriteLine($"Gw.exe version check timed out after {GwUpdateCheckTimeout.TotalSeconds}s, launching anyway.");
+                    return;
+                }
+
+                toUpdate = check.Result.toUpdate;
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Gw.exe version check failed, launching anyway: {e.Message}");
+                return;
+            }
+        }
+
+        if (toUpdate.Count == 0)
+            return;
+
+        var answer = MessageBox.Show($"The Gw.exe for {account.Name} is out of date.\nUpdate it before launching?",
+            "GW Update", MessageBoxButtons.YesNo);
+        if (answer != DialogResult.Yes)
+            return;
+
+        // The relaunched elevated instance repeats this check, then performs the update.
+        AdminAccess.RestartAsAdminPrompt(true, $"-launch \"{accountName.Replace("\"", "\\\"")}\"");
+
+        using var progressForm = new ProgressForm();
+        Exception? updateError = null;
+        progressForm.Shown += async (_, _) =>
+        {
+            try
+            {
+                await GwDownloader.UpdateClients([account],
+                    new Progress<(string Stage, double Progress)>(u => progressForm.UpdateProgress(u.Stage, u.Progress)));
+            }
+            catch (Exception e)
+            {
+                updateError = e;
+            }
+
+            progressForm.Close();
+        };
+        progressForm.ShowDialog();
+
+        if (updateError != null)
+            MessageBox.Show($"An error occurred while updating Gw.exe: {updateError.Message}", "Update Error",
+                MessageBoxButtons.OK, MessageBoxIcon.Error);
+    }
+
+    private static async Task<(List<Account> toUpdate, List<Account> failedToCheck)> RunUpdateCheck(CancellationToken ct, IEnumerable<Account>? accounts = null)
+    {
+        var (response, error) = await GwDownloader.GetLatestGwExeInfoAsync(ct);
         ct.ThrowIfCancellationRequested();
 
         if (response == null || !string.IsNullOrEmpty(error))
@@ -958,7 +1036,7 @@ internal static class Program
 
         // Group accounts by exe path so each distinct exe is only parsed once,
         // then check all unique paths in parallel.
-        var accountsByPath = Accounts
+        var accountsByPath = (accounts ?? Accounts)
             .GroupBy(a => a.gwpath, StringComparer.OrdinalIgnoreCase)
             .ToList();
 

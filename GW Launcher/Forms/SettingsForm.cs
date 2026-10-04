@@ -1,10 +1,13 @@
-﻿using GW_Launcher.Classes;
+using GW_Launcher.Classes;
 
 namespace GW_Launcher.Forms;
 
 public partial class SettingsForm : Form
 {
+	private const int PasswordSectionHeight = 56;
+
 	private GlobalSettings _settings;
+	private bool _passwordSectionVisible = true;
 
 	public SettingsForm()
 	{
@@ -16,9 +19,13 @@ public partial class SettingsForm : Form
 	private void LoadSettings()
 	{
 		textBoxPassword.PlaceholderText = Program.Accounts.IsEncrypted ? "(set)" : "(none)";
+		checkBoxProtectAccounts.Checked = Program.Accounts.IsEncrypted;
+		SetPasswordSectionVisible(checkBoxProtectAccounts.Checked);
 		checkBoxCheckForUpdates.Checked = _settings.CheckForUpdates;
 		checkBoxAutoUpdate.Checked = _settings.AutoUpdate;
 		checkBoxLaunchMinimized.Checked = _settings.LaunchMinimized;
+		checkBoxKeepInSystemTray.Checked = _settings.KeepInSystemTray;
+		checkBoxLaunchMinimized.Enabled = checkBoxKeepInSystemTray.Checked;
 		numericUpDownTimeout.Value = _settings.TimeoutOnModlaunch;
 
 		// Auto-update should only be enabled if check for updates is enabled
@@ -30,6 +37,7 @@ public partial class SettingsForm : Form
 		_settings.CheckForUpdates = checkBoxCheckForUpdates.Checked;
 		_settings.AutoUpdate = checkBoxAutoUpdate.Checked;
 		_settings.LaunchMinimized = checkBoxLaunchMinimized.Checked;
+		_settings.KeepInSystemTray = checkBoxKeepInSystemTray.Checked;
 		_settings.TimeoutOnModlaunch = (uint)numericUpDownTimeout.Value;
 
 		Program.Settings = _settings;
@@ -38,6 +46,9 @@ public partial class SettingsForm : Form
 
 	private void ButtonOK_Click(object sender, EventArgs e)
 	{
+		if (!ApplyPassword())
+			return;
+
 		SaveSettings();
 		DialogResult = DialogResult.OK;
 		Close();
@@ -59,22 +70,66 @@ public partial class SettingsForm : Form
 		}
 	}
 
-	private void ButtonApplyPassword_Click(object sender, EventArgs e)
+	private void CheckBoxKeepInSystemTray_CheckedChanged(object sender, EventArgs e)
 	{
-		var newPassword = textBoxPassword.Text;
-		if (Program.Accounts.IsCurrentPassword(newPassword))
-		{
-			MessageBox.Show("The master password is unchanged.", "GW Launcher - Encryption",
-				MessageBoxButtons.OK, MessageBoxIcon.Information);
+		// Launching minimised means starting hidden in the tray, so it only applies in tray mode
+		checkBoxLaunchMinimized.Enabled = checkBoxKeepInSystemTray.Checked;
+	}
+
+	private void CheckBoxProtectAccounts_CheckedChanged(object sender, EventArgs e)
+	{
+		SetPasswordSectionVisible(checkBoxProtectAccounts.Checked);
+	}
+
+	private void SetPasswordSectionVisible(bool visible)
+	{
+		if (visible == _passwordSectionVisible)
 			return;
+
+		_passwordSectionVisible = visible;
+		labelPassword.Visible = textBoxPassword.Visible = checkBoxShowPassword.Visible = visible;
+
+		var delta = visible ? PasswordSectionHeight : -PasswordSectionHeight;
+		foreach (var control in new Control[]
+		         {
+			         checkBoxKeepInSystemTray, labelDescKeepInSystemTray, checkBoxLaunchMinimized, labelDescLaunchMinimized,
+			         groupBoxUpdates, groupBoxAdvanced, buttonOK,
+			         buttonCancel
+		         })
+		{
+			control.Top += delta;
 		}
 
-		// The field is no longer pre-filled, so an empty Apply could remove encryption by accident.
-		if (newPassword.Length == 0 &&
-			MessageBox.Show("Remove the master password and store accounts unencrypted?",
-				"GW Launcher - Encryption", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes)
+		groupBoxGeneral.Height += delta;
+		ClientSize = new Size(ClientSize.Width, ClientSize.Height + delta);
+	}
+
+	// Returns false if the user should stay on the form (invalid input, declined, or the re-save failed).
+	private bool ApplyPassword()
+	{
+		var protect = checkBoxProtectAccounts.Checked;
+		var newPassword = protect ? textBoxPassword.Text : "";
+
+		// The field is never pre-filled, so empty while already protected means keep the existing password.
+		if (protect && newPassword.Length == 0)
 		{
-			return;
+			if (Program.Accounts.IsEncrypted)
+				return true;
+
+			MessageBox.Show("Enter a password, or untick \"Password protect Accounts.json\".",
+				"GW Launcher - Encryption", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+			textBoxPassword.Focus();
+			return false;
+		}
+
+		if (protect ? Program.Accounts.IsCurrentPassword(newPassword) : !Program.Accounts.IsEncrypted)
+			return true;
+
+		if (!protect && MessageBox.Show(
+			    "Accounts.json will be stored as plain text, including your account passwords. Remove password protection?",
+			    "GW Launcher - Encryption", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes)
+		{
+			return false;
 		}
 
 		try
@@ -82,19 +137,14 @@ public partial class SettingsForm : Form
 			Program.Accounts.SetPassword(newPassword);
 			textBoxPassword.Clear();
 			textBoxPassword.PlaceholderText = Program.Accounts.IsEncrypted ? "(set)" : "(none)";
+			return true;
 		}
 		catch (Exception ex)
 		{
 			MessageBox.Show("Failed to re-save account storage:\n" + ex.Message,
 				"GW Launcher - Encryption", MessageBoxButtons.OK, MessageBoxIcon.Error);
-			return;
+			return false;
 		}
-
-		MessageBox.Show(
-			newPassword.Length == 0
-				? "Account storage is now unencrypted."
-				: "Account storage re-saved with the new master password.",
-			"GW Launcher - Encryption", MessageBoxButtons.OK, MessageBoxIcon.Information);
 	}
 
 	private void CheckBoxShowPassword_CheckedChanged(object sender, EventArgs e)

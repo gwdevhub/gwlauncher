@@ -10,6 +10,7 @@
         <StartupObject>GW_Launcher.Program</StartupObject>
         <ApplicationIcon>Resources\gwlauncher-helmet.ico</ApplicationIcon>
         <BaseOutputPath>..\</BaseOutputPath>
+        <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
         <Platforms>x86;AnyCPU</Platforms>
         <PlatformTarget>x86</PlatformTarget>
         <DebugType>portable</DebugType>
@@ -48,10 +49,10 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-        <PackageReference Include="PeNet" Version="4.1.0" />
-        <PackageReference Include="SystemExtensions.NetCore" Version="1.6.11" />
-        <PackageReference Include="SystemExtensions.NetStandard" Version="1.6.11" />
+        <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+        <PackageReference Include="PeNet" Version="6.1.2" />
+        <PackageReference Include="SystemExtensions.NetCore" Version="1.9.0" />
+        <PackageReference Include="SystemExtensions.NetStandard" Version="1.9.0" />
     </ItemGroup>
 
     <ItemGroup>

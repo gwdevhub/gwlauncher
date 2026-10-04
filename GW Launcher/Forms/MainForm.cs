@@ -10,16 +10,22 @@ public partial class MainForm : Form
     private bool _allowVisible;
 
     private bool _keepOpen;
+    private bool _exiting;
 
     private ListView.SelectedIndexCollection _selectedItems;
 
     public MainForm(bool launchMinimized = false)
     {
         InitializeComponent();
-        panelEmptyState.BringToFront();
         _selectedItems = new ListView.SelectedIndexCollection(listViewAccounts);
         _instance = this;
-        if(!launchMinimized)
+        ApplyWindowSettings();
+        if (!Program.Settings.KeepInSystemTray)
+        {
+            _allowVisible = true;
+            StartPosition = FormStartPosition.CenterScreen;
+        }
+        else if (!launchMinimized)
         {
             RepositionAndShow();
         }
@@ -86,24 +92,76 @@ public partial class MainForm : Form
 
     protected override void OnFormClosing(FormClosingEventArgs e)
     {
+        // In tray mode the close button hides to the tray; the Exit menu item is the way to quit.
+        if (e.CloseReason == CloseReason.UserClosing && Program.Settings.KeepInSystemTray && !_exiting)
+        {
+            e.Cancel = true;
+            Visible = false;
+            base.OnFormClosing(e);
+            return;
+        }
+
         _instance = null;
         base.OnFormClosing(e);
     }
 
-	// Add this method to your MainForm.cs file
+	private void ToolStripMenuItemExit_Click(object sender, EventArgs e)
+	{
+		_exiting = true;
+		Close();
+	}
+
+	// In tray mode the window steps out of the way while a dialog is open instead of sitting behind it.
+	private void HideToTray()
+	{
+		if (Program.Settings.KeepInSystemTray)
+			Visible = false;
+	}
 
 	private void ToolStripMenuItemSettings_Click(object sender, EventArgs e)
 	{
-		using var settingsForm = new SettingsForm();
-		var result = settingsForm.ShowDialog(this);
-
-		if (result == DialogResult.OK)
+		var oldKeepOpen = _keepOpen;
+		_keepOpen = true;
+		try
 		{
-			// Settings have been saved, but some might require a restart
-			// You could add logic here to handle immediate setting changes
-			// that don't require a restart
+			using var settingsForm = new SettingsForm();
+			HideToTray();
+			// A hidden owner would centre the dialog on the stale window position
+			if (settingsForm.ShowDialog(Program.Settings.KeepInSystemTray ? null : this) == DialogResult.OK)
+			{
+				ApplyWindowSettings();
+				// Leaving tray mode removes the tray icon, so the window has to come back or the launcher is unreachable
+				if (!Program.Settings.KeepInSystemTray)
+				{
+					Visible = true;
+					Activate();
+				}
+			}
+		}
+		finally
+		{
+			_keepOpen = oldKeepOpen;
 		}
 	}
+
+    private void ApplyWindowSettings()
+    {
+        var oldKeepOpen = _keepOpen;
+        _keepOpen = true;
+        try
+        {
+            var keepInSystemTray = Program.Settings.KeepInSystemTray;
+            ShowInTaskbar = !keepInSystemTray;
+            MinimizeBox = !keepInSystemTray;
+            TopMost = keepInSystemTray;
+            notifyIcon.Visible = keepInSystemTray;
+        }
+        finally
+        {
+            _keepOpen = oldKeepOpen;
+        }
+    }
+
 	public static void OnAccountSaved(Account account)
     {
         Program.Mutex.WaitOne();
@@ -134,6 +192,24 @@ public partial class MainForm : Form
         }
 
         base.SetVisibleCore(value);
+    }
+
+    // The empty-state label and button live inside the list, so its right-click menu keeps working.
+    private void UpdateEmptyState()
+    {
+        var empty = listViewAccounts.Items.Count == 0;
+        labelEmptyState.Visible = buttonAddAccountEmptyState.Visible = empty;
+        if (!empty)
+            return;
+
+        const int headerHeight = 24;
+        const int gap = 8;
+        var contentHeight = labelEmptyState.Height + gap + buttonAddAccountEmptyState.Height;
+        var top = headerHeight + (listViewAccounts.ClientSize.Height - headerHeight - contentHeight) / 2;
+        labelEmptyState.Location = new Point((listViewAccounts.ClientSize.Width - labelEmptyState.Width) / 2, top);
+        buttonAddAccountEmptyState.Location = new Point(
+            (listViewAccounts.ClientSize.Width - buttonAddAccountEmptyState.Width) / 2,
+            top + labelEmptyState.Height + gap);
     }
 
     private void RefreshUI()
@@ -199,7 +275,7 @@ public partial class MainForm : Form
             ));
         }
 
-        panelEmptyState.Visible = listViewAccounts.Items.Count == 0;
+        UpdateEmptyState();
 
         listViewAccounts.Columns[1].AutoResize(ColumnHeaderAutoResizeStyle.ColumnContent);
         listViewAccounts.Columns[0].Width = -2;
@@ -239,7 +315,10 @@ public partial class MainForm : Form
     }
     private void MainForm_Load(object sender, EventArgs e)
     {
-        Visible = false;
+        if (Program.Settings.KeepInSystemTray)
+        {
+            Visible = false;
+        }
         // Initialize things
         var imageList = new ImageList();
         imageList.Images.Add("gwlauncher", Resources.gwlauncher);
@@ -248,9 +327,9 @@ public partial class MainForm : Form
         Program.Mainthread.Start();
     }
 
-	protected override void OnClosed(EventArgs e)
+	protected override void OnFormClosed(FormClosedEventArgs e)
  	{
- 		base.OnClosed(e);
+ 		base.OnFormClosed(e);
 		notifyIcon.Dispose();
  	}
   
@@ -285,6 +364,7 @@ public partial class MainForm : Form
         var oldKeepOpen = _keepOpen;
         _keepOpen = true;
         using var gui = new AddAccountForm();
+        HideToTray();
         gui.ShowDialog();
         _keepOpen = oldKeepOpen;
     }
@@ -370,6 +450,7 @@ public partial class MainForm : Form
         addAccountForm.Text = @"Modify Account";
         addAccountForm.account = account;
 
+        HideToTray();
         addAccountForm.ShowDialog();
         _keepOpen = oldKeepOpen;
     }
@@ -422,7 +503,7 @@ public partial class MainForm : Form
 
     private void MainForm_Deactivate(object sender, EventArgs e)
     {
-        if (!_keepOpen)
+        if (Program.Settings.KeepInSystemTray && !_keepOpen)
         {
             Visible = false;
         }

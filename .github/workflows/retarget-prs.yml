@@ -1,0 +1,27 @@
+name: Retarget pull requests to dev
+
+on:
+  pull_request_target:
+    branches: [master]
+    types: [opened, reopened, edited]
+
+permissions:
+  pull-requests: write
+
+concurrency:
+  group: retarget-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  retarget:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Retarget master pull requests to dev
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: |
+          base=$(gh pr view "$PR_URL" --json baseRefName --jq '.baseRefName')
+          if [ "$base" = "master" ]; then
+            gh pr edit "$PR_URL" --base dev
+          fi

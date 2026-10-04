@@ -64,6 +64,18 @@ public class ModManager
         return result;
     }
 
+    // Only a real GWToolboxdll.dll counts; a .lnk pointing at one is the supported way to side-load it.
+    public static string? FindUnsupportedToolboxPlugin(Account account)
+    {
+        if (!account.usePluginFolderMods)
+            return null;
+
+        return GetPluginFolders(account)
+            .Where(Directory.Exists)
+            .SelectMany(Directory.GetFiles)
+            .FirstOrDefault(path => Path.GetFileName(path).Equals("GWToolboxdll.dll", StringComparison.OrdinalIgnoreCase));
+    }
+
     public static bool ModFileExists(string path)
     {
         if (path.EndsWith(".lnk", StringComparison.OrdinalIgnoreCase))

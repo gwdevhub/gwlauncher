@@ -8,7 +8,7 @@ internal sealed class IntegratedGuildwarsInstaller
     private const string ExeName = "Gw.exe";
     private const string TempExeName = "Gw.exe.temp";
     
-    public async Task<(string filePath, string Error)> InstallGuildwars(string destinationPath, IProgress<(string Stage, double Progress)> progress, CancellationToken cancellationToken)
+    public async Task<(string? filePath, string? Error)> InstallGuildwars(string destinationPath, IProgress<(string Stage, double Progress)> progress, CancellationToken cancellationToken)
     {
         return await new TaskFactory().StartNew(_ => InstallGuildwarsInternal(destinationPath, progress, cancellationToken), TaskCreationOptions.LongRunning, cancellationToken).Unwrap();
     }

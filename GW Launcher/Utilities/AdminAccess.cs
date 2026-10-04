@@ -11,7 +11,7 @@ internal static class AdminAccess
         return hasAdministrativeRight;
     }
 
-    public static bool RestartAsAdminPrompt(bool force = false)
+    public static bool RestartAsAdminPrompt(bool force = false, string arguments = "restart")
     {
         if (HasAdmin())
         {
@@ -25,7 +25,7 @@ internal static class AdminAccess
             Verb = "runas",
             UseShellExecute = true,
             FileName = fileName,
-            Arguments = "restart"
+            Arguments = arguments
         };
 
         try

@@ -35,8 +35,6 @@ partial class MainForm
 		listViewAccounts = new ListView();
 		columnHeaderName = new ColumnHeader();
 		columnHeaderStatus = new ColumnHeader();
-		panelEmptyState = new Panel();
-		tableLayoutPanelEmptyState = new TableLayoutPanel();
 		labelEmptyState = new Label();
 		buttonAddAccountEmptyState = new Button();
 		contextMenuStripAccounts = new ContextMenuStrip(components);
@@ -54,10 +52,9 @@ partial class MainForm
 		toolStripMenuItemUpdateAllClients = new ToolStripMenuItem();
 		toolStripSeparator2 = new ToolStripSeparator();
 		toolStripMenuItemSettings = new ToolStripMenuItem();
+		toolStripMenuItemExit = new ToolStripMenuItem();
 		notifyIcon = new NotifyIcon();
 		notifyIcon.Icon = Icon.FromHandle(Resources.gwlauncher_ico.Handle);
-		panelEmptyState.SuspendLayout();
-		tableLayoutPanelEmptyState.SuspendLayout();
 		contextMenuStripAccounts.SuspendLayout();
 		SuspendLayout();
 		// 
@@ -66,11 +63,14 @@ partial class MainForm
 		listViewAccounts.BackColor = SystemColors.Window;
 		listViewAccounts.Columns.AddRange(new ColumnHeader[] { columnHeaderName, columnHeaderStatus });
 		listViewAccounts.ContextMenuStrip = contextMenuStripAccounts;
+		listViewAccounts.Controls.Add(labelEmptyState);
+		listViewAccounts.Controls.Add(buttonAddAccountEmptyState);
 		listViewAccounts.Dock = DockStyle.Fill;
 		listViewAccounts.FullRowSelect = true;
 		listViewAccounts.Location = new Point(0, 0);
 		listViewAccounts.Margin = new Padding(4, 3, 4, 3);
 		listViewAccounts.Name = "listViewAccounts";
+		listViewAccounts.Resize += (_, _) => UpdateEmptyState();
 		listViewAccounts.Size = new Size(204, 312);
 		listViewAccounts.TabIndex = 0;
 		listViewAccounts.UseCompatibleStateImageBehavior = false;
@@ -86,58 +86,31 @@ partial class MainForm
 		//
 		columnHeaderStatus.Text = "Status";
 		//
-		// panelEmptyState
-		//
-		panelEmptyState.BackColor = SystemColors.Window;
-		panelEmptyState.Controls.Add(tableLayoutPanelEmptyState);
-		panelEmptyState.Dock = DockStyle.Fill;
-		panelEmptyState.Location = new Point(0, 0);
-		panelEmptyState.Name = "panelEmptyState";
-		panelEmptyState.Size = new Size(204, 312);
-		panelEmptyState.TabIndex = 1;
-		panelEmptyState.Visible = false;
-		//
-		// tableLayoutPanelEmptyState
-		//
-		tableLayoutPanelEmptyState.ColumnCount = 1;
-		tableLayoutPanelEmptyState.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
-		tableLayoutPanelEmptyState.Controls.Add(labelEmptyState, 0, 0);
-		tableLayoutPanelEmptyState.Controls.Add(buttonAddAccountEmptyState, 0, 1);
-		tableLayoutPanelEmptyState.Dock = DockStyle.Fill;
-		tableLayoutPanelEmptyState.Location = new Point(0, 0);
-		tableLayoutPanelEmptyState.Name = "tableLayoutPanelEmptyState";
-		tableLayoutPanelEmptyState.RowCount = 2;
-		tableLayoutPanelEmptyState.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
-		tableLayoutPanelEmptyState.RowStyles.Add(new RowStyle(SizeType.Absolute, 40F));
-		tableLayoutPanelEmptyState.Size = new Size(204, 312);
-		tableLayoutPanelEmptyState.TabIndex = 0;
-		//
 		// labelEmptyState
 		//
-		labelEmptyState.Dock = DockStyle.Fill;
-		labelEmptyState.Location = new Point(3, 0);
+		labelEmptyState.AutoSize = true;
+		labelEmptyState.BackColor = SystemColors.Window;
+		labelEmptyState.ContextMenuStrip = contextMenuStripAccounts;
+		labelEmptyState.ForeColor = SystemColors.GrayText;
 		labelEmptyState.Name = "labelEmptyState";
-		labelEmptyState.Padding = new Padding(12);
-		labelEmptyState.Size = new Size(198, 272);
 		labelEmptyState.TabIndex = 0;
-		labelEmptyState.Text = "No accounts added yet.";
-		labelEmptyState.TextAlign = ContentAlignment.MiddleCenter;
+		labelEmptyState.Text = "No Accounts";
+		labelEmptyState.Visible = false;
 		//
 		// buttonAddAccountEmptyState
 		//
-		buttonAddAccountEmptyState.Anchor = AnchorStyles.None;
 		buttonAddAccountEmptyState.AutoSize = true;
-		buttonAddAccountEmptyState.Location = new Point(52, 278);
+		buttonAddAccountEmptyState.ContextMenuStrip = contextMenuStripAccounts;
 		buttonAddAccountEmptyState.Name = "buttonAddAccountEmptyState";
-		buttonAddAccountEmptyState.Size = new Size(100, 27);
 		buttonAddAccountEmptyState.TabIndex = 1;
 		buttonAddAccountEmptyState.Text = "Add Account";
 		buttonAddAccountEmptyState.UseVisualStyleBackColor = true;
+		buttonAddAccountEmptyState.Visible = false;
 		buttonAddAccountEmptyState.Click += ToolStripMenuItemAddNew_Click;
 		//
 		// contextMenuStripAccounts
 		// 
-		contextMenuStripAccounts.Items.AddRange(new ToolStripItem[] { toolStripMenuItemRefreshAccounts, toolStripSeparator3, toolStripMenuItemAddNew, toolStripMenuItemEditSelected, toolStripMenuItemMoveUp, toolStripMenuItemMoveDown,toolStripMenuItemCreateShortcut, toolStripMenuItemRemoveSelected, toolStripMenuItemLaunchSelected, toolStripSeparator1, toolStripMenuItemLaunchGWInstance, toolStripMenuItemUpdateAllClients, toolStripSeparator2, toolStripMenuItemSettings });
+		contextMenuStripAccounts.Items.AddRange(new ToolStripItem[] { toolStripMenuItemRefreshAccounts, toolStripSeparator3, toolStripMenuItemAddNew, toolStripMenuItemEditSelected, toolStripMenuItemMoveUp, toolStripMenuItemMoveDown,toolStripMenuItemCreateShortcut, toolStripMenuItemRemoveSelected, toolStripMenuItemLaunchSelected, toolStripSeparator1, toolStripMenuItemLaunchGWInstance, toolStripMenuItemUpdateAllClients, toolStripSeparator2, toolStripMenuItemSettings, toolStripMenuItemExit });
 		contextMenuStripAccounts.Name = "contextMenuStripAccounts";
 		contextMenuStripAccounts.Size = new Size(211, 214);
 		contextMenuStripAccounts.Text = "Options.";
@@ -233,12 +206,18 @@ partial class MainForm
 		toolStripMenuItemSettings.Size = new Size(210, 22);
 		toolStripMenuItemSettings.Text = "Settings";
 		toolStripMenuItemSettings.Click += ToolStripMenuItemSettings_Click;
+		//
+		// toolStripMenuItemExit
+		//
+		toolStripMenuItemExit.Name = "toolStripMenuItemExit";
+		toolStripMenuItemExit.Size = new Size(210, 22);
+		toolStripMenuItemExit.Text = "Exit";
+		toolStripMenuItemExit.Click += ToolStripMenuItemExit_Click;
 		// 
 		// notifyIcon
 		// 
 		notifyIcon.Icon = Resources.gwlauncher_ico;
 		notifyIcon.Text = "GW Launcher";
-		notifyIcon.Visible = true;
 		notifyIcon.MouseClick += NotifyIcon_MouseClick;
 		// 
 		// MainForm
@@ -246,7 +225,6 @@ partial class MainForm
 		AutoScaleDimensions = new SizeF(7F, 15F);
 		AutoScaleMode = AutoScaleMode.Font;
 		ClientSize = new Size(204, 312);
-		Controls.Add(panelEmptyState);
 		Controls.Add(listViewAccounts);
 		Icon = (Icon)Resources.gwlauncher_ico;
 		Margin = new Padding(4, 3, 4, 3);
@@ -260,8 +238,6 @@ partial class MainForm
 		TopMost = true;
 		Deactivate += MainForm_Deactivate;
 		Load += MainForm_Load;
-		panelEmptyState.ResumeLayout(false);
-		tableLayoutPanelEmptyState.ResumeLayout(false);
 		contextMenuStripAccounts.ResumeLayout(false);
 		ResumeLayout(false);
 	}
@@ -271,8 +247,6 @@ partial class MainForm
 	private System.Windows.Forms.ListView listViewAccounts;
 	private System.Windows.Forms.ColumnHeader columnHeaderName;
 	private System.Windows.Forms.ColumnHeader columnHeaderStatus;
-	private System.Windows.Forms.Panel panelEmptyState;
-	private System.Windows.Forms.TableLayoutPanel tableLayoutPanelEmptyState;
 	private System.Windows.Forms.Label labelEmptyState;
 	private System.Windows.Forms.Button buttonAddAccountEmptyState;
 	private System.Windows.Forms.ContextMenuStrip contextMenuStripAccounts;
@@ -291,4 +265,5 @@ partial class MainForm
 	private System.Windows.Forms.ToolStripMenuItem toolStripMenuItemUpdateAllClients;
 	private System.Windows.Forms.ToolStripSeparator toolStripSeparator2;
 	private System.Windows.Forms.ToolStripMenuItem toolStripMenuItemSettings;
+	private System.Windows.Forms.ToolStripMenuItem toolStripMenuItemExit;
 }
