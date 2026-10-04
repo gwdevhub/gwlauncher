@@ -24,6 +24,7 @@ internal static class Program
     private static Queue<(int index, bool ctrlHeld)> _needtolaunch = new();
 
     private static string _commandArgLaunchAccountName = "";
+    private static readonly TimeSpan GwUpdateCheckTimeout = TimeSpan.FromSeconds(3);
 
     [DllImport("user32.dll")]
     private static extern int SendMessage(IntPtr hWnd, int wMsg, IntPtr wParam, IntPtr lParam);
@@ -268,6 +269,7 @@ internal static class Program
 
         if (_commandArgLaunchAccountName.Length > 0 && LoadAccountsJson())
         {
+            EnsureGwExeUpToDate(_commandArgLaunchAccountName);
             var res = LaunchAccount(_commandArgLaunchAccountName);
             if (res != null)
             {
@@ -949,9 +951,76 @@ internal static class Program
         }
     }
 
-    private static async Task<(List<Account> toUpdate, List<Account> failedToCheck)> RunUpdateCheck(CancellationToken ct)
+    // Blocks a shortcut launch on the version check; fails open on timeout or error so offline launches still work.
+    private static void EnsureGwExeUpToDate(string accountName)
     {
-        var (response, error) = await GwDownloader.GetLatestGwExeInfoAsync();
+        if (!Settings.CheckForUpdates)
+            return;
+
+        var found = Accounts.IndexOf(accountName);
+        if (found == -1)
+            return;
+        var account = Accounts[found];
+
+        List<Account> toUpdate;
+        using (var cts = new CancellationTokenSource())
+        {
+            try
+            {
+                var check = Task.Run(() => RunUpdateCheck(cts.Token, [account]), cts.Token);
+                if (!check.Wait(GwUpdateCheckTimeout))
+                {
+                    cts.Cancel();
+                    Console.WriteLine($"Gw.exe version check timed out after {GwUpdateCheckTimeout.TotalSeconds}s, launching anyway.");
+                    return;
+                }
+
+                toUpdate = check.Result.toUpdate;
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Gw.exe version check failed, launching anyway: {e.Message}");
+                return;
+            }
+        }
+
+        if (toUpdate.Count == 0)
+            return;
+
+        var answer = MessageBox.Show($"The Gw.exe for {account.Name} is out of date.\nUpdate it before launching?",
+            "GW Update", MessageBoxButtons.YesNo);
+        if (answer != DialogResult.Yes)
+            return;
+
+        // The relaunched elevated instance repeats this check, then performs the update.
+        AdminAccess.RestartAsAdminPrompt(true, $"-launch \"{accountName.Replace("\"", "\\\"")}\"");
+
+        using var progressForm = new ProgressForm();
+        Exception? updateError = null;
+        progressForm.Shown += async (_, _) =>
+        {
+            try
+            {
+                await GwDownloader.UpdateClients([account],
+                    new Progress<(string Stage, double Progress)>(u => progressForm.UpdateProgress(u.Stage, u.Progress)));
+            }
+            catch (Exception e)
+            {
+                updateError = e;
+            }
+
+            progressForm.Close();
+        };
+        progressForm.ShowDialog();
+
+        if (updateError != null)
+            MessageBox.Show($"An error occurred while updating Gw.exe: {updateError.Message}", "Update Error",
+                MessageBoxButtons.OK, MessageBoxIcon.Error);
+    }
+
+    private static async Task<(List<Account> toUpdate, List<Account> failedToCheck)> RunUpdateCheck(CancellationToken ct, IEnumerable<Account>? accounts = null)
+    {
+        var (response, error) = await GwDownloader.GetLatestGwExeInfoAsync(ct);
         ct.ThrowIfCancellationRequested();
 
         if (response == null || !string.IsNullOrEmpty(error))
@@ -967,7 +1036,7 @@ internal static class Program
 
         // Group accounts by exe path so each distinct exe is only parsed once,
         // then check all unique paths in parallel.
-        var accountsByPath = Accounts
+        var accountsByPath = (accounts ?? Accounts)
             .GroupBy(a => a.gwpath, StringComparer.OrdinalIgnoreCase)
             .ToList();
 

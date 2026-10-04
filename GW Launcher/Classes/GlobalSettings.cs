@@ -4,11 +4,22 @@ public class GlobalSettings
 {
     public bool CheckForUpdates { get; set; } = true;
 
-    public bool AutoUpdate { get; set; } = true;
+    public bool AutoUpdate { get; set; } = false;
 
     public bool LaunchMinimized { get; set; } = true;
 
-    public bool KeepLauncherOpen { get; set; } = false;
+    public bool KeepInSystemTray { get; set; } = true;
+
+    // Read-only migration of the old inverse setting, so existing Settings.json files keep their behaviour.
+    [JsonProperty("KeepLauncherOpen")]
+    private bool? LegacyKeepLauncherOpen
+    {
+        set
+        {
+            if (value.HasValue)
+                KeepInSystemTray = !value.Value;
+        }
+    }
 
     public uint TimeoutOnModlaunch { get; set; } = 5000;
 
