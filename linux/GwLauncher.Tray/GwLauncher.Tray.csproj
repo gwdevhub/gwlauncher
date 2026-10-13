@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <AssemblyName>GW_Launcher</AssemblyName>
+        <TargetFramework>net10.0</TargetFramework>
+        <RootNamespace>GwLauncher.Tray</RootNamespace>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <!-- Shown in error reports, so bump it when the launcher is released. -->
+        <Version>0.1.0</Version>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Avalonia.Desktop" Version="12.1.4" />
+        <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.4" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Using Include="System.Diagnostics" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\GwLauncher.Core\GwLauncher.Core.csproj" />
+        <ProjectReference Include="..\GwLauncher.Resolve\GwLauncher.Resolve.csproj" />
+    </ItemGroup>
+
+    <!-- Tray icon reuses the launcher's existing helmet artwork. -->
+    <ItemGroup>
+        <AvaloniaResource Include="..\..\GW Launcher\Resources\gwlauncher-helmet.png" Link="Assets\gwlauncher-helmet.png" />
+    </ItemGroup>
+
+    <!-- The Windows DLL loader folder is embedded as a zip so the launcher ships as one file; InjectorInstaller unpacks it at startup. -->
+    <ItemGroup>
+        <EmbeddedResource Include="..\GwLauncher.Injector\bin\Release\net10.0\win-x86\injector.zip" LogicalName="injector.zip" Condition="Exists('..\GwLauncher.Injector\bin\Release\net10.0\win-x86\injector.zip')" />
+    </ItemGroup>
+
+</Project>

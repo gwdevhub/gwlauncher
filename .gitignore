@@ -38,3 +38,9 @@ packages/
 *.vcxproj.user
 *.VC.db
 .aider*
+
+# Linux port build output
+linux/**/bin/
+linux/**/obj/
+shared/**/bin/
+shared/**/obj/
