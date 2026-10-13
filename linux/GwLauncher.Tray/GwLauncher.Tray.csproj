@@ -17,6 +17,8 @@
     </ItemGroup>
 
     <ItemGroup>
+        <Using Include="GW_Launcher.Classes" />
+        <Using Include="GW_Launcher.Utilities" />
         <Using Include="System.Diagnostics" />
     </ItemGroup>
 

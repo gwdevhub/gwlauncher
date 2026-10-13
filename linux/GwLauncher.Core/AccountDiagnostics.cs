@@ -150,7 +150,7 @@ public static partial class AccountDiagnostics
     private static string ModLabel(LinuxMod mod)
     {
         var name = mod.FileName.Split('\\', '/').Last();
-        return $"{(mod.Type == ModType.Dll ? "DLL mod" : "Texmod")} {name}";
+        return $"{(mod.Type == ModType.kModTypeDLL ? "DLL mod" : "Texmod")} {name}";
     }
 
     private static AccountIssue Blocking(string message) => new(IssueSeverity.Blocking, message);

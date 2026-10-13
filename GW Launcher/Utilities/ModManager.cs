@@ -42,22 +42,8 @@ public class ModManager
 
         foreach (var folder in GetPluginFolders(account))
         {
-            if (!Directory.Exists(folder))
-                continue;
-
-            foreach (var path in Directory.GetFiles(folder))
-            {
-                var dll = GetDllPath(path);
-                if (dll != null)
-                {
-                    result.Add(new SideloadedMod { filePath = dll, type = ModType.kModTypeDLL, sourceFolder = folder });
-                    continue;
-                }
-
-                var tpf = GetTpfPath(path);
-                if (tpf != null)
-                    result.Add(new SideloadedMod { filePath = tpf, type = ModType.kModTypeTexmod, sourceFolder = folder });
-            }
+            foreach (var plugin in PluginScanner.ScanFolder(folder, MapTarget).Where(plugin => plugin.TargetPath != null))
+                result.Add(new SideloadedMod { filePath = plugin.TargetPath!, type = plugin.Type, sourceFolder = folder });
         }
 
         return result;
@@ -82,76 +68,37 @@ public class ModManager
         return File.Exists(path);
     }
 
-    private static string? GetDllPath(string? path)
+    // A shortcut's target is used only when it exists on disk.
+    private static string? MapTarget(string windowsPath)
     {
-        if (path != null && path.EndsWith(".lnk", StringComparison.OrdinalIgnoreCase))
-            path = GetShortcutPath(path);
-        if (path == null || !File.Exists(path))
-            return null;
-        return path.EndsWith(".dll", StringComparison.OrdinalIgnoreCase) ? Path.GetFullPath(path) : null;
+        return File.Exists(windowsPath) ? Path.GetFullPath(windowsPath) : null;
     }
 
-    private static string? GetTpfPath(string? path)
+    private static List<string> PathsOfType(IEnumerable<PluginFile> plugins, ModType type)
     {
-        if (path != null && path.EndsWith(".lnk", StringComparison.OrdinalIgnoreCase))
-            path = GetShortcutPath(path);
-        if (path == null || !File.Exists(path))
-            return null;
-        if (path.EndsWith(".tpf", StringComparison.OrdinalIgnoreCase) ||
-            path.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
-            return Path.GetFullPath(path);
-        return null;
-    }
-
-    private static bool AddMod(string filePath, ref List<string> dllsOut, ref List<string> texmodsOut)
-    {
-        var actual = GetDllPath(filePath);
-        if (actual != null)
-        {
-            dllsOut.Add(actual);
-            return true;
-        }
-
-        actual = GetTpfPath(filePath);
-        if (actual != null)
-        {
-            texmodsOut.Add(actual);
-            return true;
-        }
-
-        return false;
-    }
-
-    private static int AddMods(string directory, ref List<string> dllsOut, ref List<string> texmodsOut)
-    {
-        if (!Directory.Exists(directory))
-            return 0;
-        var links = Directory.GetFiles(directory);
-        var added = 0;
-        foreach (var path in links)
-        {
-            if (AddMod(path, ref dllsOut, ref texmodsOut))
-                added++;
-        }
-
-        return added;
+        return plugins.Where(plugin => plugin.Type == type && plugin.TargetPath != null)
+            .Select(plugin => plugin.TargetPath!)
+            .ToList();
     }
 
     private static Tuple<IOrderedEnumerable<string>, IOrderedEnumerable<string>>
         GetMods(Account account)
     {
-        var dllsToLoad = new List<string>();
-        var texsToLoad = new List<string>();
+        var plugins = new List<PluginFile>();
         if (account.usePluginFolderMods)
         {
             foreach (var directory in GetPluginFolders(account))
-                AddMods(directory, ref dllsToLoad, ref texsToLoad);
+                plugins.AddRange(PluginScanner.ScanFolder(directory, MapTarget));
         }
 
         foreach (var mod in account.mods.Where(mod => mod.active))
         {
-            AddMod(mod.fileName, ref dllsToLoad, ref texsToLoad);
+            if (PluginScanner.ScanFile(mod.fileName, MapTarget) is { } plugin)
+                plugins.Add(plugin);
         }
+
+        var dllsToLoad = PathsOfType(plugins, ModType.kModTypeDLL);
+        var texsToLoad = PathsOfType(plugins, ModType.kModTypeTexmod);
 
         if (texsToLoad.Count > 0)
         {
@@ -172,7 +119,7 @@ public class ModManager
                         texsToLoad.Distinct().OrderBy(Path.GetFileName)
                     );
                 }
-                AddMod(gmod, ref dllsToLoad, ref texsToLoad);
+                dllsToLoad.Add(Path.GetFullPath(gmod));
             }
         }
 

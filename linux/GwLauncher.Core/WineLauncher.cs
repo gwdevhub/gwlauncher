@@ -110,14 +110,14 @@ public static partial class WineLauncher
     public static List<string> DllsToLoad(LinuxAccount account)
     {
         var dlls = account.Mods
-            .Where(mod => mod.Active && mod.Type == ModType.Dll && mod.IsAvailable)
+            .Where(mod => mod.Active && mod.Type == ModType.kModTypeDLL && mod.IsAvailable)
             .Select(mod => mod.EffectivePath)
             .ToList();
 
         if (account.UsePluginFolderMods)
         {
             dlls.AddRange(LinuxMod.PluginFolderFiles(account.EffectiveGwPath)
-                .Where(plugin => plugin.Type == ModType.Dll && plugin.TargetPath is { } target && FileCheck.IsUsableFile(target))
+                .Where(plugin => plugin.Type == ModType.kModTypeDLL && plugin.TargetPath is { } target && FileCheck.IsUsableFile(target))
                 .Select(plugin => plugin.TargetPath!));
         }
 
@@ -143,14 +143,14 @@ public static partial class WineLauncher
     public static List<string> TexmodsToLoad(LinuxAccount account)
     {
         var texmods = account.Mods
-            .Where(mod => mod.Active && mod.Type == ModType.Texmod && mod.IsAvailable)
+            .Where(mod => mod.Active && mod.Type == ModType.kModTypeTexmod && mod.IsAvailable)
             .Select(mod => mod.EffectivePath)
             .ToList();
 
         if (account.UsePluginFolderMods)
         {
             texmods.AddRange(LinuxMod.PluginFolderFiles(account.EffectiveGwPath)
-                .Where(plugin => plugin.Type == ModType.Texmod && plugin.TargetPath is { } target && FileCheck.IsUsableFile(target))
+                .Where(plugin => plugin.Type == ModType.kModTypeTexmod && plugin.TargetPath is { } target && FileCheck.IsUsableFile(target))
                 .Select(plugin => plugin.TargetPath!));
         }
 
