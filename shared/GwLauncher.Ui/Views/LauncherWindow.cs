@@ -116,8 +116,9 @@ public sealed class LauncherWindow : AppWindow
         _lastHiddenUtc = DateTime.UtcNow;
     }
 
-    // Anchors the window to the tray icon: above a bottom panel, below a top one, clamped on screen.
-    public void ShowNear(int anchorX, int anchorY)
+    // Opens the window beside the tray icon. Without an anchor, the bottom-right corner of the primary screen is used,
+    // where tray icons usually are, so the window doesn't open in the middle of the screen at startup.
+    public void ShowNear(int? anchorX = null, int? anchorY = null)
     {
         ShowInTaskbar = !KeepInTray;
         WindowStartupLocation = WindowStartupLocation.Manual;
@@ -128,9 +129,12 @@ public sealed class LauncherWindow : AppWindow
         Dispatcher.UIThread.Post(() => PlaceNear(anchorX, anchorY), DispatcherPriority.Loaded);
     }
 
-    private void PlaceNear(int anchorX, int anchorY)
+    private void PlaceNear(int? anchorX, int? anchorY)
     {
-        var screen = Screens.ScreenFromPoint(new PixelPoint(anchorX, anchorY));
+        var anchor = anchorX is { } x && anchorY is { } y
+            ? new PixelPoint(x, y)
+            : Screens.Primary is { } primary ? new PixelPoint(primary.WorkingArea.Right - 1, primary.WorkingArea.Bottom - 1) : new PixelPoint(0, 0);
+        var screen = Screens.ScreenFromPoint(anchor);
         if (screen == null)
         {
             return;
@@ -140,8 +144,8 @@ public sealed class LauncherWindow : AppWindow
         var width = (int)Math.Ceiling(Bounds.Width * screen.Scaling);
         var height = (int)Math.Ceiling(Bounds.Height * screen.Scaling);
 
-        var left = Math.Clamp(anchorX - width / 2, area.X, Math.Max(area.X, area.Right - width));
-        var top = anchorY > area.Center.Y ? area.Bottom - height : area.Y;
+        var left = Math.Clamp(anchor.X - width / 2, area.X, Math.Max(area.X, area.Right - width));
+        var top = anchor.Y > area.Center.Y ? area.Bottom - height : area.Y;
 
         Position = new PixelPoint(left, top);
     }

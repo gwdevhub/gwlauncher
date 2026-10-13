@@ -76,11 +76,16 @@ public sealed class LauncherApp : Application
             CreateTray();
         }
 
-        // With launch-minimised on, the app starts silently in the tray. Without a tray or with keep-in-tray off, it shows the window.
+        // With launch-minimised on, the app starts silently in the tray. With the tray in use the window opens beside it,
+        // and with keep-in-tray off it's an ordinary window in the middle of the screen.
         var keepInTray = _host.HasTray && _host.Settings.KeepInSystemTray;
-        if (!keepInTray || !_host.Settings.LaunchMinimized)
+        if (!keepInTray)
         {
             EnsureWindow().ShowCentered();
+        }
+        else if (!_host.Settings.LaunchMinimized)
+        {
+            EnsureWindow().ShowNear();
         }
     }
 
