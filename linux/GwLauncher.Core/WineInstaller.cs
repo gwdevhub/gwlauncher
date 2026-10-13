@@ -46,54 +46,9 @@ public static class WineInstaller
     }
 
     // Shell command for the distro's package manager, or null when the distro isn't recognised.
-    public static string? InstallCommand()
-    {
-        var ids = ReadOsReleaseIds();
-
-        if (ids.Contains("debian") || ids.Contains("ubuntu"))
-        {
-            return "apt-get update && (apt-get install -y wine64 || apt-get install -y wine)";
-        }
-
-        if (ids.Contains("fedora") || ids.Contains("rhel"))
-        {
-            return "dnf install -y wine";
-        }
-
-        if (ids.Contains("arch"))
-        {
-            return "pacman -S --noconfirm wine";
-        }
-
-        if (ids.Contains("suse") || ids.Contains("opensuse") || ids.Contains("opensuse-tumbleweed"))
-        {
-            return "zypper --non-interactive install wine";
-        }
-
-        return null;
-    }
-
-    private static HashSet<string> ReadOsReleaseIds()
-    {
-        var ids = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-        if (!File.Exists("/etc/os-release"))
-        {
-            return ids;
-        }
-
-        foreach (var line in File.ReadAllLines("/etc/os-release"))
-        {
-            if (line.StartsWith("ID=") || line.StartsWith("ID_LIKE="))
-            {
-                var value = line[(line.IndexOf('=') + 1)..].Trim('"');
-                foreach (var id in value.Split(' ', StringSplitOptions.RemoveEmptyEntries))
-                {
-                    ids.Add(id);
-                }
-            }
-        }
-
-        return ids;
-    }
+    public static string? InstallCommand() => Distro.InstallCommand(
+        "apt-get update && (apt-get install -y wine64 || apt-get install -y wine)",
+        "dnf install -y wine",
+        "pacman -S --noconfirm wine",
+        "zypper --non-interactive install wine");
 }

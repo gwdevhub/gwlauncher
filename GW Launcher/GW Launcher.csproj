@@ -5,6 +5,9 @@
         <TargetFramework>net10.0-windows</TargetFramework>
         <RootNamespace>GW_Launcher</RootNamespace>
         <Nullable>enable</Nullable>
+        <UseWindowsForms>true</UseWindowsForms>
+        <!-- The release is one exe, so WebView2's native loader is bundled into it rather than left beside it. -->
+        <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
         <ImplicitUsings>enable</ImplicitUsings>
         <StartupObject>GW_Launcher.Program</StartupObject>
         <ApplicationIcon>Resources\gwlauncher-helmet.ico</ApplicationIcon>
@@ -36,14 +39,11 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <FrameworkReference Include="Microsoft.WindowsDesktop.App" />
-    </ItemGroup>
-
-    <ItemGroup>
         <ProjectReference Include="..\shared\GwLauncher.Ui\GwLauncher.Ui.csproj" />
     </ItemGroup>
 
     <ItemGroup>
+        <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4258.31" />
         <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
         <PackageReference Include="PeNet" Version="6.1.2" />
         <PackageReference Include="SystemExtensions.NetCore" Version="1.9.0" />
@@ -57,5 +57,12 @@
     <ItemGroup>
         <None Include=".editorconfig" />
     </ItemGroup>
+
+    <!-- The WebView2 package references its WPF control on every .NET target. This app only uses the WinForms one. -->
+    <Target Name="DropWebView2Wpf" BeforeTargets="ResolveAssemblyReferences">
+        <ItemGroup>
+            <Reference Remove="@(Reference)" Condition="'%(Filename)' == 'Microsoft.Web.WebView2.Wpf'" />
+        </ItemGroup>
+    </Target>
 
 </Project>

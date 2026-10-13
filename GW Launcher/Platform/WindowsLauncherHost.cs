@@ -1,11 +1,10 @@
-using Avalonia.Controls;
 using GwLauncher.Ui;
 using GW_Launcher.Guildwars;
 using GW_Launcher.Launcher;
 
 namespace GW_Launcher.Platform;
 
-// The shared windows' view of Windows: Accounts.json with the DPAPI-protected master password, launches through the
+// The shared page's view of Windows: Accounts.json with the DPAPI-protected master password, launches through the
 // multiclient patch, and the update checks that run at startup.
 public sealed class WindowsLauncherHost : ILauncherHost
 {
@@ -28,14 +27,12 @@ public sealed class WindowsLauncherHost : ILauncherHost
         }
     }
 
-    public bool HasTray => true;
     public bool HasLinuxPaths => false;
     public bool CanCreateShortcuts => true;
-    public bool HasSetup => false;
-    public bool SetupNeeded => false;
     public bool HasWindowsOptions => true;
     public bool Locked => _locked;
     public GlobalSettings Settings => Program.Settings;
+    public IPrompts Prompts { get; set; } = null!;
 
     public void SaveSettings() => Program.Settings.Save();
 
@@ -56,10 +53,6 @@ public sealed class WindowsLauncherHost : ILauncherHost
         return null;
     }
 
-    public void ShowSetup(Window? owner)
-    {
-    }
-
     public void StartBackground()
     {
         WarnIfInGwDirectory();
@@ -68,69 +61,20 @@ public sealed class WindowsLauncherHost : ILauncherHost
             return;
         }
 
-        Background(WindowsUpdater.CheckLauncherUpdate);
+        Background(() => WindowsUpdater.CheckLauncherUpdate(Prompts));
         Background(WindowsUpdater.RefreshGMod);
         if (!_locked)
         {
-            Background(() => WindowsUpdater.CheckGwExeUpdates(_store.ToList()));
+            Background(() => WindowsUpdater.CheckGwExeUpdates(Prompts, _store.ToList()));
         }
     }
 
-    public string MenuState() => File.Exists("Accounts.json")
-        ? $"{File.GetLastWriteTimeUtc("Accounts.json").Ticks}:{_store.Length}"
-        : "none";
+    // Windows needs nothing installed before accounts can run; the WebView2 check happens before the window opens.
+    public IReadOnlyList<SetupItem> SetupItems() => Array.Empty<SetupItem>();
 
-    // The cursor is over the tray icon when its click arrives.
-    public bool TryTrayAnchor(out int x, out int y)
-    {
-        x = y = 0;
-        if (!GetCursorPos(out var point))
-        {
-            return false;
-        }
+    public string? StartSetup() => null;
 
-        x = point.X;
-        y = point.Y;
-        return true;
-    }
-
-    public bool TryStoredTrayAnchor(out int x, out int y)
-    {
-        x = y = 0;
-        try
-        {
-            var parts = File.ReadAllText(TrayAnchorFile).Split(',');
-            return parts.Length == 2 && int.TryParse(parts[0], out x) && int.TryParse(parts[1], out y);
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        {
-            return false;
-        }
-    }
-
-    public void RememberTrayAnchor(int x, int y)
-    {
-        try
-        {
-            File.WriteAllText(TrayAnchorFile, $"{x},{y}");
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        {
-            // Startup then falls back to the screen corner, so the failure doesn't need reporting.
-        }
-    }
-
-    private static string TrayAnchorFile => Path.Combine(AppContext.BaseDirectory, "tray-anchor.txt");
-
-    [DllImport("user32.dll")]
-    private static extern bool GetCursorPos(out NativePoint point);
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct NativePoint
-    {
-        public int X;
-        public int Y;
-    }
+    public SetupProgress SetupStatus() => new(false, "", "");
 
     public IReadOnlyList<AccountEntry> Accounts(out string? error)
     {
@@ -263,7 +207,7 @@ public sealed class WindowsLauncherHost : ILauncherHost
         return new List<AccountIssue>();
     }
 
-    public async Task<string?> Fix(Window? owner, int index, AccountIssue issue)
+    public async Task<string?> Fix(int index, AccountIssue issue)
     {
         if (!issue.CanUpdateGwExe)
         {
@@ -271,8 +215,7 @@ public sealed class WindowsLauncherHost : ILauncherHost
         }
 
         var account = _store[index];
-        var updated = await Dialogs.Progress<string>(
-            owner,
+        var updated = await Prompts.Progress<string>(
             new ProgressOptions(
                 "Updating Gw.exe",
                 "Downloading the latest Gw.exe from ArenaNet",
@@ -328,7 +271,7 @@ public sealed class WindowsLauncherHost : ILauncherHost
     }
 
     // Windows has no compressed-file fixes; the Linux host supplies them.
-    public Task<string?> Resolve(Window? owner, ModDraft mod) => Task.FromResult<string?>(null);
+    public Task<string?> Resolve(ModDraft mod) => Task.FromResult<string?>(null);
 
     // Problems that stop a launch or leave something unloaded, shown before the account is started.
     private static List<AccountIssue> LocalIssues(Account account)
@@ -369,7 +312,7 @@ public sealed class WindowsLauncherHost : ILauncherHost
         return draft;
     }
 
-    private static void WarnIfInGwDirectory()
+    private void WarnIfInGwDirectory()
     {
         var exePath = Environment.ProcessPath ?? "";
         var exeDirectory = Path.GetDirectoryName(exePath) ?? string.Empty;
@@ -378,7 +321,7 @@ public sealed class WindowsLauncherHost : ILauncherHost
         var inProgramFiles = exeLower.Contains(@"program files\") || exeLower.Contains(@"program files (x86)\");
         if (inProgramFiles || File.Exists(Path.Combine(exeDirectory, "gw.exe")))
         {
-            Dialogs.Message("Warning",
+            Prompts.Message("Warning",
                 "This application should not be run from Program Files or the Guild Wars directory.\n\nPlease move GW Launcher to its own folder in your User folder.");
         }
     }

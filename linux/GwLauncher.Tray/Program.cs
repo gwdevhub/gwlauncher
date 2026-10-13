@@ -1,38 +1,47 @@
-using Avalonia;
-using Avalonia.Controls;
 using GwLauncher.Linux;
+using GwLauncher.Tray.Native;
 using GwLauncher.Ui;
 
 namespace GwLauncher.Tray;
 
 public static class Program
 {
-    [STAThread]
     public static int Main(string[] args)
     {
         InjectorInstaller.Ensure();
-        var host = new LinuxLauncherHost();
-        Func<Window>? startup = null;
 
+        try
+        {
+            if (!Gtk.gtk_init_check(IntPtr.Zero, IntPtr.Zero))
+            {
+                Console.Error.WriteLine("GW Launcher needs a graphical session: GTK couldn't open the display.");
+                return 1;
+            }
+        }
+        catch (DllNotFoundException)
+        {
+            Console.Error.WriteLine("GW Launcher needs GTK 3. Install the libgtk-3 package with your package manager.");
+            return 1;
+        }
+
+        if (!RendererCheck.Ensure())
+        {
+            return 1;
+        }
+
+        var host = new LinuxLauncherHost();
+        object? startup = null;
         if (args is ["-launch", var accountName])
         {
-            var outcome = ShortcutLaunch.Start(host, accountName);
-            if (outcome.Started)
+            startup = ShortcutLaunch.Start(host, accountName);
+            if (startup == null)
             {
                 return 0;
             }
-
-            // A desktop click has no terminal, so the reason goes to a window too.
-            if (outcome.Error != null)
-            {
-                Console.Error.WriteLine(outcome.Error);
-            }
-
-            startup = outcome.Window ?? (() => Dialogs.MessageWindow("GW Launcher", outcome.Error ?? "The account couldn't be started."));
         }
 
-        return AppBuilder.Configure(() => new LauncherApp(host, startup))
-            .UsePlatformDetect()
-            .StartWithClassicDesktopLifetime(args);
+        var shell = new GtkShell(host);
+        shell.Run(new LauncherBridge(host, shell) { Startup = startup }, showAtStart: startup != null);
+        return 0;
     }
 }

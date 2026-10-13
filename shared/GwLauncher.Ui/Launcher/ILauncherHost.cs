@@ -1,42 +1,32 @@
-using Avalonia.Controls;
-using GW_Launcher.Classes;
-using GW_Launcher.Launcher;
-
 namespace GwLauncher.Ui;
 
-// What the shared windows need from a platform. Each host implements it over its own accounts and game launch.
+// The platform's accounts and game launch, as the page needs them. The Linux host runs games through Wine, and the
+// Windows host through the multiclient patch. Neither shows UI: anything that asks the user goes through Prompts.
 public interface ILauncherHost
 {
-    bool HasTray { get; }
     bool HasLinuxPaths { get; }
     bool CanCreateShortcuts { get; }
-    bool HasSetup { get; }
     bool HasWindowsOptions { get; }
-    bool SetupNeeded { get; }
 
     // True while encrypted accounts are waiting for the master password.
     bool Locked { get; }
     GlobalSettings Settings { get; }
 
-    // Writes the settings object returned by Settings.
+    // Set by the bridge, so the host can ask questions and show progress on the page.
+    IPrompts Prompts { get; set; }
+
     void SaveSettings();
 
     // Null when the password opened the accounts. Otherwise the reason it didn't.
     string? Unlock(string password, bool remember);
-    void ShowSetup(Window? owner);
 
-    // Starts background work such as update checks. Called once the window system is up.
+    // Starts background work such as update checks. Called once the window is up.
     void StartBackground();
 
-    // Changes when the tray menu should be rebuilt, such as accounts or setup changing.
-    string MenuState();
-
-    // The pointer position at a tray click, when the platform can report it.
-    bool TryTrayAnchor(out int x, out int y);
-
-    // The last tray click position, kept across restarts, so startup can open the window where a click would.
-    bool TryStoredTrayAnchor(out int x, out int y);
-    void RememberTrayAnchor(int x, int y);
+    // Things the platform has to install before accounts can run. Empty when there are none.
+    IReadOnlyList<SetupItem> SetupItems();
+    string? StartSetup();
+    SetupProgress SetupStatus();
 
     IReadOnlyList<AccountEntry> Accounts(out string? error);
     AccountDraft Draft(int? index);
@@ -47,12 +37,18 @@ public interface ILauncherHost
     string? Move(int from, int to);
 
     Task<IReadOnlyList<AccountIssue>> VersionIssues(int index);
-    Task<string?> Fix(Window? owner, int index, AccountIssue issue);
+
+    // Runs the fix an issue offers. Returns a status message, or null when nothing changed.
+    Task<string?> Fix(int index, AccountIssue issue);
     Task<string?> Launch(int index);
     string? CreateShortcut(int index);
 
     // Updates a mod's problem, locate and resolve flags from its current path.
     void RefreshMod(ModDraft mod);
     IReadOnlyList<ModDraft> PluginFiles(AccountDraft draft);
-    Task<string?> Resolve(Window? owner, ModDraft mod);
+    Task<string?> Resolve(ModDraft mod);
 }
+
+public sealed record SetupItem(string Title, string Description, bool Done, bool CanInstall);
+
+public sealed record SetupProgress(bool Running, string LastLine, string LogPath);
