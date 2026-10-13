@@ -93,12 +93,11 @@ public static partial class WineLauncher
     // The game's own command line, starting with Gw.exe's Linux path.
     private static List<string> GameArguments(LinuxAccount account, string gwPath)
     {
-        var arguments = new List<string> { gwPath, "-email", account.Email, "-password", account.Password };
-
-        if (!string.IsNullOrEmpty(account.Character))
+        var arguments = new List<string> { gwPath };
+        foreach (var (flag, value) in GameLaunchArguments.ForAccount(account.Email, account.Password, account.Character))
         {
-            arguments.Add("-character");
-            arguments.Add(account.Character);
+            arguments.Add(flag);
+            arguments.Add(value);
         }
 
         // Whitespace split only; quoted extra args with spaces aren't supported yet.
@@ -106,56 +105,40 @@ public static partial class WineLauncher
         return arguments;
     }
 
-    // Active DLL mods from the account, then plugin-folder DLLs when the account uses them. Same order as the Windows launcher.
-    public static List<string> DllsToLoad(LinuxAccount account)
+    // Active mods, then plugin-folder mods when the account uses them. Only available files are selected.
+    private static ModSelection Selection(LinuxAccount account)
     {
-        var dlls = account.Mods
-            .Where(mod => mod.Active && mod.Type == ModType.kModTypeDLL && mod.IsAvailable)
-            .Select(mod => mod.EffectivePath)
-            .ToList();
+        var files = account.Mods
+            .Where(mod => mod.Active && mod.IsAvailable)
+            .Select(mod => new PluginFile(mod.FileName, mod.EffectivePath, mod.Type));
 
         if (account.UsePluginFolderMods)
         {
-            dlls.AddRange(LinuxMod.PluginFolderFiles(account.EffectiveGwPath)
-                .Where(plugin => plugin.Type == ModType.kModTypeDLL && plugin.TargetPath is { } target && FileCheck.IsUsableFile(target))
-                .Select(plugin => plugin.TargetPath!));
+            files = files.Concat(LinuxMod.PluginFolderFiles(account.EffectiveGwPath)
+                .Where(plugin => plugin.TargetPath is { } target && FileCheck.IsUsableFile(target)));
         }
 
-        return dlls;
+        return ModSelection.From(files);
     }
 
-    // What the game is injected with. Texmods only load through gMod, so it's added when the account has texmods and
-    // no active DLL is gMod already. AccountDiagnostics blocks the launch if that copy isn't usable.
+    public static List<string> DllsToLoad(LinuxAccount account) => Selection(account).Dlls.ToList();
+
+    public static List<string> TexmodsToLoad(LinuxAccount account) => Selection(account).Texmods.ToList();
+
+    // What the game is injected with. gMod is added when the account has texmods and no DLL is gMod already.
+    // AccountDiagnostics blocks the launch if that copy isn't usable.
     public static List<string> LaunchDlls(LinuxAccount account)
     {
-        var dlls = DllsToLoad(account);
-        if (TexmodsToLoad(account).Count > 0 && !dlls.Any(IsGMod))
+        var selection = Selection(account);
+        if (selection.NeedsGMod)
         {
-            dlls.Add(GModProvider.LocalPath);
+            selection = selection.WithGMod(GModProvider.LocalPath);
         }
 
-        return dlls;
+        return selection.Dlls.ToList();
     }
 
-    public static bool IsGMod(string dll) => Path.GetFileName(dll).Equals("gMod.dll", StringComparison.OrdinalIgnoreCase);
-
-    // Active texmods from the account, then plugin-folder texmods when the account uses them.
-    public static List<string> TexmodsToLoad(LinuxAccount account)
-    {
-        var texmods = account.Mods
-            .Where(mod => mod.Active && mod.Type == ModType.kModTypeTexmod && mod.IsAvailable)
-            .Select(mod => mod.EffectivePath)
-            .ToList();
-
-        if (account.UsePluginFolderMods)
-        {
-            texmods.AddRange(LinuxMod.PluginFolderFiles(account.EffectiveGwPath)
-                .Where(plugin => plugin.Type == ModType.kModTypeTexmod && plugin.TargetPath is { } target && FileCheck.IsUsableFile(target))
-                .Select(plugin => plugin.TargetPath!));
-        }
-
-        return texmods;
-    }
+    public static bool IsGMod(string dll) => ModSelection.IsGMod(dll);
 
     // Everything the game needs written before it starts. Dry runs skip this.
     public static void PrepareLaunch(LinuxAccount account)
