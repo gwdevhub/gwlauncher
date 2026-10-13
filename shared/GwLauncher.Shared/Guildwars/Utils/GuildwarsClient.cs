@@ -12,7 +12,8 @@ internal sealed class GuildwarsClient
             var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp)
             {
                 Blocking = false,
-                ReceiveTimeout = 100
+                ReceiveTimeout = 100,
+                NoDelay = true
             };
             try
             {
