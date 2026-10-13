@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <RootNamespace>GwLauncher.Linux</RootNamespace>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+        <PackageReference Include="PeNet" Version="6.1.2" />
+        <PackageReference Include="SystemExtensions.NetCore" Version="1.9.0" />
+        <ProjectReference Include="..\..\shared\GwLauncher.Shared\GwLauncher.Shared.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Using Include="System.Diagnostics" />
+        <Using Include="System.Core.Extensions" />
+        <Using Include="System.Runtime.InteropServices" />
+        <Using Include="System.Security.Cryptography" />
+        <Using Include="System.Text" />
+        <Using Include="Newtonsoft.Json" />
+        <Using Include="Newtonsoft.Json.Linq" />
+    </ItemGroup>
+
+</Project>
