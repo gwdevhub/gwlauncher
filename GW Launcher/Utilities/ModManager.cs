@@ -93,22 +93,14 @@ public class ModManager
         if (selection.NeedsGMod)
         {
             var gmod = FindGMod();
-            if (gmod == null)
-            {
-                MessageBox.Show(
-                    "You have at least one texmod selected, but we could not find gMod.dll. Does your Firewall block GW Launcher from downloading it or does GW Launcher not have write permissions in the directory it's in?",
-                    "Error");
-            }
-            else
-            {
+            if (gmod != null)
                 selection = selection.WithGMod(gmod);
-            }
         }
 
         return Tuple.Create<IEnumerable<string>, IEnumerable<string>>(selection.Dlls, selection.Texmods);
     }
 
-    private static string? FindGMod()
+    public static string? FindGMod()
     {
         var gmod = Path.Combine(AppContext.BaseDirectory, "gMod.dll");
         if (!File.Exists(gmod))

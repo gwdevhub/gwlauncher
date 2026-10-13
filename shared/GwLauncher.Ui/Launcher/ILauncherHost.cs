@@ -11,6 +11,7 @@ public interface ILauncherHost
     bool HasLinuxPaths { get; }
     bool CanCreateShortcuts { get; }
     bool HasSetup { get; }
+    bool HasWindowsOptions { get; }
     bool SetupNeeded { get; }
 
     // True while encrypted accounts are waiting for the master password.
@@ -43,7 +44,7 @@ public interface ILauncherHost
 
     Task<IReadOnlyList<AccountIssue>> VersionIssues(int index);
     Task<string?> Fix(Window? owner, int index, AccountIssue issue);
-    string? Launch(int index);
+    Task<string?> Launch(int index);
     string? CreateShortcut(int index);
 
     // Updates a mod's problem, locate and resolve flags from its current path.

@@ -30,6 +30,10 @@ public sealed class AccountDraft
     public string LinuxGwPath { get; set; } = "";
     public string ExtraArgs { get; set; } = "";
     public bool UsePluginFolderMods { get; set; } = true;
+
+    // Windows only: a Steam account starts through Steam, and an elevated one runs as administrator.
+    public bool SteamAccount { get; set; }
+    public bool Elevated { get; set; }
     public List<ModDraft> Mods { get; set; } = new();
 }
 

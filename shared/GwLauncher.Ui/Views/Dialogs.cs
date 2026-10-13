@@ -20,7 +20,7 @@ public static class Dialogs
 
     public static Window MessageWindow(string title, string text) => new MessageDialog(title, text);
 
-    public static async Task<bool> Confirm(Window owner, string title, string message)
+    public static async Task<bool> Confirm(Window? owner, string title, string message)
     {
         var yes = false;
         var window = new AppWindow { Title = title, Width = 300, SizeToContent = SizeToContent.Height, CanResize = false, CanMinimize = false, CanMaximize = false, WindowStartupLocation = WindowStartupLocation.CenterOwner };
@@ -36,14 +36,23 @@ public static class Dialogs
                     Widgets.Button("Yes", () => { yes = true; window.Close(); }, 80))
             }
         };
-        await window.ShowDialog(owner);
+        if (owner != null)
+        {
+            await window.ShowDialog(owner);
+            return yes;
+        }
+
+        var closed = new TaskCompletionSource();
+        window.Closed += (_, _) => closed.TrySetResult();
+        window.Show();
+        await closed.Task;
         return yes;
     }
 
     // Asks for the master password. Null means the user cancelled. Remember is only offered when the host can keep it.
     public static async Task<(string Password, bool Remember)?> Password(Window? owner, bool offerRemember)
     {
-        var password = new TextBox { PasswordChar = '*', Watermark = "Master password" };
+        var password = new TextBox { PasswordChar = '*', PlaceholderText = "Master password" };
         var remember = new CheckBox { Content = "Don't ask again on this computer", IsVisible = offerRemember };
         var error = Widgets.Error();
         (string, bool)? answer = null;
@@ -96,7 +105,7 @@ public static class Dialogs
     }
 
     // Runs work behind a progress window. The result is the work's value, or null when it was cancelled or failed.
-    public static Task<T?> Progress<T>(Window? owner, ProgressOptions options, Func<CancellationToken, IProgress<ProgressUpdate>, Task<T?>> work)
+    public static Task<T?> Progress<T>(Window? owner, ProgressOptions options, Func<CancellationToken, IProgress<ProgressUpdate>, Task<T>> work)
         where T : class
     {
         var window = new ProgressWindow<T>(options, work);
@@ -158,7 +167,7 @@ public static class Dialogs
     private sealed class ProgressWindow<T> : AppWindow where T : class
     {
         private readonly ProgressOptions _options;
-        private readonly Func<CancellationToken, IProgress<ProgressUpdate>, Task<T?>> _work;
+        private readonly Func<CancellationToken, IProgress<ProgressUpdate>, Task<T>> _work;
         private readonly ProgressPanel _panel = new();
         private readonly TextBlock _message = Widgets.Error();
         private readonly StackPanel _body = new() { Margin = new Thickness(16), Spacing = 12 };
@@ -167,7 +176,7 @@ public static class Dialogs
         private Button? _cancelButton;
         private bool _running;
 
-        public ProgressWindow(ProgressOptions options, Func<CancellationToken, IProgress<ProgressUpdate>, Task<T?>> work)
+        public ProgressWindow(ProgressOptions options, Func<CancellationToken, IProgress<ProgressUpdate>, Task<T>> work)
         {
             _options = options;
             _work = work;

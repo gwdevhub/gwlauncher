@@ -281,7 +281,7 @@ public sealed class LauncherWindow : AppWindow
             Refresh();
             _accountList.SelectedIndex = index ?? _entries.Count - 1;
         });
-        await ShowDialog(editor);
+        await ShowModal(editor);
     }
 
     private async Task ConfirmRemove()
@@ -308,7 +308,7 @@ public sealed class LauncherWindow : AppWindow
     }
 
     // Shows a dialog owned by this window, keeping this window open until it closes.
-    private async Task ShowDialog(Window dialog)
+    private async Task ShowModal(Window dialog)
     {
         _dialogOpen = true;
         try

@@ -46,13 +46,11 @@ private static async Task<(string? filePath, string? Error)> DownloadGwExeAsync(
         }
     }
 
-    public static async Task UpdateClients(IEnumerable<Account>? accountsToUpdate, IProgress<(string Stage, double Progress)> progress, CancellationToken cancellationToken = default)
+    public static async Task UpdateClients(IEnumerable<Account> accountsToUpdate, IProgress<(string Stage, double Progress)> progress, CancellationToken cancellationToken = default)
     {
         try
         {
             await DownloadGwExeAsync(progress, cancellationToken);
-
-            accountsToUpdate ??= Program.Accounts;
 
             var uniquePaths = accountsToUpdate.Select(a => a.gwpath).Distinct().ToList();
             progress.Report(("Copying Gw.exe to client paths", 0.9));

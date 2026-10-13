@@ -13,7 +13,7 @@ namespace GwLauncher.Tray;
 // been removed by then).
 public static class ResolveWindow
 {
-    public static async Task<string> RunAsync(Window owner, string path)
+    public static async Task<string> RunAsync(Window? owner, string path)
     {
         var mode = await ChooseModeAsync(owner, path);
         if (mode == null)
@@ -41,10 +41,17 @@ public static class ResolveWindow
     }
 
     // The confirmation step. Null when the user cancels it.
-    private static Task<ResolveMode?> ChooseModeAsync(Window owner, string path)
+    private static Task<ResolveMode?> ChooseModeAsync(Window? owner, string path)
     {
         var window = new ChoiceWindow(path);
-        window.Show(owner);
+        if (owner != null)
+        {
+            window.Show(owner);
+        }
+        else
+        {
+            window.Show();
+        }
         return window.Choice;
     }
 

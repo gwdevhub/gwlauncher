@@ -1,28 +1,20 @@
-using GW_Launcher.Forms;
-
 namespace GW_Launcher.Utilities;
 
-public class AccountManager : IEnumerable<Account>, IDisposable
+// Accounts.json for the Windows launcher. Opening an encrypted file needs the master password, which the host supplies.
+public class AccountManager : IEnumerable<Account>
 {
-    private readonly string _filePath = "Accounts.json";
-
+    private readonly string _filePath;
     private List<Account> _accounts = new();
 
     // SHA-256 of the master password protecting Accounts.json; null means unencrypted.
     private byte[]? _passwordHash;
 
-    public bool IsEncrypted => _passwordHash != null;
-
-    public AccountManager(string? filePath = null)
+    public AccountManager(string filePath)
     {
-        if (filePath == null)
-        {
-            return;
-        }
-
         _filePath = filePath;
-        Load(filePath);
     }
+
+    public bool IsEncrypted => _passwordHash != null;
 
     public int Length => _accounts.Count;
 
@@ -32,179 +24,87 @@ public class AccountManager : IEnumerable<Account>, IDisposable
         set
         {
             _accounts[index] = value;
-            Save(_filePath);
+            Save();
         }
     }
 
-    public Account? this[string email]
-    {
-        get => _accounts.Find(account => account.email == email);
-        set
-        {
-            var index = _accounts.FindIndex(account => account.email == email);
-            if (index != -1 && value != null)
-            {
-                this[index] = value;
-            }
-        }
-    }
+    IEnumerator<Account> IEnumerable<Account>.GetEnumerator() => _accounts.GetEnumerator();
 
-    public Account? this[Guid? guid]
-    {
-        get => _accounts.Find(account => account.guid == guid);
-        set
-        {
-            var index = _accounts.FindIndex(account => account.guid == guid);
-            if (index != -1 && value != null)
-            {
-                this[index] = value;
-            }
-        }
-    }
+    IEnumerator IEnumerable.GetEnumerator() => _accounts.GetEnumerator();
 
-    void IDisposable.Dispose()
-    {
-        GC.SuppressFinalize(this);
-    }
+    public int IndexOf(string accountName) => _accounts.FindIndex(account => account.Name == accountName);
 
-    IEnumerator<Account> IEnumerable<Account>.GetEnumerator()
-    {
-        return ((IEnumerable<Account>)_accounts).GetEnumerator();
-    }
+    public int IndexOf(Account account) => _accounts.IndexOf(account);
 
-    IEnumerator IEnumerable.GetEnumerator()
-    {
-        return _accounts.GetEnumerator();
-    }
-
-    public int IndexOf(string accountName)
-    {
-        for (var i = 0; i < Length; i++)
-        {
-            if (this[i].Name == accountName)
-            {
-                return i;
-            }
-        }
-
-        return -1;
-    }
-	public int IndexOf(Account account)
-	{
-		for (var i = 0; i < Length; i++)
-		{
-			if (this[i] == account)
-			{
-				return i;
-			}
-		}
-
-		return -1;
-	}
-
-	public void Move(int oldIndex, int newIndex)
-    {
-        if (oldIndex < 0 || oldIndex >= Length || newIndex < 0 || newIndex >= Length)
-        {
-            throw new ArgumentOutOfRangeException();
-        }
-
-        var account = _accounts[oldIndex];
-        _accounts.RemoveAt(oldIndex);
-        _accounts.Insert(newIndex, account);
-        Save(_filePath);
-    }
-
-    public void Load(string? filePath = null)
+    // Opens the file. Returns false when it's encrypted and the password hash doesn't open it.
+    public bool Load(byte[]? passwordHash = null)
     {
         _passwordHash = null;
-        filePath ??= _filePath;
 
-        if (!File.Exists(filePath))
+        if (!File.Exists(_filePath))
         {
             // Fresh install: start unencrypted with an empty account list.
             _accounts.Clear();
-            File.WriteAllText(filePath, "[]");
+            File.WriteAllText(_filePath, "[]");
             PostProcess();
-            return;
+            return true;
         }
 
-        var raw = File.ReadAllBytes(filePath);
-
+        var raw = File.ReadAllBytes(_filePath);
         var magicEncrypted = Encryption.IsEncrypted(raw);
 
-        // Without a magic marker the file is either plain JSON or pre-magic ciphertext.
-        // Rather than guessing from the leading bytes, just try to parse it as JSON: if it
-        // parses it's plain text, and if it doesn't it's encrypted and needs a password.
-        // This keeps legacy ciphertext reachable no matter what bytes it happens to start with.
+        // Anything that parses as JSON is plain text; otherwise the file is encrypted and needs the password.
         if (!magicEncrypted && AccountFile.TryParse<Account>(raw, out var plainAccounts))
         {
             _accounts = plainAccounts;
             PostProcess();
-            return;
+            return true;
         }
 
-        var legacyEncrypted = !magicEncrypted;
-
-        // Encrypted: get the master password from cache or by prompting.
-        var passwordHash = CryptPassForm.GetCachedPasswordHash();
         if (passwordHash == null)
         {
-            using var form = new CryptPassForm();
-            if (form.ShowDialog() == DialogResult.Abort)
-            {
-                throw new OperationCanceledException();
-            }
-            passwordHash = form.PasswordHash;
+            return false;
         }
 
         try
         {
-            var rawJson = AccountFile.Decrypt(raw, passwordHash, magicEncrypted);
-            _accounts = JsonConvert.DeserializeObject<List<Account>>(rawJson) ?? _accounts;
-            _passwordHash = passwordHash;
-
-            // Migrate legacy ciphertext to the current magic-prefixed format.
-            if (legacyEncrypted)
-            {
-                Save(filePath);
-            }
+            _accounts = JsonConvert.DeserializeObject<List<Account>>(AccountFile.Decrypt(raw, passwordHash, magicEncrypted)) ?? _accounts;
         }
-        catch
+        catch (Exception ex) when (ex is JsonException or System.Security.Cryptography.CryptographicException or InvalidDataException)
         {
-            CryptPassForm.ClearCachedPassword();
-            MessageBox.Show("Incorrect password.\nRestart launcher and try again.",
-                @"GW Launcher - Invalid Password");
-            throw new OperationCanceledException("Wrong password");
+            return false;
+        }
+
+        _passwordHash = passwordHash;
+
+        // Legacy ciphertext without the magic prefix is rewritten in the current format.
+        if (!magicEncrypted)
+        {
+            Save();
         }
 
         PostProcess();
+        return true;
     }
 
-    public void Save(string? filePath = null)
+    public void Save()
     {
-        filePath ??= _filePath;
-
         var text = JsonConvert.SerializeObject(_accounts, Formatting.Indented);
         if (_passwordHash == null)
         {
-            File.WriteAllText(filePath, text);
+            File.WriteAllText(_filePath, text);
         }
         else
         {
-            File.WriteAllBytes(filePath, AccountFile.Encrypt(text, _passwordHash));
+            File.WriteAllBytes(_filePath, AccountFile.Encrypt(text, _passwordHash));
         }
     }
 
-    // Re-save the account storage under a new master password. An empty password
-    // removes encryption and writes plain JSON. Applies immediately, no restart.
+    // An empty password removes encryption and writes plain JSON. Applies immediately.
     public void SetPassword(string newPassword)
     {
         _passwordHash = string.IsNullOrEmpty(newPassword) ? null : HashPassword(newPassword);
-        // A stale cached password would fail to decrypt on next launch; drop it so the
-        // user is re-prompted (and can opt back into caching) with the new password.
-        CryptPassForm.ClearCachedPassword();
-        Save(_filePath);
+        Save();
     }
 
     public bool IsCurrentPassword(string password)
@@ -215,15 +115,12 @@ public class AccountManager : IEnumerable<Account>, IDisposable
         }
 
         return _passwordHash != null &&
-               CryptographicOperations.FixedTimeEquals(_passwordHash, HashPassword(password));
+               System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(_passwordHash, HashPassword(password));
     }
 
-    public static byte[] HashPassword(string password)
-    {
-        return AccountFile.HashPassword(password);
-    }
+    public static byte[] HashPassword(string password) => AccountFile.HashPassword(password);
 
-private void PostProcess()
+    private void PostProcess()
     {
         foreach (var account in _accounts)
         {
@@ -236,17 +133,20 @@ private void PostProcess()
     public void Add(Account account)
     {
         _accounts.Add(account);
-        Save(_filePath);
+        Save();
     }
 
     public void Remove(int index)
     {
         _accounts.RemoveAt(index);
-        Save(_filePath);
+        Save();
     }
 
-    public void Remove(string email)
+    public void Move(int oldIndex, int newIndex)
     {
-        _accounts.RemoveAll(account => account.email == email);
+        var account = _accounts[oldIndex];
+        _accounts.RemoveAt(oldIndex);
+        _accounts.Insert(newIndex, account);
+        Save();
     }
 }
