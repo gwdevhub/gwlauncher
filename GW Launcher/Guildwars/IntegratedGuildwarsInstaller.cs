@@ -22,7 +22,7 @@ internal sealed class IntegratedGuildwarsInstaller
 			var exeName = Path.Combine(destinationPath, ExeName);
 
 			// Get latest exe info
-			var (fileResponse, error) = await GwDownloader.GetLatestGwExeInfoAsync(cancellationToken);
+			var (fileResponse, error) = await GuildwarsLatestExe.GetAsync(cancellationToken);
 			if (fileResponse == null || !string.IsNullOrEmpty(error))
 			{
 				return (null, error ?? "Failed to get latest exe info");
@@ -86,7 +86,7 @@ internal sealed class IntegratedGuildwarsInstaller
 		}
 	}
 
-	private async Task<(bool Success, int ExpectedSize)> DownloadCompressedExecutable(
+private async Task<(bool Success, int ExpectedSize)> DownloadCompressedExecutable(
         string fileName,
         GuildwarsClient guildWarsClient,
         GuildwarsClientContext context,
@@ -94,33 +94,20 @@ internal sealed class IntegratedGuildwarsInstaller
         IProgress<(string Stage, double Progress)> progress,
         CancellationToken cancellationToken)
     {
-        var maybeStream = await guildWarsClient.GetFileStream(context, manifest.LatestExe, 0, cancellationToken);
-        if (maybeStream is null)
+        var expectedFinalSize = await GuildwarsExeDownloader.DownloadCompressedAsync(guildWarsClient, context, manifest, fileName,
+            (received, total) => progress?.Report(("Downloading compressed executable", (double)received / total * 0.45)),
+            cancellationToken);
+        if (expectedFinalSize is null)
         {
             MessageBox.Show("Failed to get download stream");
             return (false, -1);
         }
 
-        await using var downloadStream = maybeStream;
-        var expectedFinalSize = downloadStream.SizeDecompressed;
-
-        await using var writeFileStream = new FileStream(fileName, FileMode.Create, FileAccess.Write);
-        var buffer = new Memory<byte>(new byte[1048 * 512]);
-        var readBytes = 0;
-        var totalBytesRead = 0;
-        do
-        {
-            readBytes = await downloadStream.ReadAsync(buffer, cancellationToken);
-            await writeFileStream.WriteAsync(buffer.Slice(0, readBytes), cancellationToken);
-            totalBytesRead += readBytes;
-            progress?.Report(("Downloading compressed executable", (double)totalBytesRead / downloadStream.Length * 0.45));
-        } while (readBytes > 0);
-
         progress?.Report(("Downloaded compressed executable", 0.45));
-        return (true, expectedFinalSize);
+        return (true, expectedFinalSize.Value);
     }
 
-    private bool DecompressExecutable(
+private bool DecompressExecutable(
         string tempName,
         string exeName,
         int expectedFinalSize,
@@ -128,85 +115,13 @@ internal sealed class IntegratedGuildwarsInstaller
     {
         try
         {
-            using var readFileStream = new FileStream(tempName, FileMode.Open, FileAccess.Read);
-            var bitStream = new BitStream(readFileStream);
-            bitStream.Consume(4);
-            var first4Bits = bitStream.Read(4);
             progress?.Report(("Decompressing downloaded executable", 0.45));
-
-            // Decompress into an in-memory buffer instead of seeking on disk for every byte:
-            // the original implementation did a Seek+ReadByte+Seek+WriteByte round trip per
-            // decompressed byte (including every LZ77 backreference byte), which is orders of
-            // magnitude slower than plain array indexing, especially under antivirus real-time
-            // scanning that hooks every file I/O call.
-            var output = new byte[expectedFinalSize];
-            var outputLength = 0;
-            while (outputLength < expectedFinalSize)
-            {
-                var litHuffman = HuffmanTable.BuildHuffmanTable(bitStream);
-                var distHuffman = HuffmanTable.BuildHuffmanTable(bitStream);
-                var blockSize = (bitStream.Read(4) + 1) * 4096;
-                for (var i = 0; i < blockSize; i++)
-                {
-                    if (outputLength == expectedFinalSize)
-                    {
-                        break;
-                    }
-
-                    var code = litHuffman.GetNextCode(bitStream);
-                    if (code < 0x100)
-                    {
-                        output[outputLength++] = (byte)code;
-                    }
-                    else
-                    {
-                        var blen = Huffman.ExtraBitsLength[code - 256];
-                        code = Huffman.Table3[code - 256];
-                        if (blen > 0)
-                        {
-                            code |= bitStream.Read((int)blen);
-                        }
-
-                        var backtrackCount = first4Bits + code + 1;
-                        code = distHuffman.GetNextCode(bitStream);
-                        blen = Huffman.ExtraBitsDistance[code];
-                        var backtrack = Huffman.BacktrackTable[code];
-                        if (blen > 0)
-                        {
-                            backtrack |= bitStream.Read((int)blen);
-                        }
-
-                        if (backtrack >= outputLength)
-                        {
-                            throw new InvalidOperationException("Failed to decompress executable. backtrack >= outputLength");
-                        }
-
-                        // Copied one byte at a time (not Array.Copy) because backreferences can
-                        // overlap with the bytes being written, e.g. runs of repeated bytes.
-                        var src = outputLength - (backtrack + 1);
-                        for (var j = src; j < src + backtrackCount; j++)
-                        {
-                            output[outputLength++] = output[j];
-                        }
-                    }
-
-                    // Report progress
-                    if (i % 1000 == 0) // Update progress every 1000 iterations to avoid excessive updates
-                    {
-                        double progressPercentage = 0.45 + ((double)outputLength / expectedFinalSize) * 0.45;
-                        progress?.Report(("Decompressing downloaded executable", progressPercentage));
-                    }
-                }
-            }
-
-            File.WriteAllBytes(exeName, output);
-
-            // Ensure 90% progress is reported at the end of decompression
+            GuildwarsExeDecoder.Decompress(tempName, exeName, expectedFinalSize,
+                fraction => progress?.Report(("Decompressing downloaded executable", 0.45 + fraction * 0.45)));
             progress?.Report(("Decompressed downloaded executable", 0.9));
-
             return true;
         }
-        catch(Exception e)
+        catch (Exception e)
         {
             MessageBox.Show($"Encountered exception while decompressing: {e}");
             return false;

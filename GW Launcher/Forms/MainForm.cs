@@ -520,7 +520,11 @@ public partial class MainForm : Form
 
     private async void ToolStripMenuItemUpdateAllClients_Click(object sender, EventArgs e)
     {
-        AdminAccess.RestartAsAdminPrompt(true);
+        if (!AdminAccess.RestartAsAdminPrompt(true))
+        {
+            return;
+        }
+
         await Program.CheckForGwExeUpdates(true, true);
 
 		//var clients = Program.accounts.ToList();
@@ -568,14 +572,9 @@ public partial class MainForm : Form
             return;
         }
         var account = Program.Accounts[_selectedItems[0]];
-        var shell = new IWshRuntimeLibrary.WshShell();
         string shortcutAddress = Environment.GetFolderPath(Environment.SpecialFolder.Desktop) + @"\" + account.Name + ".lnk";
-        IWshRuntimeLibrary.IWshShortcut shortcut = shell.CreateShortcut(shortcutAddress);
-        shortcut.Description = "GW Launcher shortcut for " + account.Name;
-        shortcut.WorkingDirectory = Path.GetDirectoryName(Application.ExecutablePath);
-        shortcut.Arguments = "-launch \"" + account.Name + "\"";
-        shortcut.TargetPath = Application.ExecutablePath;
-        shortcut.Save();
+        ShortcutWriter.Create(shortcutAddress, Application.ExecutablePath, "-launch \"" + account.Name + "\"",
+            Path.GetDirectoryName(Application.ExecutablePath)!, "GW Launcher shortcut for " + account.Name);
     }
 
     private delegate void SetActiveUICallback(int index, string state);

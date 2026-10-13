@@ -224,7 +224,7 @@ internal static class Program
             memory.process.Refresh();
             return memory.process.MainWindowTitle != "";
         }, timeout);
-        if (ok && memory.process.MainWindowTitle == "Guild Wars" || memory.process.MainWindowTitle == "Guild Wars Reforged")
+        if (ok && (memory.process.MainWindowTitle == "Guild Wars" || memory.process.MainWindowTitle == "Guild Wars Reforged"))
         {
             // NB: Window may not be ready for title change, or GW may be (re)setting window title as part of render process.
             ok = WaitFor(() =>
@@ -933,7 +933,11 @@ internal static class Program
         if (ok != DialogResult.Yes)
             return;
 
-        AdminAccess.RestartAsAdminPrompt(true);
+        if (!AdminAccess.RestartAsAdminPrompt(true))
+        {
+            return;
+        }
+
         if (_mainForm is not null)
         {
             await _mainForm.Invoke(async () =>
@@ -993,7 +997,10 @@ internal static class Program
             return;
 
         // The relaunched elevated instance repeats this check, then performs the update.
-        AdminAccess.RestartAsAdminPrompt(true, $"-launch \"{accountName.Replace("\"", "\\\"")}\"");
+        if (!AdminAccess.RestartAsAdminPrompt(true, $"-launch \"{accountName.Replace("\"", "\\\"")}\""))
+        {
+            return;
+        }
 
         using var progressForm = new ProgressForm();
         Exception? updateError = null;
@@ -1020,7 +1027,7 @@ internal static class Program
 
     private static async Task<(List<Account> toUpdate, List<Account> failedToCheck)> RunUpdateCheck(CancellationToken ct, IEnumerable<Account>? accounts = null)
     {
-        var (response, error) = await GwDownloader.GetLatestGwExeInfoAsync(ct);
+        var (response, error) = await GuildwarsLatestExe.GetAsync(ct);
         ct.ThrowIfCancellationRequested();
 
         if (response == null || !string.IsNullOrEmpty(error))

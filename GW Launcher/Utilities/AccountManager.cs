@@ -137,7 +137,7 @@ public class AccountManager : IEnumerable<Account>, IDisposable
         // Rather than guessing from the leading bytes, just try to parse it as JSON: if it
         // parses it's plain text, and if it doesn't it's encrypted and needs a password.
         // This keeps legacy ciphertext reachable no matter what bytes it happens to start with.
-        if (!magicEncrypted && TryParseAccounts(raw, out var plainAccounts))
+        if (!magicEncrypted && AccountFile.TryParse<Account>(raw, out var plainAccounts))
         {
             _accounts = plainAccounts;
             PostProcess();
@@ -160,7 +160,7 @@ public class AccountManager : IEnumerable<Account>, IDisposable
 
         try
         {
-            var rawJson = Decrypt(raw, passwordHash, magicEncrypted);
+            var rawJson = AccountFile.Decrypt(raw, passwordHash, magicEncrypted);
             _accounts = JsonConvert.DeserializeObject<List<Account>>(rawJson) ?? _accounts;
             _passwordHash = passwordHash;
 
@@ -192,11 +192,7 @@ public class AccountManager : IEnumerable<Account>, IDisposable
         }
         else
         {
-            var encrypted = Encryption.SecureAES.Encrypt(text, DeriveKey(_passwordHash));
-            var output = new byte[Encryption.MagicPrefix.Length + encrypted.Length];
-            Buffer.BlockCopy(Encryption.MagicPrefix, 0, output, 0, Encryption.MagicPrefix.Length);
-            Buffer.BlockCopy(encrypted, 0, output, Encryption.MagicPrefix.Length, encrypted.Length);
-            File.WriteAllBytes(filePath, output);
+            File.WriteAllBytes(filePath, AccountFile.Encrypt(text, _passwordHash));
         }
     }
 
@@ -224,59 +220,10 @@ public class AccountManager : IEnumerable<Account>, IDisposable
 
     public static byte[] HashPassword(string password)
     {
-        return SHA256.HashData(Encoding.UTF8.GetBytes(password));
+        return AccountFile.HashPassword(password);
     }
 
-    private static string Decrypt(byte[] raw, byte[] passwordHash, bool magicEncrypted)
-    {
-        var key = DeriveKey(passwordHash);
-        if (magicEncrypted)
-        {
-            var payload = raw[Encryption.MagicPrefix.Length..];
-            return Encryption.SecureAES.Decrypt(payload, key);
-        }
-
-        // Legacy ciphertext without a magic prefix: current AES format first, then the
-        // original "SHIT"-prefixed format.
-        try
-        {
-            return Encryption.SecureAES.Decrypt(raw, key);
-        }
-        catch
-        {
-            return Encryption.DecryptLegacy(raw, passwordHash);
-        }
-    }
-
-    // The SecureAES password string is the UTF-8 view of SHA-256(plaintext). This matches
-    // how earlier versions derived it, so existing encrypted files still decrypt.
-    private static string DeriveKey(byte[] passwordHash)
-    {
-        return Encoding.UTF8.GetString(passwordHash);
-    }
-
-    // Try to read the raw bytes as a plain-text JSON account list. Returns false when the
-    // content isn't valid JSON (e.g. encrypted ciphertext). An empty or whitespace file is
-    // treated as a valid, empty list.
-    private static bool TryParseAccounts(byte[] raw, out List<Account> accounts)
-    {
-        try
-        {
-            // Strip a leading UTF-8 BOM: Encoding.UTF8.GetString keeps it as U+FEFF (unlike
-            // File.ReadAllText), and Newtonsoft rejects it, which would misflag a hand-edited
-            // plaintext file as encrypted and wrongly prompt for a master password.
-            var text = Encoding.UTF8.GetString(raw).TrimStart('\uFEFF');
-            accounts = JsonConvert.DeserializeObject<List<Account>>(text) ?? new List<Account>();
-            return true;
-        }
-        catch
-        {
-            accounts = new List<Account>();
-            return false;
-        }
-    }
-
-    private void PostProcess()
+private void PostProcess()
     {
         foreach (var account in _accounts)
         {
