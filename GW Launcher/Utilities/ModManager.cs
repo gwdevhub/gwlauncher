@@ -11,12 +11,12 @@ public class SideloadedMod
 
 public class ModManager
 {
-    public static IOrderedEnumerable<string> GetDlls(Account account)
+    public static IEnumerable<string> GetDlls(Account account)
     {
         return GetMods(account).Item1;
     }
 
-    public static IOrderedEnumerable<string> GetTexmods(Account account)
+    public static IEnumerable<string> GetTexmods(Account account)
     {
         return GetMods(account).Item2;
     }
@@ -74,59 +74,46 @@ public class ModManager
         return File.Exists(windowsPath) ? Path.GetFullPath(windowsPath) : null;
     }
 
-    private static List<string> PathsOfType(IEnumerable<PluginFile> plugins, ModType type)
+    private static Tuple<IEnumerable<string>, IEnumerable<string>> GetMods(Account account)
     {
-        return plugins.Where(plugin => plugin.Type == type && plugin.TargetPath != null)
-            .Select(plugin => plugin.TargetPath!)
-            .ToList();
-    }
-
-    private static Tuple<IOrderedEnumerable<string>, IOrderedEnumerable<string>>
-        GetMods(Account account)
-    {
-        var plugins = new List<PluginFile>();
+        var files = new List<PluginFile>();
         if (account.usePluginFolderMods)
         {
             foreach (var directory in GetPluginFolders(account))
-                plugins.AddRange(PluginScanner.ScanFolder(directory, MapTarget));
+                files.AddRange(PluginScanner.ScanFolder(directory, MapTarget));
         }
 
         foreach (var mod in account.mods.Where(mod => mod.active))
         {
             if (PluginScanner.ScanFile(mod.fileName, MapTarget) is { } plugin)
-                plugins.Add(plugin);
+                files.Add(plugin);
         }
 
-        var dllsToLoad = PathsOfType(plugins, ModType.kModTypeDLL);
-        var texsToLoad = PathsOfType(plugins, ModType.kModTypeTexmod);
-
-        if (texsToLoad.Count > 0)
+        var selection = ModSelection.From(files);
+        if (selection.NeedsGMod)
         {
-            var found = dllsToLoad.Find(str => str.EndsWith("gMod.dll", StringComparison.OrdinalIgnoreCase));
-            if (found == null)
+            var gmod = FindGMod();
+            if (gmod == null)
             {
-                var baseDirectory = AppContext.BaseDirectory;
-                var gmod = Path.Combine(baseDirectory, "gMod.dll");
-                if (!File.Exists(gmod))
-                    gmod = Path.Combine(Directory.GetCurrentDirectory(), "gMod.dll");
-                if (!File.Exists(gmod))
-                {
-                    MessageBox.Show(
-                        "You have at least one texmod selected, but we could not find gMod.dll. Does your Firewall block GW Launcher from downloading it or does GW Launcher not have write permissions in the directory it's in?",
-                        "Error");
-                    return Tuple.Create(
-                        dllsToLoad.Distinct().OrderBy(Path.GetFileName),
-                        texsToLoad.Distinct().OrderBy(Path.GetFileName)
-                    );
-                }
-                dllsToLoad.Add(Path.GetFullPath(gmod));
+                MessageBox.Show(
+                    "You have at least one texmod selected, but we could not find gMod.dll. Does your Firewall block GW Launcher from downloading it or does GW Launcher not have write permissions in the directory it's in?",
+                    "Error");
+            }
+            else
+            {
+                selection = selection.WithGMod(gmod);
             }
         }
 
-        return Tuple.Create(
-            dllsToLoad.Distinct().OrderBy(Path.GetFileName),
-            texsToLoad.Distinct().OrderBy(Path.GetFileName)
-        );
+        return Tuple.Create<IEnumerable<string>, IEnumerable<string>>(selection.Dlls, selection.Texmods);
+    }
+
+    private static string? FindGMod()
+    {
+        var gmod = Path.Combine(AppContext.BaseDirectory, "gMod.dll");
+        if (!File.Exists(gmod))
+            gmod = Path.Combine(Directory.GetCurrentDirectory(), "gMod.dll");
+        return File.Exists(gmod) ? Path.GetFullPath(gmod) : null;
     }
 
     private static string? GetShortcutPath(string path)

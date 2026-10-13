@@ -111,13 +111,8 @@ internal static class MulticlientPatch
             }
 		}
 
-        var args = $"-email \"{account.email}\" -password \"{account.password}\"";
-
-        if (!string.IsNullOrEmpty(account.character))
-        {
-            args += $" -character \"{account.character}\"";
-        }
-
+        var args = string.Join(" ", GameLaunchArguments.ForAccount(account.email, account.password, account.character)
+            .Select(argument => $"{argument.Flag} \"{argument.Value}\""));
         args += $" {account.extraargs}";
 
         err = LaunchClient(path, args, account.elevated, out var procinfo);
