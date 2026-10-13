@@ -85,7 +85,16 @@ public sealed class LauncherApp : Application
         }
         else if (!_host.Settings.LaunchMinimized)
         {
-            EnsureWindow().ShowNear();
+            // Startup has no click, so it uses the last click's position, the same placement a click gets.
+            var window = EnsureWindow();
+            if (_host.TryStoredTrayAnchor(out var x, out var y))
+            {
+                window.ShowNear(x, y);
+            }
+            else
+            {
+                window.ShowNear();
+            }
         }
     }
 
@@ -126,6 +135,7 @@ public sealed class LauncherApp : Application
         var window = EnsureWindow();
         if (_host.TryTrayAnchor(out var x, out var y))
         {
+            _host.RememberTrayAnchor(x, y);
             window.ShowNear(x, y);
         }
         else

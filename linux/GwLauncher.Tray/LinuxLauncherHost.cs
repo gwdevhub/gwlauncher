@@ -68,6 +68,35 @@ public sealed class LinuxLauncherHost : ILauncherHost
 
     public bool TryTrayAnchor(out int x, out int y) => PointerLocator.TryGetPosition(out x, out y);
 
+    public bool TryStoredTrayAnchor(out int x, out int y)
+    {
+        x = y = 0;
+        try
+        {
+            var parts = File.ReadAllText(TrayAnchorFile).Split(',');
+            return parts.Length == 2 && int.TryParse(parts[0], out x) && int.TryParse(parts[1], out y);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return false;
+        }
+    }
+
+    public void RememberTrayAnchor(int x, int y)
+    {
+        try
+        {
+            Directory.CreateDirectory(AppPaths.DataDir);
+            File.WriteAllText(TrayAnchorFile, $"{x},{y}");
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // Startup then falls back to the screen corner, so the failure doesn't need reporting.
+        }
+    }
+
+    private static string TrayAnchorFile => Path.Combine(AppPaths.DataDir, "tray-anchor.txt");
+
     public IReadOnlyList<AccountEntry> Accounts(out string? error)
     {
         try

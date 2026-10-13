@@ -80,11 +80,56 @@ public sealed class WindowsLauncherHost : ILauncherHost
         ? $"{File.GetLastWriteTimeUtc("Accounts.json").Ticks}:{_store.Length}"
         : "none";
 
-    // Windows places the tray flyout itself, so the window opens centred instead.
+    // The cursor is over the tray icon when its click arrives.
     public bool TryTrayAnchor(out int x, out int y)
     {
         x = y = 0;
-        return false;
+        if (!GetCursorPos(out var point))
+        {
+            return false;
+        }
+
+        x = point.X;
+        y = point.Y;
+        return true;
+    }
+
+    public bool TryStoredTrayAnchor(out int x, out int y)
+    {
+        x = y = 0;
+        try
+        {
+            var parts = File.ReadAllText(TrayAnchorFile).Split(',');
+            return parts.Length == 2 && int.TryParse(parts[0], out x) && int.TryParse(parts[1], out y);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return false;
+        }
+    }
+
+    public void RememberTrayAnchor(int x, int y)
+    {
+        try
+        {
+            File.WriteAllText(TrayAnchorFile, $"{x},{y}");
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // Startup then falls back to the screen corner, so the failure doesn't need reporting.
+        }
+    }
+
+    private static string TrayAnchorFile => Path.Combine(AppContext.BaseDirectory, "tray-anchor.txt");
+
+    [DllImport("user32.dll")]
+    private static extern bool GetCursorPos(out NativePoint point);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct NativePoint
+    {
+        public int X;
+        public int Y;
     }
 
     public IReadOnlyList<AccountEntry> Accounts(out string? error)
