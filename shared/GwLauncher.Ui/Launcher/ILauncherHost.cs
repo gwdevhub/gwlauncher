@@ -31,8 +31,12 @@ public interface ILauncherHost
     // Changes when the tray menu should be rebuilt, such as accounts or setup changing.
     string MenuState();
 
-    // The tray click position, when the platform can report it.
+    // The pointer position at a tray click, when the platform can report it.
     bool TryTrayAnchor(out int x, out int y);
+
+    // The last tray click position, kept across restarts, so startup can open the window where a click would.
+    bool TryStoredTrayAnchor(out int x, out int y);
+    void RememberTrayAnchor(int x, int y);
 
     IReadOnlyList<AccountEntry> Accounts(out string? error);
     AccountDraft Draft(int? index);
