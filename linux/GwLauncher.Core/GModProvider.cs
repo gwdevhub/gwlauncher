@@ -1,7 +1,7 @@
 using System.Net;
 using System.Security.Cryptography;
+using GW_Launcher.Utilities;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace GwLauncher.Linux;
 
@@ -79,10 +79,10 @@ public static class GModProvider
 
     private static async Task<AssetInfo?> LatestAssetAsync(CancellationToken cancellationToken)
     {
-        string json;
+        IReadOnlyList<GitHubRelease> releases;
         try
         {
-            json = await Http.GetStringAsync(new Uri(ReleasesUrl), cancellationToken).ConfigureAwait(false);
+            releases = await GitHubAssets.GetReleasesAsync("gwdevhub", "gMod", Http, cancellationToken).ConfigureAwait(false);
         }
         catch (HttpRequestException ex)
         {
@@ -92,28 +92,18 @@ public static class GModProvider
         {
             throw Unavailable("GitHub didn't answer in time while looking for gMod.dll. Check the internet connection and try again.");
         }
-
-        try
-        {
-            foreach (var release in JArray.Parse(json))
-            {
-                if ((bool?)release["prerelease"] == true || (bool?)release["draft"] == true)
-                {
-                    continue;
-                }
-
-                foreach (var asset in (JArray?)release["assets"] ?? new JArray())
-                {
-                    if ((string?)asset["name"] == AssetName)
-                    {
-                        return new AssetInfo((string?)asset["browser_download_url"] ?? "", ParseSha256((string?)asset["digest"]));
-                    }
-                }
-            }
-        }
         catch (JsonException)
         {
             throw Unavailable("GitHub sent a reply that wasn't a release list, so gMod.dll couldn't be found.");
+        }
+
+        foreach (var release in releases.Where(release => !release.Prerelease && !release.Draft))
+        {
+            var asset = release.Assets.FirstOrDefault(candidate => candidate.Name == AssetName);
+            if (asset != null)
+            {
+                return new AssetInfo(asset.DownloadUrl, asset.Sha256);
+            }
         }
 
         return null;
@@ -203,16 +193,6 @@ public static class GModProvider
     {
         using var stream = File.OpenRead(path);
         return Convert.ToHexString(SHA256.HashData(stream)).ToLowerInvariant();
-    }
-
-    private static string? ParseSha256(string? digest)
-    {
-        if (digest == null || !digest.StartsWith("sha256:", StringComparison.OrdinalIgnoreCase))
-        {
-            return null;
-        }
-
-        return digest["sha256:".Length..].ToLowerInvariant();
     }
 
     private static GModUnavailableException Unavailable(string message) => new(message);
