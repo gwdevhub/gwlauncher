@@ -1,5 +1,4 @@
 using System.Text.RegularExpressions;
-using Avalonia.Threading;
 using GwLauncher.Ui;
 using GW_Launcher.Guildwars;
 using GW_Launcher.Guildwars.Utils;
@@ -8,10 +7,10 @@ using GW_Launcher.Launcher;
 namespace GW_Launcher.Platform;
 
 // The update checks the Windows launcher runs in the background: the launcher itself, gMod.dll, and Gw.exe.
-// Anything that asks the user runs on the UI thread, where dialogs must run.
+// Questions and progress go to the page through the prompts the bridge provides.
 internal static class WindowsUpdater
 {
-    public static async Task CheckLauncherUpdate()
+    public static async Task CheckLauncherUpdate(IPrompts prompts)
     {
         var currentPath = Environment.ProcessPath;
         var exeDir = currentPath == null ? null : Path.GetDirectoryName(currentPath);
@@ -48,21 +47,21 @@ internal static class WindowsUpdater
 
         if (!Program.Settings.AutoUpdate)
         {
-            var wanted = await OnUi(() => Dialogs.Confirm(null, "GW Launcher update",
-                $"A different build of GW Launcher is available.\nLatest: {tagName} ({GitHubAssets.ShortSha(asset.Sha256)})\n\nDownload and install it now?"));
+            var wanted = await prompts.Confirm("GW Launcher update",
+                $"A different build of GW Launcher is available.\nLatest: {tagName} ({GitHubAssets.ShortSha(asset.Sha256)})\n\nDownload and install it now?");
             if (!wanted)
             {
                 return;
             }
         }
 
-        var downloaded = await OnUi(() => Dialogs.Progress<string>(null,
+        var downloaded = await prompts.Progress<string>(
             new ProgressOptions($"Updating GW Launcher to {tagName}", "Downloading update...", FailureText: "The update couldn't be downloaded"),
             async (cancellation, progress) =>
             {
                 await DownloadAsync(new Uri(asset.DownloadUrl), newPath, progress, cancellation);
                 return newPath;
-            }));
+            });
         if (downloaded == null)
         {
             TryDelete(newPath);
@@ -113,7 +112,7 @@ internal static class WindowsUpdater
     }
 
     // Asks ArenaNet for the newest Gw.exe, then offers to update every account whose copy is older.
-    public static async Task CheckGwExeUpdates(IReadOnlyList<Account> accounts)
+    public static async Task CheckGwExeUpdates(IPrompts prompts, IReadOnlyList<Account> accounts)
     {
         var (latest, _) = await GuildwarsLatestExe.GetAsync();
         if (latest == null)
@@ -128,13 +127,13 @@ internal static class WindowsUpdater
         }
 
         var names = string.Join(", ", outdated.Select(account => account.Name));
-        var wanted = await OnUi(() => Dialogs.Confirm(null, "GW Update", $"These accounts are out of date:\n{names}\n\nUpdate now?"));
+        var wanted = await prompts.Confirm("GW Update", $"These accounts are out of date:\n{names}\n\nUpdate now?");
         if (!wanted)
         {
             return;
         }
 
-        await OnUi(() => Dialogs.Progress<string>(null,
+        await prompts.Progress<string>(
             new ProgressOptions("Updating Gw.exe", "Downloading the latest Gw.exe from ArenaNet", FailureText: "Gw.exe couldn't be updated"),
             async (cancellation, progress) =>
             {
@@ -142,30 +141,12 @@ internal static class WindowsUpdater
                     new Progress<(string Stage, double Progress)>(update => progress.Report(new ProgressUpdate(update.Progress, update.Stage))),
                     cancellation);
                 return "done";
-            }));
+            });
     }
 
     // True when the account's Gw.exe build isn't the latest. An exe too old to carry a build ID counts as outdated.
     public static bool IsOutdated(Account account, int latestFileId) =>
         File.Exists(account.gwpath) && new GuildWarsExecutableParser(account.gwpath).GetFileId() != latestFileId;
-
-    // Runs work on the UI thread and returns its result, so the background checks can ask the user things.
-    public static Task<T> OnUi<T>(Func<Task<T>> work)
-    {
-        var done = new TaskCompletionSource<T>();
-        Dispatcher.UIThread.Post(async () =>
-        {
-            try
-            {
-                done.SetResult(await work());
-            }
-            catch (Exception ex)
-            {
-                done.SetException(ex);
-            }
-        });
-        return done.Task;
-    }
 
     private static async Task DownloadAsync(Uri uri, string destination, IProgress<ProgressUpdate> progress, CancellationToken cancellation)
     {

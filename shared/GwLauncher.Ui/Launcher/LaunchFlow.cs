@@ -1,74 +1,33 @@
-using Avalonia.Controls;
-using GW_Launcher.Launcher;
-
 namespace GwLauncher.Ui;
 
-// The launch path shared by the window and the tray menu. Blocking issues stop the launch and show the issues window.
+// The outcome of a launch request: started, failed with a reason, or stopped by issues the user should see first.
+public sealed record LaunchResult(bool Started, string? Error = null, IReadOnlyList<AccountIssue>? Issues = null, bool CanLaunch = false);
+
+// The launch path shared by the window, the tray menu and desktop shortcuts. Blocking issues stop the launch.
 // Version issues, such as an outdated Gw.exe, are offered as fixes before the account starts.
 public static class LaunchFlow
 {
-    public static async Task StartAsync(ILauncherHost host, Window? owner, int index, string name, IReadOnlyList<AccountIssue> localIssues, Action? closed = null)
+    public static async Task<LaunchResult> StartAsync(ILauncherHost host, int index)
     {
-        if (localIssues.Any(issue => issue.Severity == IssueSeverity.Blocking))
-        {
-            ShowIssues(host, owner, index, name, localIssues, launchBlocked: true, withLaunch: false, closed);
-            return;
-        }
-
-        var versionIssues = await host.VersionIssues(index);
-        if (versionIssues.Count > 0)
-        {
-            ShowIssues(host, owner, index, name, localIssues.Concat(versionIssues).ToList(), launchBlocked: true, withLaunch: true, closed);
-            return;
-        }
-
-        var error = await host.Launch(index);
+        var entries = host.Accounts(out var error);
         if (error != null)
         {
-            Dialogs.Message($"Can't start {name}", error);
-        }
-    }
-
-    public static AccountIssuesWindow IssuesWindow(
-        ILauncherHost host,
-        Window? owner,
-        int index,
-        string name,
-        IReadOnlyList<AccountIssue> issues,
-        bool launchBlocked,
-        bool withLaunch)
-    {
-        return new AccountIssuesWindow(
-            name,
-            issues,
-            launchBlocked,
-            issue => host.Fix(owner, index, issue),
-            withLaunch ? () => host.Launch(index) : null);
-    }
-
-    public static void ShowIssues(
-        ILauncherHost host,
-        Window? owner,
-        int index,
-        string name,
-        IReadOnlyList<AccountIssue> issues,
-        bool launchBlocked,
-        bool withLaunch,
-        Action? closed = null)
-    {
-        var window = IssuesWindow(host, owner, index, name, issues, launchBlocked, withLaunch);
-        if (closed != null)
-        {
-            window.Closed += (_, _) => closed();
+            return new LaunchResult(false, error);
         }
 
-        if (owner != null)
+        var local = entries[index].Issues;
+        if (entries[index].Blocked)
         {
-            window.Show(owner);
+            return new LaunchResult(false, Issues: local);
         }
-        else
+
+        var version = await host.VersionIssues(index);
+        if (version.Count > 0)
         {
-            window.Show();
+            return new LaunchResult(false, Issues: local.Concat(version).ToList(), CanLaunch: true);
         }
+
+        var launchError = await host.Launch(index);
+        return launchError == null ? new LaunchResult(true) : new LaunchResult(false, launchError);
     }
 }

@@ -1,21 +1,15 @@
-using Avalonia.Controls;
-using GW_Launcher.Launcher;
-
 namespace GwLauncher.Ui;
 
-// What a desktop-shortcut launch produced: the account started, or a window to show instead.
-public sealed record ShortcutOutcome(bool Started, string? Error, Func<Window>? Window);
-
+// A desktop shortcut starts its account without the launcher window. When it can't, the window opens on what stopped it.
 public static class ShortcutLaunch
 {
-    // Starts an account without its launcher window. Blocking issues, and an outdated Gw.exe, give a window to show first.
-    // The window is built lazily, because the platform calls this before its UI is running.
-    public static ShortcutOutcome Start(ILauncherHost host, string name)
+    // Null when the account started. Otherwise the view the page should open on.
+    public static object? Start(ILauncherHost host, string name)
     {
         var entries = host.Accounts(out var error);
         if (error != null)
         {
-            return new ShortcutOutcome(false, error, null);
+            return MessageView("GW Launcher", error);
         }
 
         var index = -1;
@@ -30,25 +24,22 @@ public static class ShortcutLaunch
 
         if (index < 0)
         {
-            return new ShortcutOutcome(false, $"No account named '{name}'.", null);
+            return MessageView("GW Launcher", $"No account named '{name}'.");
         }
 
-        var issues = entries[index].Issues;
-        if (issues.Any(issue => issue.Severity == IssueSeverity.Blocking))
+        var result = LaunchFlow.StartAsync(host, index).GetAwaiter().GetResult();
+        if (result.Started)
         {
-            return new ShortcutOutcome(false, null, () => LaunchFlow.IssuesWindow(host, null, index, name, issues, launchBlocked: true, withLaunch: false));
+            return null;
         }
 
-        var versionIssues = host.VersionIssues(index).GetAwaiter().GetResult();
-        if (versionIssues.Count > 0)
-        {
-            var all = issues.Concat(versionIssues).ToList();
-            return new ShortcutOutcome(false, null, () => LaunchFlow.IssuesWindow(host, null, index, name, all, launchBlocked: true, withLaunch: true));
-        }
-
-        var launchError = host.Launch(index).GetAwaiter().GetResult();
-        return launchError == null
-            ? new ShortcutOutcome(true, null, null)
-            : new ShortcutOutcome(false, $"Can't start {name}: {launchError}", null);
+        return result.Issues != null
+            ? IssuesView(index, entries[index].Name, result)
+            : MessageView($"Can't start {name}", result.Error ?? "The account couldn't be started.");
     }
+
+    public static object IssuesView(int index, string name, LaunchResult result) =>
+        new { view = "issues", index, name, issues = result.Issues, canLaunch = result.CanLaunch, launchBlocked = true };
+
+    public static object MessageView(string title, string text) => new { view = "message", title, text };
 }

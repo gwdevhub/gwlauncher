@@ -1,41 +1,32 @@
 using System.Text.RegularExpressions;
-using Avalonia.Controls;
 using GW_Launcher.Classes;
 using GW_Launcher.Launcher;
 using GW_Launcher.Utilities;
 using GwLauncher.Linux;
+using GwLauncher.Resolve;
 using GwLauncher.Ui;
 using Newtonsoft.Json;
 
 namespace GwLauncher.Tray;
 
-// The shared windows' view of this computer: Accounts.json through the Linux store, launches through Wine, and the
+// The shared page's view of this computer: Accounts.json through the Linux store, launches through Wine, and the
 // Linux-only fixes (gMod.dll, Gw.exe, Windows-compacted files) behind the same issue buttons.
 public sealed class LinuxLauncherHost : ILauncherHost
 {
     private static readonly Regex WindowsPathPattern = new(@"^[A-Za-z]:\\");
     private readonly GlobalSettings _settings = LoadSettings();
-    private SetupWindow? _setup;
 
-    public bool HasTray => HostCapabilities.TrayHost;
     public bool HasLinuxPaths => true;
     public bool CanCreateShortcuts => HostCapabilities.DesktopIcons;
-    public bool HasSetup => true;
     public bool HasWindowsOptions => false;
-    public bool SetupNeeded => !Setup.IsComplete;
     public bool Locked => false;
     public GlobalSettings Settings => _settings;
+    public IPrompts Prompts { get; set; } = null!;
 
     public void SaveSettings() => AppSettings.Save(_settings);
 
     // Linux reads the master password from GWLAUNCHER_MASTER_PASSWORD when the accounts are opened, so there's nothing to unlock.
     public string? Unlock(string password, bool remember) => null;
-
-    public void ShowSetup(Window? owner)
-    {
-        _setup ??= new SetupWindow();
-        _setup.ShowCentered();
-    }
 
     public void StartBackground()
     {
@@ -57,45 +48,31 @@ public sealed class LinuxLauncherHost : ILauncherHost
         });
     }
 
-    public string MenuState()
-    {
-        var accounts = AppPaths.AccountsFile;
-        var accountsState = File.Exists(accounts)
-            ? $"{File.GetLastWriteTimeUtc(accounts).Ticks}:{new FileInfo(accounts).Length}"
-            : "none";
-        return $"{WineInstaller.IsWineOnPath()}|{accountsState}";
-    }
+    public IReadOnlyList<SetupItem> SetupItems() =>
+        Setup.Steps.Select(step => new SetupItem(step.Title, step.Description, step.IsSatisfied(), step.Command() != null)).ToList();
 
-    public bool TryTrayAnchor(out int x, out int y) => PointerLocator.TryGetPosition(out x, out y);
-
-    public bool TryStoredTrayAnchor(out int x, out int y)
+    // Starts the first unfinished step. It runs detached, so it keeps going if the window or the launcher closes.
+    public string? StartSetup()
     {
-        x = y = 0;
+        var step = Setup.Steps.FirstOrDefault(s => !s.IsSatisfied());
+        var command = step?.Command();
+        if (step == null || command == null)
+        {
+            return null;
+        }
+
         try
         {
-            var parts = File.ReadAllText(TrayAnchorFile).Split(',');
-            return parts.Length == 2 && int.TryParse(parts[0], out x) && int.TryParse(parts[1], out y);
+            SetupRunner.Start(command, step.NeedsRoot);
+            return null;
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception or IOException)
         {
-            return false;
+            return $"Could not start the {step.Title} install: {ex.Message}";
         }
     }
 
-    public void RememberTrayAnchor(int x, int y)
-    {
-        try
-        {
-            Directory.CreateDirectory(AppPaths.DataDir);
-            File.WriteAllText(TrayAnchorFile, $"{x},{y}");
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        {
-            // Startup then falls back to the screen corner, so the failure doesn't need reporting.
-        }
-    }
-
-    private static string TrayAnchorFile => Path.Combine(AppPaths.DataDir, "tray-anchor.txt");
+    public SetupProgress SetupStatus() => new(SetupRunner.InProgress(), SetupRunner.LastLogLine(), SetupRunner.LogPath);
 
     public IReadOnlyList<AccountEntry> Accounts(out string? error)
     {
@@ -205,18 +182,17 @@ public sealed class LinuxLauncherHost : ILauncherHost
         await AccountDiagnostics.CheckGwExeVersionAsync(OpenStore().Accounts[index]);
 
     // Runs the fix for one issue and returns a status message, or null when nothing changed.
-    public async Task<string?> Fix(Window? owner, int index, AccountIssue issue)
+    public async Task<string?> Fix(int index, AccountIssue issue)
     {
         if (issue.WofPath != null)
         {
-            var resolved = await ResolveAndRepoint(owner, index, issue.WofPath);
+            var resolved = await ResolveAndRepoint(index, issue.WofPath);
             return resolved == "" ? null : $"Decompressed to {resolved}. Reopen the account to check its issues again.";
         }
 
         if (issue.CanDownloadGMod)
         {
-            var path = await Dialogs.Progress<string>(
-                owner,
+            var path = await Prompts.Progress<string>(
                 new ProgressOptions(
                     "Downloading gMod.dll",
                     "Downloading gMod.dll from GitHub",
@@ -229,8 +205,7 @@ public sealed class LinuxLauncherHost : ILauncherHost
         if (issue.CanUpdateGwExe)
         {
             var gwPath = OpenStore().Accounts[index].EffectiveGwPath;
-            var updated = await Dialogs.Progress<string>(
-                owner,
+            var updated = await Prompts.Progress<string>(
                 new ProgressOptions(
                     "Updating Gw.exe",
                     "Downloading the latest Gw.exe from ArenaNet",
@@ -271,7 +246,7 @@ public sealed class LinuxLauncherHost : ILauncherHost
         {
             var launcher = Environment.ProcessPath
                 ?? throw new InvalidOperationException("The launcher's location isn't known, so no shortcut can be made.");
-            AppIcon.SaveTo(AppPaths.IconFile);
+            WebAssets.SaveIcon(AppPaths.IconFile);
             DesktopShortcut.Create(OpenStore().Accounts[index], launcher);
             return null;
         }
@@ -312,12 +287,8 @@ public sealed class LinuxLauncherHost : ILauncherHost
         }).ToList();
     }
 
-    public async Task<string?> Resolve(Window? owner, ModDraft mod)
-    {
-        var path = mod.ReadOnly ? mod.Target ?? mod.FileName : (mod.LinuxPath is { Length: > 0 } linux ? linux : mod.FileName);
-        var resolved = await ResolveWindow.RunAsync(owner, path);
-        return resolved == "" ? null : resolved;
-    }
+    public Task<string?> Resolve(ModDraft mod) =>
+        ResolveFile(mod.ReadOnly ? mod.Target ?? mod.FileName : (mod.LinuxPath is { Length: > 0 } linux ? linux : mod.FileName));
 
     // The account's index in Accounts.json, for the shortcut launch path.
     public int IndexOf(string name)
@@ -334,12 +305,12 @@ public sealed class LinuxLauncherHost : ILauncherHost
         return store;
     }
 
-    private async Task<string> ResolveAndRepoint(Window? owner, int index, string path)
+    private async Task<string> ResolveAndRepoint(int index, string path)
     {
-        var resolved = await ResolveWindow.RunAsync(owner, path);
-        if (resolved == "" || resolved == path)
+        var resolved = await ResolveFile(path);
+        if (resolved == null || resolved == path)
         {
-            return resolved;
+            return resolved ?? "";
         }
 
         var store = OpenStore();
@@ -350,6 +321,37 @@ public sealed class LinuxLauncherHost : ILauncherHost
         }
 
         return resolved + ". " + text;
+    }
+
+    // Decompresses a Windows-compacted file, after asking what to do with the compressed original. Null when cancelled or failed.
+    private async Task<string?> ResolveFile(string path)
+    {
+        var name = Path.GetFileName(path);
+        var choice = await Prompts.Choose(
+            $"Decompress {name}",
+            $"{name} is compressed by Windows, so Linux can't read it.\n\n" +
+            "Keep the original: it moves into a \"compressed\" folder beside the file, and the plain copy takes its place.\n" +
+            "Replace the original: the plain copy is verified first, then takes its place, and the compressed file is removed.",
+            "Cancel", "Keep the original", "Replace the original");
+        if (choice is not (1 or 2))
+        {
+            return null;
+        }
+
+        var mode = choice == 2 ? ResolveMode.ReplaceOriginal : ResolveMode.DecompressNextToOriginal;
+        return await Prompts.Progress<string>(
+            new ProgressOptions(
+                "Decompressing…",
+                $"Decompressing {name}",
+                mode == ResolveMode.ReplaceOriginal
+                    ? "If asked, enter your password in the system prompt. The original is replaced once the copy is verified. This can take several minutes. Cancelling removes the partial copy."
+                    : "If asked, enter your password in the system prompt. The original is kept. This can take several minutes. Cancelling removes the partial copy.",
+                FailureText: "The file could not be decompressed"),
+            (cancellation, progress) => WofResolver.ResolveAsync(
+                path,
+                mode,
+                new Progress<ResolveProgress>(p => progress.Report(new ProgressUpdate(p.Fraction, p.Detail))),
+                cancellation));
     }
 
     private static string? SaveStore(AccountStore store)
