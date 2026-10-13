@@ -6,7 +6,7 @@ using GW_Launcher.Launcher;
 
 namespace GwLauncher.Ui;
 
-// Add or modify form. The fields match the Windows AddAccountForm; Linux adds a path on this computer. Validation is the host's.
+// Add or modify form. Fields follow the Windows AddAccountForm; Linux adds a path on this computer. Validation is the host's.
 public sealed class AccountEditorWindow : AppWindow
 {
     private readonly ILauncherHost _host;
@@ -20,8 +20,13 @@ public sealed class AccountEditorWindow : AppWindow
     private readonly TextBox _gwPath = new();
     private readonly TextBox _linuxPath = new();
     private readonly TextBox _extraArgs = new();
+    private readonly CheckBox _steam = new() { Content = "Steam account" };
+    private readonly CheckBox _elevated = new() { Content = "Run as administrator" };
     private readonly Button _modsButton;
     private readonly TextBlock _error = Widgets.Error();
+
+    // Steam accounts log in through Steam, so their credential fields are hidden.
+    private readonly List<Control> _credentials = new();
 
     public AccountEditorWindow(ILauncherHost host, int? index, Action onSaved)
     {
@@ -32,7 +37,7 @@ public sealed class AccountEditorWindow : AppWindow
 
         Title = index == null ? "Add Account" : "Modify Account";
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
-        Width = 340;
+        Width = 360;
         SizeToContent = SizeToContent.Height;
         CanMinimize = false;
         CanMaximize = false;
@@ -44,38 +49,42 @@ public sealed class AccountEditorWindow : AppWindow
         _gwPath.Text = _draft.GwPath;
         _linuxPath.Text = _draft.LinuxGwPath;
         _extraArgs.Text = _draft.ExtraArgs;
+        _steam.IsChecked = _draft.SteamAccount;
+        _elevated.IsChecked = _draft.Elevated;
+        _steam.IsVisible = host.HasWindowsOptions;
+        _elevated.IsVisible = host.HasWindowsOptions;
+        _steam.IsCheckedChanged += (_, _) => UpdateCredentials();
 
         var grid = new Grid
         {
             ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto"),
-            RowDefinitions = new RowDefinitions("Auto,Auto,Auto,Auto,Auto,Auto,Auto"),
             RowSpacing = 8,
             ColumnSpacing = 8
         };
-        var rows = new List<(string Label, Control Input, Control? Trailing)>
-        {
-            ("Title:", _title, null),
-            ("Email:", _email, null),
-            ("Pass:", _password, null),
-            ("Char:", _character, null),
-            (host.HasLinuxPaths ? "Win path:" : "Path:", _gwPath, null)
-        };
+        var row = 0;
+        AddRow(grid, row++, "Title:", _title, null, credential: false);
+        AddRow(grid, row++, "Email:", _email, null, credential: true);
+        AddRow(grid, row++, "Pass:", _password, null, credential: true);
+        AddRow(grid, row++, "Char:", _character, null, credential: true);
+        AddRow(grid, row++, host.HasLinuxPaths ? "Win path:" : "Path:", _gwPath, host.HasLinuxPaths ? null : Browse(() => _gwPath), credential: false);
         if (host.HasLinuxPaths)
         {
-            var browse = Widgets.Button("...", () => { }, 0);
-            browse.Padding = new Thickness(8, 2);
-            browse.Click += async (_, _) => await BrowseForGw();
-            rows.Add(("Linux path:", _linuxPath, browse));
+            AddRow(grid, row++, "Linux path:", _linuxPath, Browse(() => _linuxPath), credential: false);
         }
 
-        rows.Add(("Ex Args:", _extraArgs, null));
-        for (var row = 0; row < rows.Count; row++)
-        {
-            AddRow(grid, row, rows[row].Label, rows[row].Input, rows[row].Trailing);
-        }
+        AddRow(grid, row, "Ex Args:", _extraArgs, null, credential: false);
+        row++;
+        Grid.SetRow(_steam, row);
+        Grid.SetColumnSpan(_steam, 3);
+        grid.Children.Add(_steam);
+        row++;
+        Grid.SetRow(_elevated, row);
+        Grid.SetColumnSpan(_elevated, 3);
+        grid.Children.Add(_elevated);
 
         _modsButton = Widgets.Button("", OpenMods, 110);
         UpdateModsButton();
+        UpdateCredentials();
 
         Content = new StackPanel
         {
@@ -98,7 +107,15 @@ public sealed class AccountEditorWindow : AppWindow
         };
     }
 
-    private static void AddRow(Grid grid, int row, string label, Control input, Control? trailing)
+    private Button Browse(Func<TextBox> target)
+    {
+        var browse = Widgets.Button("...", () => { }, 0);
+        browse.Padding = new Thickness(8, 2);
+        browse.Click += async (_, _) => await BrowseForGw(target());
+        return browse;
+    }
+
+    private void AddRow(Grid grid, int row, string label, Control input, Control? trailing, bool credential)
     {
         var text = new TextBlock { Text = label, VerticalAlignment = VerticalAlignment.Center };
         grid.Children.Add(WithCell(text, row, 0));
@@ -106,6 +123,21 @@ public sealed class AccountEditorWindow : AppWindow
         if (trailing != null)
         {
             grid.Children.Add(WithCell(trailing, row, 2));
+        }
+
+        if (credential)
+        {
+            _credentials.Add(text);
+            _credentials.Add(input);
+        }
+    }
+
+    private void UpdateCredentials()
+    {
+        var steam = _steam.IsChecked == true;
+        foreach (var control in _credentials)
+        {
+            control.IsVisible = !steam;
         }
     }
 
@@ -136,7 +168,7 @@ public sealed class AccountEditorWindow : AppWindow
         _modsButton.Content = $"Mods ({_draft.Mods.Count}){(broken ? " ⚠" : "")}";
     }
 
-    private async Task BrowseForGw()
+    private async Task BrowseForGw(TextBox target)
     {
         var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
         {
@@ -147,7 +179,7 @@ public sealed class AccountEditorWindow : AppWindow
         var path = files.FirstOrDefault()?.TryGetLocalPath();
         if (path != null)
         {
-            _linuxPath.Text = path;
+            target.Text = path;
         }
     }
 
@@ -163,6 +195,8 @@ public sealed class AccountEditorWindow : AppWindow
             LinuxGwPath = _linuxPath.Text?.Trim() ?? "",
             ExtraArgs = _extraArgs.Text?.Trim() ?? "",
             UsePluginFolderMods = _draft.UsePluginFolderMods,
+            SteamAccount = _steam.IsChecked == true,
+            Elevated = _elevated.IsChecked == true,
             Mods = _draft.Mods
         });
 

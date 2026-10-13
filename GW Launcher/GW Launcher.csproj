@@ -5,7 +5,6 @@
         <TargetFramework>net10.0-windows</TargetFramework>
         <RootNamespace>GW_Launcher</RootNamespace>
         <Nullable>enable</Nullable>
-        <UseWindowsForms>true</UseWindowsForms>
         <ImplicitUsings>enable</ImplicitUsings>
         <StartupObject>GW_Launcher.Program</StartupObject>
         <ApplicationIcon>Resources\gwlauncher-helmet.ico</ApplicationIcon>
@@ -37,7 +36,11 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\shared\GwLauncher.Shared\GwLauncher.Shared.csproj" />
+        <FrameworkReference Include="Microsoft.WindowsDesktop.App" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\shared\GwLauncher.Ui\GwLauncher.Ui.csproj" />
     </ItemGroup>
 
     <ItemGroup>
@@ -45,21 +48,6 @@
         <PackageReference Include="PeNet" Version="6.1.2" />
         <PackageReference Include="SystemExtensions.NetCore" Version="1.9.0" />
         <PackageReference Include="SystemExtensions.NetStandard" Version="1.9.0" />
-    </ItemGroup>
-
-    <ItemGroup>
-        <Compile Update="Properties\Resources.Designer.cs">
-            <DesignTime>True</DesignTime>
-            <AutoGen>True</AutoGen>
-            <DependentUpon>Resources.resx</DependentUpon>
-        </Compile>
-    </ItemGroup>
-
-    <ItemGroup>
-        <EmbeddedResource Update="Properties\Resources.resx">
-            <Generator>ResXFileCodeGenerator</Generator>
-            <LastGenOutput>Resources.Designer.cs</LastGenOutput>
-        </EmbeddedResource>
     </ItemGroup>
 
     <ItemGroup>

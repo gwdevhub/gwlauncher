@@ -16,7 +16,7 @@ public sealed class AccountIssuesWindow : AppWindow
         IReadOnlyList<AccountIssue> issues,
         bool launchBlocked,
         Func<AccountIssue, Task<string?>> resolve,
-        Func<string?>? launch = null)
+        Func<Task<string?>>? launch = null)
     {
         Title = launchBlocked ? $"Can't launch {accountName}" : $"Issues: {accountName}";
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
@@ -84,9 +84,9 @@ public sealed class AccountIssuesWindow : AppWindow
         {
             launchButton = Widgets.Button("Launch", () => { }, 90);
             launchButton.IsEnabled = unresolvedBlocking.Count == 0;
-            launchButton.Click += (_, _) =>
+            launchButton.Click += async (_, _) =>
             {
-                var error = launch();
+                var error = await launch();
                 if (error == null)
                 {
                     Close();

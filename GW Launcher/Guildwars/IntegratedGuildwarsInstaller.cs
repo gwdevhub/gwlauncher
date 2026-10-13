@@ -69,10 +69,7 @@ internal sealed class IntegratedGuildwarsInstaller
 			{
 				return (null, "Failed to download compressed executable");
 			}
-			if (!DecompressExecutable(tempName, exeName, expectedFinalSize, progress))
-			{
-				return (null, "Failed to decompress executable");
-			}
+			DecompressExecutable(tempName, exeName, expectedFinalSize, progress);
 			File.Delete(tempName);
 			return (destinationPath, null);
 		}
@@ -99,32 +96,22 @@ private async Task<(bool Success, int ExpectedSize)> DownloadCompressedExecutabl
             cancellationToken);
         if (expectedFinalSize is null)
         {
-            MessageBox.Show("Failed to get download stream");
-            return (false, -1);
+            throw new InvalidOperationException("ArenaNet didn't offer the latest Gw.exe for download.");
         }
 
         progress?.Report(("Downloaded compressed executable", 0.45));
         return (true, expectedFinalSize.Value);
     }
 
-private bool DecompressExecutable(
+private void DecompressExecutable(
         string tempName,
         string exeName,
         int expectedFinalSize,
         IProgress<(string Stage, double Progress)> progress)
     {
-        try
-        {
-            progress?.Report(("Decompressing downloaded executable", 0.45));
-            GuildwarsExeDecoder.Decompress(tempName, exeName, expectedFinalSize,
-                fraction => progress?.Report(("Decompressing downloaded executable", 0.45 + fraction * 0.45)));
-            progress?.Report(("Decompressed downloaded executable", 0.9));
-            return true;
-        }
-        catch (Exception e)
-        {
-            MessageBox.Show($"Encountered exception while decompressing: {e}");
-            return false;
-        }
+        progress?.Report(("Decompressing downloaded executable", 0.45));
+        GuildwarsExeDecoder.Decompress(tempName, exeName, expectedFinalSize,
+            fraction => progress?.Report(("Decompressing downloaded executable", 0.45 + fraction * 0.45)));
+        progress?.Report(("Decompressed downloaded executable", 0.9));
     }
 }

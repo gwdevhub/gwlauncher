@@ -22,7 +22,7 @@ public static class LaunchFlow
             return;
         }
 
-        var error = host.Launch(index);
+        var error = await host.Launch(index);
         if (error != null)
         {
             Dialogs.Message($"Can't start {name}", error);

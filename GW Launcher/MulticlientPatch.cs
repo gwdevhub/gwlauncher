@@ -61,7 +61,7 @@ internal static class MulticlientPatch
         return null;
     }
 
-    public static string? LaunchClient(Account account, bool ctrlHeld, out GWCAMemory? memory)
+    public static string? LaunchClient(Account account, out GWCAMemory? memory)
     {
         var path = account.gwpath;
         Process? process = null;
@@ -132,19 +132,7 @@ internal static class MulticlientPatch
 
         memory = new GWCAMemory(process);
 
-        if (ctrlHeld)
-        {
-            var result =
-                MessageBox.Show("Guild Wars is in a suspended state, plugins are not yet loaded.\n\nContinue?",
-                    "Launching paused", MessageBoxButtons.OKCancel);
-            if (result == DialogResult.Cancel)
-            {
-                err = GetErrorMessage("Launch was cancelled", 0);
-                goto cleanup;
-            }
-        }
-
-        foreach (var dll in ModManager.GetDlls(account))
+foreach (var dll in ModManager.GetDlls(account))
         {
             var loadModuleResult = memory.LoadModule(dll);
             if (loadModuleResult != GWCAMemory.LoadModuleResult.SUCCESSFUL)
@@ -182,17 +170,7 @@ internal static class MulticlientPatch
         {
             try
             {
-                if (ctrlHeld && process is { HasExited: false })
-                {
-                    // Ctrl-launch implies the user is taking manual control (e.g. attaching a
-                    // debugger), which can legitimately cause injection to time out. Resume the
-                    // suspended game instead of killing it so they can keep using it.
-                    process.Resume();
-                }
-                else
-                {
-                    process?.Kill();
-                }
+                process?.Kill();
             }
             finally
             {

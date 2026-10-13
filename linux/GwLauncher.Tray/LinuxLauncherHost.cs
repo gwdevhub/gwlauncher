@@ -21,6 +21,7 @@ public sealed class LinuxLauncherHost : ILauncherHost
     public bool HasLinuxPaths => true;
     public bool CanCreateShortcuts => HostCapabilities.DesktopIcons;
     public bool HasSetup => true;
+    public bool HasWindowsOptions => false;
     public bool SetupNeeded => !Setup.IsComplete;
     public bool Locked => false;
     public GlobalSettings Settings => _settings;
@@ -217,7 +218,9 @@ public sealed class LinuxLauncherHost : ILauncherHost
         return null;
     }
 
-    public string? Launch(int index)
+    public Task<string?> Launch(int index) => Task.FromResult(StartNow(index));
+
+    public string? StartNow(int index)
     {
         try
         {
