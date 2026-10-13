@@ -135,12 +135,11 @@ public class GWCAMemory
         var size = Marshal.SizeOf(typeof(T));
         var buffer = Marshal.AllocHGlobal(size);
 
-        ReadProcessMemory(process.Handle,
-            address,
-            buffer,
-            size,
-            out _
-        );
+        if (!ReadProcessMemory(process.Handle, address, buffer, size, out _))
+        {
+            Marshal.FreeHGlobal(buffer);
+            return default!;
+        }
 
         var ret = (T)Marshal.PtrToStructure(buffer, typeof(T))!;
         Marshal.FreeHGlobal(buffer);
@@ -158,12 +157,11 @@ public class GWCAMemory
     {
         var buffer = Marshal.AllocHGlobal(size);
 
-        ReadProcessMemory(process.Handle,
-            address,
-            buffer,
-            size,
-            out _
-        );
+        if (!ReadProcessMemory(process.Handle, address, buffer, size, out _))
+        {
+            Marshal.FreeHGlobal(buffer);
+            return new byte[size];
+        }
 
         var ret = new byte[size];
         Marshal.Copy(buffer, ret, 0, size);

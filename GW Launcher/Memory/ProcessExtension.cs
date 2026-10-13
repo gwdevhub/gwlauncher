@@ -11,6 +11,9 @@ internal static class ProcessExtension
     [DllImport("kernel32.dll")]
     private static extern int ResumeThread(IntPtr hThread);
 
+    [DllImport("kernel32.dll")]
+    private static extern bool CloseHandle(IntPtr hObject);
+
     public static void Suspend(this Process process)
     {
         foreach (ProcessThread thread in process.Threads)
@@ -18,10 +21,11 @@ internal static class ProcessExtension
             var pOpenThread = OpenThread(ThreadAccess.SUSPEND_RESUME, false, (uint)thread.Id);
             if (pOpenThread == IntPtr.Zero)
             {
-                break;
+                continue;
             }
 
             SuspendThread(pOpenThread);
+            CloseHandle(pOpenThread);
         }
     }
 
@@ -32,10 +36,11 @@ internal static class ProcessExtension
             var pOpenThread = OpenThread(ThreadAccess.SUSPEND_RESUME, false, (uint)thread.Id);
             if (pOpenThread == IntPtr.Zero)
             {
-                break;
+                continue;
             }
 
             ResumeThread(pOpenThread);
+            CloseHandle(pOpenThread);
         }
     }
 

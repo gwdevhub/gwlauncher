@@ -1,5 +1,4 @@
-﻿using IWshRuntimeLibrary;
-using File = System.IO.File;
+﻿using File = System.IO.File;
 
 namespace GW_Launcher.Utilities;
 
@@ -187,9 +186,13 @@ public class ModManager
     {
         if (!File.Exists(path))
             return null;
-        var shell = new WshShell();
-        var lnk = (IWshShortcut)shell.CreateShortcut(path);
-
-        return lnk.TargetPath;
+        try
+        {
+            return ShellLink.Read(path).WindowsPath;
+        }
+        catch (Exception ex) when (ex is InvalidDataException or IOException or ArgumentException)
+        {
+            return null;
+        }
     }
 }

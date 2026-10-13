@@ -336,6 +336,21 @@ internal static class MulticlientPatch
 
     private static string? LaunchClient(string path, string args, bool elevated, out PROCESS_INFORMATION procinfo)
     {
+        // The child inherits the working directory, so set it before CreateProcess and restore on every exit path.
+        var lastDirectory = Directory.GetCurrentDirectory();
+        Directory.SetCurrentDirectory(Path.GetDirectoryName(path)!);
+        try
+        {
+            return CreateClientProcess(path, args, elevated, out procinfo);
+        }
+        finally
+        {
+            Directory.SetCurrentDirectory(lastDirectory);
+        }
+    }
+
+    private static string? CreateClientProcess(string path, string args, bool elevated, out PROCESS_INFORMATION procinfo)
+    {
         var commandLine = $"\"{path}\" {args}";
 
         procinfo = new PROCESS_INFORMATION();
@@ -347,9 +362,6 @@ internal static class MulticlientPatch
         saProcess.nLength = (uint)Marshal.SizeOf(saProcess);
         var saThread = new SECURITY_ATTRIBUTES();
         saThread.nLength = (uint)Marshal.SizeOf(saThread);
-
-        var lastDirectory = Directory.GetCurrentDirectory();
-        Directory.SetCurrentDirectory(Path.GetDirectoryName(path)!);
 
         SetRegistryValue(@"Software\ArenaNet\Guild Wars", "Path", path);
         SetRegistryValue(@"Software\ArenaNet\Guild Wars", "Src", path);
@@ -411,8 +423,6 @@ internal static class MulticlientPatch
                 return GetErrorMessage("WinSafer.CreateProcess", Marshal.GetLastWin32Error());
             }
         }
-
-        Directory.SetCurrentDirectory(lastDirectory);
 
         WinApi.CloseHandle(procinfo.hProcess);
         return null;

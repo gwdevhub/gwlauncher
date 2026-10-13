@@ -44,7 +44,7 @@ internal static class AdminAccess
                 Program.ShouldClose = true;
                 Application.Exit();
             }
-            return true;
+            return false;
         }
     }
 }
