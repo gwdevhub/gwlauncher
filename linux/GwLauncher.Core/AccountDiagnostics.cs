@@ -1,20 +1,7 @@
 using System.Text.RegularExpressions;
+using GW_Launcher.Launcher;
 
 namespace GwLauncher.Linux;
-
-public enum IssueSeverity
-{
-    // Stops the account from launching.
-    Blocking,
-
-    // Doesn't stop the launch, but something won't load.
-    Warning
-}
-
-// WofPath is set when the issue is a Windows-compacted file that can be resolved by decompressing it.
-// CanDownloadGMod is set when the fix is downloading gMod.dll next to the launcher.
-// CanUpdateGwExe is set when the fix is downloading the latest Gw.exe over the account's copy.
-public sealed record AccountIssue(IssueSeverity Severity, string Message, string? WofPath = null, bool CanDownloadGMod = false, bool CanUpdateGwExe = false);
 
 // Raised when an account has blocking issues. The message lists them, so it can be shown to the user as-is.
 public sealed class AccountBlockedException : InvalidOperationException

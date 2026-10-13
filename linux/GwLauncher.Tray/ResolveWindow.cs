@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
 using GwLauncher.Linux;
+using GwLauncher.Ui;
 using GwLauncher.Resolve;
 
 namespace GwLauncher.Tray;
@@ -21,7 +22,7 @@ public static class ResolveWindow
         }
 
         var name = Path.GetFileName(path);
-        var result = await ProgressDialog.RunAsync<string>(
+        var result = await Dialogs.Progress<string>(
             owner,
             new ProgressOptions(
                 "Decompressing…",
@@ -79,9 +80,9 @@ public static class ResolveWindow
                     new TextBlock { Text = "Choose what to do with the compressed file:", TextWrapping = TextWrapping.Wrap },
                     Option(_keepOriginal, "The compressed file moves into a \"compressed\" folder beside it, and the plain copy takes its place."),
                     Option(_replace, "The plain copy is verified first, then takes the original's place. The compressed file is removed."),
-                    Ui.ButtonRow(
-                        Ui.MakeButton("Cancel", () => Close()),
-                        Ui.MakeButton("Continue", Continue))
+                    Widgets.Row(
+                        Widgets.Button("Cancel", () => Close()),
+                        Widgets.Button("Continue", Continue))
                 }
             };
         }

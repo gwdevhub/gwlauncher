@@ -4,6 +4,7 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
 using GwLauncher.Linux;
+using GwLauncher.Ui;
 
 namespace GwLauncher.Tray;
 
