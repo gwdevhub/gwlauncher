@@ -14,12 +14,11 @@ internal sealed record GitHubRelease(
 
 internal static class GitHubAssets
 {
-    public static async Task<IReadOnlyList<GitHubRelease>> GetReleasesAsync(string owner, string repo)
+    // Pass a client to reuse its timeout and headers; without one, a default client with the GitHub headers is used.
+    public static async Task<IReadOnlyList<GitHubRelease>> GetReleasesAsync(string owner, string repo, HttpClient? client = null, CancellationToken cancellationToken = default)
     {
-        using var http = new HttpClient();
-        http.DefaultRequestHeaders.UserAgent.ParseAdd("GWLauncher");
-        http.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
-        var json = await http.GetStringAsync($"https://api.github.com/repos/{owner}/{repo}/releases");
+        using var ownClient = client == null ? CreateClient() : null;
+        var json = await (client ?? ownClient!).GetStringAsync($"https://api.github.com/repos/{owner}/{repo}/releases", cancellationToken);
 
         var releases = new List<GitHubRelease>();
         foreach (var r in JArray.Parse(json))
@@ -43,6 +42,14 @@ internal static class GitHubAssets
         }
 
         return releases;
+    }
+
+    private static HttpClient CreateClient()
+    {
+        var http = new HttpClient();
+        http.DefaultRequestHeaders.UserAgent.ParseAdd("GWLauncher");
+        http.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
+        return http;
     }
 
     public static string? ComputeSha256(string path)
