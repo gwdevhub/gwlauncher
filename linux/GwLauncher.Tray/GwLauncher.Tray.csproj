@@ -12,24 +12,19 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Avalonia.Desktop" Version="12.1.4" />
-        <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.4" />
     </ItemGroup>
 
     <ItemGroup>
         <Using Include="GW_Launcher.Classes" />
+        <Using Include="GW_Launcher.Launcher" />
         <Using Include="GW_Launcher.Utilities" />
         <Using Include="System.Diagnostics" />
     </ItemGroup>
 
     <ItemGroup>
         <ProjectReference Include="..\GwLauncher.Core\GwLauncher.Core.csproj" />
+        <ProjectReference Include="..\..\shared\GwLauncher.Ui\GwLauncher.Ui.csproj" />
         <ProjectReference Include="..\GwLauncher.Resolve\GwLauncher.Resolve.csproj" />
-    </ItemGroup>
-
-    <!-- Tray icon reuses the launcher's existing helmet artwork. -->
-    <ItemGroup>
-        <AvaloniaResource Include="..\..\GW Launcher\Resources\gwlauncher-helmet.png" Link="Assets\gwlauncher-helmet.png" />
     </ItemGroup>
 
     <!-- The Windows DLL loader folder is embedded as a zip so the launcher ships as one file; InjectorInstaller unpacks it at startup. -->

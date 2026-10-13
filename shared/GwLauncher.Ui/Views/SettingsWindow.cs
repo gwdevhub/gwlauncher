@@ -2,27 +2,24 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
-using GW_Launcher.Classes;
-using GwLauncher.Linux;
 
-namespace GwLauncher.Tray;
+namespace GwLauncher.Ui;
 
-// Same sections, descriptions, and enabling rules as the Windows SettingsForm (minus password protection, which needs a startup prompt).
+// Same sections, descriptions and enabling rules on every platform.
 public sealed class SettingsWindow : AppWindow
 {
-    private readonly GlobalSettings _settings;
-    private readonly Action<GlobalSettings> _onSave;
+    private readonly ILauncherHost _host;
     private readonly CheckBox _checkForUpdates = new() { Content = "Check for updates" };
     private readonly CheckBox _autoUpdate = new() { Content = "Auto update" };
     private readonly CheckBox _keepInTray = new() { Content = "Keep in system tray" };
     private readonly CheckBox _launchMinimized = new() { Content = "Launch minimised" };
     private readonly TextBox _timeout = new() { Width = 90 };
-    private readonly TextBlock _error = new() { Foreground = Brushes.Firebrick, TextWrapping = TextWrapping.Wrap };
+    private readonly TextBlock _error = Widgets.Error();
 
-    public SettingsWindow(GlobalSettings settings, Action<GlobalSettings> onSave)
+    public SettingsWindow(ILauncherHost host)
     {
-        _settings = settings;
-        _onSave = onSave;
+        _host = host;
+        var settings = host.Settings;
 
         Title = "GW Launcher - Settings";
         WindowStartupLocation = WindowStartupLocation.CenterScreen;
@@ -46,16 +43,11 @@ public sealed class SettingsWindow : AppWindow
                 _autoUpdate.IsChecked = false;
             }
         };
-        _keepInTray.IsCheckedChanged += (_, _) => _launchMinimized.IsEnabled = HostCapabilities.TrayHost && _keepInTray.IsChecked == true;
+        _keepInTray.IsCheckedChanged += (_, _) => _launchMinimized.IsEnabled = host.HasTray && _keepInTray.IsChecked == true;
 
         _autoUpdate.IsEnabled = _checkForUpdates.IsChecked == true;
-        _keepInTray.IsEnabled = HostCapabilities.TrayHost;
-        _launchMinimized.IsEnabled = HostCapabilities.TrayHost && _keepInTray.IsChecked == true;
-
-        var save = new Button { Content = "OK", MinWidth = 80, Padding = new Thickness(12, 6) };
-        save.Click += (_, _) => Save();
-        var cancel = new Button { Content = "Cancel", MinWidth = 80, Padding = new Thickness(12, 6) };
-        cancel.Click += (_, _) => Close();
+        _keepInTray.IsEnabled = host.HasTray;
+        _launchMinimized.IsEnabled = host.HasTray && _keepInTray.IsChecked == true;
 
         Content = new StackPanel
         {
@@ -64,7 +56,7 @@ public sealed class SettingsWindow : AppWindow
             Children =
             {
                 Section("General"),
-                Option(_keepInTray, HostCapabilities.TrayHost
+                Option(_keepInTray, host.HasTray
                     ? "Run from a tray icon; closing hides it to the tray."
                     : "Not available: no system tray was found on this desktop."),
                 Option(_launchMinimized, "Start hidden in the tray instead of showing the window."),
@@ -80,40 +72,25 @@ public sealed class SettingsWindow : AppWindow
                     Spacing = 8,
                     Children = { new TextBlock { Text = "Timeout on mod launch (ms):", VerticalAlignment = VerticalAlignment.Center }, _timeout }
                 },
-                new TextBlock
-                {
-                    Text = "How long to wait for a mod DLL to load into the game.",
-                    FontSize = 11,
-                    Opacity = 0.7,
-                    TextWrapping = TextWrapping.Wrap
-                },
+                Widgets.Text("How long to wait for a mod DLL to load into the game.", 11),
 
                 _error,
-                new StackPanel
-                {
-                    Orientation = Orientation.Horizontal,
-                    HorizontalAlignment = HorizontalAlignment.Right,
-                    Spacing = 8,
-                    Children = { cancel, save }
-                }
+                Widgets.Row(Widgets.Button("Cancel", () => Close(), 80), Widgets.Button("OK", Save, 80))
             }
         };
     }
 
     private static TextBlock Section(string title) => new() { Text = title, FontWeight = FontWeight.SemiBold, Margin = new Thickness(0, 6, 0, 0) };
 
-    private static StackPanel Option(CheckBox box, string description)
+    private static StackPanel Option(CheckBox box, string description) => new()
     {
-        return new StackPanel
+        Spacing = 2,
+        Children =
         {
-            Spacing = 2,
-            Children =
-            {
-                box,
-                new TextBlock { Text = description, FontSize = 11, Opacity = 0.7, Margin = new Thickness(24, 0, 0, 0), TextWrapping = TextWrapping.Wrap }
-            }
-        };
-    }
+            box,
+            new TextBlock { Text = description, FontSize = 11, Opacity = 0.7, Margin = new Thickness(24, 0, 0, 0), TextWrapping = TextWrapping.Wrap }
+        }
+    };
 
     private void Save()
     {
@@ -123,13 +100,14 @@ public sealed class SettingsWindow : AppWindow
             return;
         }
 
-        _settings.CheckForUpdates = _checkForUpdates.IsChecked == true;
-        _settings.AutoUpdate = _autoUpdate.IsChecked == true;
-        _settings.KeepInSystemTray = _keepInTray.IsChecked == true;
-        _settings.LaunchMinimized = _launchMinimized.IsChecked == true;
-        _settings.TimeoutOnModlaunch = timeout;
+        var settings = _host.Settings;
+        settings.CheckForUpdates = _checkForUpdates.IsChecked == true;
+        settings.AutoUpdate = _autoUpdate.IsChecked == true;
+        settings.KeepInSystemTray = _keepInTray.IsChecked == true;
+        settings.LaunchMinimized = _launchMinimized.IsChecked == true;
+        settings.TimeoutOnModlaunch = timeout;
 
-        _onSave(_settings);
+        _host.SaveSettings();
         Close();
     }
 }

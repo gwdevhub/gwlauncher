@@ -2,20 +2,20 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
-using GwLauncher.Linux;
+using GW_Launcher.Launcher;
 
-namespace GwLauncher.Tray;
+namespace GwLauncher.Ui;
 
-// Lists an account's issues. Blocking issues come first, in red. Issues with a fix get a Resolve button, which
-// runs that fix and returns a message for the status line, or null when nothing changed. When launch is given, a
-// Launch button starts the account from here once no blocking issues are left.
+// Lists an account's issues, blocking ones first. Issues with a fix get a Resolve button, which runs that fix and
+// returns a status message, or null when nothing changed. When launch is given, a Launch button starts the account
+// once no blocking issues are left.
 public sealed class AccountIssuesWindow : AppWindow
 {
     public AccountIssuesWindow(
         string accountName,
         IReadOnlyList<AccountIssue> issues,
         bool launchBlocked,
-        Func<AccountIssue, Task<string?>>? resolve,
+        Func<AccountIssue, Task<string?>> resolve,
         Func<string?>? launch = null)
     {
         Title = launchBlocked ? $"Can't launch {accountName}" : $"Issues: {accountName}";
@@ -28,10 +28,10 @@ public sealed class AccountIssuesWindow : AppWindow
         var list = new StackPanel { Spacing = 10 };
         if (issues.Count == 0)
         {
-            list.Children.Add(new TextBlock { Text = "No issues. This account should launch.", TextWrapping = TextWrapping.Wrap });
+            list.Children.Add(Widgets.Text("No issues. This account should launch."));
         }
 
-        var status = new TextBlock { TextWrapping = TextWrapping.Wrap, FontSize = 11 };
+        var status = Widgets.Text("", 11);
         Button? launchButton = null;
         var unresolvedBlocking = issues.Where(i => i.Severity == IssueSeverity.Blocking).ToList();
 
@@ -46,9 +46,11 @@ public sealed class AccountIssuesWindow : AppWindow
                 Foreground = blocking ? Brushes.Firebrick : Brushes.DarkGoldenrod
             });
 
-            if ((issue.WofPath != null || issue.CanDownloadGMod || issue.CanUpdateGwExe) && resolve != null)
+            if (issue.WofPath != null || issue.CanDownloadGMod || issue.CanUpdateGwExe)
             {
-                var resolveButton = new Button { Content = "Resolve…", HorizontalAlignment = HorizontalAlignment.Left, Padding = new Thickness(10, 4) };
+                var resolveButton = Widgets.Button("Resolve…", () => { }, 0);
+                resolveButton.HorizontalAlignment = HorizontalAlignment.Left;
+                resolveButton.Padding = new Thickness(10, 4);
                 resolveButton.Click += async (_, _) =>
                 {
                     resolveButton.IsEnabled = false;
@@ -64,11 +66,11 @@ public sealed class AccountIssuesWindow : AppWindow
                         {
                             launchButton.IsEnabled = unresolvedBlocking.Count == 0;
                         }
-                    }
 
-                    if (message != null && issue.CanUpdateGwExe)
-                    {
-                        row.IsVisible = false;
+                        if (issue.CanUpdateGwExe)
+                        {
+                            row.IsVisible = false;
+                        }
                     }
                 };
                 row.Children.Add(resolveButton);
@@ -77,13 +79,11 @@ public sealed class AccountIssuesWindow : AppWindow
             list.Children.Add(row);
         }
 
-        var close = new Button { Content = "Close", MinWidth = 90, Padding = new Thickness(12, 6) };
-        close.Click += (_, _) => Close();
-
-        var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Spacing = 8 };
+        var buttons = new List<Control>();
         if (launch != null)
         {
-            launchButton = new Button { Content = "Launch", MinWidth = 90, Padding = new Thickness(12, 6), IsEnabled = unresolvedBlocking.Count == 0 };
+            launchButton = Widgets.Button("Launch", () => { }, 90);
+            launchButton.IsEnabled = unresolvedBlocking.Count == 0;
             launchButton.Click += (_, _) =>
             {
                 var error = launch();
@@ -95,10 +95,10 @@ public sealed class AccountIssuesWindow : AppWindow
 
                 status.Text = $"Can't start {accountName}: {error}";
             };
-            buttons.Children.Add(launchButton);
+            buttons.Add(launchButton);
         }
 
-        buttons.Children.Add(close);
+        buttons.Add(Widgets.Button("Close", () => Close()));
 
         Content = new StackPanel
         {
@@ -113,7 +113,7 @@ public sealed class AccountIssuesWindow : AppWindow
                 },
                 list,
                 status,
-                buttons
+                Widgets.Row(buttons.ToArray())
             }
         };
     }

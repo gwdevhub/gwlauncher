@@ -16,6 +16,7 @@
 
     <ItemGroup>
         <Using Include="GW_Launcher.Classes" />
+        <Using Include="GW_Launcher.Launcher" />
         <Using Include="GW_Launcher.Utilities" />
         <Using Include="System.Diagnostics" />
         <Using Include="System.Core.Extensions" />
