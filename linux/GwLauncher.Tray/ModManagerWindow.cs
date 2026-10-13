@@ -142,7 +142,7 @@ public sealed class ModManagerWindow : AppWindow
         var name = new TextBlock
         {
             // Split on both separators, since Windows paths from another machine use backslashes.
-            Text = $"{row.FileName.Split('\\', '/').Last()}  [{(row.Type == ModType.Dll ? "DLL" : "Texmod")}]",
+            Text = $"{row.FileName.Split('\\', '/').Last()}  [{(row.Type == ModType.kModTypeDLL ? "DLL" : "Texmod")}]",
             TextTrimming = TextTrimming.CharacterEllipsis,
             Opacity = row.Problem == null ? 1 : 0.5
         };
