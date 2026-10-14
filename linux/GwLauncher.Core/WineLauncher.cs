@@ -22,7 +22,7 @@ public static partial class WineLauncher
             ? injector
             : Path.Combine(AppContext.BaseDirectory, "injector", "GwLauncher.Injector.exe");
 
-    public static ProcessStartInfo BuildStartInfo(LinuxAccount account)
+    public static ProcessStartInfo BuildStartInfo(LinuxAccount account, bool suspended = false)
     {
         var blocking = AccountDiagnostics.Check(account).Where(issue => issue.Severity == IssueSeverity.Blocking).ToList();
         if (blocking.Count > 0)
@@ -54,7 +54,7 @@ public static partial class WineLauncher
         };
         psi.Environment["WINEPREFIX"] = PrefixPath;
 
-        if (dlls.Count == 0)
+        if (dlls.Count == 0 && !suspended)
         {
             foreach (var argument in gameArguments)
             {
@@ -72,6 +72,11 @@ public static partial class WineLauncher
         }
 
         psi.ArgumentList.Add(WindowsPaths.ToWine(InjectorPath));
+        if (suspended)
+        {
+            psi.ArgumentList.Add("--suspend");
+        }
+
         foreach (var dll in dlls)
         {
             psi.ArgumentList.Add("--dll");
@@ -220,12 +225,51 @@ public static partial class WineLauncher
 
         if (process.ExitCode != 0)
         {
-            throw new InvalidOperationException(
-                $"The game didn't start cleanly (loader exit code {process.ExitCode}). Check the account's mods and game path.");
+            throw new InvalidOperationException(ExitError(process.ExitCode));
         }
 
         return process.Id;
     }
+
+    // Starts the game through the injector, which holds it suspended until confirm answers. Returns the error, or null once it runs.
+    public static async Task<string?> StartSuspended(ProcessStartInfo psi, Func<Task<bool>> confirm)
+    {
+        psi.RedirectStandardInput = true;
+        psi.RedirectStandardOutput = true;
+        using var process = Process.Start(psi) ?? throw new InvalidOperationException("wine could not be started.");
+
+        if (await process.StandardOutput.ReadLineAsync() != "suspended")
+        {
+            await process.WaitForExitAsync();
+            return ExitError(process.ExitCode);
+        }
+
+        var resume = await confirm();
+        await process.StandardInput.WriteLineAsync(resume ? "resume" : "cancel");
+        process.StandardInput.Close();
+        if (!resume)
+        {
+            await process.WaitForExitAsync();
+            return "Launch was cancelled.";
+        }
+
+        var output = process.StandardOutput.ReadToEndAsync();
+        using var timeout = new CancellationTokenSource(20000);
+        try
+        {
+            await process.WaitForExitAsync(timeout.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            return null;
+        }
+
+        await output;
+        return process.ExitCode == 0 ? null : ExitError(process.ExitCode);
+    }
+
+    private static string ExitError(int code) =>
+        $"The game didn't start cleanly (loader exit code {code}). Check the account's mods and game path.";
 
     // Shows the command for logs and dry runs, with the password masked.
     public static string Describe(ProcessStartInfo psi)

@@ -7,7 +7,39 @@ public sealed record LaunchResult(bool Started, string? Error = null, IReadOnlyL
 // Version issues, such as an outdated Gw.exe, are offered as fixes before the account starts.
 public static class LaunchFlow
 {
-    public static async Task<LaunchResult> StartAsync(ILauncherHost host, int index)
+    private static readonly HashSet<string> Launching = new();
+
+    public static bool IsLaunching(string name)
+    {
+        lock (Launching)
+        {
+            return Launching.Contains(name);
+        }
+    }
+
+    // Starts the game and reports it as Launching until the start finishes, whether or not it succeeds.
+    public static async Task<string?> Launch(ILauncherHost host, int index, bool suspended = false)
+    {
+        var name = host.Accounts(out _)[index].Name;
+        lock (Launching)
+        {
+            Launching.Add(name);
+        }
+
+        try
+        {
+            return await host.Launch(index, suspended);
+        }
+        finally
+        {
+            lock (Launching)
+            {
+                Launching.Remove(name);
+            }
+        }
+    }
+
+    public static async Task<LaunchResult> StartAsync(ILauncherHost host, int index, bool suspended = false)
     {
         var entries = host.Accounts(out var error);
         if (error != null)
@@ -27,7 +59,7 @@ public static class LaunchFlow
             return new LaunchResult(false, Issues: local.Concat(version).ToList(), CanLaunch: true);
         }
 
-        var launchError = await host.Launch(index);
+        var launchError = await Launch(host, index, suspended);
         return launchError == null ? new LaunchResult(true) : new LaunchResult(false, launchError);
     }
 }

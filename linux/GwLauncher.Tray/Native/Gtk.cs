@@ -9,6 +9,7 @@ internal static class Gtk
     private const string GtkLibrary = "libgtk-3.so.0";
     private const string GdkLibrary = "libgdk-3.so.0";
     private const string GLibLibrary = "libglib-2.0.so.0";
+    private const string X11Library = "libX11.so.6";
     private const string GObjectLibrary = "libgobject-2.0.so.0";
     private const string JavaScriptCoreLibrary = "libjavascriptcoregtk-4.1.so.0";
 
@@ -47,8 +48,14 @@ internal static class Gtk
     [DllImport(GtkLibrary)] public static extern bool gtk_window_set_icon_from_file(IntPtr window, string path, IntPtr error);
     [DllImport(GtkLibrary)] public static extern void gtk_window_set_default_size(IntPtr window, int width, int height);
     [DllImport(GtkLibrary)] public static extern void gtk_window_resize(IntPtr window, int width, int height);
+    [DllImport(GtkLibrary)] public static extern void gtk_window_set_resizable(IntPtr window, bool resizable);
+    [DllImport(GtkLibrary)] public static extern void gtk_window_get_size(IntPtr window, out int width, out int height);
+    [DllImport(GtkLibrary)] public static extern void gtk_window_get_position(IntPtr window, out int x, out int y);
+    [DllImport(GtkLibrary)] public static extern void gdk_window_set_functions(IntPtr gdkWindow, int functions);
     [DllImport(GtkLibrary)] public static extern void gtk_window_move(IntPtr window, int x, int y);
     [DllImport(GtkLibrary)] public static extern void gtk_window_set_skip_taskbar_hint(IntPtr window, bool skip);
+    [DllImport(GtkLibrary)] public static extern void gtk_window_set_decorated(IntPtr window, bool decorated);
+    [DllImport(GtkLibrary)] public static extern void gtk_window_set_keep_above(IntPtr window, bool setting);
     [DllImport(GtkLibrary)] public static extern void gtk_window_present(IntPtr window);
     [DllImport(GtkLibrary)] public static extern void gtk_container_add(IntPtr container, IntPtr child);
     [DllImport(GtkLibrary)] public static extern void gtk_widget_show_all(IntPtr widget);
@@ -57,6 +64,11 @@ internal static class Gtk
     [DllImport(GtkLibrary)] public static extern void gtk_widget_destroy(IntPtr widget);
     [DllImport(GtkLibrary)] public static extern IntPtr gtk_widget_get_window(IntPtr widget);
     [DllImport(GdkLibrary)] public static extern void gdk_window_get_frame_extents(IntPtr window, out Rectangle rect);
+    [DllImport(GdkLibrary)] public static extern IntPtr gdk_x11_window_get_xid(IntPtr gdkWindow);
+    [DllImport(GdkLibrary)] public static extern IntPtr gdk_x11_get_default_xdisplay();
+    [DllImport(X11Library)] public static extern IntPtr XInternAtom(IntPtr display, string name, bool onlyIfExists);
+    [DllImport(X11Library)] public static extern int XChangeProperty(IntPtr display, IntPtr window, IntPtr property, IntPtr type, int format, int mode, long[] data, int elements);
+    [DllImport(X11Library)] public static extern int XFlush(IntPtr display);
 
     // Tray icon and menu
     [DllImport(GtkLibrary)] public static extern IntPtr gtk_status_icon_new_from_file(string path);
@@ -92,6 +104,11 @@ internal static class Gtk
     [DllImport(GdkLibrary)] public static extern IntPtr gdk_display_get_primary_monitor(IntPtr display);
     [DllImport(GdkLibrary)] public static extern IntPtr gdk_display_get_monitor(IntPtr display, int index);
     [DllImport(GdkLibrary)] public static extern void gdk_monitor_get_workarea(IntPtr monitor, out Rectangle area);
+
+    // Pointer
+    [DllImport(GdkLibrary)] public static extern IntPtr gdk_display_get_default_seat(IntPtr display);
+    [DllImport(GdkLibrary)] public static extern IntPtr gdk_seat_get_pointer(IntPtr seat);
+    [DllImport(GdkLibrary)] public static extern void gdk_device_get_position(IntPtr device, out IntPtr screen, out int x, out int y);
 
     // WebKit
     [DllImport(WebKitLibrary)] public static extern IntPtr webkit_user_content_manager_new();

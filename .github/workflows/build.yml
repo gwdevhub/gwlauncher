@@ -45,6 +45,11 @@ jobs:
                     $gitVersionObj = $gitVersionOutput | ConvertFrom-Json
                     $version = "$($gitVersionObj.Major).$($gitVersionObj.Minor)"
                     echo "VERSION=$version" >> $env:GITHUB_ENV
+                    # The build id is the commit count, carried in the build component of the version: 0.0.<build>.
+                    $commits = dotnet dotnet-gitversion /showvariable CommitsSinceVersionSource
+                    if ($LASTEXITCODE -ne 0) { throw 'GitVersion failed' }
+                    $buildVersion = "0.0.$commits"
+                    echo "BUILD_VERSION=$buildVersion" >> $env:GITHUB_ENV
 
             -   name: Build GW Launcher Self Contained
                 run: |
@@ -52,7 +57,8 @@ jobs:
                       /target:"Restore;Publish" `
                       /m /nodeReuse:false `
                       /property:"PublishProfile=SelfContained" `
-                      /property:GitVersion_NoFetchEnabled=true
+                      /property:GitVersion_NoFetchEnabled=true `
+                      /property:"Version=$env:BUILD_VERSION"
 
             -   name: Rename SelfContained Executable
                 run: |
@@ -64,7 +70,8 @@ jobs:
                       /target:"Restore;Publish" `
                       /m /nodeReuse:false `
                       /property:"PublishProfile=FrameworkDependent" `
-                      /property:GitVersion_NoFetchEnabled=true
+                      /property:GitVersion_NoFetchEnabled=true `
+                      /property:"Version=$env:BUILD_VERSION"
 
             -   name: Rename FrameworkDependent Executable
                 run: |

@@ -44,9 +44,9 @@ window.gwlReceive = message => {
 // Pushed by the host: opening a view from the tray, and the prompts and progress it starts itself.
 const events = {
     navigate: view => openView(view),
-    message: m => showMessage(m.title, m.text),
-    choose: c => choose(c.title, c.message, c.options).then(answer => call('answer', c.id, answer)),
-    progress: p => progressEvent(p)
+    progress: p => progressEvent(p),
+    refresh: () => { if (!popupRole && views.current === 'list') show('list'); },
+    menuPick: index => menuActions[index]?.()
 };
 
 // ===========================================================================
@@ -87,8 +87,9 @@ const DLL = 1;
 
 // Each view's window size. Forms are pinned, so the window doesn't hide when focus moves to a file picker.
 const sizes = {
-    list: [220, 340], editor: [380, 470], mods: [470, 460], issues: [470, 380],
-    settings: [420, 500], password: [380, 240], setup: [460, 420]
+    editor: [820, 500], issues: [470, 380],
+    settings: [420, 600], password: [380, 240], setup: [460, 420],
+    message: [420, 220], choose: [420, 200], progress: [420, 200], update: [460, 380]
 };
 
 let state = {};
@@ -99,11 +100,26 @@ let draft = null;
 let editing = null;
 let poll = null;
 
+// Set in a window the host opened for one view. That window shows only the view, and closes instead of showing the list.
+let popupRole = null;
+
+// Views that open in a window of their own from the list.
+const windowed = new Set(['editor', 'issues', 'settings', 'setup']);
+
 async function show(name, ...args) {
+    if (popupRole && name === 'list') {
+        call('hide');
+        return;
+    }
+
+    if (!popupRole && windowed.has(name)) {
+        call('openWindow', `${name}:${JSON.stringify(args)}`, name, args);
+        return;
+    }
+
     clearInterval(poll);
-    closeMenu();
     call('pin', name !== 'list');
-    call('resize', ...sizes[name]);
+    call('resize', ...(popupRole ? sizes[name] : await call('listSize')));
     document.getElementById('view').replaceChildren(await views[name](...args));
 }
 
@@ -120,7 +136,12 @@ function openView(view) {
 
 async function start() {
     state = await call('state');
-    if (state.locked) {
+    popupRole = await call('window');
+    if (popupRole?.view === 'menu') {
+        renderMenu(popupRole.args[0]);
+    } else if (popupRole) {
+        show(popupRole.view, ...popupRole.args);
+    } else if (state.locked) {
         show('password');
     } else if (state.startup) {
         openView(state.startup);
@@ -130,22 +151,25 @@ async function start() {
 }
 
 document.addEventListener('contextmenu', e => e.preventDefault());
-document.addEventListener('click', closeMenu);
 document.addEventListener('keydown', e => {
-    if (e.key !== 'Escape') {
-        return;
-    }
-
-    if (!document.getElementById('overlay').hidden) {
-        return;
-    }
-
-    if (views.current !== 'list') {
-        show('list');
-    } else {
-        call('hide');
+    if (e.key === 'Escape') {
+        if (popupRole?.view === 'menu' || views.current === 'list') {
+            call('hide');
+        } else {
+            show('list');
+        }
+    } else if (views.current === 'list' && listKeys[e.key]) {
+        e.preventDefault();
+        listKeys[e.key](e);
     }
 });
+
+const listKeys = {
+    ArrowDown: () => select(Math.min(selected + 1, accounts.length - 1)),
+    ArrowUp: () => select(Math.max(selected - 1, 0)),
+    Enter: e => selected >= 0 && launch(selected, e.ctrlKey),
+    Delete: () => selected >= 0 && remove(selected)
+};
 
 const views = {};
 
@@ -153,9 +177,13 @@ const views = {};
 // Account list
 // ===========================================================================
 
+// The helmet shown beside each account, fetched once.
+let rowIcon = null;
+
 views.list = async () => {
     views.current = 'list';
     state = await call('state');
+    rowIcon ??= await call('icon');
     if (state.setupNeeded) {
         return h('section', { class: 'center' },
             h('p', {}, 'Setup is needed before accounts can launch.'),
@@ -168,22 +196,42 @@ views.list = async () => {
         selected = -1;
     }
 
-    const list = h('ul', { class: 'accounts', oncontextmenu: e => openMenu(e) },
+    const list = h('ul', { class: 'accounts', hidden: entries.length === 0, oncontextmenu: e => openMenu(e) },
         entries.map((entry, i) => h('li', {
+            title: entry.name,
             class: i === selected ? 'selected' : '',
             onclick: () => select(i),
-            ondblclick: () => launch(i),
+            ondblclick: e => launch(i, e.ctrlKey),
             oncontextmenu: () => select(i)
-        }, entry.blocked ? '⚠ ' : '', entry.name)));
+        }, h('img', { class: 'icon', src: rowIcon, alt: '' }), h('span', { class: 'name' }, entry.blocked ? '⚠ ' : '', entry.name), h('span', { class: 'state' }, entry.state))));
 
+    const empty = entries.length === 0
+        ? h('div', { class: 'empty', oncontextmenu: e => openMenu(e) },
+            h('div', { class: 'stack' },
+                button('Add Account', () => show('editor', null)),
+                state.canLaunchDefaultClient && button('Launch Default GW Client', () => launchDefault())))
+        : null;
     const line = error ?? (status || (entries.length === 0 ? 'No accounts yet. Right-click to add one.' : ''));
     status = '';
-    return h('section', { class: 'list' }, list, h('p', { id: 'status', class: 'status' }, line));
+    poll = setInterval(refreshStates, 2000);
+    return h('section', { class: 'list' }, list, empty, h('p', { id: 'status', class: 'status' }, line));
 };
+
+// Keeps the Launching and Active labels current while the list is open. Skipped when the list has changed under it.
+async function refreshStates() {
+    const { entries } = await call('accounts');
+    const items = document.querySelectorAll('ul.accounts li');
+    if (views.current !== 'list' || items.length !== entries.length) {
+        return;
+    }
+
+    entries.forEach((entry, i) => { items[i].querySelector('.state').textContent = entry.state; });
+}
 
 function select(index) {
     selected = index;
     document.querySelectorAll('ul.accounts li').forEach((li, i) => li.classList.toggle('selected', i === index));
+    document.querySelectorAll('ul.accounts li')[index]?.scrollIntoView({ block: 'nearest' });
 }
 
 function setStatus(text) {
@@ -193,35 +241,63 @@ function setStatus(text) {
     }
 }
 
+// Re-reads Accounts.json on the host, then redraws the list, showing any error the reload hit.
+async function refreshAccounts() {
+    status = (await call('reloadAccounts')) ?? '';
+    show('list');
+}
+
+// Starts the default Guild Wars install with no account, showing any error the launch hit.
+async function launchDefault() {
+    status = (await call('launchDefault')) ?? '';
+    show('list');
+}
+
+// The menu's window reports the index of the picked item; the actions stay here.
+let menuActions = [];
+
 function openMenu(e) {
     e.preventDefault();
     e.stopPropagation();
     const has = selected >= 0;
-    const item = (text, action, enabled = true) =>
-        h('div', { class: enabled ? '' : 'disabled', onclick: () => { closeMenu(); if (enabled) action(); } }, text);
+    const items = [];
+    menuActions = [];
+    const item = (text, action, shown = true) => {
+        items.push({ text, hidden: !shown });
+        menuActions.push(action);
+    };
+    const rule = () => {
+        items.push({ separator: true });
+        menuActions.push(null);
+    };
 
-    const menu = document.getElementById('menu');
-    menu.replaceChildren(
-        item('Refresh Accounts', () => show('list')),
-        h('hr'),
-        item('Add New', () => show('editor', null)),
-        item('Edit Selected', () => show('editor', selected), has),
-        item('Move Up', () => move(selected, selected - 1), has && selected > 0),
-        item('Move Down', () => move(selected, selected + 1), has && selected < accounts.length - 1),
-        item('Remove Selected', () => remove(selected), has),
-        item('Launch Selected', () => launch(selected), has),
-        item('Create Desktop Shortcut', () => shortcut(selected), has && state.canCreateShortcuts),
-        item('View issues...', () => viewIssues(selected), has),
-        h('hr'),
-        item('Exit', () => call('quit')));
-
-    menu.hidden = false;
-    menu.style.left = `${Math.min(e.clientX, innerWidth - menu.offsetWidth - 4)}px`;
-    menu.style.top = `${Math.min(e.clientY, innerHeight - menu.offsetHeight - 4)}px`;
+    item('Refresh Accounts', refreshAccounts);
+    rule();
+    item('Add New', () => show('editor', null));
+    item('Edit Selected', () => show('editor', selected), has);
+    item('Move Up', () => move(selected, selected - 1), has && selected > 0);
+    item('Move Down', () => move(selected, selected + 1), has && selected < accounts.length - 1);
+    item('Remove Selected', () => remove(selected), has);
+    item('Launch Selected', () => launch(selected), has);
+    item('Launch Suspended...', () => launch(selected, true), has);
+    item('Launch Default GW Client', launchDefault, state.canLaunchDefaultClient);
+    item('Create Desktop Shortcut', () => shortcut(selected), has && state.canCreateShortcuts);
+    item('Update All Gw.exe', updateAll, accounts.length > 0);
+    item('View issues...', () => viewIssues(selected), has);
+    rule();
+    item('GWLauncher Settings...', () => show('settings'));
+    item('Exit', () => call('quit'));
+    call('openMenu', items);
 }
 
-function closeMenu() {
-    document.getElementById('menu').hidden = true;
+// The menu's own window: lists the items, reports the one picked, and sizes the window to fit.
+function renderMenu(items) {
+    views.current = 'menu';
+    const menu = h('div', { class: 'menu' }, items.map((entry, i) => entry.separator
+        ? h('hr')
+        : h('div', { hidden: entry.hidden, onclick: () => call('menuPick', i) }, entry.text)));
+    document.getElementById('view').replaceChildren(menu);
+    call('resize', Math.ceil(menu.offsetWidth), Math.ceil(menu.offsetHeight));
 }
 
 async function move(from, to) {
@@ -246,16 +322,21 @@ async function remove(index) {
     show('list');
 }
 
-async function launch(index) {
+async function launch(index, suspended = false) {
     const name = accounts[index].name;
-    setStatus(`Starting ${name}…`);
-    const result = await call('launch', index);
+    setStatus(suspended ? `Starting ${name} paused…` : `Starting ${name}…`);
+    const result = await call('launch', index, suspended);
     setStatus('');
     if (result.issues) {
         show('issues', { index, name, issues: result.issues, canLaunch: result.canLaunch, launchBlocked: true });
     } else if (result.error) {
         showMessage(`Can't start ${name}`, result.error);
     }
+}
+
+async function updateAll() {
+    setStatus('Updating Gw.exe…');
+    setStatus(await call('updateAll'));
 }
 
 async function shortcut(index) {
@@ -276,7 +357,7 @@ async function viewIssues(index) {
 // Account editor
 // ===========================================================================
 
-// Field rows edit the draft directly; Save sends it to the host, which validates it.
+// The fields sit on the left and the mod list on the right. Field rows edit the draft directly; Save sends it to the host.
 views.editor = async (index, keepDraft) => {
     views.current = 'editor';
     if (!keepDraft) {
@@ -284,8 +365,8 @@ views.editor = async (index, keepDraft) => {
         editing = index;
     }
 
-    const field = (label, key, attrs = {}, trailing = null) => h('label', { class: 'row' },
-        h('span', {}, label),
+    const field = (label, key, attrs = {}, trailing = null, required = false) => h('label', { class: 'row' },
+        h('span', {}, label, required && h('span', { class: 'required' }, ' *')),
         h('input', { type: 'text', value: draft[key] ?? '', ...attrs, oninput: e => { draft[key] = e.target.value; } }),
         trailing ?? h('span'));
     const browse = key => button('...', async () => {
@@ -297,19 +378,18 @@ views.editor = async (index, keepDraft) => {
     }, { class: 'small' });
 
     const credentials = [
-        field('Email:', 'email'),
+        field('Email:', 'email', {}, null, true),
         field('Pass:', 'password', { type: 'password' }),
         field('Char:', 'character')
     ];
     const setCredentialsVisible = () => credentials.forEach(row => { row.hidden = draft.steamAccount; });
     const error = h('p', { class: 'error' });
-    const broken = draft.mods.some(mod => mod.active && !mod.readOnly && mod.problem);
 
-    const body = h('section', {},
+    const fields = h('div', { class: 'pane fields' },
         h('h2', {}, editing == null ? 'Add Account' : 'Modify Account'),
         field('Title:', 'title'),
         credentials,
-        field(state.hasLinuxPaths ? 'Win path:' : 'Path:', 'gwPath', {}, state.hasLinuxPaths ? null : browse('gwPath')),
+        field(state.hasLinuxPaths ? 'Win path:' : 'Path:', 'gwPath', {}, state.hasLinuxPaths ? null : browse('gwPath'), true),
         state.hasLinuxPaths && field('Linux path:', 'linuxGwPath', {}, browse('linuxGwPath')),
         field('Ex Args:', 'extraArgs'),
         state.hasWindowsOptions && h('label', { class: 'check' },
@@ -317,10 +397,15 @@ views.editor = async (index, keepDraft) => {
             'Steam account'),
         state.hasWindowsOptions && h('label', { class: 'check' },
             h('input', { type: 'checkbox', checked: draft.elevated, onchange: e => { draft.elevated = e.target.checked; } }),
-            'Run as administrator'),
+            'Run as administrator'));
+
+    const body = h('section', {},
+        h('div', { class: 'split' },
+            fields,
+            h('div', { class: 'divider' }),
+            h('div', { class: 'pane mods', id: 'mods-pane' }, await modsContent())),
         error,
         h('div', { class: 'buttons' },
-            button(`Mods (${draft.mods.length})${broken ? ' ⚠' : ''}`, () => show('mods'), { class: 'left' }),
             button('Cancel', () => show('list')),
             button('Save', async () => {
                 const message = await call('save', editing, draft);
@@ -336,13 +421,9 @@ views.editor = async (index, keepDraft) => {
     return body;
 };
 
-// ===========================================================================
-// Mod manager
-// ===========================================================================
-
-// Edits the draft's mods. Plugin-folder files are listed read-only when the account uses them.
-views.mods = async () => {
-    views.current = 'mods';
+// The mod list beside the fields. Plugin-folder files are listed read-only when the account uses them.
+// Changes re-render this list only, so the fields keep whatever was typed.
+async function modsContent() {
     const plugins = draft.usePluginFolderMods ? await call('pluginFiles', draft) : [];
     const message = h('p', { class: 'error' });
     const rows = [...draft.mods, ...plugins];
@@ -362,7 +443,7 @@ views.mods = async () => {
                 if (path) {
                     mod.linuxPath = path;
                     Object.assign(mod, await call('refreshMod', mod));
-                    show('mods');
+                    refreshMods();
                 }
             }, { class: 'small' }),
             mod.canResolve && button('Resolve…', async e => {
@@ -371,7 +452,7 @@ views.mods = async () => {
                 if (!mod.readOnly) {
                     Object.assign(mod, await call('refreshMod', mod));
                 }
-                show('mods');
+                refreshMods();
             }, { class: 'small' }));
 
         const item = h('li', {
@@ -390,10 +471,10 @@ views.mods = async () => {
         return item;
     };
 
-    return h('section', {},
-        h('h2', {}, 'Mod Manager'),
+    return [
+        h('h2', {}, 'Mods'),
         h('label', { class: 'check' },
-            h('input', { type: 'checkbox', checked: draft.usePluginFolderMods, onchange: e => { draft.usePluginFolderMods = e.target.checked; show('mods'); } }),
+            h('input', { type: 'checkbox', checked: draft.usePluginFolderMods, onchange: e => { draft.usePluginFolderMods = e.target.checked; refreshMods(); } }),
             'Use plugin folder mods'),
         h('ul', { class: 'mods' }, rows.map(row)),
         message,
@@ -408,7 +489,7 @@ views.mods = async () => {
                     fileName: path, type: isDll(path) ? DLL : 0, active: true, linuxPath: '',
                     target: null, readOnly: false, problem: '', canLocate: false, canResolve: false
                 }));
-                show('mods');
+                refreshMods();
             }),
             button('Remove Selected', () => {
                 if (picked.size === 0) {
@@ -417,10 +498,14 @@ views.mods = async () => {
                 }
 
                 draft.mods = draft.mods.filter(mod => !picked.has(mod));
-                show('mods');
-            }),
-            button('Back', () => show('editor', editing, true))));
-};
+                refreshMods();
+            }))
+    ];
+}
+
+async function refreshMods() {
+    document.getElementById('mods-pane')?.replaceChildren(...await modsContent());
+}
 
 // ===========================================================================
 // Issues
@@ -483,6 +568,7 @@ views.issues = async ({ index, name, issues, canLaunch, launchBlocked }) => {
 views.settings = async () => {
     views.current = 'settings';
     state = await call('state');
+    const encrypted = await call('encrypted');
     const settings = { ...state.settings };
     const error = h('p', { class: 'error' });
     const box = (key, label, description, enabled = true) => h('div', {},
@@ -495,12 +581,49 @@ views.settings = async () => {
         document.getElementById('launchMinimized').disabled = !(state.hasTray && settings.keepInSystemTray);
     };
 
+    const password = h('input', { type: 'password', placeholder: encrypted ? '(set)' : '(none)' });
+    const passwordFields = h('div', { hidden: !encrypted },
+        h('label', { class: 'row wide' }, h('span', {}, 'Master password:'), password, h('span')),
+        h('label', { class: 'check indent' },
+            h('input', { type: 'checkbox', onchange: e => { password.type = e.target.checked ? 'text' : 'password'; } }),
+            'Show password'));
+    const protect = h('input', { type: 'checkbox', checked: encrypted, onchange: e => { passwordFields.hidden = !e.target.checked; } });
+
+    // The field is never pre-filled, so an empty field while protected keeps the current password.
+    const applyPassword = async () => {
+        const protecting = protect.checked;
+        if (protecting && !password.value && !encrypted) {
+            error.textContent = 'Enter a password, or untick "Password protect Accounts.json".';
+            return false;
+        }
+
+        if (!(protecting ? password.value !== '' : encrypted)) {
+            return true;
+        }
+
+        if (!protecting && await choose('Remove password protection', 'Accounts.json will be stored as plain text, including your account passwords.', ['No', 'Yes']) !== 1) {
+            return false;
+        }
+
+        const message = await call('setMasterPassword', protecting ? password.value : '');
+        if (message) {
+            error.textContent = message;
+            return false;
+        }
+
+        return true;
+    };
+
     const body = h('section', {},
         h('h2', {}, 'General'),
         box('keepInSystemTray', 'Keep in system tray', state.hasTray
             ? 'Run from a tray icon; closing hides it to the tray.'
             : 'Not available: no system tray was found on this desktop.', state.hasTray),
         box('launchMinimized', 'Launch minimised', 'Start hidden in the tray instead of showing the window.'),
+        h('h2', {}, 'Security'),
+        h('label', { class: 'check' }, protect, 'Password protect Accounts.json'),
+        h('p', { class: 'note indent' }, 'Encrypts saved accounts; asked for at startup.'),
+        passwordFields,
         h('h2', {}, 'Updates'),
         box('checkForUpdates', 'Check for updates', 'Look for new launcher and Gw.exe versions at startup.'),
         box('autoUpdate', 'Auto update', 'Install launcher updates without asking first.'),
@@ -516,6 +639,10 @@ views.settings = async () => {
                 const timeout = Number(settings.timeoutOnModlaunch);
                 if (!Number.isInteger(timeout) || timeout <= 0) {
                     error.textContent = 'Enter the mod launch timeout as a whole number of milliseconds.';
+                    return;
+                }
+
+                if (!await applyPassword()) {
                     return;
                 }
 
@@ -566,6 +693,10 @@ views.setup = async () => {
         h('span', { class: 'mark' }, item.done ? '✓' : '○'),
         h('div', {}, h('strong', {}, item.title), h('p', { class: 'note' }, item.description)))));
 
+    const folderInput = items[next]?.folder
+        ? h('input', { type: 'text', value: items[next].folder, disabled: progress.running })
+        : null;
+
     let message;
     if (complete) {
         message = 'Click the tray icon to open the launcher.';
@@ -592,11 +723,13 @@ views.setup = async () => {
         h('h2', {}, complete ? 'Setup complete' : 'GW Launcher needs a few things before it can run accounts.'),
         steps,
         h('p', {}, message),
+        progress.error && h('p', { class: 'error' }, progress.error),
         progress.running && h('progress'),
         progress.running && h('p', { class: 'note', id: 'setupLog' }, progress.lastLine),
+        folderInput && h('label', { class: 'row wide' }, h('span', {}, 'Install to:'), folderInput),
         h('div', { class: 'buttons' },
             !complete && button(`Install ${items[next].title}`, async () => {
-                const error = await call('startSetup');
+                const error = await call('startSetup', folderInput ? folderInput.value.trim() : null);
                 if (error) {
                     showMessage('Setup', error);
                 }
@@ -606,51 +739,72 @@ views.setup = async () => {
 };
 
 // ===========================================================================
-// Overlays: message, choice and progress
+// Dialogs: message, choice and progress
 // ===========================================================================
 
-function overlay(...children) {
-    const panel = document.getElementById('overlay');
-    panel.replaceChildren(h('div', {}, ...children));
-    panel.hidden = false;
-    return () => { panel.hidden = true; };
-}
-
-// An error message with the versions, and a button that copies it all for a bug report.
-function showMessage(title, text) {
+// Each dialog is a window of its own, opened by the host. Progress updates arrive as events for that window.
+views.message = async ({ title, text }) => {
+    views.current = 'message';
     const report = `${title}\n${text}\n\n${state.version ?? ''}`;
-    const close = overlay(
+    return h('section', {},
         h('h2', {}, title),
         h('p', { class: 'error' }, text),
         h('p', { class: 'note' }, state.version ?? ''),
         h('div', { class: 'buttons' },
             button('Copy', e => { call('copy', report); e.target.textContent = 'Copied'; }),
-            button('OK', () => close())));
-}
+            button('OK', () => call('hide'))));
+};
 
-function choose(title, message, options) {
-    return new Promise(resolve => {
-        const close = overlay(
-            h('h2', {}, title),
-            h('p', {}, message),
-            h('div', { class: 'buttons' }, options.map((option, i) => button(option, () => { close(); resolve(i); }))));
-    });
-}
+// The update prompt: the release notes and a link to the release, with Not now focused so Enter declines.
+views.update = async ({ id, title, message, notes, releaseUrl }) => {
+    views.current = 'update';
+    const notNow = button('Not now', () => { call('answer', id, 0); call('hide'); });
+    setTimeout(() => notNow.focus());
+    return h('section', {},
+        h('h2', {}, title),
+        h('p', {}, message),
+        h('p', { class: 'note' }, "What's new:"),
+        h('pre', { class: 'notes' }, notes),
+        h('div', { class: 'buttons' },
+            releaseUrl && h('button', { class: 'left', onclick: () => call('openUrl', releaseUrl) }, 'View release on GitHub'),
+            notNow,
+            button('Update', () => { call('answer', id, 1); call('hide'); })));
+};
 
+views.choose = async ({ id, title, message, options }) => {
+    views.current = 'choose';
+    return h('section', {},
+        h('h2', {}, title),
+        h('p', {}, message),
+        h('div', { class: 'buttons' }, options.map((option, i) => button(option, () => { call('answer', id, i); call('hide'); }))));
+};
+
+// Progress events can arrive before this view is drawn, so they wait until it is.
 let progressView = null;
+let pendingProgress = [];
+
+views.progress = async ({ heading, note, cancellable }) => {
+    views.current = 'progress';
+    const bar = h('progress');
+    const detail = h('p', { class: 'note' });
+    const failure = h('p', { class: 'error' });
+    const actions = h('div', { class: 'buttons' },
+        cancellable && button('Cancel', e => { e.target.disabled = true; e.target.textContent = 'Cancelling…'; call('cancel'); }));
+    progressView = { bar, detail, failure, actions };
+    pendingProgress.splice(0).forEach(progressEvent);
+    return h('section', {},
+        h('h2', {}, heading),
+        note && h('p', { class: 'note' }, note),
+        bar,
+        detail,
+        failure,
+        actions);
+};
 
 function progressEvent(p) {
-    if (p.phase === 'start') {
-        const bar = h('progress');
-        const detail = h('p', { class: 'note' });
-        const close = overlay(
-            h('h2', {}, p.heading),
-            p.note && h('p', { class: 'note' }, p.note),
-            bar,
-            detail,
-            p.cancellable && h('div', { class: 'buttons' }, button('Cancel', e => { e.target.disabled = true; e.target.textContent = 'Cancelling…'; call('cancel'); })));
-        progressView = { bar, detail, close };
-    } else if (p.phase === 'update' && progressView) {
+    if (!progressView) {
+        pendingProgress.push(p);
+    } else if (p.phase === 'update') {
         if (p.fraction == null) {
             progressView.bar.removeAttribute('value');
         } else {
@@ -658,12 +812,20 @@ function progressEvent(p) {
         }
         progressView.detail.textContent = p.detail;
     } else if (p.phase === 'end') {
-        progressView?.close();
-        progressView = null;
+        call('hide');
     } else if (p.phase === 'failed') {
-        progressView = null;
-        const close = overlay(h('p', { class: 'error' }, p.text), h('div', { class: 'buttons' }, button('Close', () => close())));
+        progressView.failure.textContent = p.text;
+        progressView.actions.replaceChildren(button('Close', () => call('hide')));
     }
+}
+
+// The page's own messages and choices open the same dialog windows as the host's.
+function showMessage(title, text) {
+    call('message', title, text);
+}
+
+function choose(title, message, options) {
+    return call('choose', title, message, options);
 }
 
 start();

@@ -7,8 +7,8 @@
         <RootNamespace>GwLauncher.Tray</RootNamespace>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
-        <!-- Shown in error reports, so bump it when the launcher is released. -->
-        <Version>0.1.0</Version>
+        <!-- Shown in error reports. The publish scripts set it from GitVersion; this is only the fallback for IDE builds. -->
+        <Version>0.0.0</Version>
     </PropertyGroup>
 
     <ItemGroup>

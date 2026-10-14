@@ -45,7 +45,8 @@ internal static class Program
         }
 
         using var shell = new WebViewShell(host);
-        StartShell(shell, new LauncherBridge(host, shell) { Startup = startup }, startup != null);
+        var bridge = new LauncherBridge(host, shell, onClosed => new WebViewShell(host, onClosed)) { Startup = startup };
+        StartShell(shell, bridge, startup != null);
         Application.Run();
         return 0;
     }
@@ -54,7 +55,7 @@ internal static class Program
     {
         try
         {
-            await shell.Start(bridge, showAtStart);
+            await shell.Start(showAtStart);
         }
         catch (Exception ex)
         {

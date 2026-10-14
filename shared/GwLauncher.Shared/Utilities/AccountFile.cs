@@ -8,6 +8,12 @@ public static class AccountFile
         return SHA256.HashData(Encoding.UTF8.GetBytes(password));
     }
 
+    // True when the password is the one the file is protected with now. An empty password matches a plain file.
+    public static bool IsCurrent(byte[]? currentHash, string password) =>
+        string.IsNullOrEmpty(password)
+            ? currentHash == null
+            : currentHash != null && System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(currentHash, HashPassword(password));
+
     // The SecureAES password string is the UTF-8 view of SHA-256(plaintext), so existing encrypted files still decrypt.
     public static string DeriveKey(byte[] passwordHash)
     {

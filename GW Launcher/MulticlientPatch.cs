@@ -61,7 +61,7 @@ internal static class MulticlientPatch
         return null;
     }
 
-    public static string? LaunchClient(Account account, out GWCAMemory? memory)
+    public static string? LaunchClient(Account account, Func<bool>? confirmResume, out GWCAMemory? memory)
     {
         var path = account.gwpath;
         Process? process = null;
@@ -111,8 +111,11 @@ internal static class MulticlientPatch
             }
 		}
 
-        var args = string.Join(" ", GameLaunchArguments.ForAccount(account.email, account.password, account.character)
-            .Select(argument => $"{argument.Flag} \"{argument.Value}\""));
+        // An account without an email is a default client launch, which passes no login arguments.
+        var arguments = string.IsNullOrEmpty(account.email)
+            ? new List<(string Flag, string Value)>()
+            : GameLaunchArguments.ForAccount(account.email, account.password, account.character);
+        var args = string.Join(" ", arguments.Select(argument => $"{argument.Flag} \"{argument.Value}\""));
         args += $" {account.extraargs}";
 
         err = LaunchClient(path, args, account.elevated, out var procinfo);
@@ -132,9 +135,22 @@ internal static class MulticlientPatch
 
         memory = new GWCAMemory(process);
 
+        // The game is still suspended here, before any mod is loaded.
+        if (confirmResume != null && !confirmResume())
+        {
+            err = "Launch was cancelled.";
+            goto cleanup;
+        }
+
 foreach (var dll in ModManager.GetDlls(account))
         {
             var loadModuleResult = memory.LoadModule(dll);
+            if (loadModuleResult == GWCAMemory.LoadModuleResult.REMOTE_THREAD_DID_NOT_START)
+            {
+                err = $"The mod {Path.GetFileName(dll)} didn't load within the {Program.Settings.TimeoutOnModlaunch} ms limit. Increase Timeout (ms) under Settings > Advanced.";
+                goto cleanup;
+            }
+
             if (loadModuleResult != GWCAMemory.LoadModuleResult.SUCCESSFUL)
             {
                 err = GetErrorMessage($"Result {loadModuleResult}: memory.LoadModule({dll})",

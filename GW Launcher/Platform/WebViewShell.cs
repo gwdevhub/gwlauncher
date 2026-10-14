@@ -1,26 +1,33 @@
 using GwLauncher.Ui;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.WinForms;
+using Microsoft.Win32;
 
 namespace GW_Launcher.Platform;
 
-// The Windows window: a form holding a WebView2 view of the shared page, and a tray icon whose rectangle Windows
-// reports, so the window opens right beside it.
+// A form holding a WebView2 view of the shared page. The main window also has the tray icon, whose rectangle Windows
+// reports, so it opens right beside it. Other windows are popups: they centre, stay open, and close with Hide.
 internal sealed class WebViewShell : Form, IShell
 {
+    private static Task<CoreWebView2Environment>? _environment;
     private readonly ILauncherHost _host;
+    private readonly Action? _onClosed;
     private readonly WebView2 _view = new() { Dock = DockStyle.Fill };
     private readonly NotifyIcon _tray = new();
-    private readonly ContextMenuStrip _menu = new();
-    private LauncherBridge _bridge = null!;
-    private Size _pageSize = new(220, 340);
+    private Task _ready = Task.CompletedTask;
+    private Size _pageSize;
     private bool _pinned;
+    private bool _isMenu;
+    private bool _menuShown;
+    private Point _menuAnchor;
     private bool _quitting;
     private long _hiddenAt;
 
-    public WebViewShell(ILauncherHost host)
+    public WebViewShell(ILauncherHost host, Action? onClosed = null)
     {
         _host = host;
+        _onClosed = onClosed;
+        _pageSize = new Size(host.Settings.ListWidth, host.Settings.ListHeight);
         Text = "GW Launcher";
         Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath);
         MaximizeBox = false;
@@ -29,28 +36,28 @@ internal sealed class WebViewShell : Form, IShell
         Controls.Add(_view);
 
         _tray.Icon = Icon;
-        _tray.Text = "GW Launcher";
-        _tray.ContextMenuStrip = _menu;
-        _tray.MouseClick += (_, e) =>
-        {
-            if (e.Button == MouseButtons.Left)
-            {
-                ToggleFromTray();
-            }
-        };
-        _menu.Opening += (_, _) => BuildMenu();
+        _tray.Text = LauncherBridge.VersionLine();
+        _tray.MouseClick += (_, _) => ToggleFromTray();
 
         // With the tray in use, closing hides the window and clicking elsewhere dismisses it, like a tray flyout.
         Deactivate += (_, _) =>
         {
-            if (KeepInTray && !_pinned)
+            if (_isMenu)
             {
-                HideWindow();
+                // Focus can leave a menu before it's shown, so only a menu on screen is dismissed by it.
+                if (_menuShown && Visible)
+                {
+                    HideWindow();
+                }
+            }
+            else
+            {
+                HideUnlessPointerOver();
             }
         };
         FormClosing += (_, e) =>
         {
-            if (_quitting)
+            if (_quitting || IsPopup)
             {
                 return;
             }
@@ -66,9 +73,38 @@ internal sealed class WebViewShell : Form, IShell
             }
         };
 
+        // A resize by dragging the edges is remembered once it ends. Resizes from the page are reported by Resize.
+        ResizeEnd += (_, _) =>
+        {
+            if (!IsPopup && Visible)
+            {
+                _pageSize = new Size(ClientSize.Width * 96 / DeviceDpi, ClientSize.Height * 96 / DeviceDpi);
+                PageSizeChanged?.Invoke(_pageSize.Width, _pageSize.Height);
+            }
+        };
+
+        LocationChanged += (_, _) =>
+        {
+            if (!IsPopup && !KeepInTray && Visible)
+            {
+                PositionChanged?.Invoke(Location.X, Location.Y);
+            }
+        };
+
+        FormClosed += (_, _) =>
+        {
+            if (IsPopup)
+            {
+                _onClosed!();
+                Dispose();
+            }
+        };
+
         // Invoke needs a window handle, and the page loads into a hidden window before it's first shown.
         _ = Handle;
     }
+
+    private bool IsPopup => _onClosed != null;
 
     // Windows always has a notification area.
     bool IShell.HasTray => true;
@@ -80,18 +116,14 @@ internal sealed class WebViewShell : Form, IShell
 
     private bool KeepInTray => _host.Settings.KeepInSystemTray;
 
-    public async Task Start(LauncherBridge bridge, bool showAtStart)
+    public void Attach(Action<string> onMessage) => _ready = LoadPage(onMessage);
+
+    public async Task Start(bool showAtStart)
     {
-        _bridge = bridge;
-        _tray.Visible = true;
+        _tray.Visible = KeepInTray;
 
-        var userData = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "GW_Launcher", "WebView2");
-        await _view.EnsureCoreWebView2Async(await CoreWebView2Environment.CreateAsync(userDataFolder: userData));
-        _view.CoreWebView2.Settings.AreDefaultContextMenusEnabled = false;
-        _view.CoreWebView2.Settings.IsStatusBarEnabled = false;
-        _view.CoreWebView2.WebMessageReceived += (_, e) => _bridge.Receive(e.TryGetWebMessageAsString());
-        _view.CoreWebView2.NavigateToString(WebAssets.Page());
-
+        await _ready;
+        ApplyMainLook();
         _host.StartBackground();
         if (showAtStart || !KeepInTray || !_host.Settings.LaunchMinimized)
         {
@@ -99,11 +131,34 @@ internal sealed class WebViewShell : Form, IShell
         }
     }
 
+    private async Task LoadPage(Action<string> onMessage)
+    {
+        var userData = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "GW_Launcher", "WebView2");
+        _environment ??= CoreWebView2Environment.CreateAsync(userDataFolder: userData);
+        await _view.EnsureCoreWebView2Async(await _environment);
+        _view.CoreWebView2.Settings.AreDefaultContextMenusEnabled = false;
+        _view.CoreWebView2.Settings.IsStatusBarEnabled = false;
+        _view.CoreWebView2.WebMessageReceived += (_, e) => onMessage(e.TryGetWebMessageAsString());
+        _view.CoreWebView2.NavigateToString(WebAssets.Page());
+    }
+
+    public void RunOnUi(Action work) => OnUi(work);
+
     public void Post(string json) => OnUi(() => _view.CoreWebView2?.ExecuteScriptAsync($"gwlReceive({json})"));
 
     void IShell.Show() => OnUi(ShowNearTray);
 
+    void IShell.ShowMenu() => OnUi(() =>
+    {
+        _isMenu = true;
+        _menuAnchor = Cursor.Position;
+        FormBorderStyle = FormBorderStyle.None;
+        TopMost = true;
+    });
+
     void IShell.Hide() => OnUi(HideWindow);
+
+    void IShell.HideUnlessPointerOver() => OnUi(HideUnlessPointerOver);
 
     void IShell.Quit() => OnUi(() =>
     {
@@ -112,19 +167,33 @@ internal sealed class WebViewShell : Form, IShell
         Application.Exit();
     });
 
+    public event Action<int, int>? PageSizeChanged;
+
+    public event Action<int, int>? PositionChanged;
+
     void IShell.Resize(int width, int height)
     {
         _pageSize = new Size(width, height);
+        if (!IsPopup)
+        {
+            PageSizeChanged?.Invoke(width, height);
+        }
+
         OnUi(() =>
         {
             if (Visible)
             {
                 Place();
             }
+            else if (_isMenu)
+            {
+                ShowNearTray();
+            }
         });
     }
 
     public void CopyText(string text) => OnUi(() => Clipboard.SetText(text));
+
 
     public Task<string?> PickFile(string title, bool modsOnly)
     {
@@ -132,21 +201,79 @@ internal sealed class WebViewShell : Form, IShell
         OnUi(() =>
         {
             using var dialog = new OpenFileDialog { Title = title, Filter = modsOnly ? "Mods|*.dll;*.tpf;*.zip" : "Guild Wars|Gw.exe" };
+            if (!modsOnly && GuildWarsFolder() is { } folder)
+            {
+                dialog.InitialDirectory = folder;
+            }
+
             picked.SetResult(dialog.ShowDialog(this) == DialogResult.OK ? dialog.FileName : null);
         });
         return picked.Task;
     }
 
+    // The install folder the Guild Wars installer records, so the browse starts where Gw.exe is.
+    private static string? GuildWarsFolder() =>
+        Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\ArenaNet\Guild Wars", "Path", null) as string ??
+        Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\ArenaNet\Guild Wars", "Path", null) as string;
+
     private void ShowNearTray()
     {
-        ShowInTaskbar = !KeepInTray;
+        if (IsPopup)
+        {
+            ShowInTaskbar = !_isMenu;
+            FormBorderStyle = _isMenu ? FormBorderStyle.None : FormBorderStyle.Sizable;
+        }
+        else
+        {
+            ApplyMainLook();
+        }
+
         Place();
         Show();
         Activate();
+        _menuShown |= _isMenu;
+    }
+
+    // The main window's tray icon, frame and taskbar entry for the current mode. Applied at launch and whenever the setting changes.
+    private void ApplyMainLook()
+    {
+        _tray.Visible = KeepInTray;
+        FormBorderStyle = KeepInTray ? FormBorderStyle.None : FormBorderStyle.Sizable;
+        MinimizeBox = MaximizeBox = !KeepInTray;
+        ShowInTaskbar = !KeepInTray;
+    }
+
+    // Changes the main window to the current mode in place, and shows it when leaving tray mode so it isn't lost.
+    public void ApplyWindowMode() => OnUi(() =>
+    {
+        ApplyMainLook();
+        if (Visible)
+        {
+            Place();
+        }
+        else if (!KeepInTray)
+        {
+            ShowNearTray();
+        }
+    });
+
+    // Focus moving to the menu from a click on this window isn't a dismissal, so the pointer decides.
+    private void HideUnlessPointerOver()
+    {
+        if (!IsPopup && KeepInTray && !_pinned && !(Visible && Bounds.Contains(Cursor.Position)))
+        {
+            HideWindow();
+        }
     }
 
     private void HideWindow()
     {
+        if (IsPopup)
+        {
+            Close();
+            return;
+        }
+
         Hide();
         _hiddenAt = Environment.TickCount64;
     }
@@ -155,13 +282,40 @@ internal sealed class WebViewShell : Form, IShell
     // rectangle can't be read.
     private void Place()
     {
-        Size = SizeFromClientSize(new Size(LogicalToDeviceUnits(_pageSize.Width), LogicalToDeviceUnits(_pageSize.Height)));
-        var icon = TrayIconBounds();
-        var area = Screen.FromPoint(icon?.Location ?? Cursor.Position).WorkingArea;
+        if (_isMenu)
+        {
+            PlaceMenu();
+            return;
+        }
+
+        var icon = IsPopup ? null : TrayIconBounds();
+        var saved = !IsPopup && !KeepInTray ? SavedPosition() : null;
+        var area = Screen.FromPoint(saved ?? icon?.Location ?? Cursor.Position).WorkingArea;
         var workArea = new ScreenRect(area.X, area.Y, area.Width, area.Height);
-        var (x, y) = icon is { } bounds
-            ? WindowPlacement.NextToIcon(new ScreenRect(bounds.X, bounds.Y, bounds.Width, bounds.Height), Width, Height, workArea)
-            : WindowPlacement.Centred(Width, Height, workArea);
+        var wanted = SizeFromClientSize(new Size(LogicalToDeviceUnits(_pageSize.Width), LogicalToDeviceUnits(_pageSize.Height)));
+        var height = Math.Min(wanted.Height, workArea.Height);
+
+        var tray = icon is { } && _host.Settings.KeepInSystemTray;
+        var width = Math.Min(tray ? LogicalToDeviceUnits(WindowPlacement.TrayWidth) : wanted.Width, workArea.Width);
+        var (x, y) = saved is { } at
+            ? WindowPlacement.AtPoint(at.X, at.Y, width, height, workArea)
+            : icon is { } near
+                ? WindowPlacement.NextToIcon(new ScreenRect(near.X, near.Y, near.Width, near.Height), width, height, workArea)
+                : WindowPlacement.Centred(width, height, workArea);
+
+        Size = new Size(width, height);
+        Location = new Point(x, y);
+    }
+
+    private Point? SavedPosition() => _host.Settings.ListX is { } x && _host.Settings.ListY is { } y ? new Point(x, y) : null;
+
+    private void PlaceMenu()
+    {
+        var area = Screen.FromPoint(_menuAnchor).WorkingArea;
+        var workArea = new ScreenRect(area.X, area.Y, area.Width, area.Height);
+        var size = SizeFromClientSize(new Size(LogicalToDeviceUnits(_pageSize.Width), LogicalToDeviceUnits(_pageSize.Height)));
+        var (x, y) = WindowPlacement.AtPoint(_menuAnchor.X, _menuAnchor.Y, size.Width, size.Height, workArea);
+        Size = size;
         Location = new Point(x, y);
     }
 
@@ -190,27 +344,6 @@ internal sealed class WebViewShell : Form, IShell
         ShowNearTray();
     }
 
-    // The menu is rebuilt each time it opens, so it always lists the current accounts.
-    private void BuildMenu()
-    {
-        _menu.Items.Clear();
-        foreach (var item in TrayMenu.Build(_host, _bridge, this))
-        {
-            if (item.Separator)
-            {
-                _menu.Items.Add(new ToolStripSeparator());
-                continue;
-            }
-
-            var menuItem = new ToolStripMenuItem(item.Text) { Enabled = item.OnClick != null };
-            if (item.OnClick is { } onClick)
-            {
-                menuItem.Click += (_, _) => onClick();
-            }
-
-            _menu.Items.Add(menuItem);
-        }
-    }
 
     private void OnUi(Action work)
     {

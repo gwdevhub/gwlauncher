@@ -5,30 +5,41 @@ using GwLauncher.Ui;
 
 namespace GwLauncher.Tray;
 
-// The Linux window: a GTK window holding a WebKitGTK view of the shared page, and a tray icon whose position GTK reports,
-// so the window opens right beside it.
+// A GTK window holding a WebKitGTK view of the shared page. The main window also owns the tray icon, whose position GTK
+// reports, so it opens right beside it. Other windows are popups: they centre, stay open, and close with Hide.
 internal sealed class GtkShell : IShell
 {
     private readonly ILauncherHost _host;
+    private readonly Action? _onClosed;
+    private bool _closed;
     private readonly ConcurrentQueue<Action> _uiWork = new();
 
     // Delegates handed to GTK are kept here, so the garbage collector can't free one GTK still calls.
     private readonly List<Delegate> _callbacks = new();
     private readonly Gtk.SourceFunc _drainUiWork;
-    private readonly IntPtr _positionMenu;
-    private LauncherBridge _bridge = null!;
     private IntPtr _window;
     private IntPtr _view;
     private IntPtr _icon;
-    private IntPtr _menu;
-    private int _width = 220;
-    private int _height = 340;
+    private int _width;
+    private int _height;
+    private (int Width, int Height) _lastSize;
     private bool _pinned;
+    private bool _isMenu;
+    private bool _menuShown;
+    private (int X, int Y) _anchor;
     private long _hiddenAt;
 
-    public GtkShell(ILauncherHost host)
+    public event Action<int, int>? PageSizeChanged;
+
+    public event Action<int, int>? PositionChanged;
+
+    public GtkShell(ILauncherHost host, Action? onClosed = null)
     {
         _host = host;
+        _onClosed = onClosed;
+        _width = host.Settings.ListWidth;
+        _height = host.Settings.ListHeight;
+        _lastSize = (_width, _height);
         _drainUiWork = _ =>
         {
             while (_uiWork.TryDequeue(out var work))
@@ -38,8 +49,6 @@ internal sealed class GtkShell : IShell
 
             return false;
         };
-        _positionMenu = System.Runtime.InteropServices.NativeLibrary.GetExport(
-            System.Runtime.InteropServices.NativeLibrary.Load("libgtk-3.so.0"), "gtk_status_icon_position_menu");
     }
 
     public bool HasTray { get; private set; }
@@ -49,19 +58,30 @@ internal sealed class GtkShell : IShell
         set => _pinned = value;
     }
 
+    private bool IsPopup => _onClosed != null;
+
+    // GDK_FUNC_MOVE | GDK_FUNC_CLOSE
+    private const int GdkFunctionsMoveAndClose = 4 | 32;
+
+    // GDK_FUNC_RESIZE as well, for the account list, which the user can resize.
+    private const int GdkFunctionsMoveCloseAndResize = 2 | 4 | 32;
+
+    // GDK_FUNC_MINIMIZE and GDK_FUNC_MAXIMIZE as well, for the account list outside tray mode.
+    private const int GdkFunctionsAll = 2 | 4 | 8 | 16 | 32;
+
     private bool KeepInTray => HasTray && _host.Settings.KeepInSystemTray;
 
-    // Builds the window and tray icon, then runs GTK until Quit.
-    public void Run(LauncherBridge bridge, bool showAtStart)
+    public void Attach(Action<string> onMessage) => CreateWindow(WebAssets.SaveIcon(AppPaths.IconFile), onMessage);
+
+    // Builds the tray icon, then runs GTK until Quit.
+    public void Run(bool showAtStart)
     {
-        _bridge = bridge;
         var iconPath = WebAssets.SaveIcon(AppPaths.IconFile);
-        CreateWindow(iconPath);
 
         _icon = Gtk.gtk_status_icon_new_from_file(iconPath);
-        Gtk.gtk_status_icon_set_tooltip_text(_icon, "GW Launcher");
+        Gtk.gtk_status_icon_set_tooltip_text(_icon, LauncherBridge.VersionLine());
         Connect(_icon, "activate", new Gtk.Signal((_, _) => ToggleFromTray()));
-        Connect(_icon, "popup-menu", new Gtk.PopupSignal((_, button, time, _) => PopupMenu(button, time)));
+        Connect(_icon, "popup-menu", new Gtk.PopupSignal((_, _, _, _) => ToggleFromTray()));
 
         // The panel embeds the icon shortly after it's created, and lays it out a moment later. Until then there's no telling
         // whether a tray exists, or where the icon is.
@@ -75,7 +95,7 @@ internal sealed class GtkShell : IShell
             }
 
             HasTray = Gtk.gtk_status_icon_is_embedded(_icon);
-            Gtk.gtk_status_icon_set_visible(_icon, HasTray);
+            Gtk.gtk_status_icon_set_visible(_icon, HasTray && _host.Settings.KeepInSystemTray);
             _host.StartBackground();
             if (showAtStart || !KeepInTray || !_host.Settings.LaunchMinimized)
             {
@@ -88,15 +108,29 @@ internal sealed class GtkShell : IShell
         Gtk.gtk_main();
     }
 
+    public void RunOnUi(Action work) => OnUi(work);
+
     public void Post(string json) => OnUi(() => Gtk.webkit_web_view_run_javascript(_view, $"gwlReceive({json})", IntPtr.Zero, IntPtr.Zero, IntPtr.Zero));
 
     public void Show() => OnUi(() =>
     {
-        Gtk.gtk_window_set_skip_taskbar_hint(_window, KeepInTray);
+        if (IsPopup)
+        {
+            Gtk.gtk_window_set_skip_taskbar_hint(_window, _isMenu);
+            Gtk.gtk_window_set_decorated(_window, !_isMenu);
+        }
+        else
+        {
+            ApplyMainLook();
+        }
+
         Gtk.gtk_window_resize(_window, _width, _height);
         Place();
         Gtk.gtk_widget_show_all(_window);
         Gtk.gtk_window_present(_window);
+        _menuShown |= _isMenu;
+
+        ApplyWindowActions();
 
         // The title bar's height is only known once the window is on screen, so it's placed again then.
         Every(50, () =>
@@ -106,8 +140,65 @@ internal sealed class GtkShell : IShell
         });
     });
 
+    // The main window's tray icon, frame and taskbar entry for the current mode. Applied at launch and whenever the setting changes.
+    private void ApplyMainLook()
+    {
+        Gtk.gtk_status_icon_set_visible(_icon, HasTray && _host.Settings.KeepInSystemTray);
+        Gtk.gtk_window_set_skip_taskbar_hint(_window, KeepInTray);
+        Gtk.gtk_window_set_decorated(_window, !KeepInTray);
+    }
+
+    // The window manager draws only the buttons the window allows. Outside tray mode the account list also gets minimise and maximise.
+    private void ApplyWindowActions()
+    {
+        var gdkWindow = Gtk.gtk_widget_get_window(_window);
+        var chrome = !IsPopup && !KeepInTray;
+        Gtk.gdk_window_set_functions(gdkWindow, IsPopup ? GdkFunctionsMoveAndClose : chrome ? GdkFunctionsAll : GdkFunctionsMoveCloseAndResize);
+        AllowActions(gdkWindow, !IsPopup, chrome);
+    }
+
+    // Changes the main window to the current mode in place, and shows it when leaving tray mode so it isn't lost.
+    public void ApplyWindowMode() => OnUi(() =>
+    {
+        ApplyMainLook();
+        if (Gtk.gtk_widget_get_visible(_window))
+        {
+            Place();
+            ApplyWindowActions();
+            Every(50, () =>
+            {
+                Place();
+                return false;
+            });
+        }
+        else if (!KeepInTray)
+        {
+            Show();
+        }
+    });
+
+    // Read now rather than on the UI thread, so the pointer is still where the right-click left it.
+    public void ShowMenu()
+    {
+        _isMenu = true;
+        _anchor = PointerPosition();
+        OnUi(() =>
+        {
+            Gtk.gtk_window_set_decorated(_window, false);
+            Gtk.gtk_window_set_keep_above(_window, true);
+        });
+    }
+
     public void Hide() => OnUi(() =>
     {
+        if (IsPopup)
+        {
+            _closed = true;
+            Gtk.gtk_widget_destroy(_window);
+            _onClosed!();
+            return;
+        }
+
         Gtk.gtk_widget_hide(_window);
         _hiddenAt = Environment.TickCount64;
     });
@@ -128,6 +219,10 @@ internal sealed class GtkShell : IShell
             if (Gtk.gtk_widget_get_visible(_window))
             {
                 Place();
+            }
+            else if (_isMenu)
+            {
+                Show();
             }
         });
     }
@@ -156,17 +251,20 @@ internal sealed class GtkShell : IShell
         return picked.Task;
     }
 
-    private void CreateWindow(string iconPath)
+    private void CreateWindow(string iconPath, Action<string> onMessage)
     {
         _window = Gtk.gtk_window_new(0);
         Gtk.gtk_window_set_title(_window, "GW Launcher");
         Gtk.gtk_window_set_icon_from_file(_window, iconPath, IntPtr.Zero);
         Gtk.gtk_window_set_default_size(_window, _width, _height);
 
+        // The page sets each window's size itself. Like the Windows forms, these have no maximise button.
+        Gtk.gtk_window_set_resizable(_window, !IsPopup);
+
         // With the tray in use, closing hides the window and clicking elsewhere dismisses it, like a tray flyout.
         Connect(_window, "delete-event", new Gtk.EventSignal((_, _, _) =>
         {
-            if (KeepInTray)
+            if (IsPopup || KeepInTray)
             {
                 Hide();
             }
@@ -177,11 +275,41 @@ internal sealed class GtkShell : IShell
 
             return true;
         }));
+        Connect(_window, "configure-event", new Gtk.EventSignal((_, _, _) =>
+        {
+            if (!IsPopup && !_closed && Gtk.gtk_widget_get_visible(_window))
+            {
+                Gtk.gtk_window_get_size(_window, out var width, out var height);
+                if ((width, height) != _lastSize)
+                {
+                    _lastSize = (width, height);
+                    _width = width;
+                    _height = height;
+                    PageSizeChanged?.Invoke(width, height);
+                }
+
+                if (!KeepInTray)
+                {
+                    Gtk.gtk_window_get_position(_window, out var left, out var top);
+                    PositionChanged?.Invoke(left, top);
+                }
+            }
+
+            return false;
+        }));
         Connect(_window, "focus-out-event", new Gtk.EventSignal((_, _, _) =>
         {
-            if (KeepInTray && !_pinned)
+            if (_isMenu)
             {
-                Hide();
+                // Focus can leave a menu before it's shown, so only a menu on screen is dismissed by it.
+                if (_menuShown)
+                {
+                    Hide();
+                }
+            }
+            else
+            {
+                HideUnlessPointerOverNow();
             }
 
             return false;
@@ -189,7 +317,7 @@ internal sealed class GtkShell : IShell
 
         var manager = Gtk.webkit_user_content_manager_new();
         Connect(manager, "script-message-received::gwl", new Gtk.MessageSignal((_, result, _) =>
-            _bridge.Receive(Gtk.TakeString(Gtk.jsc_value_to_string(Gtk.webkit_javascript_result_get_js_value(result))) ?? "")));
+            onMessage(Gtk.TakeString(Gtk.jsc_value_to_string(Gtk.webkit_javascript_result_get_js_value(result))) ?? "")));
         Gtk.webkit_user_content_manager_register_script_message_handler(manager, "gwl");
 
         _view = Gtk.webkit_web_view_new_with_user_content_manager(manager);
@@ -198,24 +326,119 @@ internal sealed class GtkShell : IShell
     }
 
     // Beside the tray icon when there is one, otherwise centred on the primary monitor.
+    // EWMH's _NET_WM_ALLOWED_ACTIONS: the window managers that honour it hide the buttons for everything not listed.
+    private static void AllowActions(IntPtr gdkWindow, bool resize, bool minimiseAndMaximise)
+    {
+        var display = Gtk.gdk_x11_get_default_xdisplay();
+        var names = new List<string> { "_NET_WM_ACTION_MOVE", "_NET_WM_ACTION_CLOSE" };
+        if (resize)
+        {
+            names.Add("_NET_WM_ACTION_RESIZE");
+        }
+
+        if (minimiseAndMaximise)
+        {
+            names.AddRange(new[] { "_NET_WM_ACTION_MINIMIZE", "_NET_WM_ACTION_MAXIMIZE_HORZ", "_NET_WM_ACTION_MAXIMIZE_VERT" });
+        }
+
+        var actions = names.Select(name => (long)Gtk.XInternAtom(display, name, false)).ToArray();
+        const int XaAtom = 4;
+        const int PropModeReplace = 0;
+        Gtk.XChangeProperty(display, Gtk.gdk_x11_window_get_xid(gdkWindow), Gtk.XInternAtom(display, "_NET_WM_ALLOWED_ACTIONS", false),
+            (IntPtr)XaAtom, 32, PropModeReplace, actions, actions.Length);
+        Gtk.XFlush(display);
+    }
+
     private void Place()
     {
-        var display = Gtk.gdk_display_get_default();
-        var (width, height) = OuterSize();
-        int x, y;
-        if (HasTray && IconBounds() is { } icon)
+        if (_closed)
         {
-            Gtk.gdk_monitor_get_workarea(Gtk.gdk_display_get_monitor_at_point(display, icon.X, icon.Y), out var area);
-                (x, y) = WindowPlacement.NextToIcon(ToScreenRect(icon), width, height, ToScreenRect(area));
+            return;
         }
-        else
+
+        if (_isMenu)
         {
-            var monitor = Gtk.gdk_display_get_primary_monitor(display);
-            Gtk.gdk_monitor_get_workarea(monitor != IntPtr.Zero ? monitor : Gtk.gdk_display_get_monitor(display, 0), out var area);
-            (x, y) = WindowPlacement.Centred(width, height, ToScreenRect(area));
+            PlaceMenu();
+            return;
+        }
+
+        var display = Gtk.gdk_display_get_default();
+        Gtk.gtk_window_get_size(_window, out var contentWidth, out var contentHeight);
+        var (frameWidth, frameHeight) = FrameSize();
+        var icon = !IsPopup && HasTray ? IconBounds() : null;
+        var saved = !IsPopup && !KeepInTray ? SavedPosition() : null;
+        var monitor = saved is { } at
+            ? Gtk.gdk_display_get_monitor_at_point(display, at.X, at.Y)
+            : icon is { } onIcon
+                ? Gtk.gdk_display_get_monitor_at_point(display, onIcon.X, onIcon.Y)
+                : Gtk.gdk_display_get_primary_monitor(display);
+        if (monitor == IntPtr.Zero)
+        {
+            monitor = Gtk.gdk_display_get_monitor(display, 0);
+        }
+
+        Gtk.gdk_monitor_get_workarea(monitor, out var area);
+        var workArea = ToScreenRect(area);
+        var width = Math.Min(icon is { } && KeepInTray ? WindowPlacement.TrayWidth : contentWidth + frameWidth, workArea.Width);
+        var height = Math.Min(contentHeight + frameHeight, workArea.Height);
+        var (x, y) = saved is { } placed
+            ? WindowPlacement.AtPoint(placed.X, placed.Y, width, height, workArea)
+            : icon is { } near
+                ? WindowPlacement.NextToIcon(ToScreenRect(near), width, height, workArea)
+                : WindowPlacement.Centred(width, height, workArea);
+
+        // Only the page is resized, so the frame is left out. The size is noted so placing it isn't taken for a user resize.
+        var content = (width - frameWidth, height - frameHeight);
+        if (content != (contentWidth, contentHeight))
+        {
+            _lastSize = content;
+            Gtk.gtk_window_resize(_window, content.Item1, content.Item2);
         }
 
         Gtk.gtk_window_move(_window, x, y);
+    }
+
+    // Where the account list was last left, when it isn't in tray mode.
+    private (int X, int Y)? SavedPosition() => _host.Settings.ListX is { } x && _host.Settings.ListY is { } y ? (x, y) : null;
+
+    // The menu is undecorated, so the page's size is the window's. It opens at the pointer, pulled inside the work area.
+    private void PlaceMenu()
+    {
+        var display = Gtk.gdk_display_get_default();
+        var monitor = Gtk.gdk_display_get_monitor_at_point(display, _anchor.X, _anchor.Y);
+        if (monitor == IntPtr.Zero)
+        {
+            monitor = Gtk.gdk_display_get_monitor(display, 0);
+        }
+
+        Gtk.gdk_monitor_get_workarea(monitor, out var area);
+        var workArea = ToScreenRect(area);
+        var width = Math.Min(_width, workArea.Width);
+        var height = Math.Min(_height, workArea.Height);
+        var (x, y) = WindowPlacement.AtPoint(_anchor.X, _anchor.Y, width, height, workArea);
+        Gtk.gtk_window_resize(_window, width, height);
+        Gtk.gtk_window_move(_window, x, y);
+    }
+
+    private static (int X, int Y) PointerPosition()
+    {
+        var pointer = Gtk.gdk_seat_get_pointer(Gtk.gdk_display_get_default_seat(Gtk.gdk_display_get_default()));
+        Gtk.gdk_device_get_position(pointer, out _, out var x, out var y);
+        return (x, y);
+    }
+
+    // The space the window manager adds around the page: title bar and borders. Zero until the window is on screen.
+    private (int Width, int Height) FrameSize()
+    {
+        var gdkWindow = Gtk.gtk_widget_get_window(_window);
+        if (gdkWindow == IntPtr.Zero)
+        {
+            return (0, 0);
+        }
+
+        Gtk.gdk_window_get_frame_extents(gdkWindow, out var frame);
+        Gtk.gtk_window_get_size(_window, out var contentWidth, out var contentHeight);
+        return (Math.Max(0, frame.Width - contentWidth), Math.Max(0, frame.Height - contentHeight));
     }
 
     // The icon's place on screen. Null until the panel has embedded it and given it a size; before that GTK reports 1x1 at 0,0.
@@ -227,19 +450,6 @@ internal sealed class GtkShell : IShell
         }
 
         return icon.Width > 1 && icon.Height > 1 ? icon : null;
-    }
-
-    // The window's size with its title bar and borders, once it's on screen. Until then, the page size.
-    private (int Width, int Height) OuterSize()
-    {
-        var gdkWindow = Gtk.gtk_widget_get_window(_window);
-        if (gdkWindow == IntPtr.Zero)
-        {
-            return (_width, _height);
-        }
-
-        Gtk.gdk_window_get_frame_extents(gdkWindow, out var frame);
-        return (Math.Max(frame.Width, _width), Math.Max(frame.Height, _height));
     }
 
     private void ToggleFromTray()
@@ -254,37 +464,39 @@ internal sealed class GtkShell : IShell
         Show();
     }
 
-    // The menu is rebuilt each time it opens, so it always lists the current accounts.
-    private void PopupMenu(uint button, uint time)
+    public void HideUnlessPointerOver() => OnUi(HideUnlessPointerOverNow);
+
+    // Focus moving to the menu from a click on this window isn't a dismissal, so the pointer decides.
+    private void HideUnlessPointerOverNow()
     {
-        if (_menu != IntPtr.Zero)
+        if (!IsPopup && KeepInTray && !_pinned && !PointerOver())
         {
-            Gtk.gtk_widget_destroy(_menu);
+            Hide();
         }
-
-        _menu = Gtk.gtk_menu_new();
-        foreach (var item in TrayMenu.Build(_host, _bridge, this))
-        {
-            var widget = item.Separator ? Gtk.gtk_separator_menu_item_new() : Gtk.gtk_menu_item_new_with_label(item.Text);
-            if (item.OnClick is { } onClick)
-            {
-                Connect(widget, "activate", new Gtk.Signal((_, _) => onClick()));
-            }
-            else if (!item.Separator)
-            {
-                Gtk.gtk_widget_set_sensitive(widget, false);
-            }
-
-            Gtk.gtk_menu_shell_append(_menu, widget);
-        }
-
-        Gtk.gtk_widget_show_all(_menu);
-        Gtk.gtk_menu_popup(_menu, IntPtr.Zero, IntPtr.Zero, _positionMenu, _icon, button, time);
     }
 
+    private bool PointerOver()
+    {
+        if (!Gtk.gtk_widget_get_visible(_window))
+        {
+            return false;
+        }
+
+        Gtk.gdk_window_get_frame_extents(Gtk.gtk_widget_get_window(_window), out var frame);
+        var (x, y) = PointerPosition();
+        return x >= frame.X && x < frame.X + frame.Width && y >= frame.Y && y < frame.Y + frame.Height;
+    }
+
+    // Work for a window that has closed is dropped, since its GTK widgets are gone.
     private void OnUi(Action work)
     {
-        _uiWork.Enqueue(work);
+        _uiWork.Enqueue(() =>
+        {
+            if (!_closed)
+            {
+                work();
+            }
+        });
         Gtk.g_idle_add(_drainUiWork, IntPtr.Zero);
     }
 

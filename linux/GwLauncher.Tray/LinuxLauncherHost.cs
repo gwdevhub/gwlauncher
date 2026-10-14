@@ -16,17 +16,37 @@ public sealed class LinuxLauncherHost : ILauncherHost
     private static readonly Regex WindowsPathPattern = new(@"^[A-Za-z]:\\");
     private readonly GlobalSettings _settings = LoadSettings();
 
+    // Starts as GWLAUNCHER_MASTER_PASSWORD, or what the user types on the page. Only kept in memory.
+    private string? _password = Environment.GetEnvironmentVariable("GWLAUNCHER_MASTER_PASSWORD");
+    private bool _locked;
+
+    public LinuxLauncherHost() => _locked = !TryOpenStore();
+
     public bool HasLinuxPaths => true;
     public bool CanCreateShortcuts => HostCapabilities.DesktopIcons;
     public bool HasWindowsOptions => false;
-    public bool Locked => false;
+    public bool CanLaunchDefaultClient => false;
+    public bool Locked => _locked;
+    public bool Encrypted => OpenStore().IsEncrypted;
     public GlobalSettings Settings => _settings;
     public IPrompts Prompts { get; set; } = null!;
 
     public void SaveSettings() => AppSettings.Save(_settings);
 
-    // Linux reads the master password from GWLAUNCHER_MASTER_PASSWORD when the accounts are opened, so there's nothing to unlock.
-    public string? Unlock(string password, bool remember) => null;
+    // Opening never writes Accounts.json, so a wrong password leaves the file as it was.
+    public string? Unlock(string password, bool remember)
+    {
+        var previous = _password;
+        _password = password;
+        if (TryOpenStore())
+        {
+            _locked = false;
+            return null;
+        }
+
+        _password = previous;
+        return "Incorrect master password.";
+    }
 
     public void StartBackground()
     {
@@ -52,7 +72,7 @@ public sealed class LinuxLauncherHost : ILauncherHost
         Setup.Steps.Select(step => new SetupItem(step.Title, step.Description, step.IsSatisfied(), step.Command() != null)).ToList();
 
     // Starts the first unfinished step. It runs detached, so it keeps going if the window or the launcher closes.
-    public string? StartSetup()
+    public string? StartSetup(string? folder)
     {
         var step = Setup.Steps.FirstOrDefault(s => !s.IsSatisfied());
         var command = step?.Command();
@@ -74,8 +94,19 @@ public sealed class LinuxLauncherHost : ILauncherHost
 
     public SetupProgress SetupStatus() => new(SetupRunner.InProgress(), SetupRunner.LastLogLine(), SetupRunner.LogPath);
 
+    // Accounts() opens Accounts.json on every call, so there's nothing to reload.
+    public string? ReloadAccounts() => null;
+
+    public Task<string?> LaunchDefaultClient() => Task.FromResult<string?>("The default Guild Wars client isn't available on Linux.");
+
     public IReadOnlyList<AccountEntry> Accounts(out string? error)
     {
+        if (_locked)
+        {
+            error = "Accounts are locked. Enter the master password in GW Launcher.";
+            return new List<AccountEntry>();
+        }
+
         try
         {
             var accounts = OpenStore().Accounts;
@@ -222,15 +253,20 @@ public sealed class LinuxLauncherHost : ILauncherHost
         return null;
     }
 
-    public Task<string?> Launch(int index) => Task.FromResult(StartNow(index));
+    public bool IsRunning(int index) => false;
 
-    public string? StartNow(int index)
+    public async Task<string?> Launch(int index, bool suspended)
     {
         try
         {
             var account = OpenStore().Accounts[index];
-            var psi = WineLauncher.BuildStartInfo(account);
+            var psi = WineLauncher.BuildStartInfo(account, suspended);
             WineLauncher.PrepareLaunch(account);
+            if (suspended)
+            {
+                return await WineLauncher.StartSuspended(psi, () => Prompts.ConfirmResume());
+            }
+
             WineLauncher.Start(psi);
             return null;
         }
@@ -238,6 +274,34 @@ public sealed class LinuxLauncherHost : ILauncherHost
         {
             return ex.Message;
         }
+    }
+
+    public Task<string> UpdateAllClients()
+    {
+        var paths = OpenStore().Accounts.Select(account => account.EffectiveGwPath).Where(FileCheck.IsUsableFile).Distinct().ToList();
+        return ClientUpdates.UpdateAll(Prompts, paths, (path, progress, cancellation) => GwExeUpdater.UpdateAsync(path, progress, cancellation));
+    }
+
+    // Empty removes the protection. The typed password is kept in memory so the rest of this session opens the file.
+    public string? SetMasterPassword(string password)
+    {
+        var store = OpenStore();
+        if (store.IsCurrentPassword(password))
+        {
+            return null;
+        }
+
+        try
+        {
+            store.SetPassword(password);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return $"Could not save: {ex.Message}";
+        }
+
+        _password = password.Length == 0 ? null : password;
+        return null;
     }
 
     public string? CreateShortcut(int index)
@@ -297,12 +361,29 @@ public sealed class LinuxLauncherHost : ILauncherHost
     }
 
     // Opens Accounts.json for one operation. Every call reads the file again, so the file stays the source of truth.
-    public static AccountStore OpenStore()
+    private AccountStore OpenStore()
     {
         var store = new AccountStore(AppPaths.AccountsFile);
-        store.Load(() => Environment.GetEnvironmentVariable("GWLAUNCHER_MASTER_PASSWORD")
-            ?? throw new InvalidOperationException("Encrypted accounts need GWLAUNCHER_MASTER_PASSWORD set."));
+        store.Load(() => _password ?? throw new InvalidOperationException("Accounts are locked."));
         return store;
+    }
+
+    // False only when the password is missing or wrong. Other failures are left for Accounts() to report.
+    private bool TryOpenStore()
+    {
+        try
+        {
+            OpenStore();
+            return true;
+        }
+        catch (InvalidOperationException)
+        {
+            return false;
+        }
+        catch (Exception ex) when (ex is IOException or JsonException)
+        {
+            return true;
+        }
     }
 
     private async Task<string> ResolveAndRepoint(int index, string path)

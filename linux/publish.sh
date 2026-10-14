@@ -3,6 +3,13 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
+# The same GitVersion calculation the workflow uses, so both platforms report one build number.
+cd ..
+dotnet tool restore -v q >/dev/null
+# The build id is the commit count, carried in the build component of the version: 0.0.<build>.
+VERSION="0.0.$(dotnet dotnet-gitversion /showvariable CommitsSinceVersionSource)"
+cd - >/dev/null
+
 dotnet publish GwLauncher.Injector/GwLauncher.Injector.csproj -c Release -nologo
 python3 - GwLauncher.Injector/bin/Release/net10.0/win-x86 <<'PY'
 import os, sys, zipfile
@@ -15,6 +22,6 @@ with zipfile.ZipFile(os.path.join(root, "injector.zip"), "w", zipfile.ZIP_DEFLAT
             zip_file.write(path, os.path.relpath(path, publish))
 PY
 dotnet publish GwLauncher.Tray/GwLauncher.Tray.csproj -c Release -r linux-x64 --self-contained true \
-    -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=none -o Publish -nologo
+    -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=none -p:Version="$VERSION" -o Publish -nologo
 
 echo "Published: $(pwd)/Publish/GW_Launcher"

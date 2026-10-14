@@ -4,7 +4,7 @@ using System.Text;
 namespace GwLauncher.Injector;
 
 // Starts a game suspended, loads each DLL into it with LoadLibraryW, then resumes it.
-// Usage: GwLauncher.Injector --dll <path>... [--timeout <ms>] -- <exe> [args...]
+// Usage: GwLauncher.Injector --dll <path>... [--timeout <ms>] [--suspend] -- <exe> [args...]
 public static class Program
 {
     private const uint CreateSuspended = 0x00000004;
@@ -18,17 +18,22 @@ public static class Program
         var separator = Array.IndexOf(args, "--");
         if (separator < 0 || separator == args.Length - 1)
         {
-            Console.Error.WriteLine("usage: GwLauncher.Injector --dll <path>... [--timeout <ms>] -- <exe> [args...]");
+            Console.Error.WriteLine("usage: GwLauncher.Injector --dll <path>... [--timeout <ms>] [--suspend] -- <exe> [args...]");
             return 2;
         }
 
         var dlls = new List<string>();
         var timeoutMs = 5000u;
+        var suspend = false;
         for (var i = 0; i < separator; i++)
         {
             if (args[i] == "--dll" && i + 1 < separator)
             {
                 dlls.Add(args[++i]);
+            }
+            else if (args[i] == "--suspend")
+            {
+                suspend = true;
             }
             else if (args[i] == "--timeout" && i + 1 < separator && uint.TryParse(args[i + 1], out var parsed))
             {
@@ -52,6 +57,19 @@ public static class Program
         {
             Console.Error.WriteLine($"Could not start the game (error {Marshal.GetLastWin32Error()}).");
             return 1;
+        }
+
+        // Holds the game until the launcher answers. Only "resume" lets it run; anything else ends it.
+        if (suspend)
+        {
+            Console.WriteLine("suspended");
+            if (Console.ReadLine() != "resume")
+            {
+                TerminateProcess(process.hProcess, 1);
+                CloseHandle(process.hThread);
+                CloseHandle(process.hProcess);
+                return 3;
+            }
         }
 
         var allLoaded = true;
@@ -146,6 +164,9 @@ public static class Program
         public uint dwProcessId;
         public uint dwThreadId;
     }
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool TerminateProcess(IntPtr hProcess, uint uExitCode);
 
     [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
     private static extern bool CreateProcessW(string? application, StringBuilder commandLine, IntPtr processAttributes,
