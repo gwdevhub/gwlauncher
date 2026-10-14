@@ -12,6 +12,10 @@ public sealed class WindowsLauncherHost : ILauncherHost
     private const string CachedPasswordValue = "CachedPassword";
     private readonly AccountManager _store = new("Accounts.json");
     private bool _locked;
+    private readonly object _setupLock = new();
+    private bool _setupRunning;
+    private string _setupLine = "";
+    private string? _setupError;
 
     public WindowsLauncherHost()
     {
@@ -30,7 +34,9 @@ public sealed class WindowsLauncherHost : ILauncherHost
     public bool HasLinuxPaths => false;
     public bool CanCreateShortcuts => true;
     public bool HasWindowsOptions => true;
+    public bool CanLaunchDefaultClient => true;
     public bool Locked => _locked;
+    public bool Encrypted => _store.IsEncrypted;
     public GlobalSettings Settings => Program.Settings;
     public IPrompts Prompts { get; set; } = null!;
 
@@ -53,6 +59,38 @@ public sealed class WindowsLauncherHost : ILauncherHost
         return null;
     }
 
+    // Empty removes the protection. A remembered password is re-cached, so the next start still opens without asking.
+    public string? SetMasterPassword(string password)
+    {
+        if (_store.IsCurrentPassword(password))
+        {
+            return null;
+        }
+
+        try
+        {
+            _store.SetPassword(password);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return $"Could not save: {ex.Message}";
+        }
+
+        if (CachedPasswordHash() != null)
+        {
+            if (password.Length == 0)
+            {
+                ClearCachedPassword();
+            }
+            else
+            {
+                CachePasswordHash(AccountManager.HashPassword(password));
+            }
+        }
+
+        return null;
+    }
+
     public void StartBackground()
     {
         WarnIfInGwDirectory();
@@ -69,12 +107,119 @@ public sealed class WindowsLauncherHost : ILauncherHost
         }
     }
 
-    // Windows needs nothing installed before accounts can run; the WebView2 check happens before the window opens.
-    public IReadOnlyList<SetupItem> SetupItems() => Array.Empty<SetupItem>();
+    // Guild Wars is needed once there's no default install and no account has a Gw.exe.
+    public IReadOnlyList<SetupItem> SetupItems() =>
+        new[]
+        {
+            new SetupItem("Guild Wars client",
+                "Downloads Gw.exe into the folder below and records it as the default install, so accounts can launch.",
+                GuildWarsInstalled(), CanInstall: true, Folder: DefaultGuildWarsFolder),
+        };
 
-    public string? StartSetup() => null;
+    private bool GuildWarsInstalled() => DefaultGuildWarsPath() != null || _store.Any(account => File.Exists(account.gwpath));
 
-    public SetupProgress SetupStatus() => new(false, "", "");
+    // Downloads Gw.exe in the background, into the folder the user chose. Progress and any failure come back through SetupStatus.
+    public string? StartSetup(string? folder)
+    {
+        folder = string.IsNullOrWhiteSpace(folder) ? DefaultGuildWarsFolder : folder.Trim();
+        if (!Path.IsPathFullyQualified(folder))
+        {
+            return "Choose a full folder path to install Guild Wars into.";
+        }
+
+        lock (_setupLock)
+        {
+            if (_setupRunning)
+            {
+                return null;
+            }
+
+            _setupRunning = true;
+            _setupError = null;
+            _setupLine = "Starting the download...";
+        }
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                var exe = await GwDownloader.InstallDefaultAsync(folder,
+                    new Progress<(string Stage, double Progress)>(p => _setupLine = p.Stage));
+                SetDefaultGuildWars(exe);
+                _setupLine = "Guild Wars is installed.";
+            }
+            catch (Exception ex)
+            {
+                _setupError = $"Guild Wars couldn't be installed: {ex.Message}";
+            }
+            finally
+            {
+                lock (_setupLock)
+                {
+                    _setupRunning = false;
+                }
+            }
+        });
+        return null;
+    }
+
+    public SetupProgress SetupStatus()
+    {
+        lock (_setupLock)
+        {
+            return new SetupProgress(_setupRunning, _setupLine, "", _setupError);
+        }
+    }
+
+    private static string DefaultGuildWarsFolder =>
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "GW_Launcher", "Guild Wars");
+
+    // The game reads its install from the ArenaNet key. The values match the ones the launcher writes at launch.
+    private static void SetDefaultGuildWars(string exePath)
+    {
+        using var key = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(@"Software\ArenaNet\Guild Wars");
+        key.SetValue("Path", exePath, Microsoft.Win32.RegistryValueKind.String);
+        key.SetValue("Src", exePath, Microsoft.Win32.RegistryValueKind.String);
+    }
+
+    // The install the ArenaNet installer recorded, started with no account, so no credentials, mods or texmods.
+    public Task<string?> LaunchDefaultClient()
+    {
+        var path = DefaultGuildWarsPath();
+        if (path == null)
+        {
+            return Task.FromResult<string?>("Couldn't find a default installation of Guild Wars, is it installed?");
+        }
+
+        return Task.Run(() => WindowsGame.Launch(new Account { gwpath = path }));
+    }
+
+    // The registry value is the Gw.exe path, or the folder it's in, depending on how the install recorded it.
+    private static string? DefaultGuildWarsPath()
+    {
+        var values = new[]
+        {
+            Microsoft.Win32.Registry.GetValue(@"HKEY_CURRENT_USER\Software\ArenaNet\Guild Wars", "Path", null) as string,
+            Microsoft.Win32.Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\ArenaNet\Guild Wars", "Path", null) as string,
+            Microsoft.Win32.Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\ArenaNet\Guild Wars", "Path", null) as string,
+        };
+        return values
+            .Where(value => !string.IsNullOrEmpty(value))
+            .Select(value => File.Exists(value) ? value! : Path.Combine(value!, "Gw.exe"))
+            .FirstOrDefault(File.Exists);
+    }
+
+
+    // A locked store has nothing to reread; Accounts() reports the lock.
+    public string? ReloadAccounts()
+    {
+        if (_locked)
+        {
+            return null;
+        }
+
+        return _store.Reload() ? null : "Could not reload Accounts.json.";
+    }
 
     public IReadOnlyList<AccountEntry> Accounts(out string? error)
     {
@@ -90,7 +235,8 @@ public sealed class WindowsLauncherHost : ILauncherHost
 
     public AccountDraft Draft(int? index)
     {
-        var account = index is { } i ? _store[i] : new Account();
+        // A new account starts at the default install, when there is one.
+        var account = index is { } i ? _store[i] : new Account { gwpath = DefaultGuildWarsPath() ?? "" };
         return new AccountDraft
         {
             Title = account.title,
@@ -232,11 +378,23 @@ public sealed class WindowsLauncherHost : ILauncherHost
         return updated == null ? null : $"Gw.exe updated at {account.gwpath}.";
     }
 
+    public bool IsRunning(int index) => _store[index].process?.process is { HasExited: false };
+
     // The game start waits on the window for up to half a minute, so it runs off the UI thread.
-    public Task<string?> Launch(int index)
+    public Task<string?> Launch(int index, bool suspended)
     {
         var account = _store[index];
-        return Task.Run(() => WindowsGame.Launch(account));
+        return Task.Run(() => WindowsGame.Launch(account, suspended, () => Prompts.ConfirmResume().GetAwaiter().GetResult()));
+    }
+
+    public Task<string> UpdateAllClients()
+    {
+        var accounts = _store.ToList();
+        var paths = accounts.Select(account => account.gwpath).Distinct().ToList();
+        return ClientUpdates.UpdateAll(Prompts, paths, (path, progress, cancellation) => GwDownloader.UpdateClients(
+            accounts.Where(account => account.gwpath == path),
+            new Progress<(string Stage, double Progress)>(update => progress.Report(new ProgressUpdate(update.Progress, update.Stage))),
+            cancellation));
     }
 
     public string? CreateShortcut(int index)

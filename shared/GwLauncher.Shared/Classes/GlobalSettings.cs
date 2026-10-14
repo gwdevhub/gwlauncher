@@ -10,6 +10,16 @@ public class GlobalSettings
 
     public bool KeepInSystemTray { get; set; } = true;
 
+    // The account list's size, kept as the user last left it.
+    public int ListWidth { get; set; } = 220;
+
+    public int ListHeight { get; set; } = 340;
+
+    // Where the account list was last left outside tray mode. Null until it's been moved.
+    public int? ListX { get; set; }
+
+    public int? ListY { get; set; }
+
     // Read-only migration of the old inverse setting, so existing Settings.json files keep their behaviour.
     [JsonProperty("KeepLauncherOpen")]
     private bool? LegacyKeepLauncherOpen
@@ -21,7 +31,7 @@ public class GlobalSettings
         }
     }
 
-    public uint TimeoutOnModlaunch { get; set; } = 5000;
+    public uint TimeoutOnModlaunch { get; set; } = 10000;
 
     public void Save(string path = "Settings.json")
     {

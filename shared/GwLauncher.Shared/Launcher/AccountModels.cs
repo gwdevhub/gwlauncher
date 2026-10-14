@@ -14,7 +14,7 @@ public enum IssueSeverity
 // The optional flags name the fix a window can offer: decompress a Wof file, download gMod.dll, or update Gw.exe.
 public sealed record AccountIssue(IssueSeverity Severity, string Message, string? WofPath = null, bool CanDownloadGMod = false, bool CanUpdateGwExe = false);
 
-public sealed record AccountEntry(string Name, IReadOnlyList<AccountIssue> Issues)
+public sealed record AccountEntry(string Name, IReadOnlyList<AccountIssue> Issues, string State = "Inactive")
 {
     public bool Blocked => Issues.Any(issue => issue.Severity == IssueSeverity.Blocking);
 }

@@ -47,8 +47,9 @@ internal static class WindowsUpdater
 
         if (!Program.Settings.AutoUpdate)
         {
-            var wanted = await prompts.Confirm("GW Launcher update",
-                $"A different build of GW Launcher is available.\nLatest: {tagName} ({GitHubAssets.ShortSha(asset.Sha256)})\n\nDownload and install it now?");
+            var wanted = await prompts.ConfirmUpdate("GW Launcher update",
+                $"A different build of GW Launcher is available.\nLatest: {tagName} ({GitHubAssets.ShortSha(asset.Sha256)})",
+                ReleaseNotes.ToPlainText(release.Body), release.HtmlUrl);
             if (!wanted)
             {
                 return;

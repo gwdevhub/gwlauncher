@@ -17,7 +17,7 @@ internal static class WindowsGame
     private static extern bool QueryFullProcessImageName([In] IntPtr hProcess, [In] uint dwFlags, [Out] StringBuilder lpExeName, [In, Out] ref uint lpdwSize);
 
     // Returns the error, or null when the game is up.
-    public static string? Launch(Account account)
+    public static string? Launch(Account account, bool suspended = false, Func<bool>? confirmResume = null)
     {
         var result = DeleteSteamAppIdFile(account) ?? CreateSteamAppIdFile(account);
         if (result != null)
@@ -25,7 +25,7 @@ internal static class WindowsGame
             return result;
         }
 
-        result = LaunchClient(account);
+        result = LaunchClient(account, suspended ? confirmResume : null);
         DeleteSteamAppIdFile(account);
         return result;
     }
@@ -70,7 +70,7 @@ internal static class WindowsGame
         return null;
     }
 
-    private static string? LaunchClient(Account account)
+    private static string? LaunchClient(Account account, Func<bool>? confirmResume)
     {
         if (!File.Exists(account.gwpath))
         {
@@ -104,7 +104,7 @@ internal static class WindowsGame
                 return ex.Message;
             }
 
-            var res = MulticlientPatch.LaunchClient(account, out memory);
+            var res = MulticlientPatch.LaunchClient(account, confirmResume, out memory);
             if (res != null)
             {
                 return res;

@@ -1,6 +1,7 @@
 mode: ContinuousDelivery
 branches:
   master:
+    regex: ^master$
     increment: Minor
     prevent-increment-of-merged-branch-version: true
     track-merge-target: false

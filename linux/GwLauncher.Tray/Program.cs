@@ -41,7 +41,8 @@ public static class Program
         }
 
         var shell = new GtkShell(host);
-        shell.Run(new LauncherBridge(host, shell) { Startup = startup }, showAtStart: startup != null);
+        var bridge = new LauncherBridge(host, shell, onClosed => new GtkShell(host, onClosed)) { Startup = startup };
+        shell.Run(showAtStart: startup != null);
         return 0;
     }
 }

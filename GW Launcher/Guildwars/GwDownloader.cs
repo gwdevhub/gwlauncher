@@ -26,6 +26,20 @@ private static async Task<(string? filePath, string? Error)> DownloadGwExeAsync(
         return (gwExePath, null);
     }
 
+    // Downloads the latest Gw.exe into folder for a default install, and returns the exe's path.
+    public static async Task<string> InstallDefaultAsync(string folder, IProgress<(string Stage, double Progress)> progress, CancellationToken cancellationToken = default)
+    {
+        Directory.CreateDirectory(folder);
+        var (_, error) = await new IntegratedGuildwarsInstaller().InstallGuildwars(folder, progress, cancellationToken);
+        var exePath = Path.Combine(folder, "Gw.exe");
+        if (error != null || !File.Exists(exePath))
+        {
+            throw new InvalidOperationException(error ?? "Gw.exe wasn't downloaded.");
+        }
+
+        return exePath;
+    }
+
     private static void CopyGwExeToAccountPaths(IEnumerable<string> accountPaths,
         IProgress<double> progress, CancellationToken cancellationToken = default)
     {

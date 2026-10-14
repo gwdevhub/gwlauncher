@@ -61,6 +61,8 @@ public sealed class AccountStore
         Save();
     }
 
+    public bool IsCurrentPassword(string password) => AccountFile.IsCurrent(_passwordHash, password);
+
     public static byte[] HashPassword(string password)
     {
         return AccountFile.HashPassword(password);

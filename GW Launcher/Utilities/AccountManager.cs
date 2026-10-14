@@ -87,6 +87,19 @@ public class AccountManager : IEnumerable<Account>
         return true;
     }
 
+    // Re-reads the file under the password it was opened with. On failure the open state is kept, so a later save can't drop the encryption.
+    public bool Reload()
+    {
+        var hash = _passwordHash;
+        if (Load(hash))
+        {
+            return true;
+        }
+
+        _passwordHash = hash;
+        return false;
+    }
+
     public void Save()
     {
         var text = JsonConvert.SerializeObject(_accounts, Formatting.Indented);
@@ -107,16 +120,7 @@ public class AccountManager : IEnumerable<Account>
         Save();
     }
 
-    public bool IsCurrentPassword(string password)
-    {
-        if (string.IsNullOrEmpty(password))
-        {
-            return _passwordHash == null;
-        }
-
-        return _passwordHash != null &&
-               System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(_passwordHash, HashPassword(password));
-    }
+    public bool IsCurrentPassword(string password) => AccountFile.IsCurrent(_passwordHash, password);
 
     public static byte[] HashPassword(string password) => AccountFile.HashPassword(password);
 
