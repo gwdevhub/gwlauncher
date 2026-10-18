@@ -1,0 +1,55 @@
+name: Release
+on:
+    push:
+        branches: [ "master" ]
+    workflow_dispatch:
+jobs:
+    release:
+        runs-on: ubuntu-24.04
+        permissions:
+            contents: write
+        defaults:
+            run:
+                shell: bash
+        steps:
+            # The full history: the tag is the commit count, which the launcher's build number also uses.
+            -   name: Checkout
+                uses: actions/checkout@v7
+                with:
+                    fetch-depth: 0
+
+            -   name: Version
+                id: version
+                run: echo "tag=r$(git rev-list --count HEAD).0" >> "$GITHUB_OUTPUT"
+
+            -   name: Set up Node
+                uses: actions/setup-node@v4
+                with:
+                    node-version: 22
+
+            -   name: Build both launchers
+                run: bash build.sh all
+
+            # build.sh rebuilds the page, so the committed build must match its sources.
+            -   name: Check the web page build is current
+                run: git diff --exit-code -- frontend/dist
+
+            # Older launchers look for GW_Launcher.exe and GW_Launcher_Framework_Dependent.exe in the release by name.
+            -   name: Stage the release files
+                run: |
+                    mkdir -p release
+                    cp bin/windows/GW_Launcher.exe release/GW_Launcher.exe
+                    cp bin/windows/GW_Launcher.exe release/GW_Launcher_Framework_Dependent.exe
+                    cp bin/linux/release/GW_Launcher release/GW_Launcher
+
+            -   name: Create the release
+                if: github.ref == 'refs/heads/master'
+                env:
+                    GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                run: |
+                    gh release create "${{ steps.version.outputs.tag }}" \
+                        --title "Release ${{ steps.version.outputs.tag }}" \
+                        --generate-notes \
+                        release/GW_Launcher.exe \
+                        release/GW_Launcher_Framework_Dependent.exe \
+                        release/GW_Launcher

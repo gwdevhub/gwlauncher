@@ -1,0 +1,4 @@
+#!/bin/sh
+# The C++ compiler for the Linux release: zig targeting glibc 2.35, so the binary runs on Ubuntu 22.04 and newer. ZIG names the zig
+# executable when it isn't on PATH, as the installed copy under ~/.local is.
+exec "${ZIG:-zig}" c++ -target x86_64-linux-gnu.2.35 "$@"

@@ -1,0 +1,72 @@
+{
+  "version": 3,
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build",
+      "cacheVariables": {
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+      }
+    },
+    {
+      "name": "linux-debug",
+      "displayName": "Linux Debug",
+      "inherits": "base",
+      "binaryDir": "${sourceDir}/build-dev",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "linux-release",
+      "displayName": "Linux Release",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "windows-release",
+      "displayName": "Windows Release (MinGW cross build)",
+      "inherits": "base",
+      "binaryDir": "${sourceDir}/build-win",
+      "toolchainFile": "${sourceDir}/cmake/toolchains/mingw-w64.cmake",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_CXX_FLAGS_RELEASE": "-O3 -DNDEBUG -ffunction-sections -fdata-sections -flto=auto",
+        "CMAKE_EXE_LINKER_FLAGS": "-Wl,--gc-sections -flto=auto -O3 -s"
+      }
+    },
+    {
+      "name": "linux-release-zig",
+      "displayName": "Linux Release (zig, glibc 2.35)",
+      "inherits": "linux-release",
+      "binaryDir": "${sourceDir}/build-zig",
+      "toolchainFile": "${sourceDir}/cmake/toolchains/zig-linux.cmake",
+      "cacheVariables": {
+        "CMAKE_CXX_FLAGS_RELEASE": "-O2 -DNDEBUG -g0",
+        "CMAKE_EXE_LINKER_FLAGS": "-s"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "linux-debug",
+      "configurePreset": "linux-debug"
+    },
+    {
+      "name": "linux-release",
+      "configurePreset": "linux-release"
+    },
+    {
+      "name": "windows-release",
+      "configurePreset": "windows-release"
+    },
+    {
+      "name": "linux-release-zig",
+      "configurePreset": "linux-release-zig"
+    }
+  ]
+}

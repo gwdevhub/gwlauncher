@@ -1,0 +1,94 @@
+---
+/**
+ * The launcher's download link. The build writes the Windows and Linux links into the page; a script then
+ * points the primary link at the visitor's own OS. Visitors on other systems get the Windows link, with the
+ * Linux link beside it. The header variant only changes the link, since its label is short.
+ */
+import type { LatestRelease } from '../lib/release';
+
+interface Props {
+  release: LatestRelease;
+  variant?: 'hero' | 'header';
+  class?: string;
+}
+
+const { release, variant = 'hero', class: className = '' } = Astro.props;
+const version = release.source === 'github' ? `v${release.version}` : 'latest';
+---
+
+<div
+  data-download-root
+  data-windows={release.downloads.windows}
+  data-linux={release.downloads.linux}
+  data-version={release.source === 'github' ? release.version : ''}
+  class:list={[variant === 'hero' ? 'flex flex-wrap items-center gap-3' : 'contents']}
+>
+  <a
+    data-download-primary
+    href={release.downloads.windows}
+    class={className}
+  >
+    <svg viewBox="0 0 16 16" class="h-4 w-4 fill-current" aria-hidden="true">
+      <path d="M8 1.5a.75.75 0 0 1 .75.75v6.69l2.22-2.22a.75.75 0 1 1 1.06 1.06l-3.5 3.5a.75.75 0 0 1-1.06 0l-3.5-3.5a.75.75 0 1 1 1.06-1.06l2.22 2.22V2.25A.75.75 0 0 1 8 1.5zM3.25 13.5a.75.75 0 0 0 0 1.5h9.5a.75.75 0 0 0 0-1.5h-9.5z" />
+    </svg>
+    {variant === 'hero' ? (
+      <span data-download-text>Download {version}</span>
+    ) : (
+      <>
+        <span class="hidden sm:inline">v{release.version}</span>
+        <span class="sm:hidden">Download</span>
+      </>
+    )}
+  </a>
+  {
+    variant === 'hero' && (
+      <a
+        data-download-other
+        href={release.downloads.linux}
+        class="text-sm font-medium text-(--color-fg-sub) transition-colors hover:text-(--color-fg)"
+      >
+        Linux build
+      </a>
+    )
+  }
+</div>
+
+<script>
+  type Os = 'windows' | 'linux' | null;
+
+  // Windows and Linux are told apart by platform and user agent. Android reports Linux too, so it's left out.
+  function visitorOs(): Os {
+    const nav = navigator as Navigator & { userAgentData?: { platform?: string } };
+    const ua = navigator.userAgent;
+    if (/Android/i.test(ua)) return null;
+    const platform = nav.userAgentData?.platform ?? navigator.platform ?? '';
+    if (/^Win/i.test(platform) || /Windows/i.test(ua)) return 'windows';
+    if (/^Linux|X11/i.test(platform) || /Linux|X11/i.test(ua)) return 'linux';
+    return null;
+  }
+
+  function apply() {
+    const os = visitorOs();
+    document.querySelectorAll<HTMLElement>('[data-download-root]').forEach((root) => {
+      const windows = root.dataset.windows ?? '';
+      const linux = root.dataset.linux ?? '';
+      const primary = root.querySelector<HTMLAnchorElement>('[data-download-primary]');
+      const other = root.querySelector<HTMLAnchorElement>('[data-download-other]');
+      const text = root.querySelector<HTMLElement>('[data-download-text]');
+      const version = root.dataset.version ?? '';
+      if (primary) primary.href = os === 'linux' ? linux : windows;
+      if (other) {
+        other.href = os === 'linux' ? windows : linux;
+        other.textContent = os === 'linux' ? 'Windows build' : 'Linux build';
+      }
+      if (text) {
+        const base = version ? `Download v${version}` : 'Download latest';
+        text.textContent = `${base} for ${os === 'linux' ? 'Linux' : 'Windows'}`;
+      }
+    });
+  }
+
+  apply();
+  // The page is swapped on navigation, so the links are set again on each page.
+  document.addEventListener('astro:page-load', apply);
+</script>

@@ -130,9 +130,14 @@ Coming, with live-reload support, perhaps.
 
 ### Building
 
-Requires the .NET 10 SDK and Visual Studio (the project's COM reference needs Visual Studio's MSBuild, so `dotnet build` won't work).
+The launcher is written in C++, with its page in `frontend/`. See [docs/development.md](docs/development.md) for the full build.
 
-1.  Run `bootstrap.bat`. It restores the dotnet tools and NuGet packages.
-2.  Open `GW Launcher.sln` in Visual Studio, or build from the command line with the MSBuild command it prints.
+Build the page, then the launcher:
 
-The executable is written to `x86\<Configuration>\GW Launcher.exe`.
+```
+cd frontend && npm ci && npm run build && cd ../backend
+cmake --preset linux-release && cmake --build --preset linux-release
+```
+
+- Linux: `bin/linux/release/GW_Launcher`. It runs Guild Wars through Wine, using `GW_Launcher.cli.exe`, which is built into it.
+- Windows: `cmake --preset windows-release` and `cmake --build --preset windows-release`, from `backend/`, write `bin/windows/GW_Launcher.exe` and `bin/windows/GW_Launcher.cli.exe`. Cross-built with MinGW-w64 from Linux.

@@ -1,0 +1,84 @@
+name: Native
+on:
+    push:
+        branches: [ "master" ]
+        paths:
+            - 'backend/**'
+            - 'frontend/**'
+            - 'assets/**'
+            - 'build.sh'
+            - '.github/workflows/native.yml'
+    pull_request:
+        branches: [ "dev" ]
+        paths:
+            - 'backend/**'
+            - 'frontend/**'
+            - 'assets/**'
+            - 'build.sh'
+            - '.github/workflows/native.yml'
+    workflow_dispatch:
+jobs:
+    # Both builds run build.sh, as a Linux machine does: Docker builds into bin/. Windows is cross-built with MinGW, so it needs no
+    # Windows runner.
+    linux:
+        runs-on: ubuntu-24.04
+        defaults:
+            run:
+                shell: bash
+        steps:
+            # The full history: build.sh numbers the build from the commit count.
+            -   name: Checkout
+                uses: actions/checkout@v7
+                with:
+                    fetch-depth: 0
+
+            -   name: Set up Node
+                uses: actions/setup-node@v4
+                with:
+                    node-version: 22
+
+            -   name: Build the release build
+                run: bash build.sh linux
+
+            # build.sh rebuilds the page, so the committed build must match its sources.
+            -   name: Check the web page build is current
+                run: git diff --exit-code -- frontend/dist
+
+            -   name: Upload the Linux release
+                uses: actions/upload-artifact@v7
+                with:
+                    name: GW Launcher Linux (release)
+                    path: bin/linux/release/GW_Launcher
+                    if-no-files-found: error
+
+    # The Linux launcher carries GW_Launcher.cli.exe, so the Windows build is made by the same script.
+    windows:
+        runs-on: ubuntu-24.04
+        defaults:
+            run:
+                shell: bash
+        steps:
+            -   name: Checkout
+                uses: actions/checkout@v7
+                with:
+                    fetch-depth: 0
+
+            -   name: Set up Node
+                uses: actions/setup-node@v4
+                with:
+                    node-version: 22
+
+            -   name: Build the Windows build
+                run: bash build.sh windows
+
+            -   name: Check the web page build is current
+                run: git diff --exit-code -- frontend/dist
+
+            -   name: Upload the Windows build
+                uses: actions/upload-artifact@v7
+                with:
+                    name: GW Launcher Windows
+                    path: |
+                        bin/windows/GW_Launcher.exe
+                        bin/windows/GW_Launcher.cli.exe
+                    if-no-files-found: error

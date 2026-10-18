@@ -1,0 +1,7 @@
+# Only what the build reads goes to the Docker daemon: the backend sources, the assets and the compiled page.
+**
+!backend/**
+!assets/**
+!frontend/dist/**
+backend/build*
+backend/cmake-build-*

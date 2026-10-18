@@ -1,9 +1,11 @@
 ---
 import siteConfig from '../../site.config.json';
+import DownloadLinks from './DownloadLinks.astro';
+import type { LatestRelease } from '../lib/release';
 
 interface Props {
-  /** Latest release info; if omitted, we show a "Download" label without version. */
-  release?: { version: string; url: string };
+  /** Latest release info; if omitted, the header shows no download button. */
+  release?: LatestRelease;
   /** Path to the current page so we can highlight the active nav link. */
   pathname?: string;
 }
@@ -121,16 +123,11 @@ const isActive = (href: string) =>
       </details>
       {
         release ? (
-          <a
-            href={release.url}
+          <DownloadLinks
+            release={release}
+            variant="header"
             class="hidden h-8 lg:inline-flex items-center gap-1.5 rounded bg-(--color-accent) px-3 py-1.5 text-sm font-semibold text-black transition-colors hover:bg-(--color-accent-soft)"
-          >
-            <svg viewBox="0 0 16 16" class="h-3.5 w-3.5 fill-current" aria-hidden="true">
-              <path d="M8 1.5a.75.75 0 0 1 .75.75v6.69l2.22-2.22a.75.75 0 1 1 1.06 1.06l-3.5 3.5a.75.75 0 0 1-1.06 0l-3.5-3.5a.75.75 0 1 1 1.06-1.06l2.22 2.22V2.25A.75.75 0 0 1 8 1.5zM3.25 13.5a.75.75 0 0 0 0 1.5h9.5a.75.75 0 0 0 0-1.5h-9.5z" />
-            </svg>
-            <span class="hidden sm:inline">v{release.version}</span>
-            <span class="sm:hidden">Download</span>
-          </a>
+          />
         ) : null
       }
     </div>

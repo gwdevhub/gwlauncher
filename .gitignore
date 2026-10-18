@@ -4,7 +4,6 @@ Release/
 Publish/
 packages/
 .vs/
-/GW Launcher/obj
 *exe
 *.dll
 *.rar
@@ -13,7 +12,7 @@ packages/
 *.user
 
 # Rider project files
-/.idea/
+.idea/
 
 # Bloated Windows Databases
 *.sdf
@@ -39,8 +38,19 @@ packages/
 *.VC.db
 .aider*
 
-# Linux port build output
-linux/**/bin/
-linux/**/obj/
-shared/**/bin/
-shared/**/obj/
+
+# The web page project keeps its JSON config.
+!frontend/*.json
+
+# The native layer's build presets.
+!backend/CMakePresets.json
+
+# Native layer build folders.
+backend/build*/
+backend/cmake-build-*/
+
+# Native launcher packages.
+bin/
+
+# Node packages, in every folder.
+node_modules/
