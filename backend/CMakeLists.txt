@@ -12,9 +12,14 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # CLion and clangd read the compile commands to know each file's flags, include folders and defines.
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# GWL_CLI_ONLY builds the Windows helper that the Linux launcher embeds and runs under Wine.
+option(GWL_CLI_ONLY "Build only the Windows command-line launcher" OFF)
+
 # Built executables go to the repository's bin folder: bin/windows for the Windows build, and bin/linux/release or bin/linux/debug
 # for Linux, by build type, so the two never mix.
-if(WIN32)
+if(GWL_CLI_ONLY)
+    set(GWL_BIN_DIR "${CMAKE_CURRENT_BINARY_DIR}")
+elseif(WIN32)
     set(GWL_BIN_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../bin/windows")
 else()
     if(CMAKE_BUILD_TYPE STREQUAL "Release")
@@ -26,9 +31,6 @@ endif()
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${GWL_BIN_DIR}")
 
 
-# GWL_CLI_ONLY builds just GW_Launcher.cli.exe. The Linux build runs it as a nested Windows build, to embed it in the Linux launcher.
-option(GWL_CLI_ONLY "Build only the Windows command-line launcher" OFF)
-set(GWL_CLI_EXE "${CMAKE_CURRENT_SOURCE_DIR}/../bin/windows/GW_Launcher.cli.exe")
 # The WebView2 loader, vendored in third_party/webview2. The Windows launcher carries it as a resource.
 set(GWL_WEBVIEW2_LOADER "${CMAKE_CURRENT_SOURCE_DIR}/third_party/webview2/bin/x64/WebView2Loader.dll")
 
@@ -74,8 +76,7 @@ else()
     message(FATAL_ERROR "The native layer supports Windows and Linux only.")
 endif()
 
-if(WIN32)
-    # GW_Launcher.cli.exe does the game work. The GUI launchers carry it, copy it out and run it to start a game.
+if(WIN32 AND GWL_CLI_ONLY)
     add_executable(gwlauncher_cli src/CliMain.cpp)
     set_target_properties(gwlauncher_cli PROPERTIES OUTPUT_NAME GW_Launcher.cli)
     target_link_libraries(gwlauncher_cli PRIVATE gwl_core)
@@ -138,22 +139,20 @@ if(EXISTS "${GWL_FRONTEND}/dist/index.html")
     # The release names the launcher GW_Launcher, which older launchers look for in the release.
     set_target_properties(gwlauncher PROPERTIES OUTPUT_NAME GW_Launcher)
 
-    # Both GUI launchers carry GW_Launcher.cli.exe. It's compiled in from its built file, so the launcher rebuilds when that changes.
-    set_source_files_properties(src/EmbeddedCli.cpp PROPERTIES
-        COMPILE_DEFINITIONS "GWL_CLI_PATH=\"${GWL_CLI_EXE}\""
-        OBJECT_DEPENDS "${GWL_CLI_EXE}")
-    target_sources(gwlauncher PRIVATE src/EmbeddedCli.cpp)
     if(WIN32)
-        add_dependencies(gwlauncher gwlauncher_cli)
         target_link_options(gwlauncher PRIVATE -mwindows -static)
     else()
+        set(GWL_CLI_EXE "${CMAKE_CURRENT_BINARY_DIR}/windows-cli/GW_Launcher.cli.exe")
+        set_source_files_properties(src/EmbeddedCli.cpp PROPERTIES
+            COMPILE_DEFINITIONS "GWL_CLI_PATH=\"${GWL_CLI_EXE}\""
+            OBJECT_DEPENDS "${GWL_CLI_EXE}")
+        target_sources(gwlauncher PRIVATE src/EmbeddedCli.cpp)
         # The Linux launcher's command-line launcher is built with MinGW, by a nested Windows build with the windows-release flags.
         find_program(GWL_MINGW_CXX x86_64-w64-mingw32-g++)
         if(NOT GWL_MINGW_CXX)
             message(FATAL_ERROR "The Linux launcher carries the Windows command-line launcher, so it's built with MinGW: install x86_64-w64-mingw32-g++.")
         endif()
-        # The command-line launcher is rebuilt only when one of its sources changes. Its nested build uses the same generator and
-        # always the windows-release flags, so every preset writes the same file to bin/windows.
+        # The helper stays inside the Linux build folder so Windows packages need only the main executable.
         file(GLOB_RECURSE GWL_CLI_SOURCES CONFIGURE_DEPENDS
              "${CMAKE_CURRENT_SOURCE_DIR}/src/*" "${CMAKE_CURRENT_SOURCE_DIR}/include/*"
              "${CMAKE_CURRENT_SOURCE_DIR}/platform/windows/*" "${CMAKE_CURRENT_SOURCE_DIR}/third_party/*")

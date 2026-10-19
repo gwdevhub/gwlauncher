@@ -140,4 +140,4 @@ cmake --preset linux-release && cmake --build --preset linux-release
 ```
 
 - Linux: `bin/linux/release/GW_Launcher`. It runs Guild Wars through Wine, using `GW_Launcher.cli.exe`, which is built into it.
-- Windows: `cmake --preset windows-release` and `cmake --build --preset windows-release`, from `backend/`, write `bin/windows/GW_Launcher.exe` and `bin/windows/GW_Launcher.cli.exe`. Cross-built with MinGW-w64 from Linux.
+- Windows: `./build.ps1 -Target windows` writes `bin/windows/GW_Launcher.exe`. The same executable handles the UI and the `--launch` game-launching mode; no separate CLI helper is needed on Windows.

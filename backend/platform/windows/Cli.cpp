@@ -1,5 +1,4 @@
-// Windows: the command-line launcher, GW_Launcher.cli.exe. The GUI launchers carry it and run it to start a game, and the Linux launcher
-// runs it under Wine. It starts the game the way the Windows launcher does, and exits once the game's window is ready.
+// Windows game-launch mode; Linux runs the same code in its helper under Wine.
 
 #include <windows.h>
 

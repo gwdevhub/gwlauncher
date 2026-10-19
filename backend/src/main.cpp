@@ -12,7 +12,17 @@
 #include "TempFiles.h"
 #include "WebViewWindow.h"
 
+#ifdef _WIN32
+#include "Cli.h"
+#endif
+
 int main(int argc, char** argv) {
+#ifdef _WIN32
+    // Game-launch children must bypass single-instance forwarding and windowing setup.
+    if (argc > 1 && std::string(argv[1]) == "--launch") {
+        return gwl::runCli(std::vector<std::string>(argv + 1, argv + argc));
+    }
+#endif
     try {
         const std::vector<std::string> arguments(argv, argv + argc);
         const gwl::InstanceRequest request = gwl::InstanceRequest::fromArgs(arguments);

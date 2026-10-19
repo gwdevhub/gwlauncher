@@ -1,6 +1,4 @@
-// Windows: the launcher starts a game through its command-line launcher. The embedded GW_Launcher.cli.exe is copied out, run with the
-// account, and its handshake is passed on: it prints "suspended", the confirmation is given on its stdin, and it reports its failure
-// through its error file. The Linux launcher does the same through Wine.
+// Windows: the launcher restarts itself with --launch to start a game without opening its UI.
 
 #include <windows.h>
 
@@ -14,8 +12,8 @@
 
 #include "Progress.h"
 #include "Accounts.h"
-#include "EmbeddedCli.h"
 #include "Launch.h"
+#include "Shell.h"
 #include "utils/Strings.h"
 
 namespace gwl {
@@ -87,7 +85,7 @@ void startGame(const Account& account, const std::string& dir, std::uint32_t tim
     if (requireSteam && account.isSteamAccount && !steamRunning()) {
         throw std::runtime_error("Steam is not running. Please start Steam before launching a Steam account.");
     }
-    const fs::path cli = installEmbeddedCli();
+    const fs::path cli = executablePath();
     const fs::path folder = cli.parent_path();
 
     // The account goes in a file beside the command-line launcher, in the form Accounts.json holds it.
