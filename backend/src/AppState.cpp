@@ -57,9 +57,17 @@ std::string pickerStartFolder(bool modsOnly, const std::string& gamePath) {
 
 namespace {
 
-const char* const kSettingsFile = "Settings.json";
+std::filesystem::path configFolder() {
+#ifdef _WIN32
+    return gwl::launcherDataDir();
+#else
+    return std::filesystem::current_path();
+#endif
+}
 
-const char* const kAccountsFile = "Accounts.json";
+// File dialogs can change the working directory, so configuration paths must be absolute.
+const std::string kSettingsFile = (configFolder() / "Settings.json").string();
+const std::string kAccountsFile = (configFolder() / "Accounts.json").string();
 
 // Starts the Steam icon's download when a Steam account is listed. Accounts added during the session start it too.
 void fetchSteamIconFor(const std::vector<gwl::Account>& accounts, const std::function<void()>& done) {

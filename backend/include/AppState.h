@@ -31,7 +31,7 @@ namespace launcher {
 class AccountListWindow;
 
 struct AppState {
-    // Reads Settings.json and Accounts.json from the folder the launcher runs in.
+    // Windows reads settings and accounts from beside the executable.
     explicit AppState(std::string page);
 
     // The workers for checks and other work that mustn't block the window. Declared first, so it's destroyed last.
