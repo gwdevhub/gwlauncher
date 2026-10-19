@@ -13,6 +13,7 @@ jobs:
         runs-on: ubuntu-24.04
         permissions:
             contents: write
+            actions: write
         defaults:
             run:
                 shell: bash
@@ -58,3 +59,10 @@ jobs:
                         release/GW_Launcher.exe \
                         release/GW_Launcher_Framework_Dependent.exe \
                         release/GW_Launcher
+
+            # A release made with the workflow token doesn't trigger other workflows, so the site is rebuilt here to pick it up.
+            -   name: Rebuild the site
+                if: github.ref == 'refs/heads/master'
+                env:
+                    GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                run: gh workflow run site-deploy.yml --ref master
