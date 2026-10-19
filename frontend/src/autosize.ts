@@ -9,12 +9,23 @@ export function useAutosize(element: HTMLElement | null) {
         if (!element) {
             return;
         }
+        // The window is the element plus what the frame draws around the view: the title bar and the border.
+        const frame = document.querySelector('.window-frame');
+        const content = document.querySelector('.window-content');
         const report = () => {
             const box = element.getBoundingClientRect();
-            call('fitToPage', Math.ceil(box.width), Math.ceil(box.height));
+            const outer = frame?.getBoundingClientRect();
+            const inner = content?.getBoundingClientRect();
+            const extraWidth = outer && inner ? outer.width - inner.width : 0;
+            const extraHeight = outer && inner ? outer.height - inner.height : 0;
+            call('fitToPage', Math.ceil(box.width + extraWidth), Math.ceil(box.height + extraHeight));
         };
         const observer = new ResizeObserver(report);
         observer.observe(element);
+        // The title bar can arrive after the view, which changes what the frame takes without changing the element.
+        if (content) {
+            observer.observe(content);
+        }
         return () => observer.disconnect();
     }, [element]);
 }

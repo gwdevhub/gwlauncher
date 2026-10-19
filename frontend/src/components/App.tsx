@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { call } from '../bridge';
+import { loadChrome } from '../chrome';
 import { on } from '../events';
 import { listKey } from '../listKeys';
 import { runMenuAction } from '../menu';
@@ -21,6 +22,7 @@ import { MessageWindow } from '../windows/MessageWindow';
 import { ProgressWindow } from '../windows/ProgressWindow';
 import { UpdateWindow } from '../windows/UpdateWindow';
 import type { MenuItem, Role, Settings } from '../types';
+import { WindowFrame } from './WindowFrame';
 
 export function App() {
     const [view, setView] = useState<ViewState | null>(null);
@@ -33,6 +35,8 @@ export function App() {
 
     useEffect(() => {
         (async () => {
+            // Before the first view, so a popup's size counts the title bar.
+            await loadChrome();
             const state = await refreshState();
             const role: Role | null = await call<Role | null>('window');
             session.popup = role;
@@ -92,10 +96,7 @@ export function App() {
         };
     }, []);
 
-    if (!view) {
-        return null;
-    }
-    return <Current key={view.key} name={view.name} args={view.args} />;
+    return <WindowFrame>{view && <Current key={view.key} name={view.name} args={view.args} />}</WindowFrame>;
 }
 
 // Picks the view component for a view name, with the arguments the view was shown with.

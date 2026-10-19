@@ -17,6 +17,18 @@ typedef struct _GtkMenuShell GtkMenuShell;
 typedef struct _GtkMenuItem GtkMenuItem;
 
 typedef struct _GdkScreen GdkScreen;
+typedef struct _GdkWindow GdkWindow;
+
+typedef enum {
+    GDK_WINDOW_EDGE_NORTH_WEST,
+    GDK_WINDOW_EDGE_NORTH,
+    GDK_WINDOW_EDGE_NORTH_EAST,
+    GDK_WINDOW_EDGE_WEST,
+    GDK_WINDOW_EDGE_EAST,
+    GDK_WINDOW_EDGE_SOUTH_WEST,
+    GDK_WINDOW_EDGE_SOUTH,
+    GDK_WINDOW_EDGE_SOUTH_EAST,
+} GdkWindowEdge;
 typedef struct _GdkDisplay GdkDisplay;
 typedef struct _GdkMonitor GdkMonitor;
 typedef struct _GdkEvent GdkEvent;

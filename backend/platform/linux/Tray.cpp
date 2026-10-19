@@ -1,6 +1,6 @@
 // Linux: the tray icon is a StatusNotifierItem on the session bus, registered with the desktop's watcher. GTK, GIO and
 // gdk-pixbuf are opened at runtime, as the rest of the Linux layer opens GTK (see TrayBus.h). The item has no D-Bus menu: a right click
-// asks for the launcher's own menu, a GTK menu with Open and Quit.
+// is reported as a RightClick, which shows the list. The item has no menu.
 
 #include "tray/Tray.h"
 #include "TrayBus.h"
@@ -100,22 +100,13 @@ const TrayApi* trayApi() {
         api.channels = symbolOf<decltype(api.channels)>(lib, "gdk_pixbuf_get_n_channels");
         api.width = symbolOf<decltype(api.width)>(lib, "gdk_pixbuf_get_width");
         api.height = symbolOf<decltype(api.height)>(lib, "gdk_pixbuf_get_height");
-        api.menuNew = symbolOf<decltype(api.menuNew)>(lib, "gtk_menu_new");
-        api.menuItemNew = symbolOf<decltype(api.menuItemNew)>(lib, "gtk_menu_item_new_with_label");
-        api.menuShellAppend = symbolOf<decltype(api.menuShellAppend)>(lib, "gtk_menu_shell_append");
-        api.showAll = symbolOf<decltype(api.showAll)>(lib, "gtk_widget_show_all");
-        api.menuPopup = symbolOf<decltype(api.menuPopup)>(lib, "gtk_menu_popup");
-        api.currentEventTime = symbolOf<decltype(api.currentEventTime)>(lib, "gtk_get_current_event_time");
-        api.connect = symbolOf<decltype(api.connect)>(lib, "g_signal_connect_data");
-        api.destroy = symbolOf<decltype(api.destroy)>(lib, "gtk_widget_destroy");
         const bool complete = api.busGet && api.callSync && api.newVariant && api.getVariant && api.fixedArray && api.newArray &&
                               api.variantUnref && api.builderNew && api.builderAdd && api.builderEnd && api.builderUnref &&
                               api.nodeInfoForXml && api.lookupInterface && api.nodeInfoUnref && api.registerObject &&
                               api.unregisterObject && api.returnValue && api.returnError && api.errorFree && api.objectUnref &&
                               api.loaderNew && api.loaderWrite && api.loaderClose && api.loaderPixbuf && api.scale && api.pixels &&
-                              api.rowstride && api.channels && api.width && api.height && api.menuNew && api.menuItemNew &&
-                              api.menuShellAppend && api.showAll && api.menuPopup && api.currentEventTime && api.connect &&
-                              api.destroy && api.connectionNew && api.childCount && api.childValue;
+                              api.rowstride && api.channels && api.width && api.height && api.connectionNew && api.childCount &&
+                              api.childValue;
         if (!complete) {
             api.library = nullptr;
         }
@@ -139,7 +130,6 @@ struct TrayItem {
     std::string busName;
     GDBusNodeInfo* node = nullptr;
     guint objects[2] = {0, 0};
-    GtkWidget* menu = nullptr;
 
     TrayItem(const std::string& iconPng, TrayHandler handler);
     ~TrayItem();
@@ -228,29 +218,6 @@ GVariant* propertyValue(const TrayApi& api, const TrayItem& item, const std::str
     return nullptr;
 }
 
-// The launcher's own menu for the tray: Open and Quit.
-GtkWidget* buildMenu(const TrayApi& api, TrayItem& item) {
-    GtkWidget* menu = api.menuNew();
-    const struct {
-        const char* label;
-        GCallback picked;
-    } entries[] = {
-        {"Open GW Launcher", reinterpret_cast<GCallback>(+[](GtkMenuItem*, gpointer data) {
-             static_cast<TrayItem*>(data)->onEvent(TrayAction::Open, 0, 0);
-         })},
-        {"Quit", reinterpret_cast<GCallback>(+[](GtkMenuItem*, gpointer data) {
-             static_cast<TrayItem*>(data)->onEvent(TrayAction::Quit, 0, 0);
-         })},
-    };
-    for (const auto& entry : entries) {
-        GtkWidget* widget = api.menuItemNew(entry.label);
-        api.connect(widget, "activate", entry.picked, &item, nullptr, static_cast<GConnectFlags>(0));
-        api.menuShellAppend(reinterpret_cast<GtkMenuShell*>(menu), widget);
-    }
-    api.showAll(menu);
-    return menu;
-}
-
 void onMethodCall(GDBusConnection*, const gchar*, const gchar*, const gchar* interface, const gchar* method, GVariant* parameters,
                   GDBusMethodInvocation* invocation, gpointer data) {
     const TrayApi& api = *trayApi();
@@ -266,7 +233,7 @@ void onMethodCall(GDBusConnection*, const gchar*, const gchar*, const gchar* int
             if (name == "Activate") {
                 item.onEvent(TrayAction::Activate, x, y);
             } else if (name == "ContextMenu") {
-                api.menuPopup(reinterpret_cast<GtkMenu*>(item.menu), nullptr, nullptr, nullptr, nullptr, 0, api.currentEventTime());
+                item.onEvent(TrayAction::RightClick, x, y);
             }
             api.returnValue(invocation, nullptr);
             return;
@@ -355,8 +322,6 @@ TrayItem::TrayItem(const std::string& iconPng, TrayHandler handler) : onEvent(st
             fail(*api, error, "The tray item couldn't be published.");
         }
 
-        menu = buildMenu(*api, *this);
-
         GVariant* registered = api->callSync(connection, kWatcher, "/StatusNotifierWatcher", kWatcher, "RegisterStatusNotifierItem",
                                              api->newVariant("(s)", busName.c_str()), nullptr, G_DBUS_CALL_FLAGS_NONE, -1, nullptr,
                                              &error);
@@ -384,10 +349,6 @@ void TrayItem::release() {
             api->unregisterObject(connection, object);
         }
         object = 0;
-    }
-    if (menu) {
-        api->destroy(menu);
-        menu = nullptr;
     }
     if (node) {
         api->nodeInfoUnref(node);

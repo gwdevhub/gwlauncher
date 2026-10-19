@@ -429,7 +429,11 @@ void installCommonHandlers(gwl::MessageHandler& handler, AppState& app) {
     });
     handler.on("unlock", [&app](gwl::WebViewWindow&, const gwl::Json& args, const gwl::Reply& reply) {
         logRequest("unlock");
-        reply.result(app.unlock(args.at(0).get<std::string>(), args.at(1).get<bool>()));
+        const gwl::Json message = app.unlock(args.at(0).get<std::string>(), args.at(1).get<bool>());
+        reply.result(message);
+        if (message.is_null() && app.quickAccount) {
+            app.launchNamed(*std::exchange(app.quickAccount, std::nullopt));
+        }
     });
     handler.on("setMasterPassword", [&app](gwl::WebViewWindow&, const gwl::Json& args, const gwl::Reply& reply) {
         logRequest("setMasterPassword");
@@ -506,9 +510,16 @@ void installCommonHandlers(gwl::MessageHandler& handler, AppState& app) {
         logRequest("updateAll");
         app.startUpdateAll(reply);
     });
-    handler.on("hide", [](gwl::WebViewWindow& window, const gwl::Json&, const gwl::Reply& reply) {
+    handler.on("hide", [&app](gwl::WebViewWindow& window, const gwl::Json&, const gwl::Reply& reply) {
         logRequest("hide");
         window.hide();
+        reply.result(nullptr);
+        app.endQuickIfIdle();
+    });
+    // The list answers quit itself. Without it, the password prompt of a quick launch quits.
+    handler.on("quit", [](gwl::WebViewWindow&, const gwl::Json&, const gwl::Reply& reply) {
+        logRequest("quit");
+        gwl::stopEventLoop();
         reply.result(nullptr);
     });
     handler.on("uiScale", [](gwl::WebViewWindow&, const gwl::Json& args, const gwl::Reply& reply) {
@@ -524,6 +535,40 @@ void installCommonHandlers(gwl::MessageHandler& handler, AppState& app) {
     handler.on("resize", [](gwl::WebViewWindow& window, const gwl::Json& args, const gwl::Reply& reply) {
         logRequest("resize");
         window.resize(args.at(0).get<int>(), args.at(1).get<int>());
+        reply.result(nullptr);
+    });
+
+    // The page's title bar and edges: every window is frameless, so these stand in for the window manager's.
+    handler.on("chrome", [](gwl::WebViewWindow& window, const gwl::Json&, const gwl::Reply& reply) {
+        logRequest("chrome");
+        reply.result(window.chrome());
+    });
+    handler.on("moveDrag", [](gwl::WebViewWindow& window, const gwl::Json&, const gwl::Reply& reply) {
+        logRequest("moveDrag");
+        window.beginMove();
+        reply.result(nullptr);
+    });
+    handler.on("resizeDrag", [](gwl::WebViewWindow& window, const gwl::Json& args, const gwl::Reply& reply) {
+        logRequest("resizeDrag");
+        const int edge = args.at(0).get<int>();
+        if (edge >= 0 && edge <= static_cast<int>(gwl::ResizeEdge::SouthEast)) {
+            window.beginResize(static_cast<gwl::ResizeEdge>(edge));
+        }
+        reply.result(nullptr);
+    });
+    handler.on("minimize", [](gwl::WebViewWindow& window, const gwl::Json&, const gwl::Reply& reply) {
+        logRequest("minimize");
+        window.minimize();
+        reply.result(nullptr);
+    });
+    handler.on("toggleMaximize", [](gwl::WebViewWindow& window, const gwl::Json&, const gwl::Reply& reply) {
+        logRequest("toggleMaximize");
+        window.toggleMaximize();
+        reply.result(nullptr);
+    });
+    handler.on("close", [](gwl::WebViewWindow& window, const gwl::Json&, const gwl::Reply& reply) {
+        logRequest("close");
+        window.close();
         reply.result(nullptr);
     });
 }
@@ -562,12 +607,21 @@ void AppState::instanceRequest(const gwl::InstanceRequest& request) {
 
 void AppState::launchNamed(const std::string& name) {
     for (std::size_t index = 0; index < accounts.size(); ++index) {
-        if (accounts[index].name() == name) {
-            // Nothing waits on the answer, so the reply does nothing.
-            launch(gwl::Reply{[](const gwl::Json&) {}, [](const std::string&) {}}, gwl::Json::array({index}), false, false);
-            return;
+        if (accounts[index].name() != name) {
+            continue;
         }
+        // A failed start shows its reason in the progress window, so only blocking issues need a window of their own.
+        auto shown = [this, index, name](const gwl::Json& result) {
+            if (result.is_object() && result.contains("issues") && !result["issues"].is_null()) {
+                const gwl::Json view{{"index", index}, {"name", name}, {"issues", result["issues"]}, {"canLaunch", result["canLaunch"]}, {"launchBlocked", true}};
+                openIssues("launch:" + name, view);
+            }
+            endQuickIfIdle();
+        };
+        launch(gwl::Reply{shown, [this](const std::string&) { endQuickIfIdle(); }}, gwl::Json::array({index}), false, true);
+        return;
     }
+    openMessage("GW Launcher", "There's no account named " + name + ".");
 }
 
 std::string AppState::pageHtml() const {

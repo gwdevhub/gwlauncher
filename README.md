@@ -101,6 +101,7 @@ There are three settings that you can change in the file Settings.json (open wit
 *	AutoUpdate: bool, if GW Launcher should automatically update, default false
 *	KeepInSystemTray: bool, if GW Launcher should run from a tray icon instead of a taskbar window (closing the window hides it to the tray), default true
 *	LaunchMinimized: bool, if GW Launcher should start hidden in the tray (requires KeepInSystemTray), default true
+*	ShowTitleBarInTray: bool, if the window keeps its title bar when run from the tray (requires KeepInSystemTray), default false
 
 * * *
 

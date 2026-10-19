@@ -26,10 +26,14 @@ const auto kTrayClickAfterFocusLoss = std::chrono::milliseconds(500);
 
 void AppState::applyTrayMode() {
     setTrayIcon();
-    // With the tray holding it the list is a flyout, with no title bar; without the tray it's an ordinary window again.
     if (list) {
-        list->setDecorated(tray == nullptr);
+        list->setTitleBar(listHasTitleBar());
+        list->setSkipTaskbar(tray != nullptr);
     }
+}
+
+bool AppState::listHasTitleBar() const {
+    return tray == nullptr || settings.showTitleBarInTray;
 }
 
 void AppState::setTrayIcon() {
@@ -63,23 +67,14 @@ void AppState::trayEvent(gwl::TrayAction action, int x, int y) {
         if (list && list->isVisible()) {
             hideList();
         } else if (std::chrono::steady_clock::now() - listHiddenByFocusAt > kTrayClickAfterFocusLoss) {
+            listOpenedByRightClick = false;
             showList(trayAnchor);
         }
         break;
-    case gwl::TrayAction::Open: {
-        // Open from the tray menu uses the last click's place, or the pointer's.
-        std::optional<gwl::Rect> anchor = trayAnchor;
-        if (!anchor) {
-            if (const auto pointer = gwl::cursorPosition()) {
-                anchor = gwl::Rect{pointer->first, pointer->second, 0, 0};
-            }
-        }
-        showList(anchor);
-        break;
-    }
-    case gwl::TrayAction::Quit:
-        rememberListPlace();
-        gwl::stopEventLoop();
+    case gwl::TrayAction::RightClick:
+        trayAnchor = gwl::Rect{x, y, 0, 0};
+        listOpenedByRightClick = true;
+        showList(trayAnchor);
         break;
     }
 }
@@ -121,7 +116,6 @@ void AppState::showList(std::optional<gwl::Rect> click, std::optional<gwl::Rect>
     }
     const int baseWidth = static_cast<int>(settings.listWidth);
     const int baseHeight = static_cast<int>(settings.listHeight);
-    list->resize(baseWidth, baseHeight);
     // The window's real size, which the display's scale can make larger than the UI scale alone gives.
     const auto actual = list->frame();
     const int width = actual ? actual->width : gwl::scaledSize(baseWidth);

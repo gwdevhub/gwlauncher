@@ -21,6 +21,7 @@ std::string MessageWindow::devUrl() const {
 
 bool MessageWindow::allowClose() {
     hide();
+    app_.endQuickIfIdle();
     return false;
 }
 

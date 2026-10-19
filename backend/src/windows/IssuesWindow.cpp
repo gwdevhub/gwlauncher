@@ -39,6 +39,7 @@ std::string IssuesWindow::devUrl() const {
 
 bool IssuesWindow::allowClose() {
     hide();
+    app_.endQuickIfIdle();
     return false;
 }
 

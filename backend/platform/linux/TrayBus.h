@@ -52,15 +52,6 @@ struct TrayApi {
     int (*channels)(const GdkPixbuf*) = nullptr;
     int (*width)(const GdkPixbuf*) = nullptr;
     int (*height)(const GdkPixbuf*) = nullptr;
-
-    GtkWidget* (*menuNew)() = nullptr;
-    GtkWidget* (*menuItemNew)(const gchar*) = nullptr;
-    void (*menuShellAppend)(GtkMenuShell*, GtkWidget*) = nullptr;
-    void (*showAll)(GtkWidget*) = nullptr;
-    void (*menuPopup)(GtkMenu*, GtkWidget*, GtkWidget*, GtkMenuPositionFunc, gpointer, guint, guint32) = nullptr;
-    guint32 (*currentEventTime)() = nullptr;
-    gulong (*connect)(gpointer, const gchar*, GCallback, gpointer, GClosureNotify, GConnectFlags) = nullptr;
-    void (*destroy)(GtkWidget*) = nullptr;
 };
 
 // Throws with the error GIO reports, or the fallback text when it reports none.

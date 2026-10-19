@@ -36,17 +36,24 @@ struct GtkApi {
     void (*window_get_position)(GtkWindow*, gint*, gint*) = nullptr;
     void (*window_get_size)(GtkWindow*, gint*, gint*) = nullptr;
     void (*window_set_decorated)(GtkWindow*, gboolean) = nullptr;
-    void (*window_set_resizable)(GtkWindow*, gboolean) = nullptr;
     void (*window_set_skip_taskbar_hint)(GtkWindow*, gboolean) = nullptr;
     void (*window_set_keep_above)(GtkWindow*, gboolean) = nullptr;
     void (*window_present)(GtkWindow*) = nullptr;
     void (*window_present_with_time)(GtkWindow*, guint32) = nullptr;
     void (*window_deiconify)(GtkWindow*) = nullptr;
-    void (*window_set_deletable)(GtkWindow*, gboolean) = nullptr;
     void (*window_set_icon)(GtkWindow*, GdkPixbuf*) = nullptr;
     void (*container_add)(GtkContainer*, GtkWidget*) = nullptr;
     void (*widget_show)(GtkWidget*) = nullptr;
     void (*widget_show_all)(GtkWidget*) = nullptr;
+    GdkWindow* (*widget_get_window)(GtkWidget*) = nullptr;
+    guint32 (*x11_server_time)(GdkWindow*) = nullptr;
+    void (*window_begin_resize_drag)(GtkWindow*, GdkWindowEdge, gint, gint, gint, guint32) = nullptr;
+    void (*window_begin_move_drag)(GtkWindow*, gint, gint, gint, guint32) = nullptr;
+    void (*window_iconify)(GtkWindow*) = nullptr;
+    void (*window_maximize)(GtkWindow*) = nullptr;
+    void (*window_unmaximize)(GtkWindow*) = nullptr;
+    gboolean (*window_is_maximized)(GtkWindow*) = nullptr;
+    void (*window_close)(GtkWindow*) = nullptr;
     void (*widget_hide)(GtkWidget*) = nullptr;
     void (*widget_destroy)(GtkWidget*) = nullptr;
     void (*main_loop)() = nullptr;
@@ -94,17 +101,25 @@ GtkApi loadApi() {
     bind(api.window_get_position, library, "gtk_window_get_position");
     bind(api.window_get_size, library, "gtk_window_get_size");
     bind(api.window_set_decorated, library, "gtk_window_set_decorated");
-    bind(api.window_set_resizable, library, "gtk_window_set_resizable");
     bind(api.window_set_skip_taskbar_hint, library, "gtk_window_set_skip_taskbar_hint");
     bind(api.window_set_keep_above, library, "gtk_window_set_keep_above");
     bind(api.window_present, library, "gtk_window_present");
     bind(api.window_present_with_time, library, "gtk_window_present_with_time");
     bind(api.window_deiconify, library, "gtk_window_deiconify");
-    bind(api.window_set_deletable, library, "gtk_window_set_deletable");
+    bind(api.window_begin_resize_drag, library, "gtk_window_begin_resize_drag");
+    bind(api.window_begin_move_drag, library, "gtk_window_begin_move_drag");
+    bind(api.window_iconify, library, "gtk_window_iconify");
+    bind(api.window_maximize, library, "gtk_window_maximize");
+    bind(api.window_unmaximize, library, "gtk_window_unmaximize");
+    bind(api.window_is_maximized, library, "gtk_window_is_maximized");
+    bind(api.window_close, library, "gtk_window_close");
     bind(api.window_set_icon, library, "gtk_window_set_icon");
     bind(api.container_add, library, "gtk_container_add");
     bind(api.widget_show, library, "gtk_widget_show");
     bind(api.widget_show_all, library, "gtk_widget_show_all");
+    bind(api.widget_get_window, library, "gtk_widget_get_window");
+    // Only on X11. Without it the focus request carries no time, and the window manager may refuse it.
+    api.x11_server_time = reinterpret_cast<decltype(api.x11_server_time)>(dlsym(library, "gdk_x11_get_server_time"));
     bind(api.widget_hide, library, "gtk_widget_hide");
     bind(api.widget_destroy, library, "gtk_widget_destroy");
     bind(api.main_loop, library, "gtk_main");
@@ -188,12 +203,12 @@ void WebViewWindow::platformOpen() {
     gtk.window_set_default_size(window, scaledSize(options_.width), scaledSize(options_.height));
     // Opened in the middle of the screen. A caller that places the window moves it after it's opened.
     gtk.window_set_position(window, GTK_WIN_POS_CENTER);
-    gtk.window_set_decorated(window, options_.decorations);
-    // An autosize window's page sets its size, so the user can't resize it.
-    gtk.window_set_resizable(window, !options_.autosize);
+    // The page draws the title bar, so the window manager draws none.
+    gtk.window_set_decorated(window, FALSE);
+    // Left resizable even for an autosize window: GTK keeps a fixed-size web view window at least 200 pixels square, and
+    // a frameless window offers the user no edges unless the page draws them.
     gtk.window_set_skip_taskbar_hint(window, options_.skipTaskbar);
     gtk.window_set_keep_above(window, options_.alwaysOnTop);
-    gtk.window_set_deletable(window, options_.hasButton(TitleButton::Close));
     // The launcher's icon. Set on each window: the taskbar and the window list read the window's own icon.
     if (applicationIcon) {
         gtk.window_set_icon(window, applicationIcon);
@@ -228,6 +243,19 @@ void WebViewWindow::platformOpen() {
     }
 }
 
+namespace {
+
+// The X server's time, which a window manager needs on a focus or move request. GDK_CURRENT_TIME when it isn't available.
+guint32 serverTime(GtkWidget* widget) {
+    if (!api().x11_server_time) {
+        return GDK_CURRENT_TIME;
+    }
+    GdkWindow* gdkWindow = api().widget_get_window(widget);
+    return gdkWindow ? api().x11_server_time(gdkWindow) : GDK_CURRENT_TIME;
+}
+
+}  // namespace
+
 void WebViewWindow::platformPresent() {
     if (!native_ || !native_->window) {
         return;
@@ -237,7 +265,48 @@ void WebViewWindow::platformPresent() {
     auto* window = reinterpret_cast<GtkWindow*>(native_->window);
     api().window_deiconify(window);
     api().widget_show_all(native_->window);
-    api().window_present_with_time(window, GDK_CURRENT_TIME);
+    api().window_present_with_time(window, serverTime(native_->window));
+}
+
+// The drags below follow the left button the page saw pressed, from where the pointer is now.
+void WebViewWindow::platformBeginMove() {
+    const auto pointer = cursorPosition();
+    if (native_ && native_->window && pointer) {
+        api().window_begin_move_drag(reinterpret_cast<GtkWindow*>(native_->window), 1, pointer->first, pointer->second,
+                                     serverTime(native_->window));
+    }
+}
+
+void WebViewWindow::platformBeginResize(ResizeEdge edge) {
+    const auto pointer = cursorPosition();
+    if (native_ && native_->window && pointer) {
+        api().window_begin_resize_drag(reinterpret_cast<GtkWindow*>(native_->window), static_cast<GdkWindowEdge>(edge), 1,
+                                       pointer->first, pointer->second, serverTime(native_->window));
+    }
+}
+
+void WebViewWindow::platformMinimize() {
+    if (native_ && native_->window) {
+        api().window_iconify(reinterpret_cast<GtkWindow*>(native_->window));
+    }
+}
+
+void WebViewWindow::platformToggleMaximize() {
+    if (native_ && native_->window) {
+        auto* window = reinterpret_cast<GtkWindow*>(native_->window);
+        if (api().window_is_maximized(window)) {
+            api().window_unmaximize(window);
+        } else {
+            api().window_maximize(window);
+        }
+    }
+}
+
+// Sends the delete event the window manager's close would, so onDeleteEvent asks requestClose.
+void WebViewWindow::platformClose() {
+    if (native_ && native_->window) {
+        api().window_close(reinterpret_cast<GtkWindow*>(native_->window));
+    }
 }
 
 void WebViewWindow::platformShow(bool visible) {
@@ -282,15 +351,9 @@ std::optional<Rect> WebViewWindow::platformFrame() const {
     return Rect{x, y, width, height};
 }
 
-void WebViewWindow::platformSetDecorated() {
+void WebViewWindow::platformSetSkipTaskbar() {
     if (native_ && native_->window) {
-        api().window_set_decorated(reinterpret_cast<GtkWindow*>(native_->window), options_.decorations);
-    }
-}
-
-void WebViewWindow::platformSetTitleButtons() {
-    if (native_ && native_->window) {
-        api().window_set_deletable(reinterpret_cast<GtkWindow*>(native_->window), options_.hasButton(TitleButton::Close));
+        api().window_set_skip_taskbar_hint(reinterpret_cast<GtkWindow*>(native_->window), options_.skipTaskbar);
     }
 }
 

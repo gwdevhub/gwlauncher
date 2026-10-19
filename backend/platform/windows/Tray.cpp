@@ -21,8 +21,6 @@ namespace {
 const wchar_t* const kWindowClass = L"GwlTrayWindow";
 const wchar_t* const kTip = L"GW Launcher";
 const UINT kTrayMessage = WM_APP + 0x40;
-const UINT kOpenCommand = 1;
-const UINT kQuitCommand = 2;
 
 // Icon size for the taskbar, at the system's small-icon size.
 Rgba trayImage(const std::string& iconPng) {
@@ -83,7 +81,6 @@ struct TrayItem {
     TrayHandler onEvent;
     HWND window = nullptr;
     HICON icon = nullptr;
-    HMENU menu = nullptr;
     UINT taskbarCreated = 0;
     bool added = false;
 
@@ -93,7 +90,6 @@ struct TrayItem {
     NOTIFYICONDATAW data() const;
     bool add();
     void remove();
-    void showMenu();
     LRESULT handle(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam);
 };
 
@@ -150,20 +146,6 @@ void TrayItem::remove() {
     added = false;
 }
 
-void TrayItem::showMenu() {
-    POINT point{};
-    GetCursorPos(&point);
-    // The menu only closes when the window is foreground, so the window takes focus first.
-    SetForegroundWindow(window);
-    const UINT command = TrackPopupMenu(menu, TPM_RETURNCMD | TPM_RIGHTBUTTON | TPM_NONOTIFY, point.x, point.y, 0, window, nullptr);
-    PostMessageW(window, WM_NULL, 0, 0);
-    if (command == kOpenCommand) {
-        onEvent(TrayAction::Open, 0, 0);
-    } else if (command == kQuitCommand) {
-        onEvent(TrayAction::Quit, 0, 0);
-    }
-}
-
 LRESULT TrayItem::handle(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam) {
     if (message == taskbarCreated) {
         // The taskbar was restarted, which drops the icon, so it's added again.
@@ -181,9 +163,12 @@ LRESULT TrayItem::handle(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam) 
         onEvent(TrayAction::Activate, point.x, point.y);
         break;
     }
-    case WM_RBUTTONUP:
-        showMenu();
+    case WM_RBUTTONUP: {
+        POINT point{};
+        GetCursorPos(&point);
+        onEvent(TrayAction::RightClick, point.x, point.y);
         break;
+    }
     default:
         break;
     }
@@ -192,9 +177,6 @@ LRESULT TrayItem::handle(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam) 
 
 TrayItem::~TrayItem() {
     remove();
-    if (menu) {
-        DestroyMenu(menu);
-    }
     if (window) {
         DestroyWindow(window);
     }
@@ -207,10 +189,6 @@ TrayIcon::TrayIcon(const std::string& iconPng, TrayHandler onEvent) : item_(std:
     registerWindowClass();
     item_->icon = iconFrom(trayImage(iconPng));
     item_->taskbarCreated = RegisterWindowMessageW(L"TaskbarCreated");
-
-    item_->menu = CreatePopupMenu();
-    AppendMenuW(item_->menu, MF_STRING, kOpenCommand, L"Open GW Launcher");
-    AppendMenuW(item_->menu, MF_STRING, kQuitCommand, L"Quit");
 
     // A top-level window, not a message-only one, since the taskbar's restart is broadcast to top-level windows.
     item_->window = CreateWindowExW(0, kWindowClass, kTip, WS_POPUP, 0, 0, 0, 0, nullptr, nullptr, GetModuleHandleW(nullptr), item_.get());
