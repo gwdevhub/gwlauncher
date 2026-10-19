@@ -22,7 +22,6 @@
 #include <iterator>
 #include <system_error>
 #include "Launch.h"
-#include "include/WebView2.h"
 
 namespace gwl {
 
