@@ -27,7 +27,8 @@ preflight() {
     if $windows_host; then
         local bin_win running
         bin_win="$(cygpath -w "$bin")"
-        running="$(powershell.exe -NoProfile -Command "Get-CimInstance Win32_Process -Filter \"Name='GW_Launcher.exe'\" | Where-Object { \$_.ExecutablePath -like '$bin_win\*' } | ForEach-Object { \$_.ProcessId }" | tr -d '' | tr '
+        running="$(powershell.exe -NoProfile -Command "Get-CimInstance Win32_Process -Filter \"Name='GW_Launcher.exe'\" | Where-Object { \$_.ExecutablePath -like '$bin_win\*' } | ForEach-Object { \$_.ProcessId }" | tr -d '
+' | tr '
 ' ' ')"
         if [ -n "$running" ]; then
             echo "Close the launcher running from $bin_win first (process $(echo $running)): its exe is locked, so the build can't replace it." >&2
@@ -66,11 +67,20 @@ fi
     npm run build
 )
 
+# The builder image is tagged by its Dockerfile.toolchain hash, so the compilers are only installed again when that file changes.
+builder_hash="$(sha256sum "$root/Dockerfile.toolchain" | cut -c1-12)"
+builder_image="gwdevhub-builder:$builder_hash"
+if ! docker image inspect "$builder_image" >/dev/null 2>&1; then
+    docker build -t "$builder_image" -f "$host_root/Dockerfile.toolchain" "$host_root"
+    # Older builder images are dropped so each change doesn't leave another one behind.
+    docker image ls gwdevhub-builder --format '{{.Repository}}:{{.Tag}}' | { grep -v ":$builder_hash\$" || true; } | xargs -r docker rmi >/dev/null
+fi
+
 # The build number comes from the host's git history, because the container doesn't copy .git.
 rev="$(git -C "$host_root" rev-list --count HEAD)"
 
 docker build --target export --output "type=local,dest=$host_root/bin" \
-    --build-arg PRESETS="$presets" --build-arg GWL_BUILD_NUMBER="$rev" \
-    -f "$host_root/backend/packaging/docker/Dockerfile" "$host_root"
+    --build-arg BUILDER_IMAGE="$builder_image" --build-arg PRESETS="$presets" --build-arg GWL_BUILD_NUMBER="$rev" \
+    -f "$host_root/Dockerfile" "$host_root"
 
 echo "Built $presets into $root/bin"

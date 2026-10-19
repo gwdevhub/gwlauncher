@@ -50,12 +50,23 @@ try {
     Pop-Location
 }
 
+# The builder image is tagged by its Dockerfile.toolchain hash, so the compilers are only installed again when that file changes.
+$builderHash = (Get-FileHash (Join-Path $root 'Dockerfile.toolchain') -Algorithm SHA256).Hash.Substring(0, 12).ToLower()
+$builderImage = "gwdevhub-builder:$builderHash"
+docker image inspect $builderImage *> $null
+if ($LASTEXITCODE -ne 0) {
+    docker build -t $builderImage -f (Join-Path $root 'Dockerfile.toolchain') $root
+    if ($LASTEXITCODE -ne 0) { throw 'The builder image failed to build.' }
+    # Older builder images are dropped so each change doesn't leave another one behind.
+    docker image ls gwdevhub-builder --format '{{.Repository}}:{{.Tag}}' | Where-Object { $_ -ne $builderImage } | ForEach-Object { docker rmi $_ *> $null }
+}
+
 # The build number comes from the host's git history, because the container doesn't copy .git.
 $rev = git -C $root rev-list --count HEAD
 
 docker build --target export --output "type=local,dest=$root\bin" `
-    --build-arg "PRESETS=$presets" --build-arg "GWL_BUILD_NUMBER=$rev" `
-    -f (Join-Path $root 'backend/packaging/docker/Dockerfile') $root
+    --build-arg "BUILDER_IMAGE=$builderImage" --build-arg "PRESETS=$presets" --build-arg "GWL_BUILD_NUMBER=$rev" `
+    -f (Join-Path $root 'Dockerfile') $root
 if ($LASTEXITCODE -ne 0) { throw 'The container build failed.' }
 
 "Built $presets into $root\bin"
