@@ -1,5 +1,4 @@
-// The launcher on the native layer: the account list, its editor and its context menu. Launching, setup, updates and the
-// tray come in later slices.
+// The launcher on the native layer: the account list and its windows, or a quick launch of one account for a -launch start.
 
 #include <exception>
 #include <string>
@@ -20,12 +19,20 @@ int main(int argc, char** argv) {
         if (gwl::forwardRequest(request)) {
             return 0;
         }
+        // A quick launch doesn't listen for other starts, so other quick launches may be running and using their temp files.
+        const bool quick = request.kind == gwl::InstanceRequest::Kind::Launch;
+        if (!quick) {
+            gwl::removeLeftoverTempFiles();
+        }
         // Windows and menus need the windowing started, and the tray's menu is made before the list window.
-        // This is the only launcher running, so no launch or download is using a leftover temp file.
-        gwl::removeLeftoverTempFiles();
         gwl::initializeWindowing();
         gwl::setApplicationIcon(gwl::embeddedHelmetPng());
         launcher::AppState app(gwl::embeddedPage());
+        if (quick) {
+            app.quickLaunch(request.name);
+            gwl::runEventLoop();
+            return 0;
+        }
         app.launchArguments.assign(argv + 1, argv + argc);
         // Listening starts before the window is made, so a start made while the window is still opening is handed over too.
         // Later starts' requests arrive on the listener's thread, so each one is passed to the window's thread.
@@ -40,9 +47,6 @@ int main(int argc, char** argv) {
         app.checkLauncherUpdate();
         if (app.tray && !app.settings.launchMinimized) {
             app.showListAtStart();
-        }
-        if (request.kind == gwl::InstanceRequest::Kind::Launch) {
-            app.launchNamed(request.name);
         }
         gwl::runEventLoop();
     } catch (const gwl::RuntimeMissingError&) {

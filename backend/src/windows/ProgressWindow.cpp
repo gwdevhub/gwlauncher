@@ -22,6 +22,7 @@ std::string ProgressWindow::devUrl() const {
 
 bool ProgressWindow::allowClose() {
     hide();
+    app_.endQuickIfIdle();
     return false;
 }
 

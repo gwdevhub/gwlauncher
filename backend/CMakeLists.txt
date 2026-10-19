@@ -131,7 +131,7 @@ if(EXISTS "${GWL_FRONTEND}/dist/index.html")
     endif()
     add_executable(gwlauncher src/main.cpp src/AppState.cpp src/Launching.cpp src/tray/TrayMode.cpp ${GWL_RC_SOURCES}
                    src/windows/AccountListWindow.cpp src/windows/AccountEditWindow.cpp src/windows/ContextMenuWindow.cpp
-                   src/windows/PromptWindow.cpp src/Progress.cpp src/AppUpdate.cpp src/windows/MessageWindow.cpp src/windows/IssuesWindow.cpp src/windows/SettingsWindow.cpp src/windows/SetupWindow.cpp src/windows/ProgressWindow.cpp src/Setup.cpp
+                   src/windows/PromptWindow.cpp src/Progress.cpp src/AppUpdate.cpp src/windows/MessageWindow.cpp src/windows/IssuesWindow.cpp src/windows/SettingsWindow.cpp src/windows/SetupWindow.cpp src/windows/ProgressWindow.cpp src/Setup.cpp src/QuickLaunch.cpp
                    ${GWL_ASSET_SOURCES})
     target_include_directories(gwlauncher PRIVATE include/windows)
     target_link_libraries(gwlauncher PRIVATE gwl_core)

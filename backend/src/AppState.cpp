@@ -429,7 +429,11 @@ void installCommonHandlers(gwl::MessageHandler& handler, AppState& app) {
     });
     handler.on("unlock", [&app](gwl::WebViewWindow&, const gwl::Json& args, const gwl::Reply& reply) {
         logRequest("unlock");
-        reply.result(app.unlock(args.at(0).get<std::string>(), args.at(1).get<bool>()));
+        const gwl::Json message = app.unlock(args.at(0).get<std::string>(), args.at(1).get<bool>());
+        reply.result(message);
+        if (message.is_null() && app.quickAccount) {
+            app.launchNamed(*std::exchange(app.quickAccount, std::nullopt));
+        }
     });
     handler.on("setMasterPassword", [&app](gwl::WebViewWindow&, const gwl::Json& args, const gwl::Reply& reply) {
         logRequest("setMasterPassword");
@@ -506,9 +510,16 @@ void installCommonHandlers(gwl::MessageHandler& handler, AppState& app) {
         logRequest("updateAll");
         app.startUpdateAll(reply);
     });
-    handler.on("hide", [](gwl::WebViewWindow& window, const gwl::Json&, const gwl::Reply& reply) {
+    handler.on("hide", [&app](gwl::WebViewWindow& window, const gwl::Json&, const gwl::Reply& reply) {
         logRequest("hide");
         window.hide();
+        reply.result(nullptr);
+        app.endQuickIfIdle();
+    });
+    // The list answers quit itself. Without it, the password prompt of a quick launch quits.
+    handler.on("quit", [](gwl::WebViewWindow&, const gwl::Json&, const gwl::Reply& reply) {
+        logRequest("quit");
+        gwl::stopEventLoop();
         reply.result(nullptr);
     });
     handler.on("uiScale", [](gwl::WebViewWindow&, const gwl::Json& args, const gwl::Reply& reply) {
@@ -562,12 +573,21 @@ void AppState::instanceRequest(const gwl::InstanceRequest& request) {
 
 void AppState::launchNamed(const std::string& name) {
     for (std::size_t index = 0; index < accounts.size(); ++index) {
-        if (accounts[index].name() == name) {
-            // Nothing waits on the answer, so the reply does nothing.
-            launch(gwl::Reply{[](const gwl::Json&) {}, [](const std::string&) {}}, gwl::Json::array({index}), false, false);
-            return;
+        if (accounts[index].name() != name) {
+            continue;
         }
+        // A failed start shows its reason in the progress window, so only blocking issues need a window of their own.
+        auto shown = [this, index, name](const gwl::Json& result) {
+            if (result.is_object() && result.contains("issues") && !result["issues"].is_null()) {
+                const gwl::Json view{{"index", index}, {"name", name}, {"issues", result["issues"]}, {"canLaunch", result["canLaunch"]}, {"launchBlocked", true}};
+                openIssues("launch:" + name, view);
+            }
+            endQuickIfIdle();
+        };
+        launch(gwl::Reply{shown, [this](const std::string&) { endQuickIfIdle(); }}, gwl::Json::array({index}), false, true);
+        return;
     }
+    openMessage("GW Launcher", "There's no account named " + name + ".");
 }
 
 std::string AppState::pageHtml() const {

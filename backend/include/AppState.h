@@ -75,8 +75,18 @@ struct AppState {
     void openIssues(const std::string& key, const gwl::Json& args);
     // Does what a request from a start asks for: launches the named account, or shows the list.
     void instanceRequest(const gwl::InstanceRequest& request);
-    // Launches the account with the name, as a -launch start does. Nothing happens when no account has the name.
+    // Launches the account with the name, as a -launch start does: checked first, with its blocking issues shown, and a message when
+    // no account has the name.
     void launchNamed(const std::string& name);
+
+    // A quick launch is a -launch start with no launcher running: no list, tray or update check, only the account's start and the
+    // windows it opens, and the launcher exits once they are done. Defined in QuickLaunch.cpp.
+    bool quick = false;
+    // The account a quick launch starts once Accounts.json is unlocked.
+    std::optional<std::string> quickAccount;
+    void quickLaunch(const std::string& name);
+    // Ends a quick launch once nothing is starting and none of its windows are shown.
+    void endQuickIfIdle();
     // Shows the settings window, or opens it. Defined in SettingsWindow.cpp.
     void openSettings();
 
