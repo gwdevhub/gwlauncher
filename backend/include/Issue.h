@@ -51,7 +51,7 @@ std::unique_ptr<Issue> checkGModMissing(const Account& account);
 std::vector<std::unique_ptr<Issue>> checkModsMissing(const Account& account);
 std::vector<std::unique_ptr<Issue>> checkModsInvalid(const Account& account);
 std::vector<std::unique_ptr<Issue>> checkTexmodsInvalid(const Account& account);
-// A file Windows compacted, which Linux can't read. The account's Gw.exe and its active mods are checked.
+// A file Windows compacted, which Linux can't read. The account's Gw.exe, the DLLs it may load from its folder, and its active mods are checked.
 std::vector<std::unique_ptr<Issue>> checkWofProblems(const Account& account);
 // The folders a launch writes into can be written to. A folder that can't be is a blocking issue.
 std::vector<std::unique_ptr<Issue>> checkLaunchFolders(const Account& account);

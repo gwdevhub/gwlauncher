@@ -21,6 +21,7 @@ export interface IssuesRequest {
 export function IssuesWindow({ view }: { view: IssuesRequest }) {
     const [issues, setIssues] = useState<Issue[] | null>(view.issues);
     const [failure, setFailure] = useState('');
+    const [line, setLine] = useState('');
 
     // Without issues the account is checked first; the window shows a progress indicator meanwhile.
     useEffect(() => {
@@ -56,17 +57,24 @@ export function IssuesWindow({ view }: { view: IssuesRequest }) {
         );
     }
 
-    return <IssueList view={view} issues={issues} onRecheck={recheck} />;
+    return <IssueList view={view} issues={issues} line={line} setLine={setLine} onRecheck={recheck} />;
 }
 
-function IssueList({ view, issues, onRecheck }: { view: IssuesRequest; issues: Issue[]; onRecheck: () => void }) {
-    // Issues a fix has run for. A fixed blocking issue no longer holds the launch; a Gw.exe update also hides its row.
-    const [fixed, setFixed] = useState<Set<Issue>>(new Set());
-    const [hidden, setHidden] = useState<Set<Issue>>(new Set());
-    const [line, setLine] = useState('');
+function IssueList({
+    view,
+    issues,
+    line,
+    setLine,
+    onRecheck,
+}: {
+    view: IssuesRequest;
+    issues: Issue[];
+    line: string;
+    setLine: (line: string) => void;
+    onRecheck: () => void;
+}) {
     const [busy, setBusy] = useState<Issue | null>(null);
 
-    const blockingLeft = issues.filter(issue => issue.severity === 0 && !fixed.has(issue)).length;
     const sorted = [...issues].sort((a, b) => a.severity - b.severity);
 
     const fix = async (issue: Issue) => {
@@ -87,10 +95,7 @@ function IssueList({ view, issues, onRecheck }: { view: IssuesRequest; issues: I
         setLine(message ?? 'Nothing was changed.');
         setBusy(null);
         if (message != null) {
-            setFixed(current => new Set(current).add(issue));
-            if (issue.canUpdateGwExe) {
-                setHidden(current => new Set(current).add(issue));
-            }
+            onRecheck();
         }
     };
 
@@ -100,9 +105,6 @@ function IssueList({ view, issues, onRecheck }: { view: IssuesRequest; issues: I
             <p>{view.launchBlocked ? 'Fix these before launching:' : 'Issues found for this account:'}</p>
             {issues.length === 0 && <p>No issues. This account should launch.</p>}
             {sorted.map((issue, i) => {
-                if (hidden.has(issue)) {
-                    return null;
-                }
                 const blocking = issue.severity === 0;
                 const fixable = Boolean(
                     issue.wofPath ||
