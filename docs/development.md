@@ -42,7 +42,7 @@ npm ci
 npm run build
 ```
 
-The native build embeds `frontend/dist/index.html`, gzip-compressed. The `native` workflow rebuilds the page and fails if the committed `dist` differs, so commit it with the source changes that produced it.
+The native build embeds `frontend/dist/index.html`, gzip-compressed, so commit `dist` with the source changes that produced it.
 
 ### Linux
 
@@ -93,12 +93,6 @@ The container builds into `backend/build-docker`, so it never shares a CMake cac
 ## Packaging
 
 - `backend/packaging/appimage/build-appimage.sh` packs `bin/linux/release/GW_Launcher` into `bin/linux/appimage/GW_Launcher-x86_64.AppImage`. It needs `appimagetool` on `PATH`, or `APPIMAGETOOL` set to its path. The AppImage uses the host's GTK 3 and WebKitGTK 4.1.
-
-## CI
-
-`.github/workflows/native.yml` runs on changes under `backend`, `frontend`, `assets`, and the workflow file:
-- `linux` checks the committed page, then builds `linux-release` and uploads `bin/linux/release/GW_Launcher`.
-- `windows` checks the committed page, then builds `windows-release` and uploads `bin/windows/GW_Launcher.exe` and `GW_Launcher.cli.exe`.
 
 ## Environment overrides
 

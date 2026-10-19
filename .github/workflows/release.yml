@@ -2,6 +2,11 @@ name: Release
 on:
     push:
         branches: [ "master" ]
+        paths:
+            - 'backend/**'
+            - 'frontend/**'
+            - 'assets/**'
+            - 'build.sh'
     workflow_dispatch:
 jobs:
     release:
