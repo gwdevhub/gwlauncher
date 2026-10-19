@@ -9,6 +9,7 @@
 #include "ShellLink.h"
 #include "utils/Files.h"
 #include "utils/Strings.h"
+#include "Wof.h"
 
 namespace gwl {
 
@@ -72,7 +73,8 @@ std::optional<PluginFile> fromShortcut(const fs::path& shortcut) {
 
 std::optional<PluginFile> scanPluginFile(const fs::path& path) {
     std::error_code error;
-    if (!fs::is_regular_file(path, error)) {
+    // A file Windows compacted reads as a link to nothing on Linux, so it's a plugin only when it's compacted.
+    if (!fs::is_regular_file(path, error) && !wofProblem(path)) {
         return std::nullopt;
     }
     if (lowerExtension(path) == ".lnk") {
@@ -89,7 +91,7 @@ std::vector<PluginFile> scanPluginFolder(const fs::path& folder) {
     std::error_code error;
     std::vector<fs::path> paths;
     for (const fs::directory_entry& entry : fs::directory_iterator(folder, error)) {
-        if (entry.is_regular_file(error)) {
+        if (entry.is_regular_file(error) || wofProblem(entry.path())) {
             paths.push_back(entry.path());
         }
     }
