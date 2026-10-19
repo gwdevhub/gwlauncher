@@ -145,18 +145,48 @@ void WebViewWindow::keepOnScreen() {
     }
 }
 
-void WebViewWindow::setDecorated(bool decorated) {
-    options_.decorations = decorated;
-    platformSetDecorated();
+Json WebViewWindow::chrome() const {
+    return {
+        {"title", title()},
+        {"titleBar", options_.titleBar},
+        {"resizable", options_.resizable && !options_.autosize},
+    };
 }
 
-void WebViewWindow::setTitleButtons(std::vector<TitleButton> buttons) {
-    options_.buttons = std::move(buttons);
-    platformSetTitleButtons();
+void WebViewWindow::setTitleBar(bool shown) {
+    options_.titleBar = shown;
+    emit("chrome", chrome());
+}
+
+void WebViewWindow::setSkipTaskbar(bool skip) {
+    options_.skipTaskbar = skip;
+    platformSetSkipTaskbar();
+}
+
+void WebViewWindow::beginMove() {
+    platformBeginMove();
+}
+
+void WebViewWindow::beginResize(ResizeEdge edge) {
+    platformBeginResize(edge);
+}
+
+void WebViewWindow::minimize() {
+    platformMinimize();
+}
+
+void WebViewWindow::toggleMaximize() {
+    platformToggleMaximize();
+}
+
+void WebViewWindow::close() {
+    platformClose();
 }
 
 void WebViewWindow::setTitle(const std::string& title) {
+    options_.title = title;
     platformSetTitle(title);
+    emit("chrome", chrome());
 }
 
 void WebViewWindow::emit(const std::string& event, const Json& data) {

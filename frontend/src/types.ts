@@ -5,6 +5,7 @@ export interface Settings {
     promptForUpdates: boolean;
     keepInSystemTray: boolean;
     launchMinimized: boolean;
+    showTitleBarInTray: boolean;
     listWidth: number;
     listHeight: number;
     timeoutOnModlaunch: number | string;
@@ -32,6 +33,13 @@ export interface AppState {
     version?: string;
     update?: UpdateInfo | null;
     settings?: Settings;
+}
+
+// What the page draws around its view, from the host's chrome request.
+export interface Chrome {
+    title: string;
+    titleBar: boolean;
+    resizable: boolean;
 }
 
 export interface Role {

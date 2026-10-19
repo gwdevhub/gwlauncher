@@ -45,6 +45,7 @@ Settings Settings::effective(bool tray) const {
     if (!tray) {
         settings.keepInSystemTray = false;
         settings.launchMinimized = false;
+        settings.showTitleBarInTray = false;
     }
     return settings;
 }
@@ -54,6 +55,7 @@ Json Settings::forPage() const {
         {"promptForUpdates", promptForUpdates},
         {"keepInSystemTray", keepInSystemTray},
         {"launchMinimized", launchMinimized},
+        {"showTitleBarInTray", showTitleBarInTray},
         {"listWidth", listWidth},
         {"listHeight", listHeight},
         {"timeoutOnModlaunch", timeoutOnModlaunch},
@@ -89,6 +91,8 @@ Settings loadSettings(const std::string& path) {
             settings.launchMinimized = boolValue(key, value);
         } else if (key == "KeepInSystemTray") {
             settings.keepInSystemTray = boolValue(key, value);
+        } else if (key == "ShowTitleBarInTray") {
+            settings.showTitleBarInTray = boolValue(key, value);
         } else if (key == "KeepLauncherOpen" && !value.is_null()) {
             // The old inverse setting: a null value leaves the current setting alone.
             settings.keepInSystemTray = !boolValue(key, value);
@@ -127,6 +131,7 @@ void Settings::save(const std::string& path) const {
         {"PromptForUpdates", promptForUpdates},
         {"LaunchMinimized", launchMinimized},
         {"KeepInSystemTray", keepInSystemTray},
+        {"ShowTitleBarInTray", showTitleBarInTray},
         {"ListWidth", listWidth},
         {"ListHeight", listHeight},
         {"ListX", listX ? Json(*listX) : Json(nullptr)},
@@ -161,6 +166,9 @@ Settings Settings::applyFields(const Json& fields) const {
     }
     if (fields.contains("launchMinimized")) {
         updated.launchMinimized = fields["launchMinimized"].get<bool>();
+    }
+    if (fields.contains("showTitleBarInTray")) {
+        updated.showTitleBarInTray = fields["showTitleBarInTray"].get<bool>();
     }
     if (fields.contains("listWidth")) {
         updated.listWidth = fields["listWidth"].get<std::int64_t>();

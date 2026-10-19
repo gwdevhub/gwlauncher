@@ -14,25 +14,22 @@
 
 namespace gwl {
 
-enum class TitleButton { Minimize, Maximize, Close };
+// The edges and corners a window can be resized from, in the order GDK's edges use.
+enum class ResizeEdge { NorthWest, North, NorthEast, West, East, SouthWest, South, SouthEast };
 
 struct WindowOptions {
     std::string title;
     int width = 300;
     int height = 340;
-    // Whether the title bar is drawn at all. Without it the window has no frame, buttons or title.
-    bool decorations = true;
+    // Every window is frameless: the page draws the title bar, and moves, resizes and closes the window through the calls below.
+    bool titleBar = true;
+    // Whether the page offers edges to resize the window from. An autosize window never has them.
+    bool resizable = true;
     bool skipTaskbar = false;
     bool alwaysOnTop = false;
     bool visible = true;
-    // The title-bar buttons the window keeps. Linux only controls Close: the window manager draws and handles the others.
-    std::vector<TitleButton> buttons{TitleButton::Minimize, TitleButton::Maximize, TitleButton::Close};
     // The page sizes the window: its reports through fitToPage set the window's size, in device-independent pixels.
     bool autosize = false;
-
-    bool hasButton(TitleButton button) const {
-        return std::find(buttons.begin(), buttons.end(), button) != buttons.end();
-    }
 };
 
 // The platform's window and web view. Each platform defines it in its own source file.
@@ -74,10 +71,19 @@ public:
     void move(int x, int y);
     void setTitle(const std::string& title);
 
-    // Shows or hides the title bar, and sets which of its buttons the window keeps. Both apply straight away when the window
-    // is open, and at open otherwise.
-    void setDecorated(bool decorated);
-    void setTitleButtons(std::vector<TitleButton> buttons);
+    // What the page draws around its view: the title, whether there's a title bar, and whether the edges resize the window.
+    Json chrome() const;
+    // Shows or hides the page's title bar. The page is told straight away.
+    void setTitleBar(bool shown);
+    // Keeps the window off the taskbar, or puts it back. Applies straight away when the window is open.
+    void setSkipTaskbar(bool skip);
+    // Start moving or resizing the window, following the pointer's button press on the page.
+    void beginMove();
+    void beginResize(ResizeEdge edge);
+    void minimize();
+    void toggleMaximize();
+    // Asks the window to close, as the window manager's close would: allowClose decides.
+    void close();
 
     // Sends an event to the page: window.gwlReceive({event, data}).
     void emit(const std::string& event, const Json& data);
@@ -115,9 +121,13 @@ private:
     void platformMove(int x, int y);
     std::optional<Rect> platformFrame() const;
     void platformSetTitle(const std::string& title);
-    // Each applies the matching part of options_, which is already updated when these run.
-    void platformSetDecorated();
-    void platformSetTitleButtons();
+    // Applies options_.skipTaskbar, which is already updated when it runs.
+    void platformSetSkipTaskbar();
+    void platformBeginMove();
+    void platformBeginResize(ResizeEdge edge);
+    void platformMinimize();
+    void platformToggleMaximize();
+    void platformClose();
     void platformRunScript(const std::string& script);
     void platformOpenDevTools();
     // Converts a size on the screen to the device-independent pixels resize takes, before the UI scale is removed.

@@ -132,6 +132,31 @@ LRESULT CALLBACK windowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lPara
         SetWindowLongPtrW(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(created->lpCreateParams));
         return 0;
     }
+    // Every window is frameless. These come before WM_CREATE too, so they don't wait for the window's NativeWindow.
+    switch (message) {
+        case WM_NCCALCSIZE:
+            // The client area is the whole window: a resizable window keeps its sizing frame for the size loop, but it takes no room.
+            if (wParam) {
+                return 0;
+            }
+            break;
+        case WM_NCACTIVATE:
+            // Keeps Windows from drawing the hidden frame over the page when the window gains or loses the focus.
+            return DefWindowProcW(hwnd, message, wParam, -1);
+        case WM_GETMINMAXINFO: {
+            // A frameless window would maximise over the whole monitor, taskbar included, so it's kept to the work area.
+            MONITORINFO monitor{};
+            monitor.cbSize = sizeof(monitor);
+            if (GetMonitorInfoW(MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST), &monitor)) {
+                auto* info = reinterpret_cast<MINMAXINFO*>(lParam);
+                info->ptMaxPosition = {monitor.rcWork.left - monitor.rcMonitor.left, monitor.rcWork.top - monitor.rcMonitor.top};
+                info->ptMaxSize = {monitor.rcWork.right - monitor.rcWork.left, monitor.rcWork.bottom - monitor.rcWork.top};
+            }
+            return 0;
+        }
+        default:
+            break;
+    }
     auto* native = reinterpret_cast<NativeWindow*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
     if (!native) {
         return DefWindowProcW(hwnd, message, wParam, lParam);
@@ -210,61 +235,83 @@ void NativeWindowDeleter::operator()(NativeWindow* native) const {
 
 namespace {
 
-// The window style for the title bar: no frame at all, or the standard frame with the minimise and maximise buttons the
-// options keep. Close is handled by applyCloseButton, since Windows draws it from the system menu.
-DWORD titleBarStyle(const WindowOptions& options) {
-    if (!options.decorations) {
-        return WS_POPUP;
-    }
-    DWORD style = WS_OVERLAPPEDWINDOW;
-    // An autosize window's page sets its size, so the user can't resize it.
-    if (options.autosize) {
-        style &= ~(WS_THICKFRAME | WS_MAXIMIZEBOX);
-    }
-    if (!options.hasButton(TitleButton::Minimize)) {
-        style &= ~WS_MINIMIZEBOX;
-    }
-    if (!options.hasButton(TitleButton::Maximize)) {
-        style &= ~WS_MAXIMIZEBOX;
+// A frameless popup. A resizable one keeps the sizing frame, since Windows only runs the size loop for a window that has it;
+// WM_NCCALCSIZE gives the frame no room. The system menu and minimise box let the taskbar minimise and restore the window.
+DWORD windowStyle(const WindowOptions& options) {
+    DWORD style = WS_POPUP | WS_SYSMENU | WS_MINIMIZEBOX;
+    if (options.resizable && !options.autosize) {
+        style |= WS_THICKFRAME | WS_MAXIMIZEBOX;
     }
     return style;
 }
 
-// Greys out the close item, which greys the title bar's close button too. Windows can't remove that button from a standard
-// frame, so it's disabled instead. A frameless window has no system menu, so there's nothing to change.
-void applyCloseButton(HWND hwnd, const WindowOptions& options) {
-    if (HMENU menu = GetSystemMenu(hwnd, FALSE)) {
-        EnableMenuItem(menu, SC_CLOSE, MF_BYCOMMAND | (options.hasButton(TitleButton::Close) ? MF_ENABLED : MF_GRAYED));
+// Starts the system's move or size loop, as a press on the frame would. The page's press leaves the mouse captured, so the
+// capture is released first.
+void beginSystemDrag(HWND hwnd, WPARAM hitTest) {
+    POINT point{};
+    GetCursorPos(&point);
+    ReleaseCapture();
+    PostMessageW(hwnd, WM_NCLBUTTONDOWN, hitTest, MAKELPARAM(point.x, point.y));
+}
+
+// The frame's hit-test code for each ResizeEdge, in its order.
+const WPARAM kEdgeHitTests[] = {HTTOPLEFT, HTTOP, HTTOPRIGHT, HTLEFT, HTRIGHT, HTBOTTOMLEFT, HTBOTTOM, HTBOTTOMRIGHT};
+
+// A hidden window that owns the windows kept off the taskbar. A window with an owner gets no taskbar button, and unlike the
+// tool-window style it still minimises normally.
+HWND taskbarOwner() {
+    static HWND owner = CreateWindowExW(0, L"STATIC", L"", WS_POPUP, 0, 0, 0, 0, nullptr, nullptr, GetModuleHandleW(nullptr), nullptr);
+    return owner;
+}
+
+// Gives an open window its owner, or none. The taskbar reads the owner when a window is shown, so a visible window is hidden and shown again.
+void applySkipTaskbar(HWND hwnd, bool skip) {
+    const bool visible = IsWindowVisible(hwnd);
+    if (visible) {
+        ShowWindow(hwnd, SW_HIDE);
     }
-}
-
-// The window rectangle that gives a client area of the given size, since the frame takes room outside it.
-RECT outerRect(DWORD style, DWORD exStyle, int clientWidth, int clientHeight) {
-    RECT rect{0, 0, clientWidth, clientHeight};
-    AdjustWindowRectEx(&rect, style, FALSE, exStyle);
-    return rect;
-}
-
-// Puts the title bar's style on an open window, and redraws its frame so the change shows.
-void applyTitleBar(HWND hwnd, const WindowOptions& options) {
-    const LONG_PTR current = GetWindowLongPtrW(hwnd, GWL_STYLE);
-    const LONG_PTR style = (current & ~static_cast<LONG_PTR>(WS_OVERLAPPEDWINDOW | WS_POPUP)) | static_cast<LONG_PTR>(titleBarStyle(options));
-    SetWindowLongPtrW(hwnd, GWL_STYLE, style);
-    SetWindowPos(hwnd, nullptr, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
-    applyCloseButton(hwnd, options);
+    SetWindowLongPtrW(hwnd, GWLP_HWNDPARENT, reinterpret_cast<LONG_PTR>(skip ? taskbarOwner() : nullptr));
+    if (visible) {
+        ShowWindow(hwnd, SW_SHOWNOACTIVATE);
+    }
 }
 
 }  // namespace
 
-void WebViewWindow::platformSetDecorated() {
+void WebViewWindow::platformSetSkipTaskbar() {
     if (native_ && native_->hwnd) {
-        applyTitleBar(native_->hwnd, options_);
+        applySkipTaskbar(native_->hwnd, options_.skipTaskbar);
     }
 }
 
-void WebViewWindow::platformSetTitleButtons() {
+void WebViewWindow::platformBeginMove() {
     if (native_ && native_->hwnd) {
-        applyTitleBar(native_->hwnd, options_);
+        beginSystemDrag(native_->hwnd, HTCAPTION);
+    }
+}
+
+void WebViewWindow::platformBeginResize(ResizeEdge edge) {
+    if (native_ && native_->hwnd) {
+        beginSystemDrag(native_->hwnd, kEdgeHitTests[static_cast<int>(edge)]);
+    }
+}
+
+void WebViewWindow::platformMinimize() {
+    if (native_ && native_->hwnd) {
+        ShowWindow(native_->hwnd, SW_MINIMIZE);
+    }
+}
+
+void WebViewWindow::platformToggleMaximize() {
+    if (native_ && native_->hwnd) {
+        ShowWindow(native_->hwnd, IsZoomed(native_->hwnd) ? SW_RESTORE : SW_MAXIMIZE);
+    }
+}
+
+// Posts the close the title bar's button would, so WM_CLOSE asks requestClose.
+void WebViewWindow::platformClose() {
+    if (native_ && native_->hwnd) {
+        PostMessageW(native_->hwnd, WM_CLOSE, 0, 0);
     }
 }
 
@@ -273,11 +320,8 @@ void WebViewWindow::platformOpen() {
     registerWindowClass();
 
     const WindowOptions& options = options_;
-    DWORD style = titleBarStyle(options);
+    DWORD style = windowStyle(options);
     DWORD exStyle = 0;
-    if (options.skipTaskbar) {
-        exStyle |= WS_EX_TOOLWINDOW;
-    }
     if (options.alwaysOnTop) {
         exStyle |= WS_EX_TOPMOST;
     }
@@ -294,13 +338,12 @@ void WebViewWindow::platformOpen() {
     const int height = MulDiv(scaledSize(options.height), dpi, 96);
     const int x = area ? area->x + (area->width - width) / 2 : CW_USEDEFAULT;
     const int y = area ? area->y + (area->height - height) / 2 : CW_USEDEFAULT;
-    const RECT outer = outerRect(style, exStyle, width, height);
-    native->hwnd = CreateWindowExW(exStyle, kWindowClass, windowTitle.c_str(), style, x, y,
-                                   outer.right - outer.left, outer.bottom - outer.top, nullptr, nullptr, GetModuleHandleW(nullptr), native);
+    // The window has no frame that takes room, so its size is the page's size.
+    native->hwnd = CreateWindowExW(exStyle, kWindowClass, windowTitle.c_str(), style, x, y, width, height,
+                                   options.skipTaskbar ? taskbarOwner() : nullptr, nullptr, GetModuleHandleW(nullptr), native);
     if (!native->hwnd) {
         throw std::runtime_error("The window couldn't be created.");
     }
-    applyCloseButton(native->hwnd, options);
 
     const std::string url = devUrl();
     const std::string page = html();
@@ -347,12 +390,8 @@ void WebViewWindow::platformShow(bool visible) {
 
 void WebViewWindow::platformResize(int width, int height) {
     if (native_ && native_->hwnd) {
-        const LONG_PTR style = GetWindowLongPtrW(native_->hwnd, GWL_STYLE);
-        const LONG_PTR exStyle = GetWindowLongPtrW(native_->hwnd, GWL_EXSTYLE);
         const UINT dpi = GetDpiForWindow(native_->hwnd);
-        const RECT outer = outerRect(static_cast<DWORD>(style), static_cast<DWORD>(exStyle), MulDiv(width, dpi, 96), MulDiv(height, dpi, 96));
-        SetWindowPos(native_->hwnd, nullptr, 0, 0, outer.right - outer.left, outer.bottom - outer.top,
-                     SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
+        SetWindowPos(native_->hwnd, nullptr, 0, 0, MulDiv(width, dpi, 96), MulDiv(height, dpi, 96), SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
     }
 }
 

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type MouseEvent } from 'react';
 import { call } from '../bridge';
+import { useChrome } from '../chrome';
 import { choose, showMessage } from '../dialogs';
 import { stateClass } from '../utils/format';
 import { setListKeys } from '../listKeys';
@@ -15,6 +16,7 @@ import { Footer } from '../components/Footer';
 
 export function AccountListWindow() {
     const app = useAppState();
+    const chrome = useChrome();
     const [carried] = useState(takeCarriedListState);
     const [entries, setEntries] = useState<AccountEntry[]>([]);
     const [error, setError] = useState<string | null>(null);
@@ -198,7 +200,7 @@ export function AccountListWindow() {
 
     return (
         <section className="view list relative flex h-full flex-col overflow-hidden" onContextMenu={e => openMenu(e, null)}>
-            {settings?.keepInSystemTray && <div className="tray-top h-2.5 bg-divider" hidden={!hasEntries} />}
+            {settings?.keepInSystemTray && !chrome.titleBar && <div className="tray-top h-2.5 bg-divider" hidden={!hasEntries} />}
             {hasEntries && <ul
                 className={`accounts m-0 min-h-0 flex-1 list-none overflow-auto p-0 ${settings?.keepInSystemTray ? 'tray' : ''}`}
                 hidden={!hasEntries}

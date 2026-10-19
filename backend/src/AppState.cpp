@@ -537,6 +537,40 @@ void installCommonHandlers(gwl::MessageHandler& handler, AppState& app) {
         window.resize(args.at(0).get<int>(), args.at(1).get<int>());
         reply.result(nullptr);
     });
+
+    // The page's title bar and edges: every window is frameless, so these stand in for the window manager's.
+    handler.on("chrome", [](gwl::WebViewWindow& window, const gwl::Json&, const gwl::Reply& reply) {
+        logRequest("chrome");
+        reply.result(window.chrome());
+    });
+    handler.on("moveDrag", [](gwl::WebViewWindow& window, const gwl::Json&, const gwl::Reply& reply) {
+        logRequest("moveDrag");
+        window.beginMove();
+        reply.result(nullptr);
+    });
+    handler.on("resizeDrag", [](gwl::WebViewWindow& window, const gwl::Json& args, const gwl::Reply& reply) {
+        logRequest("resizeDrag");
+        const int edge = args.at(0).get<int>();
+        if (edge >= 0 && edge <= static_cast<int>(gwl::ResizeEdge::SouthEast)) {
+            window.beginResize(static_cast<gwl::ResizeEdge>(edge));
+        }
+        reply.result(nullptr);
+    });
+    handler.on("minimize", [](gwl::WebViewWindow& window, const gwl::Json&, const gwl::Reply& reply) {
+        logRequest("minimize");
+        window.minimize();
+        reply.result(nullptr);
+    });
+    handler.on("toggleMaximize", [](gwl::WebViewWindow& window, const gwl::Json&, const gwl::Reply& reply) {
+        logRequest("toggleMaximize");
+        window.toggleMaximize();
+        reply.result(nullptr);
+    });
+    handler.on("close", [](gwl::WebViewWindow& window, const gwl::Json&, const gwl::Reply& reply) {
+        logRequest("close");
+        window.close();
+        reply.result(nullptr);
+    });
 }
 
 std::string developmentUrl() {
