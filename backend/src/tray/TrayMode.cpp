@@ -112,6 +112,7 @@ void AppState::showList(std::optional<gwl::Rect> click, std::optional<gwl::Rect>
     if (!list) {
         return;
     }
+    listShownAt = std::chrono::steady_clock::now();
     const auto area = gwl::workArea();
     if (!area) {
         list->show();

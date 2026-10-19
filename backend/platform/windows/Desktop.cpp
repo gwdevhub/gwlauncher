@@ -55,7 +55,7 @@ std::optional<std::string> pickFile(const std::string& title, bool modsOnly, con
     dialog.nMaxFile = 1024;
     dialog.lpstrTitle = wideTitle.c_str();
     dialog.lpstrInitialDir = startFolder.empty() ? nullptr : wideFolder.c_str();
-    dialog.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST;
+    dialog.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST | OFN_NOCHANGEDIR;
     if (!GetOpenFileNameW(&dialog)) {
         return std::nullopt;
     }

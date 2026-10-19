@@ -22,6 +22,7 @@
 #include <iterator>
 #include <system_error>
 #include "Launch.h"
+#include "include/WebView2.h"
 
 namespace gwl {
 
@@ -94,6 +95,12 @@ void resizeWebView(NativeWindow* native) {
     native->controller->put_Bounds(bounds);
 }
 
+void syncWebViewVisibility(NativeWindow* native) {
+    if (native->controller && native->hwnd) {
+        native->controller->put_IsVisible(IsWindowVisible(native->hwnd) && !IsIconic(native->hwnd));
+    }
+}
+
 void sendPendingScripts(NativeWindow* native) {
     for (const std::wstring& script : native->pendingScripts) {
         native->webview->ExecuteScript(script.c_str(), webview2::scriptDone());
@@ -106,6 +113,7 @@ void attachWebView(NativeWindow* native, ICoreWebView2Controller* controller) {
     native->controller->AddRef();
     native->controller->get_CoreWebView2(&native->webview);
     resizeWebView(native);
+    syncWebViewVisibility(native);
 
     native->webview->add_WebMessageReceived(
         webview2::messageReceived([native](ICoreWebView2WebMessageReceivedEventArgs* args) {
@@ -132,6 +140,7 @@ LRESULT CALLBACK windowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lPara
     switch (message) {
         case WM_SIZE:
             resizeWebView(native);
+            syncWebViewVisibility(native);
             return 0;
         case WM_ACTIVATE:
             if (LOWORD(wParam) == WA_INACTIVE) {
@@ -325,6 +334,7 @@ void WebViewWindow::platformPresent() {
     if (native_ && native_->hwnd) {
         // Restores the window if it's minimised, then asks for the foreground. Windows may keep the focus where it is.
         ShowWindow(native_->hwnd, IsIconic(native_->hwnd) ? SW_RESTORE : SW_SHOW);
+        syncWebViewVisibility(native_.get());
         SetForegroundWindow(native_->hwnd);
     }
 }
@@ -332,6 +342,7 @@ void WebViewWindow::platformPresent() {
 void WebViewWindow::platformShow(bool visible) {
     if (native_ && native_->hwnd) {
         ShowWindow(native_->hwnd, visible ? SW_SHOW : SW_HIDE);
+        syncWebViewVisibility(native_.get());
     }
 }
 
@@ -341,7 +352,8 @@ void WebViewWindow::platformResize(int width, int height) {
         const LONG_PTR exStyle = GetWindowLongPtrW(native_->hwnd, GWL_EXSTYLE);
         const UINT dpi = GetDpiForWindow(native_->hwnd);
         const RECT outer = outerRect(static_cast<DWORD>(style), static_cast<DWORD>(exStyle), MulDiv(width, dpi, 96), MulDiv(height, dpi, 96));
-        SetWindowPos(native_->hwnd, nullptr, 0, 0, outer.right - outer.left, outer.bottom - outer.top, SWP_NOMOVE | SWP_NOZORDER);
+        SetWindowPos(native_->hwnd, nullptr, 0, 0, outer.right - outer.left, outer.bottom - outer.top,
+                     SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
     }
 }
 
@@ -434,7 +446,7 @@ void setApplicationIcon(const std::string&) {}
 
 void WebViewWindow::platformMove(int x, int y) {
     if (native_ && native_->hwnd) {
-        SetWindowPos(native_->hwnd, nullptr, x, y, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
+        SetWindowPos(native_->hwnd, nullptr, x, y, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
     }
 }
 

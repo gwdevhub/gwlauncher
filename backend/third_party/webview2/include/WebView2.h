@@ -3,7 +3,7 @@
 // COM calls go through vtable slots, so every interface lists its methods in the SDK's order. Methods the launcher doesn't call
 // are placeholders, so each method the launcher does call sits at the same slot as in the SDK:
 //   ICoreWebView2Environment:  CreateCoreWebView2Controller                    slot 3
-//   ICoreWebView2Controller:   put_Bounds slot 6, Close slot 24, get_CoreWebView2 slot 25
+//   ICoreWebView2Controller:   put_IsVisible slot 4, put_Bounds slot 6, Close slot 24, get_CoreWebView2 slot 25
 //   ICoreWebView2:             Navigate slot 5, NavigateToString slot 6, ExecuteScript slot 29, add_WebMessageReceived slot 34, OpenDevToolsWindow slot 51
 //   ICoreWebView2WebMessageReceivedEventArgs: TryGetWebMessageAsString         slot 5
 //   The four completed/event handler interfaces: Invoke                         slot 3
@@ -41,7 +41,7 @@ struct ICoreWebView2Environment : public IUnknown {
 
 struct ICoreWebView2Controller : public IUnknown {
     virtual void STDMETHODCALLTYPE Unused3() = 0;
-    virtual void STDMETHODCALLTYPE Unused4() = 0;
+    virtual HRESULT STDMETHODCALLTYPE put_IsVisible(BOOL isVisible) = 0;
     virtual void STDMETHODCALLTYPE Unused5() = 0;
     virtual HRESULT STDMETHODCALLTYPE put_Bounds(RECT bounds) = 0;
     virtual void STDMETHODCALLTYPE Unused7() = 0;
