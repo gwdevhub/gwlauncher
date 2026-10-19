@@ -15,8 +15,6 @@ COPY frontend/dist frontend/dist
 # that looks up to date, so empty objects are removed first to make them compile again.
 RUN --mount=type=cache,target=/src/backend/build-docker,sharing=locked \
     cd backend \
- && mkdir -p third_party/webview2/bin/x64 \
- && cp /opt/webview2/WebView2Loader.dll third_party/webview2/bin/x64/ \
  && find build-docker \( -name '*.o' -o -name '*.obj' \) -size 0 -delete \
  && for preset in $PRESETS; do \
       cmake --preset "$preset" -B "build-docker/$preset" -DGWL_BUILD_NUMBER="$GWL_BUILD_NUMBER" \

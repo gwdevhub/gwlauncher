@@ -29,7 +29,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${GWL_BIN_DIR}")
 # GWL_CLI_ONLY builds just GW_Launcher.cli.exe. The Linux build runs it as a nested Windows build, to embed it in the Linux launcher.
 option(GWL_CLI_ONLY "Build only the Windows command-line launcher" OFF)
 set(GWL_CLI_EXE "${CMAKE_CURRENT_SOURCE_DIR}/../bin/windows/GW_Launcher.cli.exe")
-# The WebView2 loader, fetched by the Docker build. The Windows launcher carries it as a resource.
+# The WebView2 loader, vendored in third_party/webview2. The Windows launcher carries it as a resource.
 set(GWL_WEBVIEW2_LOADER "${CMAKE_CURRENT_SOURCE_DIR}/third_party/webview2/bin/x64/WebView2Loader.dll")
 
 # The platform's sources. Headers only: the Linux libraries are opened at runtime, not linked.
@@ -54,8 +54,7 @@ set(GWL_THIRD_PARTY "${CMAKE_CURRENT_SOURCE_DIR}/third_party")
 target_include_directories(gwl_core PUBLIC "${GWL_THIRD_PARTY}/nlohmann/include")
 
 if(WIN32)
-    # The WebView2 SDK headers, from the Microsoft.Web.WebView2 NuGet package. WebView2Loader.dll is loaded at runtime.
-    # The WebView2 header stub the platform code is written against, in third_party/webview2.
+    # WebView2.h is vendored in third_party/webview2, and WebView2Loader.dll is loaded at runtime.
     set(WEBVIEW2_INCLUDE_DIR "${GWL_THIRD_PARTY}/webview2/include" CACHE PATH "Folder holding WebView2.h")
     # Windows is built with MinGW only.
     if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "GNU")

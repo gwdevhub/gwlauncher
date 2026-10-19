@@ -1,17 +1,9 @@
-# The compilers for Linux and mingw, and the WebView2 loader, in one image so builds reuse them instead of reinstalling.
+# The compilers for Linux and mingw, in one image so builds reuse them instead of reinstalling.
 # build.sh and build.ps1 tag it by a hash of this file, so it is rebuilt only when this file changes.
 FROM ubuntu:24.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update \
- && apt-get install -y --no-install-recommends cmake ninja-build pkg-config g++ mingw-w64 ca-certificates curl unzip \
+ && apt-get install -y --no-install-recommends cmake ninja-build pkg-config g++ mingw-w64 \
  && rm -rf /var/lib/apt/lists/*
-
-# The WebView2 loader, carried in the Windows launcher. It's fetched from the WebView2 package and checked by hash.
-RUN curl -sfL -o /tmp/webview2.nupkg https://www.nuget.org/api/v2/package/Microsoft.Web.WebView2/1.0.2903.40 \
- && echo "ef128016dd1e51c59178c827ed5b8aa3322c57afa8675d930f8109505542ad74  /tmp/webview2.nupkg" | sha256sum -c - \
- && mkdir -p /opt/webview2 \
- && unzip -q -j /tmp/webview2.nupkg build/native/x64/WebView2Loader.dll -d /opt/webview2 \
- && echo "462b36fd1be6ca9f7563466a89e57c41ef4a4def3e0a84fa885d203aea4a3aaf  /opt/webview2/WebView2Loader.dll" | sha256sum -c - \
- && rm /tmp/webview2.nupkg
