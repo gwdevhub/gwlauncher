@@ -4,7 +4,6 @@ Release/
 Publish/
 packages/
 .vs/
-/GW Launcher/obj
 *exe
 *.dll
 *.rar
@@ -13,7 +12,7 @@ packages/
 *.user
 
 # Rider project files
-/.idea/
+.idea/
 
 # Bloated Windows Databases
 *.sdf
@@ -38,3 +37,27 @@ packages/
 *.vcxproj.user
 *.VC.db
 .aider*
+
+
+# The web page project keeps its JSON config.
+!frontend/*.json
+
+# The native layer's build presets.
+!backend/CMakePresets.json
+
+# Native layer build folders.
+backend/build*/
+backend/cmake-build-*/
+
+# Native launcher packages.
+bin/
+
+# The vendored WebView2 loader is committed, unlike the other build output in bin/.
+!backend/third_party/webview2/bin/
+!backend/third_party/webview2/bin/**/*.dll
+
+# Node packages, in every folder.
+node_modules/
+
+# The launcher writes its stylesheet override beside itself.
+GWLauncher.override.css

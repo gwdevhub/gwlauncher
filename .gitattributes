@@ -1,0 +1,18 @@
+# Store text as LF in the repository; each checkout gets its platform's line endings.
+* text=auto
+
+# Binary assets are never converted.
+*.ico binary
+*.png binary
+*.jpg binary
+*.webp binary
+*.woff binary
+*.woff2 binary
+*.dll binary
+*.exe binary
+*.pdb binary
+*.zip binary
+*.tpf binary
+
+# Build output is generated with mixed line endings; normalize it like source text.
+frontend/dist/** text eol=lf

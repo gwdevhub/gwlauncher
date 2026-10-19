@@ -1,0 +1,44 @@
+#include <stdexcept>
+#include <string>
+#include <system_error>
+#include <vector>
+
+#include "LauncherUpdate.h"
+#include "Process.h"
+
+namespace gwl {
+
+const char* launcherAssetName() {
+    return "GW_Launcher.exe";
+}
+
+void installLauncherRelease(const std::filesystem::path& current, const std::filesystem::path& staged,
+                            const std::vector<std::string>& arguments) {
+    namespace fs = std::filesystem;
+    // The running exe is renamed rather than replaced, since Windows locks a running exe. The old one is kept until the swap works.
+    const fs::path old = current.parent_path() / ".old.exe";
+    std::error_code error;
+    fs::remove(old, error);
+    fs::rename(current, old, error);
+    if (error) {
+        throw std::runtime_error("The launcher couldn't be moved aside: " + error.message());
+    }
+    fs::rename(staged, current, error);
+    if (error) {
+        std::error_code restore;
+        fs::rename(old, current, restore);
+        throw std::runtime_error("The update couldn't be put in place: " + error.message());
+    }
+    std::vector<std::string> command{current.string()};
+    command.insert(command.end(), arguments.begin(), arguments.end());
+    runProgramDetached(command);
+}
+
+void removeLauncherLeftovers(const std::filesystem::path& current) {
+    namespace fs = std::filesystem;
+    std::error_code error;
+    fs::remove(current.parent_path() / ".old.exe", error);
+    fs::remove(current.parent_path() / ".new.exe", error);
+}
+
+}  // namespace gwl

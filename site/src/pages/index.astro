@@ -1,6 +1,7 @@
 ---
 import Base from '../layouts/Base.astro';
 import Search from '../components/Search.tsx';
+import DownloadLinks from '../components/DownloadLinks.astro';
 import { getLatestRelease } from '../lib/release';
 import { navGroups } from '../lib/nav';
 import siteConfig from '../../site.config.json';
@@ -65,15 +66,10 @@ const featureCards = [
         with a double-click, and auto-load DLL plugins and texture mods — no uMod required.
       </p>
       <div class="mt-8 flex flex-wrap items-center gap-3">
-        <a
-          href={release.url}
+        <DownloadLinks
+          release={release}
           class="inline-flex items-center gap-2 rounded bg-(--color-accent) px-5 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-(--color-accent-soft)"
-        >
-          <svg viewBox="0 0 16 16" class="h-4 w-4 fill-current" aria-hidden="true">
-            <path d="M8 1.5a.75.75 0 0 1 .75.75v6.69l2.22-2.22a.75.75 0 1 1 1.06 1.06l-3.5 3.5a.75.75 0 0 1-1.06 0l-3.5-3.5a.75.75 0 1 1 1.06-1.06l2.22 2.22V2.25A.75.75 0 0 1 8 1.5zM3.25 13.5a.75.75 0 0 0 0 1.5h9.5a.75.75 0 0 0 0-1.5h-9.5z" />
-          </svg>
-          Download {release.source === 'github' ? `v${release.version}` : 'latest'}
-        </a>
+        />
         <a
           href="/docs/installation/"
           class="inline-flex items-center gap-2 rounded border border-(--color-border-glass) bg-(--color-glass) px-5 py-2.5 text-sm font-semibold text-(--color-fg) transition-colors hover:bg-(--color-glass-hover)"
@@ -90,7 +86,7 @@ const featureCards = [
         </a>
       </div>
       <p class="mt-4 text-xs text-(--color-fg-meta)">
-        Free, open source, MIT licensed. Windows only.
+        Free, open source, MIT licensed. Windows and Linux.
         <a href="/docs/troubleshooting/#your-browser-blocked-the-download" class="text-(--color-accent) hover:underline">Trouble downloading?</a>
       </p>
 

@@ -1,0 +1,12 @@
+/*
+ * GW Launcher style overrides.
+ *
+ * Rules in this file are applied after the launcher's built-in styles, so they win over them.
+ * Add your own rules below, for example:
+ *
+ *   ul.accounts li.selected { background: #ffe8b0; }
+ *   :root { --accent: #c05621; }
+ *
+ * The built-in colours are CSS variables on :root: --accent, --border, --muted, --danger, --warning and --ok.
+ * Clear this file to go back to the built-in styles. Changes apply the next time a launcher window opens.
+ */

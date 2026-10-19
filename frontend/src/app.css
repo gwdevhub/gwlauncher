@@ -1,0 +1,116 @@
+/* The launcher's page styles. Components are styled with Tailwind utilities; each keeps a semantic class name (for
+   example `accounts`, `footer` or `menu`) so a user's GWLauncher.override.css can target it. The palette and the
+   utilities a component needs more than once are defined here. */
+@import "tailwindcss";
+
+@theme {
+    --font-app: system-ui, "Segoe UI", "Cantarell", sans-serif;
+    --color-accent: #2b6cb0;
+    --color-border: #d0d4da;
+    --color-muted: #6b7280;
+    --color-danger: #b42318;
+    --color-warning: #a16207;
+    --color-ok: #2f855a;
+    --color-surface: #f6f7f9;
+    --color-surface-hover: #eceff3;
+    --color-selected: #dbe7f5;
+    --color-row-hover: #f1f4f8;
+    --color-divider: #e5e7eb;
+    --color-row-line: #eef0f3;
+    --color-menu-hover: #eef3fa;
+    --color-invalid-border: #c42b1c;
+    --color-invalid-bg: #fdf3f2;
+    --color-icon: #2563eb;
+    --color-icon-hover: #1d4ed8;
+    --color-icon-surface: #eef4ff;
+    --color-version: #9ca3af;
+}
+
+/* The page fills the window. Views size with percentages, not vh: the UI scale's zoom would multiply vh and push the bottom out. */
+html {
+    height: 100%;
+}
+
+/* A two-column form row: the label, the field, and an optional trailing control. */
+@utility form-grid {
+    grid-template-columns: 74px 1fr auto;
+}
+
+@utility form-grid-wide {
+    grid-template-columns: 100px 1fr auto;
+}
+
+/* A field a save error is about. */
+@utility invalid {
+    border-color: var(--color-invalid-border);
+    background-color: var(--color-invalid-bg);
+}
+
+/* A row of the list that is the main list's selection. */
+@utility selected {
+    background-color: var(--color-selected);
+}
+
+/* Text roles used across components. Components also carry these utilities, so an override of the role applies. */
+@utility note {
+    font-size: 11px;
+    color: var(--color-muted);
+}
+
+@utility indent {
+    margin-left: 22px;
+}
+
+@utility error {
+    color: var(--color-danger);
+}
+
+@utility required {
+    color: var(--color-danger);
+}
+
+@utility warning {
+    color: var(--color-warning);
+}
+
+/* The progress bar. A known share fills from the left; an unknown one slides a short bar along the track. */
+.progress-track {
+    position: relative;
+    width: 100%;
+    height: 6px;
+    overflow: hidden;
+    border-radius: 3px;
+    background-color: var(--color-divider);
+}
+
+.progress-fill {
+    height: 100%;
+    border-radius: 3px;
+    background-color: var(--color-accent);
+    transition: width 150ms ease-out;
+}
+
+.progress-indeterminate {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 35%;
+    transition: none;
+    animation: progress-slide 1.2s ease-in-out infinite;
+}
+
+@keyframes progress-slide {
+    from {
+        left: -35%;
+    }
+    to {
+        left: 100%;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .progress-indeterminate {
+        left: 32.5%;
+        animation: none;
+    }
+}
