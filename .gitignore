@@ -54,3 +54,6 @@ bin/
 
 # Node packages, in every folder.
 node_modules/
+
+# The launcher writes its stylesheet override beside itself.
+GWLauncher.override.css

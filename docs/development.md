@@ -10,8 +10,7 @@ The launcher is a C++ program in `backend/`, with a web page in `frontend/` that
 | `backend/platform/windows`, `backend/platform/linux` | The platform layer: windows, desktop, launching the game, networking, tray, shortcuts. |
 | `backend/include` | Headers for the shared code and the platform layer. |
 | `backend/third_party` | Vendored code, each library with its own `LICENSE.txt`. The GTK and WebKitGTK headers are stubs, so the Linux build needs none of their development packages. |
-| `backend/cmake` | Build helpers: the page embedding, gzip, and the MinGW and zig toolchains. |
-| `backend/packaging` | The AppImage script and the zig compiler wrappers. |
+| `backend/cmake` | Build helpers: the page embedding, gzip, and the MinGW toolchain. |
 | `frontend` | The web page. `frontend/dist` is compiled in, so it's committed with its sources. |
 | `assets` | Icons and the stylesheet template, compiled in as well. |
 | `bin` | Build output: `bin/linux/{debug,release}` and `bin/windows`. Ignored by git. |
@@ -22,9 +21,7 @@ The launcher is a C++ program in `backend/`, with a web page in `frontend/` that
 
 | Preset | Output | Build folder |
 |---|---|---|
-| `linux-debug` | `bin/linux/debug/gwlauncher` | `backend/build-dev` |
 | `linux-release` | `bin/linux/release/GW_Launcher` | `backend/build` |
-| `linux-release-zig` | `bin/linux/release/GW_Launcher`, built against glibc 2.35 | `backend/build-zig` |
 | `windows-release` | `bin/windows/GW_Launcher.exe` and `GW_Launcher.cli.exe` | `backend/build-win` |
 
 ```
@@ -79,14 +76,14 @@ cmake --build --preset windows-release
 
 ### Windows build in Docker
 
-`backend/packaging/docker` has an Alpine image with CMake, Ninja and the MinGW toolchain, so the Windows build runs the same on Linux and Windows hosts. Docker needs to be running; the repository is mounted into the container and the output lands in `bin/windows`.
+The root `Dockerfile.toolchain` builds the `gwdevhub-builder` image with CMake, Ninja, g++ and the MinGW toolchain, so the builds run the same on Linux and Windows hosts. The image is reused until that file changes. Docker needs to be running; the repository is mounted into the container and the output lands in `bin/windows`.
 
 ```
-backend/packaging/docker/build.sh               # Linux or Git Bash
-powershell backend/packaging/docker/build.ps1   # Windows
+./build.sh windows               # Linux or Git Bash
+powershell ./build.ps1 -Target windows   # Windows
 ```
 
-The container builds into `backend/build-docker`, so it never shares a CMake cache with a host build. The image builds only `windows-release`: the Linux release links against glibc, and Alpine uses musl. Build Linux on a Linux host with the presets above.
+The container builds into `backend/build-docker`, so it never shares a CMake cache with a host build. `./build.sh windows` builds only `windows-release`. `./build.sh linux` builds the Linux release in the same container; the presets above build it on the host without Docker.
 
 ## Running
 
@@ -96,7 +93,6 @@ The container builds into `backend/build-docker`, so it never shares a CMake cac
 ## Packaging
 
 - `backend/packaging/appimage/build-appimage.sh` packs `bin/linux/release/GW_Launcher` into `bin/linux/appimage/GW_Launcher-x86_64.AppImage`. It needs `appimagetool` on `PATH`, or `APPIMAGETOOL` set to its path. The AppImage uses the host's GTK 3 and WebKitGTK 4.1.
-- `linux-release-zig` builds against glibc 2.35, so the binary runs on older distributions. It needs `zig` on `PATH`, or `ZIG` set to its path.
 
 ## CI
 

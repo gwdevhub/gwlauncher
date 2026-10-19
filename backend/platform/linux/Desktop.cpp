@@ -229,7 +229,9 @@ std::optional<std::string> defaultInstall() {
         return std::nullopt;
     }
     const auto linuxFile = linuxPathFor(*windows);
-    if (!linuxFile || !std::filesystem::is_regular_file(*linuxFile)) {
+    // A WOF-compacted Gw.exe fails stat; the throwing overload would fail the whole state reply.
+    std::error_code error;
+    if (!linuxFile || !std::filesystem::is_regular_file(*linuxFile, error)) {
         return std::nullopt;
     }
     return linuxFile;
