@@ -11,9 +11,9 @@
 
 namespace gwl {
 
-enum class TrayAction { Activate, Open, Quit };
+enum class TrayAction { Activate, RightClick };
 
-// Called on the UI thread. For Activate, x and y are where on the screen the icon was clicked.
+// Called on the UI thread. For Activate and RightClick, x and y are where on the screen the icon was clicked.
 using TrayHandler = std::function<void(TrayAction action, int x, int y)>;
 
 // Whether the desktop has a tray to keep the launcher in.

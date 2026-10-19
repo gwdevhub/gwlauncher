@@ -14,7 +14,7 @@ namespace {
 }  // namespace
 
 AccountListWindow::AccountListWindow(AppState& app)
-    : WebViewWindow(gwl::WindowOptions{.title = "GW Launcher", .width = 300, .height = 340, .decorations = app.tray == nullptr, .visible = app.tray == nullptr}), app_(app) {
+    : WebViewWindow(gwl::WindowOptions{.title = "GW Launcher", .width = static_cast<int>(app.settings.listWidth), .height = static_cast<int>(app.settings.listHeight), .titleBar = app.listHasTitleBar(), .skipTaskbar = app.tray != nullptr, .visible = app.tray == nullptr}), app_(app) {
     installCommonHandlers(handler(), app_);
     installHandlers();
 }
@@ -37,10 +37,10 @@ bool AccountListWindow::allowClose() {
 }
 
 void AccountListWindow::onFocusLost() {
-    // In tray mode a list that loses focus hides, unless the pointer is on it or the focus change came right after the tray click.
+    // In tray mode a list that loses focus hides, unless a right click opened it, the pointer is on it, or the focus change came right after the tray click.
     // Focus can bounce away from a list the tray click has just shown, so losing it within 400 ms isn't a click away.
     const bool pastGrace = std::chrono::steady_clock::now() - app_.listShownAt > std::chrono::milliseconds(400);
-    if (!app_.tray || !isVisible() || !pastGrace) {
+    if (!app_.tray || app_.listOpenedByRightClick || !isVisible() || !pastGrace) {
         return;
     }
     const auto pointer = gwl::cursorPosition();
@@ -97,6 +97,16 @@ void AccountListWindow::installHandlers() {
         logRequest("quit");
         app_.rememberListPlace();
         gwl::stopEventLoop();
+        reply.result(nullptr);
+    });
+    // In tray mode the list has no taskbar button to come back from, so minimising hides it into the tray.
+    handler.on("minimize", [this](gwl::WebViewWindow& window, const gwl::Json&, const gwl::Reply& reply) {
+        logRequest("minimize");
+        if (app_.tray) {
+            app_.hideList();
+        } else {
+            window.minimize();
+        }
         reply.result(nullptr);
     });
     handler.on("devtools", [](gwl::WebViewWindow& window, const gwl::Json&, const gwl::Reply& reply) {

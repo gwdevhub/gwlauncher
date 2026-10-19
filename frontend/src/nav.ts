@@ -2,9 +2,10 @@
 // their own from the list; every other view is a window the host opened for it, which shows only that view.
 
 import { call } from './bridge';
+import { withFrame } from './components/WindowFrame';
 import type { Role } from './types';
 
-// Each view's window size, in CSS pixels. Forms are pinned so the window doesn't hide when focus moves to a file picker.
+// Each view's size, in CSS pixels; its window adds the title bar and border. Forms are pinned so the window doesn't hide when focus moves to a file picker.
 const sizes: Record<string, [number, number]> = {
     editor: [820, 500],
     issues: [470, 380],
@@ -47,7 +48,7 @@ export async function show(name: string, ...args: any[]) {
     }
 
     call('pin', name !== 'list');
-    const size = session.popup ? sizes[name] : await call<[number, number]>('listSize');
+    const size = session.popup ? withFrame(sizes[name]) : await call<[number, number]>('listSize');
     call('resize', ...size);
     showNow(name, args);
 }

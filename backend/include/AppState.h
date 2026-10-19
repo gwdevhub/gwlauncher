@@ -134,17 +134,21 @@ struct AppState {
 
     // The tray icon, present in tray mode. With it up, closing the list hides it instead of quitting.
     std::unique_ptr<gwl::TrayIcon> tray;
-    // Where the tray icon last was, from a click on it, so Open from the tray menu shows the list beside it.
+    // Where the tray icon was last clicked, so the list opens beside it.
     std::optional<gwl::Rect> trayAnchor;
+    // Whether a right click on the tray icon opened the list, which keeps it on screen when it loses focus. A left click's list hides.
+    bool listOpenedByRightClick = false;
     // When the list was last shown. Focus that leaves the list just after a tray click doesn't hide it.
     std::chrono::steady_clock::time_point listShownAt{};
     // When focus loss last hid the list. The tray click that caused it reaches the tray after the list is already hidden.
     std::chrono::steady_clock::time_point listHiddenByFocusAt{};
     // Adds or removes the tray icon to match the tray setting. Without the icon the list is always shown.
     void applyTrayMode();
+    // Whether the list has its title bar: always without the tray, and in tray mode only when the setting asks for it.
+    bool listHasTitleBar() const;
     // Adds or removes the icon itself, as applyTrayMode's setting asks.
     void setTrayIcon();
-    // Handles a tray click or tray menu pick. Defined in AppState.cpp.
+    // Handles a tray click. Defined in TrayMode.cpp.
     void trayEvent(gwl::TrayAction action, int x, int y);
     // Shows the list beside the tray icon when there's an anchor, or in the middle of the screen without one.
     void showList(std::optional<gwl::Rect> click, std::optional<gwl::Rect> trayRect = std::nullopt);

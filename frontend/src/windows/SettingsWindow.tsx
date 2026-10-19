@@ -42,7 +42,7 @@ export function SettingsWindow() {
     }
 
     const set = (patch: Partial<Settings>) => setLocal({ ...settings, ...patch });
-    const launchMinimizedDisabled = !(app.hasTray && settings.keepInSystemTray);
+    const trayOptionsDisabled = !(app.hasTray && settings.keepInSystemTray);
 
     // Applies the password change. False when it failed or was cancelled, and the settings stay as they were.
     const applyPassword = async (): Promise<boolean> => {
@@ -98,10 +98,17 @@ export function SettingsWindow() {
             <Check
                 label="Launch minimised"
                 checked={settings.launchMinimized}
-                disabled={launchMinimizedDisabled}
+                disabled={trayOptionsDisabled}
                 onChange={e => set({ launchMinimized: e.target.checked })}
             />
             <Note className="indent ml-[22px]">Start hidden in the tray instead of showing the window.</Note>
+            <Check
+                label="Show title bar in tray mode"
+                checked={settings.showTitleBarInTray}
+                disabled={trayOptionsDisabled}
+                onChange={e => set({ showTitleBarInTray: e.target.checked })}
+            />
+            <Note className="indent ml-[22px]">Keep the window's title bar when it's run from the tray.</Note>
 
             <h2 className="m-0 text-sm">Display</h2>
             <label className="row form-grid-wide grid items-center gap-2">
