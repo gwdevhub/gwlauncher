@@ -45,7 +45,7 @@ fs::path installGw(const fs::path& folder, const GwReport& report, const std::at
     std::error_code error;
     fs::create_directories(folder, error);
     if (error) {
-        throw std::runtime_error("Could not create " + folder.string() + ": " + error.message());
+        throw std::runtime_error("Could not create " + pathToUtf8(folder) + ": " + error.message());
     }
     const fs::path exe = folder / kExeName;
     // One connection gives the latest details, and the download, when it's needed, goes over the same connection.
@@ -72,7 +72,7 @@ fs::path installGw(const fs::path& folder, const GwReport& report, const std::at
         [&](double fraction) { report("Decompressing downloaded executable", fraction); }, cancel);
 
     if (!writeFileBytes(exe, data)) {
-        throw std::runtime_error("Could not write " + exe.string());
+        throw std::runtime_error("Could not write " + pathToUtf8(exe));
     }
     report("Decompressed downloaded executable", 1.0);
     return exe;
@@ -115,7 +115,7 @@ std::size_t updateGwClients(const std::vector<fs::path>& paths, const GwReport& 
         std::error_code error;
         fs::copy_file(source, path, fs::copy_options::overwrite_existing, error);
         if (error) {
-            throw std::runtime_error("Could not copy Gw.exe to " + path.string() + ": " + error.message());
+            throw std::runtime_error("Could not copy Gw.exe to " + pathToUtf8(path) + ": " + error.message());
         }
         done += 1;
     }

@@ -11,6 +11,7 @@
 
 #include "Settings.h"
 #include "WebViewWindow.h"
+#include "utils/Files.h"
 
 namespace gwl {
 
@@ -97,10 +98,10 @@ std::optional<std::string> defaultInstall() {
         }
         const std::filesystem::path path(value);
         if (std::filesystem::is_regular_file(path)) {
-            return path.string();
+            return pathToUtf8(path);
         }
         if (std::filesystem::is_regular_file(path / "Gw.exe")) {
-            return (path / "Gw.exe").string();
+            return pathToUtf8(path / "Gw.exe");
         }
     }
     return std::nullopt;

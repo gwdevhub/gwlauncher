@@ -198,7 +198,7 @@ std::variant<Account, std::vector<FieldError>> Account::fromDraft(const Json& dr
     const std::string path = trimmed(stringField(draft, "gwPath"));
     if (path.empty()) {
         errors.push_back({"gwPath", "Enter a path to Gw.exe."});
-    } else if (!std::filesystem::is_regular_file(path)) {
+    } else if (!std::filesystem::is_regular_file(pathFromUtf8(path))) {
         errors.push_back({"gwPath", "Gw.exe was not found at that path."});
     }
     if (!errors.empty()) {
@@ -241,7 +241,7 @@ std::optional<std::vector<Account>> accountsFromJson(const std::string& text) {
 }  // namespace
 
 std::optional<OpenedAccounts> openAccounts(const std::string& path, const std::optional<PasswordHash>& password) {
-    const auto read = readFileBytes(path);
+    const auto read = readFileBytes(pathFromUtf8(path));
     if (!read) {
         saveAccounts({}, path, std::nullopt);
         return OpenedAccounts{};
@@ -295,7 +295,7 @@ void saveAccounts(const std::vector<Account>& accounts, const std::string& path,
         crlf += c;
     }
     const Bytes bytes = password ? encryptAccountsFile(crlf, *password) : Bytes(crlf.begin(), crlf.end());
-    if (!writeFileBytes(path, bytes)) {
+    if (!writeFileBytes(pathFromUtf8(path), bytes)) {
         throw std::runtime_error("Accounts.json couldn't be written.");
     }
 }

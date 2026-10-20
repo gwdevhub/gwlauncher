@@ -10,6 +10,10 @@
 
 namespace gwl {
 
+// UI, JSON and process arguments use UTF-8; filesystem operations use native paths.
+std::filesystem::path pathFromUtf8(const std::string& text);
+std::string pathToUtf8(const std::filesystem::path& path);
+
 // The file's bytes, or nothing when it can't be read.
 std::optional<Bytes> readFileBytes(const std::filesystem::path& path);
 

@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "Launch.h"
+#include "utils/Files.h"
 
 namespace gwl {
 
@@ -28,7 +29,7 @@ void removeIn(const fs::path& folder) {
     std::error_code error;
     for (fs::directory_iterator entries(folder, error), end; !error && entries != end; entries.increment(error)) {
         std::error_code ignored;
-        if (entries->is_regular_file(ignored) && isLeftover(entries->path().filename().string())) {
+        if (entries->is_regular_file(ignored) && isLeftover(pathToUtf8(entries->path().filename()))) {
             fs::remove(entries->path(), ignored);
         }
     }

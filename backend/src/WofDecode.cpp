@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "utils/Bytes.h"
+#include "utils/Files.h"
 
 namespace gwl {
 
@@ -599,7 +600,7 @@ void decodeStream(const ReadExact& readExact, std::uint32_t algorithm, const std
 
     std::ofstream output(work, std::ios::binary | std::ios::trunc);
     if (!output) {
-        fail("Could not write " + work.string());
+        fail("Could not write " + pathToUtf8(work));
     }
     std::size_t start = 0;
     for (std::size_t i = 0; i < chunkCount; ++i) {
@@ -632,7 +633,7 @@ void decodeStream(const ReadExact& readExact, std::uint32_t algorithm, const std
         }
     }
     if (!output) {
-        fail("Could not write " + work.string());
+        fail("Could not write " + pathToUtf8(work));
     }
 }
 

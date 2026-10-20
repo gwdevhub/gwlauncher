@@ -1,6 +1,7 @@
 // Windows: the clipboard, the shell's open and select, the desktop folder, and .lnk shortcuts through the shell link object.
 
 #include "Shell.h"
+#include "utils/Files.h"
 
 #include <windows.h>
 #include <knownfolders.h>
@@ -97,7 +98,7 @@ void createShortcut(const fs::path& file, const fs::path& target, const std::str
         CoUninitialize();
     }
     if (FAILED(result)) {
-        throw std::runtime_error("Could not write the shortcut: " + file.string());
+        throw std::runtime_error("Could not write the shortcut: " + pathToUtf8(file));
     }
 }
 

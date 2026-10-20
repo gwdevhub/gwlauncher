@@ -14,6 +14,7 @@
 #include "ModFiles.h"
 #include "Progress.h"
 #include "Wof.h"
+#include "utils/Files.h"
 
 namespace gwl {
 
@@ -107,7 +108,7 @@ std::vector<std::unique_ptr<Issue>> checkWofProblems(const Account& account) {
         candidates.push_back({account.gwpath, *gwExe});
         for (const char* name : kGwDependencies) {
             const auto dependency = gwExe->parent_path() / name;
-            candidates.push_back({dependency.string(), dependency});
+            candidates.push_back({pathToUtf8(dependency), dependency});
         }
     }
     for (const Mod& mod : account.mods) {
@@ -124,7 +125,7 @@ std::vector<std::unique_ptr<Issue>> checkWofProblems(const Account& account) {
         for (const std::filesystem::path& folder : pluginFolders(gameFilePath(account.gwpath), std::filesystem::current_path())) {
             std::error_code error;
             for (const auto& entry : std::filesystem::directory_iterator(folder, error)) {
-                candidates.push_back({entry.path().string(), entry.path()});
+                candidates.push_back({pathToUtf8(entry.path()), entry.path()});
             }
         }
     }

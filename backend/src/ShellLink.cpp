@@ -164,7 +164,7 @@ ShellLinkTarget parseShellLink(const std::vector<std::uint8_t>& data, const std:
                 c = '/';
             }
         }
-        target = (shortcutFolder / replaced).lexically_normal().string();
+        target = pathToUtf8((shortcutFolder / pathFromUtf8(replaced)).lexically_normal());
     }
     return ShellLinkTarget{target, arguments};
 }

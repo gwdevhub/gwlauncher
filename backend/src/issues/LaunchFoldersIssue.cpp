@@ -54,7 +54,7 @@ std::vector<std::unique_ptr<Issue>> checkLaunchFolders(const Account& account) {
     std::vector<std::unique_ptr<Issue>> found;
     std::set<std::string> reported;
     for (const std::filesystem::path& folder : folders) {
-        const std::string text = folder.string();
+        const std::string text = pathToUtf8(folder);
         if (reported.insert(text).second && !isWritableFolder(folder)) {
             found.push_back(std::make_unique<FolderNotWritableIssue>(text));
         }

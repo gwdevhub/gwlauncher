@@ -28,17 +28,17 @@ ModType typeForPath(const fs::path& path) {
 
 // The file's absolute path when it's on this computer, which is how a shortcut's target is checked.
 std::optional<fs::path> mapExisting(const fs::path& path) {
-    const auto local = linuxPathFor(path.string());
+    const auto local = linuxPathFor(pathToUtf8(path));
     std::error_code error;
-    if (!local || !fs::is_regular_file(*local, error)) {
+    if (!local || !fs::is_regular_file(pathFromUtf8(*local), error)) {
         return std::nullopt;
     }
-    return fs::absolute(*local, error);
+    return fs::absolute(pathFromUtf8(*local), error);
 }
 
 // Plugin files compare by lower-case name, as the C# code orders them.
 bool nameBefore(const fs::path& a, const fs::path& b) {
-    return lowerCase(a.filename().string()) < lowerCase(b.filename().string());
+    return lowerCase(pathToUtf8(a.filename())) < lowerCase(pathToUtf8(b.filename()));
 }
 
 // Removes repeats, keeping the first, then sorts by file name.
@@ -64,7 +64,7 @@ std::optional<PluginFile> fromShortcut(const fs::path& shortcut) {
     if (!link.windowsPath) {
         return std::nullopt;
     }
-    const fs::path windowsPath(*link.windowsPath);
+    const fs::path windowsPath = pathFromUtf8(*link.windowsPath);
     if (!isModPath(windowsPath)) {
         return std::nullopt;
     }
@@ -136,12 +136,12 @@ bool modFileExists(const std::string& fileName) {
         return false;
     }
     std::error_code error;
-    const fs::path path(*local);
+    const fs::path path = pathFromUtf8(*local);
     if (lowerExtension(path) == ".lnk") {
         try {
             const auto target = readShellLink(path).windowsPath;
             const auto targetLocal = target ? linuxPathFor(*target) : std::nullopt;
-            return targetLocal && fs::is_regular_file(*targetLocal, error);
+            return targetLocal && fs::is_regular_file(pathFromUtf8(*targetLocal), error);
         } catch (const std::runtime_error&) {
             return false;
         }
@@ -158,7 +158,7 @@ Json refreshedMod(Json mod) {
 }
 
 bool isGmod(const fs::path& path) {
-    const std::string name = path.filename().string();
+    const std::string name = pathToUtf8(path.filename());
     return lowerCase(name) == "gmod.dll";
 }
 
@@ -225,7 +225,7 @@ Json pluginFilesJson(const Json& draft, const fs::path& launcherDir) {
                 continue;
             }
             files.push_back(Json{
-                {"fileName", plugin.target->string()},
+                {"fileName", pathToUtf8(*plugin.target)},
                 {"type", static_cast<int>(plugin.kind)},
                 {"active", true},
                 {"readOnly", true},

@@ -5,6 +5,7 @@
 
 #include "LauncherUpdate.h"
 #include "Process.h"
+#include "utils/Files.h"
 
 namespace gwl {
 
@@ -29,7 +30,7 @@ void installLauncherRelease(const std::filesystem::path& current, const std::fil
         fs::rename(old, current, restore);
         throw std::runtime_error("The update couldn't be put in place: " + error.message());
     }
-    std::vector<std::string> command{current.string()};
+    std::vector<std::string> command{pathToUtf8(current)};
     command.insert(command.end(), arguments.begin(), arguments.end());
     runProgramDetached(command);
 }

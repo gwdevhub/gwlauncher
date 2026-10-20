@@ -6,6 +6,7 @@
 #include "GMod.h"
 #include "Issue.h"
 #include "Launch.h"
+#include "utils/Files.h"
 
 namespace gwl {
 
@@ -13,7 +14,7 @@ namespace {
 
 class InvalidModIssue : public Issue {
 public:
-    explicit InvalidModIssue(std::string fileName) : name_(std::filesystem::path(fileName).filename().string()) {}
+    explicit InvalidModIssue(std::string fileName) : name_(pathToUtf8(pathFromUtf8(fileName).filename())) {}
 
     int severity() const override { return kBlocking; }
     std::string message() const override { return name_ + " isn't a 32-bit Windows DLL, so the game can't load it."; }
@@ -31,7 +32,7 @@ std::vector<std::unique_ptr<Issue>> checkModsInvalid(const Account& account) {
             continue;
         }
         const auto modFile = linuxPathFor(mod.fileName);
-        if (!modFile || !std::filesystem::is_regular_file(*modFile)) {
+        if (!modFile || !std::filesystem::is_regular_file(pathFromUtf8(*modFile))) {
             continue;  // A missing file is reported by ModMissingIssue.
         }
         if (!isUsableDll(*modFile)) {

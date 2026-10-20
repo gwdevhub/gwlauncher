@@ -15,7 +15,7 @@ namespace {
 
 class InvalidTexmodIssue : public Issue {
 public:
-    explicit InvalidTexmodIssue(std::string fileName) : name_(std::filesystem::path(fileName).filename().string()) {}
+    explicit InvalidTexmodIssue(std::string fileName) : name_(pathToUtf8(pathFromUtf8(fileName).filename())) {}
 
     int severity() const override { return kBlocking; }
     std::string message() const override { return name_ + " isn't a .tpf or .zip texmod, so gMod can't load it."; }
@@ -25,7 +25,7 @@ private:
 };
 
 bool isTexmodExtension(const std::string& fileName) {
-    const std::string extension = gwl::lowerExtension(std::filesystem::path(fileName));
+    const std::string extension = gwl::lowerExtension(pathFromUtf8(fileName));
     return extension == ".tpf" || extension == ".zip";
 }
 
@@ -38,7 +38,7 @@ std::vector<std::unique_ptr<Issue>> checkTexmodsInvalid(const Account& account) 
             continue;
         }
         const auto modFile = linuxPathFor(mod.fileName);
-        if (!modFile || !std::filesystem::is_regular_file(*modFile)) {
+        if (!modFile || !std::filesystem::is_regular_file(pathFromUtf8(*modFile))) {
             continue;  // A missing file is reported by ModMissingIssue.
         }
         if (!isTexmodExtension(mod.fileName)) {

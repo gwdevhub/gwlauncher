@@ -1,4 +1,5 @@
 #include "Modlist.h"
+#include "utils/Files.h"
 
 #include <fstream>
 #include <iterator>
@@ -54,7 +55,7 @@ std::unique_ptr<ModlistGuard> ModlistGuard::prepare(const std::vector<fs::path>&
     if (fs::exists(gmodFile, error)) {
         gmodOriginal = readText(gmodFile);
         if (!gmodOriginal) {
-            throw std::runtime_error("Failed to read " + gmodFile.string());
+            throw std::runtime_error("Failed to read " + pathToUtf8(gmodFile));
         }
     }
 
@@ -63,10 +64,10 @@ std::unique_ptr<ModlistGuard> ModlistGuard::prepare(const std::vector<fs::path>&
         if (i > 0) {
             list += "\n";
         }
-        list += texmods[i].string();
+        list += pathToUtf8(texmods[i]);
     }
     if (!writeText(gmodFile, list)) {
-        throw std::runtime_error("Failed to write texmods to " + gmodFile.string());
+        throw std::runtime_error("Failed to write texmods to " + pathToUtf8(gmodFile));
     }
 
     auto gameOriginal = blankGameList(gameFile, gmodFile);

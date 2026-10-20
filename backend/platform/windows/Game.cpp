@@ -175,7 +175,7 @@ HANDLE restrictedToken() {
 
 // Starts the game suspended, in the game's own folder. Wine has no integrity levels, so it starts the game without a token.
 std::unique_ptr<GameProcess> createSuspended(const std::string& gwpath, const std::string& commandLine, bool elevated) {
-    const fs::path parent = fs::path(gwpath).parent_path();
+    const fs::path parent = pathFromUtf8(gwpath).parent_path();
     if (parent.empty()) {
         throw std::runtime_error("the game path has no folder");
     }
@@ -601,7 +601,7 @@ bool processExists(const std::wstring& stem) {
 
 // A running process whose image path contains this game path, matched on the file name first, as the C# IsProcessOpen does.
 bool isRunningFrom(const std::string& gwpath) {
-    const std::wstring stem = fs::path(gwpath).stem().wstring();
+    const std::wstring stem = pathFromUtf8(gwpath).stem().wstring();
     for (const ProcessEntry& entry : processEntries()) {
         if (entry.stem != stem) {
             continue;
@@ -634,7 +634,7 @@ private:
 // Starts the game suspended, patches it, loads its mods, then resumes it. The game is ended on any failure.
 std::unique_ptr<GameProcess> startPatched(const Account& account, const fs::path& launcherDir, std::uint32_t timeoutMs,
                                           const std::function<bool()>& confirm) {
-    const fs::path gwPath(account.gwpath);
+    const fs::path gwPath = pathFromUtf8(account.gwpath);
     const fs::path currentDir = fs::current_path();
     const auto gmod = findGmod(launcherDir, currentDir);
     const ModSelection selection = accountSelection(account, launcherDir, gmod);
@@ -659,10 +659,10 @@ std::unique_ptr<GameProcess> startPatched(const Account& account, const fs::path
                 continue;
             }
             if (result == ModuleLoad::RemoteThreadDidNotStart) {
-                throw std::runtime_error("The mod " + dll.filename().string() + " didn't load within the " + std::to_string(timeoutMs) +
+                throw std::runtime_error("The mod " + pathToUtf8(dll.filename()) + " didn't load within the " + std::to_string(timeoutMs) +
                                          " ms limit. Increase Timeout (ms) under Settings > Advanced.");
             }
-            throw std::runtime_error(std::string("Result ") + moduleLoadName(result) + ": memory.LoadModule(" + dll.string() + ")");
+            throw std::runtime_error(std::string("Result ") + moduleLoadName(result) + ": memory.LoadModule(" + pathToUtf8(dll) + ")");
         }
         game->resume();
     } catch (const std::runtime_error&) {
@@ -705,7 +705,7 @@ void launchGameInProcess(const Account& account, const std::string& dir, std::ui
     }
     SteamAppIdFile appId(*appIdPath);
 
-    if (!fs::is_regular_file(account.gwpath, error)) {
+    if (!fs::is_regular_file(pathFromUtf8(account.gwpath), error)) {
         throw std::runtime_error("Path to the Guild Wars executable incorrect, aborting launch.");
     }
     if (requireSteam && account.isSteamAccount && !steamRunning()) {
@@ -715,7 +715,7 @@ void launchGameInProcess(const Account& account, const std::string& dir, std::ui
         throw std::runtime_error("The Guild Wars executable at " + account.gwpath + " is already running");
     }
 
-    const auto game = startPatched(account, dir, timeoutMs, confirm);
+    const auto game = startPatched(account, pathFromUtf8(dir), timeoutMs, confirm);
     waitForWindow(*game, account.name());
     appId.keep();
 }
