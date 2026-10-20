@@ -6,7 +6,7 @@
 
 namespace launcher {
 
-void AppState::quickLaunch(const std::string& name) {
+void AppState::quickLaunch(const std::u16string& name) {
     quick = true;
     if (accountsLocked) {
         quickAccount = name;

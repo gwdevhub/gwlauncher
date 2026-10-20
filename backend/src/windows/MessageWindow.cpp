@@ -1,9 +1,10 @@
 #include "MessageWindow.h"
+#include "utils/Strings.h"
 
 namespace launcher {
 
 MessageWindow::MessageWindow(AppState& app, const std::string& title, const std::string& text)
-    : WebViewWindow(gwl::WindowOptions{.title = title, .width = 380, .height = 150}), app_(app), content_{{"title", title}, {"text", text}} {
+    : WebViewWindow(gwl::WindowOptions{.title = gwl::utf8ToUtf16(title), .width = 380, .height = 150}), app_(app), content_{{"title", title}, {"text", text}} {
     installCommonHandlers(handler(), app_);
     handler().on("window", [this](gwl::WebViewWindow&, const gwl::Json&, const gwl::Reply& reply) {
         logRequest("window");

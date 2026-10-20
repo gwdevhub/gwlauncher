@@ -15,10 +15,10 @@ struct InstanceRequest {
 
     Kind kind = Kind::Show;
     // The account to launch, for Launch.
-    std::string name;
+    std::u16string name;
 
     // The request a start makes: -launch <name> launches that account, and any other start shows the list.
-    static InstanceRequest fromArgs(const std::vector<std::string>& arguments);
+    static InstanceRequest fromArgs(const std::vector<std::u16string>& arguments);
 
     // One line of JSON, with its newline. decode reads that line back, and refuses anything else.
     std::string encode() const;

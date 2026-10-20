@@ -16,6 +16,14 @@ std::string pathToUtf8(const std::filesystem::path& path) {
     return std::string(text.begin(), text.end());
 }
 
+std::filesystem::path pathFromUtf16(const std::u16string& text) {
+    return std::filesystem::path(text);
+}
+
+std::u16string pathToUtf16(const std::filesystem::path& path) {
+    return path.u16string();
+}
+
 std::optional<Bytes> readFileBytes(const std::filesystem::path& path) {
     std::ifstream file(path, std::ios::binary);
     if (!file) {

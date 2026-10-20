@@ -7,7 +7,7 @@
 namespace launcher {
 
 ContextMenuWindow::ContextMenuWindow(AppState& app, gwl::Json items)
-    : WebViewWindow(gwl::WindowOptions{.title = "", .width = 190, .height = 100, .titleBar = false, .skipTaskbar = true,
+    : WebViewWindow(gwl::WindowOptions{.title = u"", .width = 190, .height = 100, .titleBar = false, .skipTaskbar = true,
                                        .alwaysOnTop = true, .autosize = true}),
       app_(app),
       items_(std::move(items)) {

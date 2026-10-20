@@ -3,7 +3,7 @@
 namespace launcher {
 
 SetupWindow::SetupWindow(AppState& app)
-    : WebViewWindow(gwl::WindowOptions{.title = "Setup", .width = 420, .height = 360}), app_(app) {
+    : WebViewWindow(gwl::WindowOptions{.title = u"Setup", .width = 420, .height = 360}), app_(app) {
     installCommonHandlers(handler(), app_);
     handler().on("window", [](gwl::WebViewWindow&, const gwl::Json&, const gwl::Reply& reply) {
         logRequest("window");

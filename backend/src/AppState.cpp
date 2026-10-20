@@ -30,26 +30,26 @@ namespace {
 
 // The folder a file picker opens in. A mod picker starts in the first plugin folder of the game that exists, or the launcher's folder.
 // The Gw.exe picker starts in the folder of the account's Gw.exe, then the detected install, then the default game folder.
-std::string pickerStartFolder(bool modsOnly, const std::string& gamePath) {
+std::u16string pickerStartFolder(bool modsOnly, const std::u16string& gamePath) {
     namespace fs = std::filesystem;
     std::error_code error;
-    const std::optional<fs::path> game = gamePath.empty() ? std::nullopt : std::optional<fs::path>(gwl::pathFromUtf8(gamePath));
+    const std::optional<fs::path> game = gamePath.empty() ? std::nullopt : std::optional<fs::path>(gwl::pathFromUtf16(gamePath));
     if (modsOnly) {
         for (const fs::path& folder : gwl::pluginFolders(game, fs::current_path())) {
             if (fs::is_directory(folder, error)) {
-                return gwl::pathToUtf8(folder);
+                return gwl::pathToUtf16(folder);
             }
         }
-        return gwl::pathToUtf8(fs::current_path());
+        return gwl::pathToUtf16(fs::current_path());
     }
     if (game && fs::is_regular_file(*game, error)) {
-        return gwl::pathToUtf8(game->parent_path());
+        return gwl::pathToUtf16(game->parent_path());
     }
     if (const auto install = gwl::defaultInstall()) {
-        return gwl::pathToUtf8(gwl::pathFromUtf8(*install).parent_path());
+        return gwl::pathToUtf16(gwl::pathFromUtf16(*install).parent_path());
     }
     const fs::path folder = gwl::defaultGameFolder();
-    return fs::is_directory(folder, error) ? gwl::pathToUtf8(folder) : std::string();
+    return fs::is_directory(folder, error) ? gwl::pathToUtf16(folder) : std::u16string();
 }
 
 }  // namespace
@@ -204,7 +204,7 @@ gwl::Json AppState::state() const {
         {"debug", false},
         {"canLaunchDefaultClient", gwl::defaultInstall().has_value()},
         {"hasLinuxPaths", gwl::launchesThroughWine()},
-        {"detectedPaths", gwl::Json{{"steam", gwl::detectedSteamPath()}, {"wine", gwl::detectedWinePath()}}},
+        {"detectedPaths", gwl::Json{{"steam", gwl::utf16ToUtf8(gwl::detectedSteamPath())}, {"wine", gwl::utf16ToUtf8(gwl::detectedWinePath())}}},
         {"hasWindowsOptions", true},
         {"hasTray", gwl::hasTray()},
         {"hasSetup", false},
@@ -279,9 +279,9 @@ void installCommonHandlers(gwl::MessageHandler& handler, AppState& app) {
     handler.on("pickFile", [](gwl::WebViewWindow&, const gwl::Json& args, const gwl::Reply& reply) {
         logRequest("pickFile");
         const bool modsOnly = args.at(1).get<bool>();
-        const std::string gamePath = args.size() > 2 && args.at(2).is_string() ? args.at(2).get<std::string>() : std::string();
-        const auto picked = gwl::pickFile(args.at(0).get<std::string>(), modsOnly, pickerStartFolder(modsOnly, gamePath));
-        reply.result(picked ? gwl::Json(*picked) : gwl::Json(nullptr));
+        const std::u16string gamePath = args.size() > 2 && args.at(2).is_string() ? gwl::utf8ToUtf16(args.at(2).get<std::string>()) : std::u16string();
+        const auto picked = gwl::pickFile(gwl::utf8ToUtf16(args.at(0).get<std::string>()), modsOnly, pickerStartFolder(modsOnly, gamePath));
+        reply.result(picked ? gwl::Json(gwl::utf16ToUtf8(*picked)) : gwl::Json(nullptr));
     });
     handler.on("pluginFiles", [](gwl::WebViewWindow&, const gwl::Json& args, const gwl::Reply& reply) {
         logRequest("pluginFiles");
@@ -364,7 +364,7 @@ void installCommonHandlers(gwl::MessageHandler& handler, AppState& app) {
             reply.result("That account isn't in the list.");
             return;
         }
-        const auto gwExe = gwl::linuxPathFor(account->gwpath);
+        const auto gwExe = gwl::gameFilePath(account->gwpath);
         if (!gwExe) {
             reply.result("Gw.exe's folder couldn't be found on this computer.");
             return;
@@ -385,15 +385,16 @@ void installCommonHandlers(gwl::MessageHandler& handler, AppState& app) {
             return;
         }
         // Slashes can't be in a file name, so they become underscores, as the Rust launcher names the shortcut.
-        std::string name = account->name();
-        for (char& c : name) {
-            if (c == '/') {
-                c = '_';
+        std::u16string name = account->name();
+        for (char16_t& c : name) {
+            if (c == u'/') {
+                c = u'_';
             }
         }
         try {
-            gwl::createShortcut(*desktop / gwl::pathFromUtf8(name + ".lnk"), gwl::executablePath(), "-launch \"" + name + "\"",
-                                "GW Launcher shortcut for " + name, gwl::embeddedHelmetPng());
+            gwl::createShortcut(*desktop / gwl::pathFromUtf16(name + u".lnk"), gwl::executablePath(),
+                                gwl::utf16ToUtf8(u"-launch \"" + name + u"\""),
+                                gwl::utf16ToUtf8(u"GW Launcher shortcut for " + name), gwl::embeddedHelmetPng());
             reply.result(nullptr);
         } catch (const std::exception& error) {
             reply.result(std::string(error.what()));
@@ -605,7 +606,7 @@ void AppState::instanceRequest(const gwl::InstanceRequest& request) {
     }
 }
 
-void AppState::launchNamed(const std::string& name) {
+void AppState::launchNamed(const std::u16string& name) {
     for (std::size_t index = 0; index < accounts.size(); ++index) {
         if (accounts[index].name() != name) {
             continue;
@@ -613,15 +614,15 @@ void AppState::launchNamed(const std::string& name) {
         // A failed start shows its reason in the progress window, so only blocking issues need a window of their own.
         auto shown = [this, index, name](const gwl::Json& result) {
             if (result.is_object() && result.contains("issues") && !result["issues"].is_null()) {
-                const gwl::Json view{{"index", index}, {"name", name}, {"issues", result["issues"]}, {"canLaunch", result["canLaunch"]}, {"launchBlocked", true}};
-                openIssues("launch:" + name, view);
+                const gwl::Json view{{"index", index}, {"name", gwl::utf16ToUtf8(name)}, {"issues", result["issues"]}, {"canLaunch", result["canLaunch"]}, {"launchBlocked", true}};
+                openIssues("launch:" + gwl::utf16ToUtf8(name), view);
             }
             endQuickIfIdle();
         };
         launch(gwl::Reply{shown, [this](const std::string&) { endQuickIfIdle(); }}, gwl::Json::array({index}), false, true);
         return;
     }
-    openMessage("GW Launcher", "There's no account named " + name + ".");
+    openMessage("GW Launcher", "There's no account named " + gwl::utf16ToUtf8(name) + ".");
 }
 
 std::string AppState::pageHtml() const {

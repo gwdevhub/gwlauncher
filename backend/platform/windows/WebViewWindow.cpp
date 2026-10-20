@@ -330,7 +330,7 @@ void WebViewWindow::platformOpen() {
     native_.reset(new NativeWindow);
     NativeWindow* native = native_.get();
     native->owner = this;
-    std::wstring windowTitle = toWide(title());
+    std::wstring windowTitle = utf16ToWide(title());
     // Opened in the middle of the work area. A caller that places the window moves it after it's opened.
     const auto area = workArea();
     // Sizes are in device-independent pixels, so they grow with the display's DPI.
@@ -489,9 +489,9 @@ void WebViewWindow::platformMove(int x, int y) {
     }
 }
 
-void WebViewWindow::platformSetTitle(const std::string& title) {
+void WebViewWindow::platformSetTitle(const std::u16string& title) {
     if (native_ && native_->hwnd) {
-        std::wstring wide = toWide(title);
+        std::wstring wide = utf16ToWide(title);
         SetWindowTextW(native_->hwnd, wide.c_str());
     }
 }

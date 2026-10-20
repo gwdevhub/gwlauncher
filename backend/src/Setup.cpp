@@ -106,7 +106,7 @@ std::string updateSummary(std::size_t checked, std::size_t replaced) {
 }  // namespace
 
 void AppState::startUpdateAll(gwl::Reply reply) {
-    std::set<std::string> seen;
+    std::set<std::u16string> seen;
     std::vector<fs::path> paths;
     for (const gwl::Account& account : accounts) {
         if (!seen.insert(account.gwpath).second) {

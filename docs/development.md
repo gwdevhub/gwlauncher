@@ -15,6 +15,20 @@ The launcher is a C++ program in `backend/`, with a web page in `frontend/` that
 | `assets` | Icons and the stylesheet template, compiled in as well. |
 | `bin` | Build output: `bin/linux/{debug,release}` and `bin/windows`. Ignored by git. |
 
+## Text and paths
+
+Shared account fields, account names, mod paths, settings paths, launch arguments and window titles use `std::u16string` and `u"..."` literals on both platforms. Keep filesystem operations on `std::filesystem::path` rather than converting paths into text between operations.
+
+Use the shared helpers in `utils/Strings.h` and `utils/Files.h` at boundaries:
+
+- `utf8ToUtf16` and `utf16ToUtf8` for JSON, IPC, GTK and byte-oriented process interfaces. JSON text fields must be explicitly encoded: passing a `u16string` directly to the JSON library can serialize it as an array of code units.
+- `pathFromUtf16` and `pathToUtf16` for application path text; the UTF-8 path helpers are for byte-oriented interfaces.
+- `utf16ToWide` and `wideToUtf16` only at Windows APIs. Do not reinterpret `char16_t*` as `wchar_t*`, or assume Linux's `wchar_t` is UTF-16.
+
+`std::string` remains appropriate for serialized JSON/HTML/scripts, protocol identifiers, binary data, standard exception messages and UTF-8 API arguments. UTF-8 decoding rejects malformed text; UTF-16 encoding replaces unpaired surrogates with U+FFFD. ASCII case conversion and trimming leave other UTF-16 code units intact, including surrogate pairs.
+
+For encoding changes, exercise account save/reload, quick-launch forwarding, file pickers, plugin paths and window titles with accented text, CJK text and emoji, on both platforms. Include an ASCII baseline and the Windows helper under Wine.
+
 ## Build presets
 
 `backend/CMakePresets.json` defines the builds. Run the presets from `backend/`.

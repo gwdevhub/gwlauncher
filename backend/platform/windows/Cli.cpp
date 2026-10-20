@@ -65,7 +65,7 @@ std::uint32_t parseTimeout(const std::string& text) {
     throw std::runtime_error("--launch needs the timeout in milliseconds.");
 }
 
-int launch(const std::vector<std::string>& arguments) {
+int launch(const std::vector<std::u16string>& arguments) {
     // Guild Wars needs d3d9.dll. It's loaded here the way Guild Wars will load it, so a Wine that can't find or load it stops the launch
     // before anything starts.
     const HMODULE direct3D = LoadLibraryW(L"d3d9.dll");
@@ -79,11 +79,11 @@ int launch(const std::vector<std::string>& arguments) {
     if (arguments.size() < 2) {
         throw std::runtime_error("--launch needs the timeout in milliseconds.");
     }
-    const std::uint32_t timeout = parseTimeout(arguments[1]);
+    const std::uint32_t timeout = parseTimeout(utf16ToUtf8(arguments[1]));
 
-    const auto bytes = readFileBytes(pathFromUtf8(arguments[0]));
+    const auto bytes = readFileBytes(pathFromUtf16(arguments[0]));
     if (!bytes) {
-        throw std::runtime_error("Could not read the launch file: " + arguments[0]);
+        throw std::runtime_error("Could not read the launch file: " + utf16ToUtf8(arguments[0]));
     }
     Account account;
     try {
@@ -94,12 +94,12 @@ int launch(const std::vector<std::string>& arguments) {
 
     // The game reads its install from the registry, so it's written before each start. A failure doesn't stop the launch.
     try {
-        setDefaultGame(pathFromUtf8(account.gwpath));
+        setDefaultGame(pathFromUtf16(account.gwpath));
     } catch (const std::runtime_error&) {
     }
 
     std::function<bool()> confirm;
-    if (std::find(arguments.begin(), arguments.end(), "--confirm") != arguments.end()) {
+    if (std::find(arguments.begin(), arguments.end(), u"--confirm") != arguments.end()) {
         confirm = [] {
             std::cout << "suspended" << std::endl;
             std::string answer;
@@ -107,23 +107,23 @@ int launch(const std::vector<std::string>& arguments) {
         };
     }
     // The Linux launcher checks for Steam before it starts this, because Wine can't see the Linux Steam client's processes.
-    launchGameInProcess(account, pathToUtf8(std::filesystem::current_path()), timeout, confirm, false);
+    launchGameInProcess(account, std::filesystem::current_path(), timeout, confirm, false);
     return 0;
 }
 
 }  // namespace
 
-std::vector<std::string> commandLineArguments() {
+std::vector<std::u16string> commandLineArguments() {
     int count = 0;
     wchar_t** wide = CommandLineToArgvW(GetCommandLineW(), &count);
     if (!wide) {
         throw std::runtime_error("The command line couldn't be read.");
     }
-    std::vector<std::string> arguments;
+    std::vector<std::u16string> arguments;
     try {
         for (int i = 0; i < count; ++i) {
             const std::wstring text(wide[i]);
-            arguments.push_back(utf16ToUtf8(std::vector<std::uint16_t>(text.begin(), text.end())));
+            arguments.push_back(wideToUtf16(text));
         }
     } catch (...) {
         LocalFree(wide);
@@ -133,14 +133,14 @@ std::vector<std::string> commandLineArguments() {
     return arguments;
 }
 
-int runCli(const std::vector<std::string>& arguments) {
-    const auto found = std::find(arguments.begin(), arguments.end(), "--launch");
+int runCli(const std::vector<std::u16string>& arguments) {
+    const auto found = std::find(arguments.begin(), arguments.end(), u"--launch");
     if (found == arguments.end()) {
         std::cerr << kUsage << std::endl;
         return 2;
     }
     try {
-        return launch(std::vector<std::string>(found + 1, arguments.end()));
+        return launch(std::vector<std::u16string>(found + 1, arguments.end()));
     } catch (const std::exception& error) {
         std::cerr << error.what() << std::endl;
         return 1;

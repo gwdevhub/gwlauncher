@@ -17,29 +17,29 @@ const char* const kSteamAppIdFile = "steam_appid.txt";
 
 }  // namespace
 
-std::string gameCommandLine(const std::string& gwpath, const Account& account) {
+std::u16string gameCommandLine(const std::u16string& gwpath, const Account& account) {
     // A default-client launch has no email, so it passes no login arguments.
-    std::vector<std::pair<std::string, std::string>> arguments;
+    std::vector<std::pair<std::u16string, std::u16string>> arguments;
     if (!account.email.empty()) {
-        arguments.emplace_back("-email", account.email);
-        arguments.emplace_back("-password", account.password);
+        arguments.emplace_back(u"-email", account.email);
+        arguments.emplace_back(u"-password", account.password);
         if (!account.character.empty()) {
-            arguments.emplace_back("-character", account.character);
+            arguments.emplace_back(u"-character", account.character);
         }
     }
-    std::string joined;
+    std::u16string joined;
     for (std::size_t i = 0; i < arguments.size(); ++i) {
         if (i > 0) {
-            joined += " ";
+            joined += u" ";
         }
-        joined += arguments[i].first + " \"" + arguments[i].second + "\"";
+        joined += arguments[i].first + u" \"" + arguments[i].second + u"\"";
     }
     // The extra arguments follow a space even when there are none, as the C# launcher writes it.
-    return "\"" + gwpath + "\" " + joined + " " + account.extraargs;
+    return u"\"" + gwpath + u"\" " + joined + u" " + account.extraargs;
 }
 
-std::optional<fs::path> steamAppIdPath(const std::string& gwpath) {
-    const fs::path parent = pathFromUtf8(gwpath).parent_path();
+std::optional<fs::path> steamAppIdPath(const std::u16string& gwpath) {
+    const fs::path parent = pathFromUtf16(gwpath).parent_path();
     if (gwpath.empty()) {
         return std::nullopt;
     }

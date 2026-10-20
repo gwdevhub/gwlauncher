@@ -3,12 +3,13 @@
 #include <cstddef>
 
 #include "Messages.h"
+#include "utils/Strings.h"
 
 namespace gwl {
 
-InstanceRequest InstanceRequest::fromArgs(const std::vector<std::string>& arguments) {
+InstanceRequest InstanceRequest::fromArgs(const std::vector<std::u16string>& arguments) {
     for (std::size_t i = 0; i + 1 < arguments.size(); ++i) {
-        if (arguments[i] == "-launch") {
+        if (arguments[i] == u"-launch") {
             return {InstanceRequest::Kind::Launch, arguments[i + 1]};
         }
     }
@@ -16,7 +17,7 @@ InstanceRequest InstanceRequest::fromArgs(const std::vector<std::string>& argume
 }
 
 std::string InstanceRequest::encode() const {
-    const Json value = kind == Kind::Launch ? Json{{"request", "launch"}, {"name", name}} : Json{{"request", "show"}};
+    const Json value = kind == Kind::Launch ? Json{{"request", "launch"}, {"name", utf16ToUtf8(name)}} : Json{{"request", "show"}};
     return value.dump() + "\n";
 }
 
@@ -30,7 +31,7 @@ std::optional<InstanceRequest> InstanceRequest::decode(const std::string& line) 
         return InstanceRequest{};
     }
     if (kind == "launch" && value.contains("name") && value["name"].is_string()) {
-        return InstanceRequest{InstanceRequest::Kind::Launch, value["name"].get<std::string>()};
+        return InstanceRequest{InstanceRequest::Kind::Launch, utf8ToUtf16(value["name"].get<std::string>())};
     }
     return std::nullopt;
 }

@@ -34,7 +34,7 @@ constexpr const char* kGwDependencies[] = {
 constexpr std::size_t kChecksAtOnce = 10;
 
 struct Candidate {
-    std::string fileName;
+    std::u16string fileName;
     std::filesystem::path path;
 };
 
@@ -61,11 +61,11 @@ std::vector<std::optional<std::string>> checkEach(const std::vector<Candidate>& 
 
 class WofIssue : public Issue {
 public:
-    WofIssue(std::string fileName, std::string problem) : fileName_(std::move(fileName)), problem_(std::move(problem)) {}
+    WofIssue(std::u16string fileName, std::string problem) : fileName_(std::move(fileName)), problem_(std::move(problem)) {}
 
     int severity() const override { return kBlocking; }
     std::string message() const override { return problem_; }
-    void describe(Json& json) const override { json["wofPath"] = fileName_; }
+    void describe(Json& json) const override { json["wofPath"] = utf16ToUtf8(fileName_); }
 
     void fix(Reply reply, const JobRunner& runJob) override {
         const auto path = gameFilePath(fileName_);
@@ -80,18 +80,18 @@ public:
             {"cancellable", true},
             {"failure", "The file couldn't be decompressed"},
         };
-        const std::string fileName = fileName_;
+        const std::u16string fileName = fileName_;
         runJob(
             popup,
             [path = *path](const ProgressReport& report, const std::atomic<bool>& cancel) { resolveWof(path, report, cancel); },
             [reply, fileName](const std::optional<std::string>& failure) {
                 reply.result(failure ? Json(nullptr)
-                                     : Json("Decompressed " + fileName + ". It replaces the compressed original."));
+                                     : Json("Decompressed " + utf16ToUtf8(fileName) + ". It replaces the compressed original."));
             });
     }
 
 private:
-    std::string fileName_;
+    std::u16string fileName_;
     std::string problem_;
 };
 
@@ -108,7 +108,7 @@ std::vector<std::unique_ptr<Issue>> checkWofProblems(const Account& account) {
         candidates.push_back({account.gwpath, *gwExe});
         for (const char* name : kGwDependencies) {
             const auto dependency = gwExe->parent_path() / name;
-            candidates.push_back({pathToUtf8(dependency), dependency});
+            candidates.push_back({pathToUtf16(dependency), dependency});
         }
     }
     for (const Mod& mod : account.mods) {
@@ -125,7 +125,7 @@ std::vector<std::unique_ptr<Issue>> checkWofProblems(const Account& account) {
         for (const std::filesystem::path& folder : pluginFolders(gameFilePath(account.gwpath), std::filesystem::current_path())) {
             std::error_code error;
             for (const auto& entry : std::filesystem::directory_iterator(folder, error)) {
-                candidates.push_back({pathToUtf8(entry.path()), entry.path()});
+                candidates.push_back({pathToUtf16(entry.path()), entry.path()});
             }
         }
     }

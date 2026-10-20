@@ -1,4 +1,5 @@
 #include "WebViewWindow.h"
+#include "utils/Strings.h"
 
 #include <algorithm>
 #include <cstdio>
@@ -147,7 +148,7 @@ void WebViewWindow::keepOnScreen() {
 
 Json WebViewWindow::chrome() const {
     return {
-        {"title", title()},
+        {"title", utf16ToUtf8(title())},
         {"titleBar", options_.titleBar},
         {"resizable", options_.resizable && !options_.autosize},
     };
@@ -183,7 +184,7 @@ void WebViewWindow::close() {
     platformClose();
 }
 
-void WebViewWindow::setTitle(const std::string& title) {
+void WebViewWindow::setTitle(const std::u16string& title) {
     options_.title = title;
     platformSetTitle(title);
     emit("chrome", chrome());

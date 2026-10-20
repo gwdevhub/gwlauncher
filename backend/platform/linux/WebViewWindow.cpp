@@ -10,6 +10,7 @@
 #include <string>
 
 #include "WebViewWindow.h"
+#include "utils/Strings.h"
 
 namespace gwl {
 
@@ -199,7 +200,7 @@ void WebViewWindow::platformOpen() {
 
     native.window = gtk.window_new(GTK_WINDOW_TOPLEVEL);
     auto* window = reinterpret_cast<GtkWindow*>(native.window);
-    gtk.window_set_title(window, title().c_str());
+    gtk.window_set_title(window, utf16ToUtf8(title()).c_str());
     gtk.window_set_default_size(window, scaledSize(options_.width), scaledSize(options_.height));
     // Opened in the middle of the screen. A caller that places the window moves it after it's opened.
     gtk.window_set_position(window, GTK_WIN_POS_CENTER);
@@ -357,9 +358,9 @@ void WebViewWindow::platformSetSkipTaskbar() {
     }
 }
 
-void WebViewWindow::platformSetTitle(const std::string& title) {
+void WebViewWindow::platformSetTitle(const std::u16string& title) {
     if (native_ && native_->window) {
-        api().window_set_title(reinterpret_cast<GtkWindow*>(native_->window), title.c_str());
+        api().window_set_title(reinterpret_cast<GtkWindow*>(native_->window), utf16ToUtf8(title).c_str());
     }
 }
 

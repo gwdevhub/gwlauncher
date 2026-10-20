@@ -1,9 +1,10 @@
 #include "ProgressWindow.h"
+#include "utils/Strings.h"
 
 namespace launcher {
 
 ProgressWindow::ProgressWindow(AppState& app, gwl::Json args)
-    : WebViewWindow(gwl::WindowOptions{.title = args.at("title").get<std::string>(), .width = 420, .height = 190, .titleBar = false, .resizable = false}), app_(app),
+    : WebViewWindow(gwl::WindowOptions{.title = gwl::utf8ToUtf16(args.at("title").get<std::string>()), .width = 420, .height = 190, .titleBar = false, .resizable = false}), app_(app),
       args_(std::move(args)) {
     installCommonHandlers(handler(), app_);
     handler().on("window", [this](gwl::WebViewWindow&, const gwl::Json&, const gwl::Reply& reply) {

@@ -38,17 +38,17 @@ std::uint32_t u32At(const std::vector<std::uint8_t>& data, std::size_t offset) {
            static_cast<std::uint32_t>(data[offset + 2]) << 16 | static_cast<std::uint32_t>(data[offset + 3]) << 24;
 }
 
-std::vector<std::uint16_t> unitsAt(const std::vector<std::uint8_t>& data, std::size_t offset, std::size_t count) {
-    std::vector<std::uint16_t> units;
+std::u16string unitsAt(const std::vector<std::uint8_t>& data, std::size_t offset, std::size_t count) {
+    std::u16string units;
     units.reserve(count);
     for (std::size_t i = 0; i < count; ++i) {
-        units.push_back(static_cast<std::uint16_t>(data[offset + 2 * i] | data[offset + 2 * i + 1] << 8));
+        units.push_back(static_cast<char16_t>(data[offset + 2 * i] | data[offset + 2 * i + 1] << 8));
     }
     return units;
 }
 
 // A zero-terminated string at offset, or nothing when the offset is outside the data.
-std::optional<std::string> zeroTerminated(const std::vector<std::uint8_t>& data, std::size_t offset, bool unicode) {
+std::optional<std::u16string> zeroTerminated(const std::vector<std::uint8_t>& data, std::size_t offset, bool unicode) {
     if (offset == 0 || offset >= data.size()) {
         return std::nullopt;
     }
@@ -57,24 +57,24 @@ std::optional<std::string> zeroTerminated(const std::vector<std::uint8_t>& data,
         while (end + 1 < data.size() && (data[end] != 0 || data[end + 1] != 0)) {
             end += 2;
         }
-        return utf16ToUtf8(unitsAt(data, offset, (end - offset) / 2));
+        return unitsAt(data, offset, (end - offset) / 2);
     }
     std::size_t end = offset;
     while (end < data.size() && data[end] != 0) {
         end += 1;
     }
-    return latin1ToUtf8(data, offset, end - offset);
+    return utf8ToUtf16(latin1ToUtf8(data, offset, end - offset));
 }
 
 // A StringData entry: a 2-byte character count, then the characters. Reading moves position past it.
-std::string readString(const std::vector<std::uint8_t>& data, std::size_t& position, bool unicode) {
+std::u16string readString(const std::vector<std::uint8_t>& data, std::size_t& position, bool unicode) {
     const std::size_t count = u16At(data, position);
     position += 2;
     const std::size_t bytes = unicode ? count * 2 : count;
     if (position > data.size() || data.size() - position < bytes) {
         truncated();
     }
-    const std::string text = unicode ? utf16ToUtf8(unitsAt(data, position, count)) : latin1ToUtf8(data, position, count);
+    const std::u16string text = unicode ? unitsAt(data, position, count) : utf8ToUtf16(latin1ToUtf8(data, position, count));
     position += bytes;
     return text;
 }
@@ -85,7 +85,7 @@ std::size_t skipString(const std::vector<std::uint8_t>& data, std::size_t positi
 }
 
 // LinkInfo holds the local base path and a common suffix. The Unicode forms are used when the header has them.
-std::optional<std::string> linkInfoPath(const std::vector<std::uint8_t>& data, std::size_t start) {
+std::optional<std::u16string> linkInfoPath(const std::vector<std::uint8_t>& data, std::size_t start) {
     const std::uint32_t flags = u32At(data, start + 8);
     if ((flags & kVolumeIdAndLocalBasePath) == 0) {
         return std::nullopt;
@@ -93,14 +93,14 @@ std::optional<std::string> linkInfoPath(const std::vector<std::uint8_t>& data, s
     const std::uint32_t headerSize = u32At(data, start + 4);
     const bool hasUnicodeOffsets = headerSize >= 0x24;
 
-    std::optional<std::string> basePath;
+    std::optional<std::u16string> basePath;
     if (hasUnicodeOffsets) {
         basePath = zeroTerminated(data, start + u32At(data, start + 0x1C), true);
     }
     if (!basePath) {
         basePath = zeroTerminated(data, start + u32At(data, start + 0x10), false);
     }
-    std::optional<std::string> suffix;
+    std::optional<std::u16string> suffix;
     if (hasUnicodeOffsets) {
         suffix = zeroTerminated(data, start + u32At(data, start + 0x20), true);
     }
@@ -115,7 +115,7 @@ std::optional<std::string> linkInfoPath(const std::vector<std::uint8_t>& data, s
         return basePath;
     }
     // Joined in Windows form, since this is the path the shortcut's owner stores.
-    return *basePath + "\\" + *suffix;
+    return *basePath + u"\\" + *suffix;
 }
 
 }  // namespace
@@ -131,7 +131,7 @@ ShellLinkTarget parseShellLink(const std::vector<std::uint8_t>& data, const std:
         position += 2 + u16At(data, position);
     }
 
-    std::optional<std::string> target;
+    std::optional<std::u16string> target;
     if (flags & kHasLinkInfo) {
         target = linkInfoPath(data, position);
         position += u32At(data, position);
@@ -142,7 +142,7 @@ ShellLinkTarget parseShellLink(const std::vector<std::uint8_t>& data, const std:
         position = skipString(data, position, unicode);
     }
 
-    std::optional<std::string> relative;
+    std::optional<std::u16string> relative;
     if (flags & kHasRelativePath) {
         relative = readString(data, position, unicode);
     }
@@ -151,20 +151,20 @@ ShellLinkTarget parseShellLink(const std::vector<std::uint8_t>& data, const std:
         position = skipString(data, position, unicode);
     }
 
-    std::optional<std::string> arguments;
+    std::optional<std::u16string> arguments;
     if (flags & kHasArguments) {
         arguments = readString(data, position, unicode);
     }
 
     // The absolute path from LinkInfo is preferred. The relative path is only a fallback, resolved against the shortcut's folder.
     if (!target && relative) {
-        std::string replaced = *relative;
-        for (char& c : replaced) {
-            if (c == '\\') {
-                c = '/';
+        std::u16string replaced = *relative;
+        for (char16_t& c : replaced) {
+            if (c == u'\\') {
+                c = u'/';
             }
         }
-        target = pathToUtf8((shortcutFolder / pathFromUtf8(replaced)).lexically_normal());
+        target = pathToUtf16((shortcutFolder / pathFromUtf16(replaced)).lexically_normal());
     }
     return ShellLinkTarget{target, arguments};
 }

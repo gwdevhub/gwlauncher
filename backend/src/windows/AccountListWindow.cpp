@@ -14,7 +14,7 @@ namespace {
 }  // namespace
 
 AccountListWindow::AccountListWindow(AppState& app)
-    : WebViewWindow(gwl::WindowOptions{.title = "GW Launcher", .width = static_cast<int>(app.settings.listWidth), .height = static_cast<int>(app.settings.listHeight), .titleBar = app.listHasTitleBar(), .skipTaskbar = app.tray != nullptr, .visible = app.tray == nullptr}), app_(app) {
+    : WebViewWindow(gwl::WindowOptions{.title = u"GW Launcher", .width = static_cast<int>(app.settings.listWidth), .height = static_cast<int>(app.settings.listHeight), .titleBar = app.listHasTitleBar(), .skipTaskbar = app.tray != nullptr, .visible = app.tray == nullptr}), app_(app) {
     installCommonHandlers(handler(), app_);
     installHandlers();
 }

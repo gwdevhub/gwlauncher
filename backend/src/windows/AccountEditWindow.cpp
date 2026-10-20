@@ -10,7 +10,7 @@
 namespace launcher {
 
 AccountEditWindow::AccountEditWindow(AppState& app, gwl::Json args)
-    : WebViewWindow(gwl::WindowOptions{.title = "Account", .width = 520, .height = 420}), app_(app), args_(std::move(args)) {
+    : WebViewWindow(gwl::WindowOptions{.title = u"Account", .width = 520, .height = 420}), app_(app), args_(std::move(args)) {
     installCommonHandlers(handler(), app_);
     installHandlers();
 }
@@ -41,7 +41,7 @@ void AccountEditWindow::installHandlers() {
         if (args.at(0).is_number_unsigned() && args.at(0).get<std::size_t>() < app_.accounts.size()) {
             account = &app_.accounts[args.at(0).get<std::size_t>()];
         }
-        reply.result(account ? account->draft() : gwl::Account::newDraft(gwl::defaultInstall().value_or("")));
+        reply.result(account ? account->draft() : gwl::Account::newDraft(gwl::defaultInstall().value_or(u"")));
     });
     handler.on("save", [this](gwl::WebViewWindow&, const gwl::Json& args, const gwl::Reply& reply) {
         logRequest("save");

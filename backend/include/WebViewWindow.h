@@ -18,7 +18,7 @@ namespace gwl {
 enum class ResizeEdge { NorthWest, North, NorthEast, West, East, SouthWest, South, SouthEast };
 
 struct WindowOptions {
-    std::string title;
+    std::u16string title;
     int width = 300;
     int height = 340;
     // Every window is frameless: the page draws the title bar, and moves, resizes and closes the window through the calls below.
@@ -69,7 +69,7 @@ public:
     // Sizes the window to its unscaled size at the current scale.
     void applyScale();
     void move(int x, int y);
-    void setTitle(const std::string& title);
+    void setTitle(const std::u16string& title);
 
     // What the page draws around its view: the title, whether there's a title bar, and whether the edges resize the window.
     Json chrome() const;
@@ -97,7 +97,7 @@ public:
     // The page to show: the inline HTML, or the URL when devUrl is set.
     virtual std::string html() const { return {}; }
     virtual std::string devUrl() const { return {}; }
-    virtual std::string title() const { return options_.title; }
+    virtual std::u16string title() const { return options_.title; }
 
     // Called by the platform when the page posts a message, when the user asks to close the window, and after it closes.
     void receive(const std::string& text);
@@ -120,7 +120,7 @@ private:
     void platformResize(int width, int height);
     void platformMove(int x, int y);
     std::optional<Rect> platformFrame() const;
-    void platformSetTitle(const std::string& title);
+    void platformSetTitle(const std::u16string& title);
     // Applies options_.skipTaskbar, which is already updated when it runs.
     void platformSetSkipTaskbar();
     void platformBeginMove();
@@ -181,10 +181,10 @@ void showError(const std::string& message);
 
 // The file the user picks in an open dialog: a Gw.exe, or a mod file when modsOnly. Empty when they cancel.
 // The file the user picks, or nothing. startFolder, when it's given, is the folder the dialog opens in.
-std::optional<std::string> pickFile(const std::string& title, bool modsOnly, const std::string& startFolder = {});
+std::optional<std::u16string> pickFile(const std::u16string& title, bool modsOnly, const std::u16string& startFolder = {});
 
 // The Windows or Linux account folder the user installed Guild Wars into, when one is found.
-std::optional<std::string> defaultInstall();
+std::optional<std::u16string> defaultInstall();
 
 // Runs a task on the event loop's thread, from any thread.
 void runOnUiThread(std::function<void()> task);

@@ -14,7 +14,7 @@ namespace {
 
 class InvalidModIssue : public Issue {
 public:
-    explicit InvalidModIssue(std::string fileName) : name_(pathToUtf8(pathFromUtf8(fileName).filename())) {}
+    explicit InvalidModIssue(const std::u16string& fileName) : name_(pathToUtf8(pathFromUtf16(fileName).filename())) {}
 
     int severity() const override { return kBlocking; }
     std::string message() const override { return name_ + " isn't a 32-bit Windows DLL, so the game can't load it."; }
@@ -32,10 +32,10 @@ std::vector<std::unique_ptr<Issue>> checkModsInvalid(const Account& account) {
             continue;
         }
         const auto modFile = linuxPathFor(mod.fileName);
-        if (!modFile || !std::filesystem::is_regular_file(pathFromUtf8(*modFile))) {
+        if (!modFile || !std::filesystem::is_regular_file(pathFromUtf16(*modFile))) {
             continue;  // A missing file is reported by ModMissingIssue.
         }
-        if (!isUsableDll(*modFile)) {
+        if (!isUsableDll(utf16ToUtf8(*modFile))) {
             invalid.push_back(std::make_unique<InvalidModIssue>(mod.fileName));
         }
     }

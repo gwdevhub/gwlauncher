@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace gwl {
@@ -14,9 +15,11 @@ using Bytes = std::vector<std::uint8_t>;
 
 // The text without spaces, tabs or line breaks at either end.
 std::string trimmed(const std::string& text);
+std::u16string trimmed(const std::u16string& text);
 
 // The text in lower case, for ASCII letters.
 std::string lowerCase(std::string text);
+std::u16string lowerCase(std::u16string text);
 
 // The bytes as lower-case hex.
 std::string hexEncode(const Bytes& bytes);
@@ -38,7 +41,15 @@ std::string withoutByteOrderMark(std::string text);
 void appendUtf8(std::string& text, std::uint32_t codePoint);
 
 // UTF-16 code units as UTF-8. Unpaired surrogates become U+FFFD, as Rust's from_utf16_lossy does.
-std::string utf16ToUtf8(const std::vector<std::uint16_t>& units);
+std::string utf16ToUtf8(std::u16string_view units);
+// Rejects malformed UTF-8 instead of retaining corrupted application text.
+std::u16string utf8ToUtf16(std::string_view text);
+
+#ifdef _WIN32
+// wchar_t is UTF-16 only at the Windows API boundary.
+std::wstring utf16ToWide(std::u16string_view text);
+std::u16string wideToUtf16(std::wstring_view text);
+#endif
 
 // Single-byte text as UTF-8, where each byte is a code point of its own, as the C# code's ANSI paths read.
 std::string latin1ToUtf8(const Bytes& data, std::size_t offset, std::size_t count);

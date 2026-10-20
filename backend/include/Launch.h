@@ -21,16 +21,16 @@ namespace gwl {
 // Blocks until the game's window is ready or the attempt fails. Throws std::runtime_error with the reason when it fails.
 // requireSteam makes a Steam account wait for the Steam client, as the launcher does; the Windows helper passes false, because the
 // Linux launcher has checked Steam already. Only Windows checks it.
-void startGame(const Account& account, const std::string& dir, std::uint32_t timeoutMs, const std::function<bool()>& confirm,
+void startGame(const Account& account, const std::filesystem::path& dir, std::uint32_t timeoutMs, const std::function<bool()>& confirm,
                bool requireSteam = true);
 
 // The lower-case paths, in the launcher's own form, of the Guild Wars executables that are running.
-std::set<std::string> runningGamePaths();
+std::set<std::u16string> runningGamePaths();
 
 // Game paths whose accounts are starting: from the moment their checks pass until the start ends. Safe to use from any thread.
-void markStarting(const std::string& gamePath);
-void unmarkStarting(const std::string& gamePath);
-bool isStarting(const std::string& gamePath);
+void markStarting(const std::u16string& gamePath);
+void unmarkStarting(const std::u16string& gamePath);
+bool isStarting(const std::u16string& gamePath);
 
 // Whether the Steam client is running.
 bool steamRunning();
@@ -59,14 +59,14 @@ void setDefaultGame(const std::filesystem::path& exe);
 std::optional<std::string> wineInstallCommand();
 
 // The Steam client's folder and the Wine program the launcher finds without a manual path. Empty when there's none.
-std::string detectedSteamPath();
-std::string detectedWinePath();
+std::u16string detectedSteamPath();
+std::u16string detectedWinePath();
 
 // Sets the Steam folder and Wine program to use instead of the detected ones. Empty means the detected one.
-void setInstallPaths(const std::string& steamPath, const std::string& winePath);
+void setInstallPaths(const std::u16string& steamPath, const std::u16string& winePath);
 
 // Why a manual path can't be used, or nothing when both are empty or usable.
-std::optional<std::string> invalidInstallPath(const std::string& steamPath, const std::string& winePath);
+std::optional<std::string> invalidInstallPath(const std::u16string& steamPath, const std::u16string& winePath);
 
 // Starts the Steam client in the background. Throws when it can't.
 void startSteamClient();
@@ -89,8 +89,8 @@ void openProtonInstall();
 std::filesystem::path launcherDataDir();
 
 // A Windows path in the form this platform reads it: a Linux path on Linux, where drive letters are mounts.
-std::optional<std::string> linuxPathFor(const std::string& windowsPath);
+std::optional<std::u16string> linuxPathFor(const std::u16string& windowsPath);
 // The file a launcher path names on this platform, or nothing when it can't be reached from here.
-std::optional<std::filesystem::path> gameFilePath(const std::string& launcherPath);
+std::optional<std::filesystem::path> gameFilePath(const std::u16string& launcherPath);
 
 }  // namespace gwl

@@ -46,7 +46,7 @@ const DWORD kTitleTimeoutMs = 5000;
 const DWORD kInputIdleMs = 1000;
 const UINT kWmSetText = 0x0C;
 const DWORD kProcessWow64Information = 26;
-const char* const kMediumIntegritySid = "S-1-16-8192";
+const wchar_t* const kMediumIntegritySid = L"S-1-16-8192";
 
 // The multiclient patch: the bytes the game's single-instance check starts with, and the patch that makes it report that no other copy
 // is running (xor eax,eax; nop; ret). The patch starts 0x1A bytes before the signature, in the game's code section.
@@ -56,25 +56,6 @@ const std::uint8_t kMulticlientPayload[4] = {0x31, 0xC0, 0x90, 0xC3};
 const std::size_t kMulticlientSignatureOffset = 0x1A;
 const std::size_t kMulticlientSearchStart = 0x1000;
 const std::size_t kMulticlientSearchLength = 0x48D000;
-
-// UTF-8 to UTF-16, and back, for the Win32 functions that take wide text.
-std::wstring wide(const std::string& text) {
-    const int length = MultiByteToWideChar(CP_UTF8, 0, text.data(), static_cast<int>(text.size()), nullptr, 0);
-    std::wstring out(static_cast<std::size_t>(std::max(length, 0)), L'\0');
-    if (length > 0) {
-        MultiByteToWideChar(CP_UTF8, 0, text.data(), static_cast<int>(text.size()), out.data(), length);
-    }
-    return out;
-}
-
-std::string narrow(const std::wstring& text) {
-    const int length = WideCharToMultiByte(CP_UTF8, 0, text.data(), static_cast<int>(text.size()), nullptr, 0, nullptr, nullptr);
-    std::string out(static_cast<std::size_t>(std::max(length, 0)), '\0');
-    if (length > 0) {
-        WideCharToMultiByte(CP_UTF8, 0, text.data(), static_cast<int>(text.size()), out.data(), length, nullptr, nullptr);
-    }
-    return out;
-}
 
 // "<step> failed: <Windows' message for the last error>".
 std::string lastError(const char* step) {
@@ -134,7 +115,7 @@ private:
 // The medium integrity level, which a launch's process runs at unless the account is elevated.
 void setMediumIntegrity(HANDLE token) {
     PSID sid = nullptr;
-    if (!ConvertStringSidToSidW(wide(kMediumIntegritySid).c_str(), &sid)) {
+    if (!ConvertStringSidToSidW(kMediumIntegritySid, &sid)) {
         throw std::runtime_error(lastError("ConvertStringSidToSidW"));
     }
     TOKEN_MANDATORY_LABEL label{};
@@ -174,13 +155,13 @@ HANDLE restrictedToken() {
 }
 
 // Starts the game suspended, in the game's own folder. Wine has no integrity levels, so it starts the game without a token.
-std::unique_ptr<GameProcess> createSuspended(const std::string& gwpath, const std::string& commandLine, bool elevated) {
-    const fs::path parent = pathFromUtf8(gwpath).parent_path();
+std::unique_ptr<GameProcess> createSuspended(const std::u16string& gwpath, const std::u16string& commandLine, bool elevated) {
+    const fs::path parent = pathFromUtf16(gwpath).parent_path();
     if (parent.empty()) {
         throw std::runtime_error("the game path has no folder");
     }
     const std::wstring folder = parent.wstring();
-    std::wstring command = wide(commandLine);
+    std::wstring command = utf16ToWide(commandLine);
     STARTUPINFOW startup{};
     startup.cb = sizeof(STARTUPINFOW);
     PROCESS_INFORMATION info{};
@@ -491,17 +472,17 @@ HWND mainWindow(DWORD processId) {
     return search.found;
 }
 
-std::wstring windowTitle(HWND window) {
+std::u16string windowTitle(HWND window) {
     if (!window) {
-        return L"";
+        return {};
     }
     wchar_t buffer[512];
     const int length = GetWindowTextW(window, buffer, 512);
-    return std::wstring(buffer, static_cast<std::size_t>(std::max(length, 0)));
+    return wideToUtf16(std::wstring_view(buffer, static_cast<std::size_t>(std::max(length, 0))));
 }
 
-bool isGameTitle(const std::wstring& title) {
-    return title == L"Guild Wars" || title == L"Guild Wars Reforged";
+bool isGameTitle(const std::u16string& title) {
+    return title == u"Guild Wars" || title == u"Guild Wars Reforged";
 }
 
 bool isResponding(HWND window) {
@@ -521,7 +502,7 @@ bool waitFor(const std::function<bool()>& test, DWORD timeoutMs) {
 }
 
 // Waits for the window, its input and its title, then checks the game still responds. The game is ended if a wait fails.
-void waitForWindow(const GameProcess& game, const std::string& name) {
+void waitForWindow(const GameProcess& game, const std::u16string& name) {
     const DWORD processId = game.processId();
     const auto fail = [&game](const std::string& message) {
         game.terminate();
@@ -543,7 +524,8 @@ void waitForWindow(const GameProcess& game, const std::string& name) {
             [processId, &name] {
                 const HWND window = mainWindow(processId);
                 if (window) {
-                    SendMessageA(window, kWmSetText, 0, reinterpret_cast<LPARAM>(name.c_str()));
+                    const std::wstring title = utf16ToWide(name);
+                    SendMessageW(window, kWmSetText, 0, reinterpret_cast<LPARAM>(title.c_str()));
                 }
                 return !isGameTitle(windowTitle(mainWindow(processId)));
             },
@@ -558,7 +540,7 @@ void waitForWindow(const GameProcess& game, const std::string& name) {
 // Every running process as (id, file name without .exe).
 struct ProcessEntry {
     DWORD processId;
-    std::wstring stem;
+    std::u16string stem;
 };
 
 std::vector<ProcessEntry> processEntries() {
@@ -571,7 +553,7 @@ std::vector<ProcessEntry> processEntries() {
     entry.dwSize = sizeof(PROCESSENTRY32W);
     if (Process32FirstW(snapshot, &entry)) {
         do {
-            entries.push_back({entry.th32ProcessID, fs::path(entry.szExeFile).stem().wstring()});
+            entries.push_back({entry.th32ProcessID, pathToUtf16(fs::path(entry.szExeFile).stem())});
         } while (Process32NextW(snapshot, &entry));
     }
     CloseHandle(snapshot);
@@ -579,7 +561,7 @@ std::vector<ProcessEntry> processEntries() {
 }
 
 // The image path a process runs from, or nothing when it can't be read.
-std::optional<std::string> imagePath(DWORD processId) {
+std::optional<std::u16string> imagePath(DWORD processId) {
     HANDLE process = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, processId);
     if (!process) {
         return std::nullopt;
@@ -591,23 +573,23 @@ std::optional<std::string> imagePath(DWORD processId) {
     if (!read) {
         return std::nullopt;
     }
-    return narrow(buffer.substr(0, length));
+    return wideToUtf16(std::wstring_view(buffer.data(), length));
 }
 
-bool processExists(const std::wstring& stem) {
+bool processExists(const std::u16string& stem) {
     const auto entries = processEntries();
     return std::any_of(entries.begin(), entries.end(), [&stem](const ProcessEntry& entry) { return entry.stem == stem; });
 }
 
 // A running process whose image path contains this game path, matched on the file name first, as the C# IsProcessOpen does.
-bool isRunningFrom(const std::string& gwpath) {
-    const std::wstring stem = pathFromUtf8(gwpath).stem().wstring();
+bool isRunningFrom(const std::u16string& gwpath) {
+    const std::u16string stem = pathToUtf16(pathFromUtf16(gwpath).stem());
     for (const ProcessEntry& entry : processEntries()) {
         if (entry.stem != stem) {
             continue;
         }
         const auto path = imagePath(entry.processId);
-        if (path && path->find(gwpath) != std::string::npos) {
+        if (path && path->find(gwpath) != std::u16string::npos) {
             return true;
         }
     }
@@ -634,7 +616,7 @@ private:
 // Starts the game suspended, patches it, loads its mods, then resumes it. The game is ended on any failure.
 std::unique_ptr<GameProcess> startPatched(const Account& account, const fs::path& launcherDir, std::uint32_t timeoutMs,
                                           const std::function<bool()>& confirm) {
-    const fs::path gwPath = pathFromUtf8(account.gwpath);
+    const fs::path gwPath = pathFromUtf16(account.gwpath);
     const fs::path currentDir = fs::current_path();
     const auto gmod = findGmod(launcherDir, currentDir);
     const ModSelection selection = accountSelection(account, launcherDir, gmod);
@@ -675,11 +657,11 @@ std::unique_ptr<GameProcess> startPatched(const Account& account, const fs::path
 }  // namespace
 
 bool steamRunning() {
-    return processExists(L"steam");
+    return processExists(u"steam");
 }
 
-std::set<std::string> runningGamePaths() {
-    std::set<std::string> paths;
+std::set<std::u16string> runningGamePaths() {
+    std::set<std::u16string> paths;
     for (const ProcessEntry& entry : processEntries()) {
         if (const auto path = imagePath(entry.processId)) {
             paths.insert(lowerCase(*path));
@@ -688,7 +670,7 @@ std::set<std::string> runningGamePaths() {
     return paths;
 }
 
-void launchGameInProcess(const Account& account, const std::string& dir, std::uint32_t timeoutMs, const std::function<bool()>& confirm,
+void launchGameInProcess(const Account& account, const fs::path& dir, std::uint32_t timeoutMs, const std::function<bool()>& confirm,
                          bool requireSteam) {
     const auto appIdPath = steamAppIdPath(account.gwpath);
     if (!appIdPath) {
@@ -705,17 +687,17 @@ void launchGameInProcess(const Account& account, const std::string& dir, std::ui
     }
     SteamAppIdFile appId(*appIdPath);
 
-    if (!fs::is_regular_file(pathFromUtf8(account.gwpath), error)) {
+    if (!fs::is_regular_file(pathFromUtf16(account.gwpath), error)) {
         throw std::runtime_error("Path to the Guild Wars executable incorrect, aborting launch.");
     }
     if (requireSteam && account.isSteamAccount && !steamRunning()) {
         throw std::runtime_error("Steam is not running. Please start Steam before launching a Steam account.");
     }
     if (isRunningFrom(account.gwpath)) {
-        throw std::runtime_error("The Guild Wars executable at " + account.gwpath + " is already running");
+        throw std::runtime_error("The Guild Wars executable at " + utf16ToUtf8(account.gwpath) + " is already running");
     }
 
-    const auto game = startPatched(account, pathFromUtf8(dir), timeoutMs, confirm);
+    const auto game = startPatched(account, dir, timeoutMs, confirm);
     waitForWindow(*game, account.name());
     appId.keep();
 }

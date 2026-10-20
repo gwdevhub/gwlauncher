@@ -6,6 +6,7 @@
 
 #include "Issue.h"
 #include "Launch.h"
+#include "utils/Strings.h"
 
 namespace gwl {
 
@@ -13,7 +14,7 @@ namespace {
 
 class InUseIssue : public Issue {
 public:
-    explicit InUseIssue(std::string name) : name_(std::move(name)) {}
+    explicit InUseIssue(const std::u16string& name) : name_(utf16ToUtf8(name)) {}
 
     int severity() const override { return kBlocking; }
     std::string message() const override {

@@ -93,7 +93,7 @@ void AppState::launch(gwl::Reply reply, const gwl::Json& args, bool suspended, b
     const gwl::Account account = accounts[index];
     // An account that is already starting can't be started again. A running game is an issue, checked with the others.
     if (launching.count(account.name())) {
-        const std::string text = account.name() + " is already starting.";
+        const std::string text = gwl::utf16ToUtf8(account.name()) + " is already starting.";
         reply.result(isLaunch ? launchResult(text) : plainResult(text));
         return;
     }
@@ -132,16 +132,16 @@ void AppState::launchDefault(gwl::Reply reply) {
 // Continue, and Cancel there ends the start without resuming the game.
 void AppState::startGameAsync(const gwl::Account& account, std::optional<std::size_t> index, bool suspended, bool checkFirst,
                               std::function<void(const std::optional<std::string>&, const std::optional<gwl::Json>&)> done) {
-    const std::string name = account.name();
+    const std::u16string name = account.name();
     const auto key = account.pathKey();
     launching.insert(name);
     const std::uint32_t timeout = settings.timeoutOnModlaunch;
-    const std::string dir = gwl::pathToUtf8(std::filesystem::current_path());
+    const std::filesystem::path dir = std::filesystem::current_path();
     const gwl::Json note = checkFirst ? gwl::Json("Checking the account...")
                                       : gwl::Json(suspended ? "Guild Wars starts paused, so its plugins can load." : "Guild Wars is starting.");
     const gwl::Json popup{
-        {"title", "Starting " + name},
-        {"heading", "Starting " + name},
+        {"title", "Starting " + gwl::utf16ToUtf8(name)},
+        {"heading", "Starting " + gwl::utf16ToUtf8(name)},
         {"icon", accountIconUrl(account)},
         {"note", note},
         {"cancellable", true},
@@ -236,7 +236,7 @@ void AppState::startGameAsync(const gwl::Account& account, std::optional<std::si
 }
 
 std::vector<std::string> AppState::accountStates() const {
-    const std::set<std::string> running = gwl::runningGamePaths();
+    const std::set<std::u16string> running = gwl::runningGamePaths();
     std::vector<std::string> states;
     for (std::size_t index = 0; index < accounts.size(); ++index) {
         const gwl::Account& account = accounts[index];
@@ -283,16 +283,12 @@ void AppState::accountMoved(std::size_t from, std::size_t to) {
 namespace gwl {
 
 // The path a running game is listed under: the Linux path, lower case. Missing when the account's path isn't on this computer.
-std::optional<std::string> Account::pathKey() const {
+std::optional<std::u16string> Account::pathKey() const {
     const auto linuxPath = linuxPathFor(gwpath);
     if (!linuxPath) {
         return std::nullopt;
     }
-    std::string key = *linuxPath;
-    for (char& c : key) {
-        c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
-    }
-    return key;
+    return lowerCase(*linuxPath);
 }
 
 }  // namespace gwl

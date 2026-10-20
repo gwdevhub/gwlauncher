@@ -10,7 +10,7 @@
 int main() {
     try {
         const auto arguments = gwl::commandLineArguments();
-        return gwl::runCli(std::vector<std::string>(arguments.begin() + 1, arguments.end()));
+        return gwl::runCli(std::vector<std::u16string>(arguments.begin() + 1, arguments.end()));
     } catch (const std::exception& error) {
         std::cerr << error.what() << std::endl;
         return 1;

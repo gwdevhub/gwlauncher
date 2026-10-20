@@ -28,12 +28,12 @@ ModType typeForPath(const fs::path& path) {
 
 // The file's absolute path when it's on this computer, which is how a shortcut's target is checked.
 std::optional<fs::path> mapExisting(const fs::path& path) {
-    const auto local = linuxPathFor(pathToUtf8(path));
+    const auto local = linuxPathFor(pathToUtf16(path));
     std::error_code error;
-    if (!local || !fs::is_regular_file(pathFromUtf8(*local), error)) {
+    if (!local || !fs::is_regular_file(pathFromUtf16(*local), error)) {
         return std::nullopt;
     }
-    return fs::absolute(pathFromUtf8(*local), error);
+    return fs::absolute(pathFromUtf16(*local), error);
 }
 
 // Plugin files compare by lower-case name, as the C# code orders them.
@@ -64,7 +64,7 @@ std::optional<PluginFile> fromShortcut(const fs::path& shortcut) {
     if (!link.windowsPath) {
         return std::nullopt;
     }
-    const fs::path windowsPath = pathFromUtf8(*link.windowsPath);
+    const fs::path windowsPath = pathFromUtf16(*link.windowsPath);
     if (!isModPath(windowsPath)) {
         return std::nullopt;
     }
@@ -130,18 +130,18 @@ ModSelection ModSelection::withGmod(const fs::path& gmod) const {
     return ModSelection{sortedDistinct(withGmodDlls), texmods};
 }
 
-bool modFileExists(const std::string& fileName) {
+bool modFileExists(const std::u16string& fileName) {
     const auto local = linuxPathFor(fileName);
     if (!local) {
         return false;
     }
     std::error_code error;
-    const fs::path path = pathFromUtf8(*local);
+    const fs::path path = pathFromUtf16(*local);
     if (lowerExtension(path) == ".lnk") {
         try {
             const auto target = readShellLink(path).windowsPath;
             const auto targetLocal = target ? linuxPathFor(*target) : std::nullopt;
-            return targetLocal && fs::is_regular_file(pathFromUtf8(*targetLocal), error);
+            return targetLocal && fs::is_regular_file(pathFromUtf16(*targetLocal), error);
         } catch (const std::runtime_error&) {
             return false;
         }
@@ -150,7 +150,7 @@ bool modFileExists(const std::string& fileName) {
 }
 
 Json refreshedMod(Json mod) {
-    const bool exists = mod.contains("fileName") && mod["fileName"].is_string() && modFileExists(mod["fileName"].get<std::string>());
+    const bool exists = mod.contains("fileName") && mod["fileName"].is_string() && modFileExists(utf8ToUtf16(mod["fileName"].get<std::string>()));
     mod["problem"] = exists ? "" : "File not found";
     mod["canLocate"] = false;
     mod["canResolve"] = false;
@@ -215,7 +215,7 @@ Json pluginFilesJson(const Json& draft, const fs::path& launcherDir) {
     if (draft.contains("gwPath") && draft["gwPath"].is_string()) {
         const std::string gwPath = trimmed(draft["gwPath"].get<std::string>());
         if (!gwPath.empty()) {
-            gameFile = gameFilePath(gwPath);
+            gameFile = gameFilePath(utf8ToUtf16(gwPath));
         }
     }
     Json files = Json::array();

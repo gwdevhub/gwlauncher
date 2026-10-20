@@ -23,8 +23,8 @@ struct Settings {
     std::optional<std::int64_t> listY;
     std::uint32_t timeoutOnModlaunch = 10000;
     // The Steam client's folder and the Wine program, when set by hand. Empty means the launcher finds them.
-    std::string steamPath;
-    std::string winePath;
+    std::u16string steamPath;
+    std::u16string winePath;
     // The page's size, in percent of the normal size. Between 50 and 200.
     std::int64_t uiScale = 100;
 

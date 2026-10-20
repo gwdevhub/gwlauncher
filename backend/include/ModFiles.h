@@ -32,7 +32,7 @@ struct ModSelection {
 };
 
 // Whether the mod's file exists. A shortcut counts when the file it points at does.
-bool modFileExists(const std::string& fileName);
+bool modFileExists(const std::u16string& fileName);
 
 // The mod draft, with the problem and the actions it offers checked against this computer. A missing file is reported as a problem.
 // Nothing here can locate or resolve a file yet, so both actions are off, as in the Rust launcher.

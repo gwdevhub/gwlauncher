@@ -16,24 +16,24 @@ std::mutex& startingMutex() {
     return mutex;
 }
 
-std::set<std::string>& startingPaths() {
-    static std::set<std::string> paths;
+std::set<std::u16string>& startingPaths() {
+    static std::set<std::u16string> paths;
     return paths;
 }
 
 }  // namespace
 
-void markStarting(const std::string& gamePath) {
+void markStarting(const std::u16string& gamePath) {
     std::lock_guard<std::mutex> lock(startingMutex());
     startingPaths().insert(gamePath);
 }
 
-void unmarkStarting(const std::string& gamePath) {
+void unmarkStarting(const std::u16string& gamePath) {
     std::lock_guard<std::mutex> lock(startingMutex());
     startingPaths().erase(gamePath);
 }
 
-bool isStarting(const std::string& gamePath) {
+bool isStarting(const std::u16string& gamePath) {
     std::lock_guard<std::mutex> lock(startingMutex());
     return startingPaths().count(gamePath) > 0;
 }

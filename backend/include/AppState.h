@@ -77,14 +77,14 @@ struct AppState {
     void instanceRequest(const gwl::InstanceRequest& request);
     // Launches the account with the name, as a -launch start does: checked first, with its blocking issues shown, and a message when
     // no account has the name.
-    void launchNamed(const std::string& name);
+    void launchNamed(const std::u16string& name);
 
     // A quick launch is a -launch start with no launcher running: no list, tray or update check, only the account's start and the
     // windows it opens, and the launcher exits once they are done. Defined in QuickLaunch.cpp.
     bool quick = false;
     // The account a quick launch starts once Accounts.json is unlocked.
-    std::optional<std::string> quickAccount;
-    void quickLaunch(const std::string& name);
+    std::optional<std::u16string> quickAccount;
+    void quickLaunch(const std::u16string& name);
     // Ends a quick launch once nothing is starting and none of its windows are shown.
     void endQuickIfIdle();
     // Shows the settings window, or opens it. Defined in SettingsWindow.cpp.
@@ -112,8 +112,8 @@ struct AppState {
     std::unique_ptr<gwl::WebViewWindow> settingsWindow;
 
     // Launching. The names of the accounts being launched, and the account that started each running game, by its path.
-    std::set<std::string> launching;
-    std::map<std::string, std::size_t> startedBy;
+    std::set<std::u16string> launching;
+    std::map<std::u16string, std::size_t> startedBy;
 
     // Starts the account at args[0], as the list's Launch does. With suspended, the game waits for the user's answer. The
     // reply is the page's launch result, or the error text when launchNow or launchDefault fails. Defined in Launching.cpp.

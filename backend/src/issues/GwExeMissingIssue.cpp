@@ -5,6 +5,7 @@
 #include "Issue.h"
 #include "Launch.h"
 #include "Wof.h"
+#include "utils/Strings.h"
 
 namespace gwl {
 
@@ -12,7 +13,7 @@ namespace {
 
 class GwExeMissingIssue : public Issue {
 public:
-    explicit GwExeMissingIssue(std::string gwpath) : gwpath_(std::move(gwpath)) {}
+    explicit GwExeMissingIssue(const std::u16string& gwpath) : gwpath_(utf16ToUtf8(gwpath)) {}
 
     int severity() const override { return kBlocking; }
     std::string message() const override { return "Gw.exe not found at " + gwpath_ + "."; }

@@ -18,7 +18,7 @@ namespace {
 
 namespace fs = std::filesystem;
 
-std::string manualSteamPath;
+std::u16string manualSteamPath;
 
 // The Steam client's folder, as Steam records it in the registry when it's installed.
 std::optional<fs::path> detectedSteamRoot() {
@@ -42,7 +42,7 @@ std::optional<fs::path> steamInstallAt(const fs::path& folder) {
 // The Steam client's install: the manual folder when one is set, else the one Steam recorded.
 std::optional<fs::path> steamRoot() {
     if (!manualSteamPath.empty()) {
-        return steamInstallAt(pathFromUtf8(manualSteamPath));
+        return steamInstallAt(pathFromUtf16(manualSteamPath));
     }
     const auto detected = detectedSteamRoot();
     return detected ? steamInstallAt(*detected) : std::nullopt;
@@ -99,23 +99,23 @@ std::optional<std::string> wineInstallCommand() {
 }
 
 // Windows starts accounts directly, so there's no Wine program to find or set.
-std::string detectedSteamPath() {
+std::u16string detectedSteamPath() {
     const auto detected = detectedSteamRoot();
     const auto root = detected ? steamInstallAt(*detected) : std::nullopt;
-    return root ? pathToUtf8(*root) : std::string();
+    return root ? pathToUtf16(*root) : std::u16string();
 }
 
-std::string detectedWinePath() {
+std::u16string detectedWinePath() {
     return {};
 }
 
-void setInstallPaths(const std::string& steamPath, const std::string&) {
+void setInstallPaths(const std::u16string& steamPath, const std::u16string&) {
     manualSteamPath = steamPath;
 }
 
-std::optional<std::string> invalidInstallPath(const std::string& steamPath, const std::string&) {
-    if (!steamPath.empty() && !steamInstallAt(pathFromUtf8(steamPath))) {
-        return "There's no Steam client in " + steamPath + ": steam.exe is missing.";
+std::optional<std::string> invalidInstallPath(const std::u16string& steamPath, const std::u16string&) {
+    if (!steamPath.empty() && !steamInstallAt(pathFromUtf16(steamPath))) {
+        return "There's no Steam client in " + utf16ToUtf8(steamPath) + ": steam.exe is missing.";
     }
     return std::nullopt;
 }
@@ -153,12 +153,12 @@ std::filesystem::path launcherDataDir() {
     return std::filesystem::path(path).parent_path();
 }
 
-std::optional<std::string> linuxPathFor(const std::string& windowsPath) {
+std::optional<std::u16string> linuxPathFor(const std::u16string& windowsPath) {
     return windowsPath;
 }
 
-std::optional<std::filesystem::path> gameFilePath(const std::string& launcherPath) {
-    return pathFromUtf8(launcherPath);
+std::optional<std::filesystem::path> gameFilePath(const std::u16string& launcherPath) {
+    return pathFromUtf16(launcherPath);
 }
 
 std::filesystem::path defaultGameFolder() {

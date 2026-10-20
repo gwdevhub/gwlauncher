@@ -12,6 +12,7 @@
 #include "Issue.h"
 #include "Launch.h"
 #include "Progress.h"
+#include "utils/Strings.h"
 
 namespace gwl {
 
@@ -19,7 +20,7 @@ namespace {
 
 class GwExeOutdatedIssue : public Issue {
 public:
-    GwExeOutdatedIssue(std::string gwpath, std::filesystem::path exe) : gwpath_(std::move(gwpath)), exe_(std::move(exe)) {}
+    GwExeOutdatedIssue(const std::u16string& gwpath, std::filesystem::path exe) : gwpath_(utf16ToUtf8(gwpath)), exe_(std::move(exe)) {}
 
     int severity() const override { return kWarning; }
     std::string message() const override { return "Gw.exe is out of date. Update it to match the latest game build."; }

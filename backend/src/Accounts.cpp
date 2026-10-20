@@ -20,15 +20,15 @@ namespace {
 // The keys of one account, in the C# order. Account fields that aren't required default when missing.
 const char* const kRequired[] = {"character", "email", "gwpath", "password"};
 
-std::string requiredString(const nlohmann::ordered_json& entry, const char* key) {
+std::u16string requiredString(const nlohmann::ordered_json& entry, const char* key) {
     if (!entry.contains(key) || !entry[key].is_string()) {
         throw std::runtime_error(std::string("Accounts.json is invalid: an account has no ") + key + ".");
     }
-    return entry[key].get<std::string>();
+    return utf8ToUtf16(entry[key].get<std::string>());
 }
 
-std::string optionalString(const nlohmann::ordered_json& entry, const char* key) {
-    return entry.contains(key) && entry[key].is_string() ? entry[key].get<std::string>() : std::string();
+std::u16string optionalString(const nlohmann::ordered_json& entry, const char* key) {
+    return entry.contains(key) && entry[key].is_string() ? utf8ToUtf16(entry[key].get<std::string>()) : std::u16string();
 }
 
 bool optionalBool(const nlohmann::ordered_json& entry, const char* key, bool fallback) {
@@ -36,8 +36,8 @@ bool optionalBool(const nlohmann::ordered_json& entry, const char* key, bool fal
 }
 
 // The editor's text fields: the text without the spaces around it.
-std::string stringField(const Json& json, const char* key) {
-    return json.contains(key) && json[key].is_string() ? json[key].get<std::string>() : std::string();
+std::u16string stringField(const Json& json, const char* key) {
+    return json.contains(key) && json[key].is_string() ? utf8ToUtf16(json[key].get<std::string>()) : std::u16string();
 }
 
 bool boolField(const Json& json, const char* key, bool fallback) {
@@ -46,8 +46,8 @@ bool boolField(const Json& json, const char* key, bool fallback) {
 
 }  // namespace
 
-std::string Account::name() const {
-    for (const std::string* value : {&title, &character, &email}) {
+std::u16string Account::name() const {
+    for (const std::u16string* value : {&title, &character, &email}) {
         if (!value->empty()) {
             return *value;
         }
@@ -58,7 +58,7 @@ std::string Account::name() const {
 nlohmann::ordered_json Mod::fileJson() const {
     return {
         {"active", active},
-        {"fileName", fileName},
+        {"fileName", utf16ToUtf8(fileName)},
         {"type", static_cast<int>(kind)},
     };
 }
@@ -77,7 +77,7 @@ Mod Mod::fromFileJson(const nlohmann::ordered_json& item) {
 
 Json Mod::draftJson() const {
     return {
-        {"fileName", fileName},
+        {"fileName", utf16ToUtf8(fileName)},
         {"type", static_cast<int>(kind)},
         {"active", active},
         {"linuxPath", nullptr},
@@ -103,14 +103,14 @@ nlohmann::ordered_json Account::fileJson() const {
         list.push_back(mod.fileJson());
     }
     return {
-        {"character", character},
-        {"email", email},
-        {"gwpath", gwpath},
-        {"password", password},
-        {"extraargs", extraargs},
+        {"character", utf16ToUtf8(character)},
+        {"email", utf16ToUtf8(email)},
+        {"gwpath", utf16ToUtf8(gwpath)},
+        {"password", utf16ToUtf8(password)},
+        {"extraargs", utf16ToUtf8(extraargs)},
         {"elevated", elevated},
         {"is_steam_account", isSteamAccount},
-        {"title", title},
+        {"title", utf16ToUtf8(title)},
         {"usePluginFolderMods", usePluginFolderMods},
         {"mods", list},
     };
@@ -145,7 +145,7 @@ Account Account::fromFileJson(const nlohmann::ordered_json& entry) {
 
 Json Account::listRow(const std::string& icon) const {
     return {
-        {"name", name()},
+        {"name", utf16ToUtf8(name())},
         {"icon", icon},
         {"issues", Json::array()},
         {"blocked", false},
@@ -159,13 +159,13 @@ Json Account::draft() const {
         list.push_back(mod.draftJson());
     }
     return {
-        {"title", title},
-        {"email", email},
-        {"password", password},
-        {"character", character},
-        {"gwPath", gwpath},
+        {"title", utf16ToUtf8(title)},
+        {"email", utf16ToUtf8(email)},
+        {"password", utf16ToUtf8(password)},
+        {"character", utf16ToUtf8(character)},
+        {"gwPath", utf16ToUtf8(gwpath)},
         {"linuxGwPath", ""},
-        {"extraArgs", extraargs},
+        {"extraArgs", utf16ToUtf8(extraargs)},
         {"usePluginFolderMods", usePluginFolderMods},
         {"steamAccount", isSteamAccount},
         {"elevated", elevated},
@@ -173,13 +173,13 @@ Json Account::draft() const {
     };
 }
 
-Json Account::newDraft(const std::string& defaultPath) {
+Json Account::newDraft(const std::u16string& defaultPath) {
     return {
         {"title", ""},
         {"email", ""},
         {"password", ""},
         {"character", ""},
-        {"gwPath", defaultPath},
+        {"gwPath", utf16ToUtf8(defaultPath)},
         {"linuxGwPath", ""},
         {"extraArgs", ""},
         {"usePluginFolderMods", true},
@@ -195,10 +195,10 @@ std::variant<Account, std::vector<FieldError>> Account::fromDraft(const Json& dr
         errors.push_back({"title", "Enter a title for the account."});
     }
 
-    const std::string path = trimmed(stringField(draft, "gwPath"));
+    const std::u16string path = trimmed(stringField(draft, "gwPath"));
     if (path.empty()) {
         errors.push_back({"gwPath", "Enter a path to Gw.exe."});
-    } else if (!std::filesystem::is_regular_file(pathFromUtf8(path))) {
+    } else if (!std::filesystem::is_regular_file(pathFromUtf16(path))) {
         errors.push_back({"gwPath", "Gw.exe was not found at that path."});
     }
     if (!errors.empty()) {

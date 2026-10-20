@@ -19,6 +19,8 @@
 #include "Launch.h"
 #include "Settings.h"
 #include "WebViewWindow.h"
+#include "utils/Strings.h"
+#include "utils/Files.h"
 
 extern char** environ;
 
@@ -138,15 +140,15 @@ void showError(const std::string& message) {
     showWithZenity(message);
 }
 
-std::optional<std::string> pickFile(const std::string& title, bool modsOnly, const std::string& startFolder) {
+std::optional<std::u16string> pickFile(const std::u16string& title, bool modsOnly, const std::u16string& startFolder) {
     const GtkDialogs* gtk = gtkDialogs();
     if (!gtk) {
         return std::nullopt;
     }
-    GtkWidget* dialog = gtk->newFileChooser(title.c_str(), nullptr, GTK_FILE_CHOOSER_ACTION_OPEN, "_Cancel", GTK_RESPONSE_CANCEL,
+    GtkWidget* dialog = gtk->newFileChooser(utf16ToUtf8(title).c_str(), nullptr, GTK_FILE_CHOOSER_ACTION_OPEN, "_Cancel", GTK_RESPONSE_CANCEL,
                                             "_Open", GTK_RESPONSE_ACCEPT, nullptr);
     if (!startFolder.empty() && gtk->setCurrentFolder) {
-        gtk->setCurrentFolder(reinterpret_cast<GtkFileChooser*>(dialog), startFolder.c_str());
+        gtk->setCurrentFolder(reinterpret_cast<GtkFileChooser*>(dialog), utf16ToUtf8(startFolder).c_str());
     }
     // The patterns match the case the Windows filter ignores.
     if (gtk->newFilter && gtk->filterSetName && gtk->filterAddPattern && gtk->chooserAddFilter) {
@@ -169,7 +171,7 @@ std::optional<std::string> pickFile(const std::string& title, bool modsOnly, con
         }
     }
     gtk->destroy(dialog);
-    return picked;
+    return picked ? std::optional<std::u16string>(utf8ToUtf16(*picked)) : std::nullopt;
 }
 
 // The pointer's position on screen, from GDK. Missing when GTK isn't installed.
@@ -223,15 +225,15 @@ std::optional<Rect> workAreaAt(const Rect&) {
 }
 
 // The game's folder from the Rust launcher's Wine prefix, when the file it's in exists here.
-std::optional<std::string> defaultInstall() {
+std::optional<std::u16string> defaultInstall() {
     const auto windows = gameInstallInPrefix(launcherDataDir() / "prefix" / "user.reg");
     if (!windows) {
         return std::nullopt;
     }
-    const auto linuxFile = linuxPathFor(*windows);
+    const auto linuxFile = linuxPathFor(utf8ToUtf16(*windows));
     // A WOF-compacted Gw.exe fails stat; the throwing overload would fail the whole state reply.
     std::error_code error;
-    if (!linuxFile || !std::filesystem::is_regular_file(*linuxFile, error)) {
+    if (!linuxFile || !std::filesystem::is_regular_file(pathFromUtf16(*linuxFile), error)) {
         return std::nullopt;
     }
     return linuxFile;

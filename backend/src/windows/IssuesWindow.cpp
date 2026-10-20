@@ -5,7 +5,7 @@
 namespace launcher {
 
 IssuesWindow::IssuesWindow(AppState& app, gwl::Json args)
-    : WebViewWindow(gwl::WindowOptions{.title = "Issues", .width = 420, .height = 320}), app_(app), args_(std::move(args)) {
+    : WebViewWindow(gwl::WindowOptions{.title = u"Issues", .width = 420, .height = 320}), app_(app), args_(std::move(args)) {
     installCommonHandlers(handler(), app_);
     handler().on("window", [this](gwl::WebViewWindow&, const gwl::Json&, const gwl::Reply& reply) {
         logRequest("window");

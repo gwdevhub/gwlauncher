@@ -22,7 +22,7 @@ struct FieldError {
 
 struct Mod {
     bool active = true;
-    std::string fileName;
+    std::u16string fileName;
     ModType kind = ModType::Dll;
 
     // The mod as Accounts.json holds it.
@@ -38,19 +38,19 @@ struct Mod {
 
 // One account, with the fields and names of the C# Account class.
 struct Account {
-    std::string character;
-    std::string email;
-    std::string gwpath;
-    std::string password;
-    std::string extraargs;
+    std::u16string character;
+    std::u16string email;
+    std::u16string gwpath;
+    std::u16string password;
+    std::u16string extraargs;
     bool elevated = false;
     bool isSteamAccount = false;
-    std::string title;
+    std::u16string title;
     bool usePluginFolderMods = true;
     std::vector<Mod> mods;
 
     // The name shown in the list: the title, then the character, then the email.
-    std::string name() const;
+    std::u16string name() const;
 
     // The account as Accounts.json holds it, which is also the form the launcher's helper reads.
     nlohmann::ordered_json fileJson() const;
@@ -62,11 +62,11 @@ struct Account {
 
     // The path a running game is listed under: the Linux path, in lower case. Missing when the path isn't on this computer.
     // Defined in src/Launching.cpp, where the platform's paths are used.
-    std::optional<std::string> pathKey() const;
+    std::optional<std::u16string> pathKey() const;
 
     // The editor's starting fields for this account, and for a new account at the default install path (empty when there's none).
     Json draft() const;
-    static Json newDraft(const std::string& defaultPath);
+    static Json newDraft(const std::u16string& defaultPath);
     // The account the draft describes, or every problem with its fields. The title is required, and Gw.exe must exist.
     static std::variant<Account, std::vector<FieldError>> fromDraft(const Json& draft);
 };

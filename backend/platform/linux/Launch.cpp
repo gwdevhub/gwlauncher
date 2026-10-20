@@ -5,6 +5,7 @@
 #include "EmbeddedCli.h"
 #include "Launch.h"
 #include "utils/Strings.h"
+#include "utils/Files.h"
 
 #include <dlfcn.h>
 #include <fcntl.h>
@@ -456,24 +457,29 @@ fs::path launcherDataDir() {
     return base / "gwlauncher";
 }
 
-std::optional<std::string> linuxPathFor(const std::string& windowsPath) {
-    if (windowsPath.size() < 3 || windowsPath[1] != ':') {
+std::optional<std::u16string> linuxPathFor(const std::u16string& windowsPath) {
+    if (windowsPath.size() < 3 || windowsPath[1] != u':') {
         return windowsPath;
     }
-    std::string rest = windowsPath.substr(2);
-    std::replace(rest.begin(), rest.end(), '\\', '/');
-    const char letter = static_cast<char>(std::toupper(static_cast<unsigned char>(windowsPath[0])));
+    std::u16string rest = windowsPath.substr(2);
+    std::replace(rest.begin(), rest.end(), u'\\', u'/');
+    const char16_t drive = windowsPath[0];
+    if (!((drive >= u'A' && drive <= u'Z') || (drive >= u'a' && drive <= u'z'))) {
+        return std::nullopt;
+    }
+    const char letter = static_cast<char>(drive >= u'a' ? drive - (u'a' - u'A') : drive);
     const auto root = driveRoot(letter);
     if (!root) {
         return std::nullopt;
     }
-    const fs::path candidate = *root / rest.substr(rest.find_first_not_of('/'));
-    return candidate.string();
+    const auto first = rest.find_first_not_of(u'/');
+    const fs::path candidate = *root / pathFromUtf16(first == std::u16string::npos ? std::u16string() : rest.substr(first));
+    return pathToUtf16(candidate);
 }
 
-void startGame(const Account& account, const std::string& dir, std::uint32_t timeoutMs, const std::function<bool()>& confirm, bool requireSteam) {
+void startGame(const Account& account, const fs::path& dir, std::uint32_t timeoutMs, const std::function<bool()>& confirm, bool requireSteam) {
     (void)requireSteam;
-    const std::string exe = account.gwpath;
+    const std::string exe = utf16ToUtf8(account.gwpath);
     if (!fs::is_regular_file(exe)) {
         throw std::runtime_error("Path to the Guild Wars executable incorrect, aborting launch.");
     }
@@ -512,9 +518,9 @@ void startGame(const Account& account, const std::string& dir, std::uint32_t tim
     }
     const auto stamp = std::chrono::steady_clock::now().time_since_epoch().count();
     const std::string name = "launch-account-" + std::to_string(getpid()) + "-" + std::to_string(stamp) + ".json";
-    const fs::path accountFile = fs::path(dir) / name;
+    const fs::path accountFile = dir / name;
     std::ofstream(accountFile) << file.dump();
-    const fs::path errorFile = fs::path(dir) / (name + ".errors");
+    const fs::path errorFile = dir / (name + ".errors");
 
     struct Cleanup {
         fs::path accountFile;
@@ -552,7 +558,7 @@ void startGame(const Account& account, const std::string& dir, std::uint32_t tim
 
     pid_t pid = 0;
     try {
-        pid = spawnProgram(argv, overrides, &actions, dir);
+        pid = spawnProgram(argv, overrides, &actions, dir.native());
     } catch (...) {
         posix_spawn_file_actions_destroy(&actions);
         throw;
@@ -610,8 +616,8 @@ void startGame(const Account& account, const std::string& dir, std::uint32_t tim
     }
 }
 
-std::set<std::string> runningGamePaths() {
-    std::set<std::string> running;
+std::set<std::u16string> runningGamePaths() {
+    std::set<std::u16string> running;
     std::error_code error;
     for (const auto& entry : fs::directory_iterator("/proc", error)) {
         std::ifstream cmdline(entry.path() / "cmdline", std::ios::binary);
@@ -621,9 +627,13 @@ std::set<std::string> runningGamePaths() {
             if (lower.size() < 6 || lower.compare(lower.size() - 6, 6, "gw.exe") != 0) {
                 continue;
             }
-            const auto path = argument[0] == '/' ? std::optional<std::string>(argument) : linuxPathFor(argument);
+            if (!decodeUtf8Strict(bytesOf(argument))) {
+                continue;
+            }
+            const auto text = utf8ToUtf16(argument);
+            const auto path = argument[0] == '/' ? std::optional<std::u16string>(text) : linuxPathFor(text);
             if (path) {
-                const std::string key = lowerCase(*path);
+                const std::u16string key = lowerCase(*path);
                 running.insert(key);
             }
         }
@@ -807,42 +817,42 @@ std::optional<std::string> wineInstallCommand() {
     return std::nullopt;
 }
 
-std::string detectedSteamPath() {
+std::u16string detectedSteamPath() {
     const auto root = detectedSteamRoot();
-    return root ? root->string() : std::string();
+    return root ? pathToUtf16(*root) : std::u16string();
 }
 
-std::string detectedWinePath() {
+std::u16string detectedWinePath() {
     const fs::path system = findProgram(envOr("GWLAUNCHER_WINE", "wine"));
     if (!system.empty()) {
-        return system.string();
+        return pathToUtf16(system);
     }
     if (const auto root = detectedSteamRoot()) {
         if (const auto files = steamProtonFiles(*root)) {
-            return (*files / "bin" / "wine").string();
+            return pathToUtf16(*files / "bin" / "wine");
         }
     }
     return {};
 }
 
-void setInstallPaths(const std::string& steamPath, const std::string& winePath) {
-    manualSteamPath = steamPath;
-    manualWinePath = winePath;
+void setInstallPaths(const std::u16string& steamPath, const std::u16string& winePath) {
+    manualSteamPath = utf16ToUtf8(steamPath);
+    manualWinePath = utf16ToUtf8(winePath);
 }
 
-std::optional<std::string> invalidInstallPath(const std::string& steamPath, const std::string& winePath) {
-    if (!steamPath.empty() && !steamInstallAt(steamPath)) {
-        return "There's no Steam client in " + steamPath + ": its legacycompat folder is missing.";
+std::optional<std::string> invalidInstallPath(const std::u16string& steamPath, const std::u16string& winePath) {
+    if (!steamPath.empty() && !steamInstallAt(pathFromUtf16(steamPath))) {
+        return "There's no Steam client in " + utf16ToUtf8(steamPath) + ": its legacycompat folder is missing.";
     }
-    if (!winePath.empty() && findProgram(winePath).empty()) {
-        return "There's no runnable Wine program at " + winePath + ".";
+    if (!winePath.empty() && findProgram(utf16ToUtf8(winePath)).empty()) {
+        return "There's no runnable Wine program at " + utf16ToUtf8(winePath) + ".";
     }
     return std::nullopt;
 }
 
-std::optional<std::filesystem::path> gameFilePath(const std::string& launcherPath) {
+std::optional<std::filesystem::path> gameFilePath(const std::u16string& launcherPath) {
     const auto linuxPath = linuxPathFor(launcherPath);
-    return linuxPath ? std::optional<fs::path>(fs::path(*linuxPath)) : std::nullopt;
+    return linuxPath ? std::optional<fs::path>(pathFromUtf16(*linuxPath)) : std::nullopt;
 }
 
 std::filesystem::path defaultGameFolder() {

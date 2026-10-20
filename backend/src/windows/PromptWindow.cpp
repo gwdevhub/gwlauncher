@@ -1,11 +1,12 @@
 #include "PromptWindow.h"
+#include "utils/Strings.h"
 
 #include <utility>
 
 namespace launcher {
 
 PromptWindow::PromptWindow(AppState& app, std::string view, gwl::Json prompt, int width, int height)
-    : WebViewWindow(gwl::WindowOptions{.title = prompt.at("title").get<std::string>(), .width = width, .height = height}),
+    : WebViewWindow(gwl::WindowOptions{.title = gwl::utf8ToUtf16(prompt.at("title").get<std::string>()), .width = width, .height = height}),
       app_(app),
       view_(std::move(view)),
       prompt_(std::move(prompt)) {

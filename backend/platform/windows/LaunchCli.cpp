@@ -80,7 +80,7 @@ bool readLine(HANDLE pipe, std::string& line) {
 
 }  // namespace
 
-void startGame(const Account& account, const std::string& dir, std::uint32_t timeoutMs, const std::function<bool()>& confirm,
+void startGame(const Account& account, const fs::path& dir, std::uint32_t timeoutMs, const std::function<bool()>& confirm,
                bool requireSteam) {
     (void)dir;
     if (requireSteam && account.isSteamAccount && !steamRunning()) {

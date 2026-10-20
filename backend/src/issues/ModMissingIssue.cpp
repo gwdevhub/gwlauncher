@@ -15,7 +15,7 @@ namespace {
 
 class ModMissingIssue : public Issue {
 public:
-    explicit ModMissingIssue(std::string fileName) : name_(pathToUtf8(pathFromUtf8(fileName).filename())) {}
+    explicit ModMissingIssue(const std::u16string& fileName) : name_(pathToUtf8(pathFromUtf16(fileName).filename())) {}
 
     int severity() const override { return kWarning; }
     std::string message() const override { return name_ + " was not found."; }

@@ -10,6 +10,7 @@
 #include "Instance.h"
 #include "TempFiles.h"
 #include "WebViewWindow.h"
+#include "utils/Strings.h"
 
 #ifdef _WIN32
 #include "Cli.h"
@@ -18,13 +19,16 @@
 int main(int argc, char** argv) {
     try {
 #ifdef _WIN32
-        const std::vector<std::string> arguments = gwl::commandLineArguments();
+        const std::vector<std::u16string> arguments = gwl::commandLineArguments();
         // Game-launch children must bypass single-instance forwarding and windowing setup.
-        if (arguments.size() > 1 && arguments[1] == "--launch") {
-            return gwl::runCli(std::vector<std::string>(arguments.begin() + 1, arguments.end()));
+        if (arguments.size() > 1 && arguments[1] == u"--launch") {
+            return gwl::runCli(std::vector<std::u16string>(arguments.begin() + 1, arguments.end()));
         }
 #else
-        const std::vector<std::string> arguments(argv, argv + argc);
+        std::vector<std::u16string> arguments;
+        for (int i = 0; i < argc; ++i) {
+            arguments.push_back(gwl::utf8ToUtf16(argv[i]));
+        }
 #endif
         const gwl::InstanceRequest request = gwl::InstanceRequest::fromArgs(arguments);
         // A launcher that's already running takes the request, and this start ends.
@@ -45,7 +49,9 @@ int main(int argc, char** argv) {
             gwl::runEventLoop();
             return 0;
         }
-        app.launchArguments.assign(arguments.begin() + 1, arguments.end());
+        for (auto arg = arguments.begin() + 1; arg != arguments.end(); ++arg) {
+            app.launchArguments.push_back(gwl::utf16ToUtf8(*arg));
+        }
         // Listening starts before the window is made, so a start made while the window is still opening is handed over too.
         // Later starts' requests arrive on the listener's thread, so each one is passed to the window's thread.
         gwl::listenForRequests([&app](gwl::InstanceRequest next) {

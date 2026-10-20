@@ -2,6 +2,7 @@
 
 #include <cctype>
 #include <cstddef>
+#include <stdexcept>
 
 namespace gwl {
 
@@ -23,6 +24,24 @@ std::string trimmed(const std::string& text) {
 std::string lowerCase(std::string text) {
     for (char& c : text) {
         c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+    }
+    return text;
+}
+
+std::u16string trimmed(const std::u16string& text) {
+    const auto first = text.find_first_not_of(u" \t\r\n");
+    if (first == std::u16string::npos) {
+        return {};
+    }
+    const auto last = text.find_last_not_of(u" \t\r\n");
+    return text.substr(first, last - first + 1);
+}
+
+std::u16string lowerCase(std::u16string text) {
+    for (char16_t& c : text) {
+        if (c >= u'A' && c <= u'Z') {
+            c += u'a' - u'A';
+        }
     }
     return text;
 }
@@ -115,7 +134,7 @@ void appendUtf8(std::string& text, std::uint32_t codePoint) {
     }
 }
 
-std::string utf16ToUtf8(const std::vector<std::uint16_t>& units) {
+std::string utf16ToUtf8(std::u16string_view units) {
     std::string text;
     for (std::size_t i = 0; i < units.size(); ++i) {
         const std::uint32_t unit = units[i];
@@ -130,6 +149,52 @@ std::string utf16ToUtf8(const std::vector<std::uint16_t>& units) {
     }
     return text;
 }
+
+std::u16string utf8ToUtf16(std::string_view text) {
+    if (!decodeUtf8Strict(Bytes(text.begin(), text.end()))) {
+        throw std::invalid_argument("Invalid UTF-8 text.");
+    }
+    std::u16string units;
+    units.reserve(text.size());
+    for (std::size_t i = 0; i < text.size();) {
+        const auto lead = static_cast<unsigned char>(text[i++]);
+        std::uint32_t codePoint = lead;
+        int remaining = 0;
+        if (lead >= 0xF0) {
+            codePoint = lead & 0x07;
+            remaining = 3;
+        } else if (lead >= 0xE0) {
+            codePoint = lead & 0x0F;
+            remaining = 2;
+        } else if (lead >= 0xC0) {
+            codePoint = lead & 0x1F;
+            remaining = 1;
+        }
+        while (remaining-- > 0) {
+            codePoint = (codePoint << 6) | (static_cast<unsigned char>(text[i++]) & 0x3F);
+        }
+        if (codePoint > 0xFFFF) {
+            codePoint -= 0x10000;
+            units.push_back(static_cast<char16_t>(0xD800 + (codePoint >> 10)));
+            units.push_back(static_cast<char16_t>(0xDC00 + (codePoint & 0x3FF)));
+        } else {
+            units.push_back(static_cast<char16_t>(codePoint));
+        }
+    }
+    return units;
+}
+
+#ifdef _WIN32
+std::wstring utf16ToWide(std::u16string_view text) {
+    static_assert(sizeof(wchar_t) == sizeof(char16_t));
+    return std::wstring(text.begin(), text.end());
+}
+
+std::u16string wideToUtf16(std::wstring_view text) {
+    static_assert(sizeof(wchar_t) == sizeof(char16_t));
+    return std::u16string(text.begin(), text.end());
+}
+#endif
 
 std::string latin1ToUtf8(const Bytes& data, std::size_t offset, std::size_t count) {
     std::string text;

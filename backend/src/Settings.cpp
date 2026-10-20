@@ -23,11 +23,11 @@ std::int64_t intValue(const std::string& key, const Json& value) {
     return value.get<std::int64_t>();
 }
 
-std::string stringValue(const std::string& key, const Json& value) {
+std::u16string stringValue(const std::string& key, const Json& value) {
     if (!value.is_string()) {
         throw std::runtime_error("Settings.json is invalid: " + key + " isn't text");
     }
-    return value.get<std::string>();
+    return utf8ToUtf16(value.get<std::string>());
 }
 
 std::optional<std::int64_t> optionalIntValue(const std::string& key, const Json& value) {
@@ -59,9 +59,9 @@ Json Settings::forPage() const {
         {"listWidth", listWidth},
         {"listHeight", listHeight},
         {"timeoutOnModlaunch", timeoutOnModlaunch},
-        {"steamPath", steamPath},
+        {"steamPath", utf16ToUtf8(steamPath)},
         {"uiScale", uiScale},
-        {"winePath", winePath},
+        {"winePath", utf16ToUtf8(winePath)},
     };
 }
 
@@ -137,9 +137,9 @@ void Settings::save(const std::string& path) const {
         {"ListX", listX ? Json(*listX) : Json(nullptr)},
         {"ListY", listY ? Json(*listY) : Json(nullptr)},
         {"TimeoutOnModlaunch", timeoutOnModlaunch},
-        {"SteamPath", steamPath},
+        {"SteamPath", utf16ToUtf8(steamPath)},
         {"UiScale", uiScale},
-        {"WinePath", winePath},
+        {"WinePath", utf16ToUtf8(winePath)},
     };
     std::string text = json.dump(2);
     std::string crlf;
@@ -184,10 +184,10 @@ Settings Settings::applyFields(const Json& fields) const {
         updated.uiScale = scale.get<std::int64_t>();
     }
     if (fields.contains("steamPath")) {
-        updated.steamPath = fields["steamPath"].get<std::string>();
+        updated.steamPath = utf8ToUtf16(fields["steamPath"].get<std::string>());
     }
     if (fields.contains("winePath")) {
-        updated.winePath = fields["winePath"].get<std::string>();
+        updated.winePath = utf8ToUtf16(fields["winePath"].get<std::string>());
     }
     if (fields.contains("timeoutOnModlaunch")) {
         const Json& timeout = fields["timeoutOnModlaunch"];
