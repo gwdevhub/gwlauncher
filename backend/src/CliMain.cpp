@@ -1,10 +1,18 @@
 // The command-line launcher, GW_Launcher.cli.exe. The GUI launchers carry it and run it to start a game.
 
+#include <exception>
+#include <iostream>
 #include <string>
 #include <vector>
 
 #include "Cli.h"
 
-int main(int argc, char** argv) {
-    return gwl::runCli(std::vector<std::string>(argv + 1, argv + argc));
+int main() {
+    try {
+        const auto arguments = gwl::commandLineArguments();
+        return gwl::runCli(std::vector<std::string>(arguments.begin() + 1, arguments.end()));
+    } catch (const std::exception& error) {
+        std::cerr << error.what() << std::endl;
+        return 1;
+    }
 }

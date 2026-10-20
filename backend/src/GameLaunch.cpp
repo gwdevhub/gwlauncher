@@ -1,4 +1,5 @@
 #include "GameLaunch.h"
+#include "utils/Files.h"
 
 #include <fstream>
 #include <stdexcept>
@@ -38,7 +39,7 @@ std::string gameCommandLine(const std::string& gwpath, const Account& account) {
 }
 
 std::optional<fs::path> steamAppIdPath(const std::string& gwpath) {
-    const fs::path parent = fs::path(gwpath).parent_path();
+    const fs::path parent = pathFromUtf8(gwpath).parent_path();
     if (gwpath.empty()) {
         return std::nullopt;
     }
@@ -56,7 +57,7 @@ void writeSteamAppId(const Account& account) {
     std::ofstream file(*path, std::ios::binary | std::ios::trunc);
     file << kSteamAppId;
     if (!file) {
-        throw std::runtime_error("steam_appid.txt couldn't be written to " + path->string());
+        throw std::runtime_error("steam_appid.txt couldn't be written to " + pathToUtf8(*path));
     }
 }
 

@@ -1,6 +1,7 @@
 // Windows game-launch mode; Linux runs the same code in its helper under Wine.
 
 #include <windows.h>
+#include <shellapi.h>
 
 #include <algorithm>
 #include <cstdint>
@@ -80,7 +81,7 @@ int launch(const std::vector<std::string>& arguments) {
     }
     const std::uint32_t timeout = parseTimeout(arguments[1]);
 
-    const auto bytes = readFileBytes(arguments[0]);
+    const auto bytes = readFileBytes(pathFromUtf8(arguments[0]));
     if (!bytes) {
         throw std::runtime_error("Could not read the launch file: " + arguments[0]);
     }
@@ -93,7 +94,7 @@ int launch(const std::vector<std::string>& arguments) {
 
     // The game reads its install from the registry, so it's written before each start. A failure doesn't stop the launch.
     try {
-        setDefaultGame(account.gwpath);
+        setDefaultGame(pathFromUtf8(account.gwpath));
     } catch (const std::runtime_error&) {
     }
 
@@ -106,11 +107,31 @@ int launch(const std::vector<std::string>& arguments) {
         };
     }
     // The Linux launcher checks for Steam before it starts this, because Wine can't see the Linux Steam client's processes.
-    launchGameInProcess(account, std::filesystem::current_path().string(), timeout, confirm, false);
+    launchGameInProcess(account, pathToUtf8(std::filesystem::current_path()), timeout, confirm, false);
     return 0;
 }
 
 }  // namespace
+
+std::vector<std::string> commandLineArguments() {
+    int count = 0;
+    wchar_t** wide = CommandLineToArgvW(GetCommandLineW(), &count);
+    if (!wide) {
+        throw std::runtime_error("The command line couldn't be read.");
+    }
+    std::vector<std::string> arguments;
+    try {
+        for (int i = 0; i < count; ++i) {
+            const std::wstring text(wide[i]);
+            arguments.push_back(utf16ToUtf8(std::vector<std::uint16_t>(text.begin(), text.end())));
+        }
+    } catch (...) {
+        LocalFree(wide);
+        throw;
+    }
+    LocalFree(wide);
+    return arguments;
+}
 
 int runCli(const std::vector<std::string>& arguments) {
     const auto found = std::find(arguments.begin(), arguments.end(), "--launch");

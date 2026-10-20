@@ -66,7 +66,7 @@ Json Settings::forPage() const {
 }
 
 Settings loadSettings(const std::string& path) {
-    const auto bytes = readFileBytes(path);
+    const auto bytes = readFileBytes(pathFromUtf8(path));
     if (!bytes) {
         return Settings{};
     }
@@ -150,7 +150,7 @@ void Settings::save(const std::string& path) const {
         }
         crlf += c;
     }
-    if (!writeFileBytes(path, bytesOf(crlf))) {
+    if (!writeFileBytes(pathFromUtf8(path), bytesOf(crlf))) {
         throw std::runtime_error("Settings.json couldn't be written.");
     }
 }

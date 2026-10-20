@@ -3,6 +3,7 @@
 #include <stdexcept>
 
 #include "WofDecode.h"
+#include "utils/Files.h"
 
 namespace gwl {
 
@@ -11,13 +12,14 @@ namespace fs = std::filesystem;
 void resolveWof(const fs::path& path, const ProgressReport& report, const std::atomic<bool>& cancel) {
     const auto algorithm = wofAlgorithm(path);
     if (!algorithm) {
-        throw std::runtime_error(path.string() + " is not a Windows-compacted file.");
+        throw std::runtime_error(pathToUtf8(path) + " is not a Windows-compacted file.");
     }
     wof::chunkSize(*algorithm);
 
     const fs::path folder = path.parent_path().empty() ? fs::path(".") : path.parent_path();
     std::error_code error;
-    const fs::path work = folder / (path.filename().string() + ".decompressing");
+    fs::path work = folder / path.filename();
+    work += ".decompressing";
 
     {
         // The reader is closed before the files move, so the helper that read the disk has finished.

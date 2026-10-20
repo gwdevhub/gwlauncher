@@ -23,6 +23,7 @@
 #include "Process.h"
 #include "IssueChecker.h"
 #include "Progress.h"
+#include "utils/Files.h"
 
 namespace launcher {
 
@@ -135,7 +136,7 @@ void AppState::startGameAsync(const gwl::Account& account, std::optional<std::si
     const auto key = account.pathKey();
     launching.insert(name);
     const std::uint32_t timeout = settings.timeoutOnModlaunch;
-    const std::string dir = std::filesystem::current_path().string();
+    const std::string dir = gwl::pathToUtf8(std::filesystem::current_path());
     const gwl::Json note = checkFirst ? gwl::Json("Checking the account...")
                                       : gwl::Json(suspended ? "Guild Wars starts paused, so its plugins can load." : "Guild Wars is starting.");
     const gwl::Json popup{

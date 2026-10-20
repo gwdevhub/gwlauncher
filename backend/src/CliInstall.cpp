@@ -7,6 +7,7 @@
 
 #include "EmbeddedCli.h"
 #include "Launch.h"
+#include "utils/Files.h"
 
 namespace gwl {
 
@@ -52,13 +53,13 @@ fs::path installEmbeddedCli() {
         std::ofstream file(staged, std::ios::binary | std::ios::trunc);
         file.write(reinterpret_cast<const char*>(bytes.first), static_cast<std::streamsize>(bytes.second));
         if (!file) {
-            throw std::runtime_error("The command-line launcher couldn't be written to " + staged.string());
+            throw std::runtime_error("The command-line launcher couldn't be written to " + pathToUtf8(staged));
         }
     }
     fs::rename(staged, target, error);
     if (error) {
         fs::remove(staged, error);
-        throw std::runtime_error("The command-line launcher is in use, so it can't be replaced: " + target.string());
+        throw std::runtime_error("The command-line launcher is in use, so it can't be replaced: " + pathToUtf8(target));
     }
     return target;
 }

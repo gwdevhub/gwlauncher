@@ -7,6 +7,15 @@
 
 namespace gwl {
 
+std::filesystem::path pathFromUtf8(const std::string& text) {
+    return std::filesystem::path(std::u8string(text.begin(), text.end()));
+}
+
+std::string pathToUtf8(const std::filesystem::path& path) {
+    const std::u8string text = path.u8string();
+    return std::string(text.begin(), text.end());
+}
+
 std::optional<Bytes> readFileBytes(const std::filesystem::path& path) {
     std::ifstream file(path, std::ios::binary);
     if (!file) {
@@ -46,7 +55,7 @@ bool isWritableFolder(const std::filesystem::path& folder) {
 }
 
 std::string lowerExtension(const std::filesystem::path& path) {
-    return lowerCase(path.extension().string());
+    return lowerCase(pathToUtf8(path.extension()));
 }
 
 }  // namespace gwl

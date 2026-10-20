@@ -3,6 +3,7 @@
 #include <stdexcept>
 
 #include "Wof.h"
+#include "utils/Files.h"
 
 namespace gwl {
 
@@ -15,7 +16,7 @@ std::optional<std::uint32_t> wofAlgorithm(const std::filesystem::path&) {
 }
 
 std::unique_ptr<WofData> openWofData(const std::filesystem::path& path) {
-    throw std::runtime_error(path.string() + " is not a Windows-compacted file.");
+    throw std::runtime_error(pathToUtf8(path) + " is not a Windows-compacted file.");
 }
 
 std::uint64_t freeBytesAt(const std::filesystem::path&) {
