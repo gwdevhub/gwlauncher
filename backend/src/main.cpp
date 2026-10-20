@@ -16,14 +16,16 @@
 #endif
 
 int main(int argc, char** argv) {
-#ifdef _WIN32
-    // Game-launch children must bypass single-instance forwarding and windowing setup.
-    if (argc > 1 && std::string(argv[1]) == "--launch") {
-        return gwl::runCli(std::vector<std::string>(argv + 1, argv + argc));
-    }
-#endif
     try {
+#ifdef _WIN32
+        const std::vector<std::string> arguments = gwl::commandLineArguments();
+        // Game-launch children must bypass single-instance forwarding and windowing setup.
+        if (arguments.size() > 1 && arguments[1] == "--launch") {
+            return gwl::runCli(std::vector<std::string>(arguments.begin() + 1, arguments.end()));
+        }
+#else
         const std::vector<std::string> arguments(argv, argv + argc);
+#endif
         const gwl::InstanceRequest request = gwl::InstanceRequest::fromArgs(arguments);
         // A launcher that's already running takes the request, and this start ends.
         if (gwl::forwardRequest(request)) {
@@ -43,7 +45,7 @@ int main(int argc, char** argv) {
             gwl::runEventLoop();
             return 0;
         }
-        app.launchArguments.assign(argv + 1, argv + argc);
+        app.launchArguments.assign(arguments.begin() + 1, arguments.end());
         // Listening starts before the window is made, so a start made while the window is still opening is handed over too.
         // Later starts' requests arrive on the listener's thread, so each one is passed to the window's thread.
         gwl::listenForRequests([&app](gwl::InstanceRequest next) {

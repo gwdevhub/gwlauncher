@@ -10,6 +10,7 @@
 
 #include "Launch.h"
 #include "Process.h"
+#include "utils/Files.h"
 
 namespace gwl {
 
@@ -41,7 +42,7 @@ std::optional<fs::path> steamInstallAt(const fs::path& folder) {
 // The Steam client's install: the manual folder when one is set, else the one Steam recorded.
 std::optional<fs::path> steamRoot() {
     if (!manualSteamPath.empty()) {
-        return steamInstallAt(manualSteamPath);
+        return steamInstallAt(pathFromUtf8(manualSteamPath));
     }
     const auto detected = detectedSteamRoot();
     return detected ? steamInstallAt(*detected) : std::nullopt;
@@ -101,7 +102,7 @@ std::optional<std::string> wineInstallCommand() {
 std::string detectedSteamPath() {
     const auto detected = detectedSteamRoot();
     const auto root = detected ? steamInstallAt(*detected) : std::nullopt;
-    return root ? root->string() : std::string();
+    return root ? pathToUtf8(*root) : std::string();
 }
 
 std::string detectedWinePath() {
@@ -113,7 +114,7 @@ void setInstallPaths(const std::string& steamPath, const std::string&) {
 }
 
 std::optional<std::string> invalidInstallPath(const std::string& steamPath, const std::string&) {
-    if (!steamPath.empty() && !steamInstallAt(steamPath)) {
+    if (!steamPath.empty() && !steamInstallAt(pathFromUtf8(steamPath))) {
         return "There's no Steam client in " + steamPath + ": steam.exe is missing.";
     }
     return std::nullopt;
@@ -124,7 +125,7 @@ void startSteamClient() {
     if (!root) {
         throw std::runtime_error("Steam isn't installed: its folder isn't in the registry.");
     }
-    runProgramDetached({(*root / "steam.exe").string(), "-silent"});
+    runProgramDetached({pathToUtf8(*root / "steam.exe"), "-silent"});
 }
 
 // Windows has no pipe to read, so Steam is ready once it runs. The logged-in wait covers the time it takes to come up.
@@ -157,12 +158,12 @@ std::optional<std::string> linuxPathFor(const std::string& windowsPath) {
 }
 
 std::optional<std::filesystem::path> gameFilePath(const std::string& launcherPath) {
-    return std::filesystem::path(launcherPath);
+    return pathFromUtf8(launcherPath);
 }
 
 std::filesystem::path defaultGameFolder() {
-    const char* local = std::getenv("LOCALAPPDATA");
-    return std::filesystem::path(local ? local : ".") / "GW_Launcher" / "Guild Wars";
+    const wchar_t* local = _wgetenv(L"LOCALAPPDATA");
+    return std::filesystem::path(local ? local : L".") / "GW_Launcher" / "Guild Wars";
 }
 
 void setDefaultGame(const std::filesystem::path& exe) {

@@ -88,7 +88,7 @@ std::optional<LauncherRelease> latestLauncherRelease() {
     const char* override = std::getenv("GWLAUNCHER_RELEASES_URL");
     const std::string url = override && *override ? override : kReleasesUrl;
     const auto dest = std::filesystem::temp_directory_path() / "gwl-launcher-releases.json";
-    if (runProgram({"curl", "-sfL", "-H", "User-Agent: GWLauncher", "-H", "Accept: application/vnd.github+json", "-o", dest.string(), url}) != 0) {
+    if (runProgram({"curl", "-sfL", "-H", "User-Agent: GWLauncher", "-H", "Accept: application/vnd.github+json", "-o", pathToUtf8(dest), url}) != 0) {
         throw std::runtime_error("GitHub couldn't be reached.");
     }
     const std::string text = textOf(readFileBytes(dest).value_or(Bytes()));
@@ -108,7 +108,7 @@ void downloadLauncherRelease(const LauncherRelease& release, const std::filesyst
     }
     report("Downloading the update...", 0.0);
     // The download is one curl call, so it can't be cancelled part way through, as the Rust launcher's chunked download can.
-    if (runProgram({"curl", "-sfL", "-o", dest.string(), release.download}) != 0) {
+    if (runProgram({"curl", "-sfL", "-o", pathToUtf8(dest), release.download}) != 0) {
         std::error_code error;
         std::filesystem::remove(dest, error);
         throw std::runtime_error("The update couldn't be downloaded.");

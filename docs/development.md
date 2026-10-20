@@ -11,7 +11,7 @@ The launcher is a C++ program in `backend/`, with a web page in `frontend/` that
 | `backend/include` | Headers for the shared code and the platform layer. |
 | `backend/third_party` | Vendored code, each library with its own `LICENSE.txt`. The GTK and WebKitGTK headers are stubs, so the Linux build needs none of their development packages. |
 | `backend/cmake` | Build helpers: the page embedding, gzip, and the MinGW toolchain. |
-| `frontend` | The web page. `frontend/dist` is compiled in, so it's committed with its sources. |
+| `frontend` | The web page. `frontend/dist` is built from the sources and compiled in, so it's git-ignored. |
 | `assets` | Icons and the stylesheet template, compiled in as well. |
 | `bin` | Build output: `bin/linux/{debug,release}` and `bin/windows`. Ignored by git. |
 
@@ -34,7 +34,7 @@ The presets use Ninja. Build folders are ignored by git.
 
 ### The web page
 
-Build the page before the launcher, since CMake skips the launcher target when `frontend/dist/index.html` is missing:
+Build the page before the launcher. CMake stops with an error when `frontend/dist/index.html` is missing:
 
 ```
 cd frontend
@@ -42,7 +42,7 @@ npm ci
 npm run build
 ```
 
-The native build embeds `frontend/dist/index.html`, gzip-compressed, so commit `dist` with the source changes that produced it.
+The native build embeds `frontend/dist/index.html`, gzip-compressed. It's git-ignored, so it's built rather than committed.
 
 ### Linux
 

@@ -14,6 +14,7 @@
 #include "Process.h"
 #include "Progress.h"
 #include "WebViewWindow.h"
+#include "utils/Files.h"
 
 namespace gwl {
 
@@ -27,7 +28,7 @@ public:
     void describe(Json& json) const override { json["canDownloadGMod"] = true; }
 
     void fix(Reply reply, const JobRunner& runJob) override {
-        const std::string folder = std::filesystem::current_path().string();
+        const std::string folder = pathToUtf8(std::filesystem::current_path());
         const Json popup{
             {"title", "Downloading gMod"},
             {"heading", "Downloading gMod.dll"},

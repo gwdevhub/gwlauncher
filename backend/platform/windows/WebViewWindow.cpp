@@ -22,6 +22,7 @@
 #include <iterator>
 #include <system_error>
 #include "Launch.h"
+#include "utils/Files.h"
 
 namespace gwl {
 
@@ -465,13 +466,13 @@ void installWebView2Loader() {
         std::ofstream file(staged, std::ios::binary | std::ios::trunc);
         file.write(reinterpret_cast<const char*>(bytes.first), static_cast<std::streamsize>(bytes.second));
         if (!file) {
-            throw std::runtime_error("The WebView2 loader couldn't be written to " + staged.string());
+            throw std::runtime_error("The WebView2 loader couldn't be written to " + pathToUtf8(staged));
         }
     }
     std::filesystem::rename(staged, target, error);
     if (error) {
         std::filesystem::remove(staged, error);
-        throw std::runtime_error("The WebView2 loader is in use, so it can't be replaced: " + target.string());
+        throw std::runtime_error("The WebView2 loader is in use, so it can't be replaced: " + pathToUtf8(target));
     }
 }
 

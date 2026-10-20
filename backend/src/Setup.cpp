@@ -18,6 +18,7 @@
 #include "Launch.h"
 #include "Progress.h"
 #include "utils/Strings.h"
+#include "utils/Files.h"
 
 namespace launcher {
 
@@ -41,13 +42,13 @@ gwl::Json AppState::setupItems() const {
         {"description", "Downloads Gw.exe into the folder below and records it as the default install, so accounts can launch."},
         {"done", installed},
         {"canInstall", true},
-        {"folder", gwl::defaultGameFolder().string()},
+        {"folder", gwl::pathToUtf8(gwl::defaultGameFolder())},
     }});
 }
 
 gwl::Json AppState::startSetup(const std::string& requested) {
     const std::string text = gwl::trimmed(requested);
-    const fs::path folder = text.empty() ? gwl::defaultGameFolder() : fs::path(text);
+    const fs::path folder = text.empty() ? gwl::defaultGameFolder() : gwl::pathFromUtf8(text);
     if (!folder.is_absolute()) {
         return "Choose a full folder path to install Guild Wars into.";
     }

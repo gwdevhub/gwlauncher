@@ -15,6 +15,7 @@
 #include "Launch.h"
 #include "Shell.h"
 #include "utils/Strings.h"
+#include "utils/Files.h"
 
 namespace gwl {
 
@@ -97,7 +98,7 @@ void startGame(const Account& account, const std::string& dir, std::uint32_t tim
         std::ofstream file(accountFile, std::ios::binary | std::ios::trunc);
         file << account.fileJson().dump();
         if (!file) {
-            throw std::runtime_error("The launch file couldn't be written to " + accountFile.string());
+            throw std::runtime_error("The launch file couldn't be written to " + pathToUtf8(accountFile));
         }
     }
     struct Cleanup {

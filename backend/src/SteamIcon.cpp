@@ -62,7 +62,7 @@ void fetchSteamIcon(const std::function<void()>& done) {
         std::error_code error;
         fs::create_directories(target.parent_path(), error);
         // -m bounds the wait, so an offline start doesn't hold the launcher up.
-        const bool downloaded = runProgram({"curl", "-sfL", "-m", "15", "-o", temp.string(), kFavicon}) == 0;
+        const bool downloaded = runProgram({"curl", "-sfL", "-m", "15", "-o", pathToUtf8(temp), kFavicon}) == 0;
         const auto bytes = downloaded ? readFileBytes(temp) : std::nullopt;
         // The file must decode as an icon, so an error page is never kept as the icon.
         if (!bytes || !iconUrl(*bytes) || !writeFileBytes(target, *bytes)) {

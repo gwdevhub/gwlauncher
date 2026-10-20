@@ -33,23 +33,23 @@ namespace {
 std::string pickerStartFolder(bool modsOnly, const std::string& gamePath) {
     namespace fs = std::filesystem;
     std::error_code error;
-    const std::optional<fs::path> game = gamePath.empty() ? std::nullopt : std::optional<fs::path>(gamePath);
+    const std::optional<fs::path> game = gamePath.empty() ? std::nullopt : std::optional<fs::path>(gwl::pathFromUtf8(gamePath));
     if (modsOnly) {
         for (const fs::path& folder : gwl::pluginFolders(game, fs::current_path())) {
             if (fs::is_directory(folder, error)) {
-                return folder.string();
+                return gwl::pathToUtf8(folder);
             }
         }
-        return fs::current_path().string();
+        return gwl::pathToUtf8(fs::current_path());
     }
     if (game && fs::is_regular_file(*game, error)) {
-        return game->parent_path().string();
+        return gwl::pathToUtf8(game->parent_path());
     }
     if (const auto install = gwl::defaultInstall()) {
-        return fs::path(*install).parent_path().string();
+        return gwl::pathToUtf8(gwl::pathFromUtf8(*install).parent_path());
     }
     const fs::path folder = gwl::defaultGameFolder();
-    return fs::is_directory(folder, error) ? folder.string() : std::string();
+    return fs::is_directory(folder, error) ? gwl::pathToUtf8(folder) : std::string();
 }
 
 }  // namespace
@@ -66,8 +66,8 @@ std::filesystem::path configFolder() {
 }
 
 // File dialogs can change the working directory, so configuration paths must be absolute.
-const std::string kSettingsFile = (configFolder() / "Settings.json").string();
-const std::string kAccountsFile = (configFolder() / "Accounts.json").string();
+const std::string kSettingsFile = gwl::pathToUtf8(configFolder() / "Settings.json");
+const std::string kAccountsFile = gwl::pathToUtf8(configFolder() / "Accounts.json");
 
 // Starts the Steam icon's download when a Steam account is listed. Accounts added during the session start it too.
 void fetchSteamIconFor(const std::vector<gwl::Account>& accounts, const std::function<void()>& done) {
@@ -87,7 +87,7 @@ AppState::AppState(std::string pageHtml) : page(std::move(pageHtml)) {
     // Settings, accounts and Guild Wars downloads are kept in the folder the launcher runs from, so without a writable folder none
     // of them save.
     if (const auto folder = gwl::executablePath().parent_path(); !gwl::isWritableFolder(folder)) {
-        gwl::showError("GW Launcher is in " + folder.string() +
+        gwl::showError("GW Launcher is in " + gwl::pathToUtf8(folder) +
                        ", which this user can't write to, so settings, accounts and downloads won't save. Move the launcher to a folder "
                        "you can write to, or check the folder's permissions.");
     }
@@ -392,7 +392,7 @@ void installCommonHandlers(gwl::MessageHandler& handler, AppState& app) {
             }
         }
         try {
-            gwl::createShortcut(*desktop / (name + ".lnk"), gwl::executablePath(), "-launch \"" + name + "\"",
+            gwl::createShortcut(*desktop / gwl::pathFromUtf8(name + ".lnk"), gwl::executablePath(), "-launch \"" + name + "\"",
                                 "GW Launcher shortcut for " + name, gwl::embeddedHelmetPng());
             reply.result(nullptr);
         } catch (const std::exception& error) {
