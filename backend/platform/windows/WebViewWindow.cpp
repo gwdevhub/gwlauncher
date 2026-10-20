@@ -108,10 +108,20 @@ void sendPendingScripts(NativeWindow* native) {
     native->pendingScripts.clear();
 }
 
+// Asks WebView2 to keep its memory use low. Runtimes without the interface are skipped.
+void useLowMemoryTarget(ICoreWebView2* webview) {
+    ICoreWebView2_19* webview19 = nullptr;
+    if (SUCCEEDED(webview->QueryInterface(IID_ICoreWebView2_19, reinterpret_cast<void**>(&webview19)))) {
+        webview19->put_MemoryUsageTargetLevel(COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL_LOW);
+        webview19->Release();
+    }
+}
+
 void attachWebView(NativeWindow* native, ICoreWebView2Controller* controller) {
     native->controller = controller;
     native->controller->AddRef();
     native->controller->get_CoreWebView2(&native->webview);
+    useLowMemoryTarget(native->webview);
     resizeWebView(native);
     syncWebViewVisibility(native);
 
