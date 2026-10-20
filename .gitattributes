@@ -13,6 +13,3 @@
 *.pdb binary
 *.zip binary
 *.tpf binary
-
-# Build output is generated with mixed line endings; normalize it like source text.
-frontend/dist/** text eol=lf

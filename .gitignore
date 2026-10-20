@@ -51,6 +51,7 @@ backend/cmake-build-*/
 
 # Native launcher packages.
 bin/
+frontend/dist/
 
 # The vendored WebView2 loader is committed, unlike the other build output in bin/.
 !backend/third_party/webview2/bin/
