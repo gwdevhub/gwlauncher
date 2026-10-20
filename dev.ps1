@@ -6,7 +6,6 @@ $root = $PSScriptRoot
 $frontend = Join-Path $root 'frontend'
 $launcherFolder = Join-Path $root 'bin\windows'
 $launcherExe = Join-Path $launcherFolder 'GW_Launcher.exe'
-$helperExe = Join-Path $launcherFolder 'GW_Launcher.cli.exe'
 $buildStateFile = Join-Path $launcherFolder '.dev-build.json'
 $devUrl = "http://127.0.0.1:$Port"
 
@@ -74,13 +73,12 @@ $buildState = @{
         'Dockerfile.toolchain', 'Dockerfile.toolchain.dockerignore')
     windows = Get-InputHash @('backend/platform/windows')
     launcher = Get-BinaryHash $launcherExe
-    helper = Get-BinaryHash $helperExe
 }
 $previousBuild = $null
 if (Test-Path -LiteralPath $buildStateFile) {
     try { $previousBuild = Get-Content -LiteralPath $buildStateFile -Raw | ConvertFrom-Json } catch {}
 }
-$rebuild = -not $previousBuild -or -not $buildState.launcher -or -not $buildState.helper
+$rebuild = -not $previousBuild -or -not $buildState.launcher
 foreach ($key in $buildState.Keys) {
     if ($previousBuild.$key -ne $buildState[$key]) { $rebuild = $true }
 }
@@ -90,8 +88,7 @@ if ($rebuild) {
     & (Join-Path $root 'build.ps1') -Target $target
     if ($LASTEXITCODE -ne 0) { throw 'The native build failed.' }
     $buildState.launcher = Get-BinaryHash $launcherExe
-    $buildState.helper = Get-BinaryHash $helperExe
-    if (-not $buildState.launcher -or -not $buildState.helper) { throw 'The build did not produce the launcher and helper.' }
+    if (-not $buildState.launcher) { throw 'The build did not produce the launcher.' }
     $buildState | ConvertTo-Json | Set-Content -LiteralPath $buildStateFile -Encoding UTF8
 }
 

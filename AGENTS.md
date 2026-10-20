@@ -16,4 +16,4 @@ Build with the scripts at the repository root, not the CMake presets or Docker d
   - `linux`: changes under `backend/platform/linux` or other Linux-only code.
   - `all`: changes to shared code (`backend/src`, `backend/include`, `backend/CMakeLists.txt`, `backend/cmake`, `assets`), or before handing work off.
 - The scripts start Docker if it isn't running, rebuild `frontend/dist`, and write the results to `bin/`. Don't build `frontend` or run `docker` by hand for a build.
-- Don't commit `bin/`, `frontend/dist` changes you didn't intend, or `backend/build*` output.
+- Don't commit `bin/`, `frontend/dist`, or `backend/build*` output.

@@ -1,5 +1,4 @@
-// The command-line launcher, GW_Launcher.cli.exe, which the GUI launchers carry inside themselves. The GUI copies it out when it needs it
-// and runs it to start a game. The bytes are linked in by the GUI build only.
+// The Windows helper embedded in the Linux launcher, which extracts it to start games under Wine.
 
 #pragma once
 

@@ -1,4 +1,4 @@
-// Windows: a launch runs the embedded command-line launcher, and Wine's checks don't apply, so the Linux prerequisites report as present.
+// Windows: a launch restarts this executable in CLI mode; Wine's prerequisites don't apply.
 
 #include <cstdlib>
 #include <filesystem>

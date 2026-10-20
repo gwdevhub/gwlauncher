@@ -46,8 +46,7 @@ bool launchesThroughWine();
 // Whether Wine runs for accounts that aren't Steam accounts: the system's, or Steam's Proton.
 bool wineRuns();
 
-// The folders a launch writes into on this platform, which must be writable for the launch to run: Linux writes its launch files to the
-// launcher's current folder and the Wine prefix, and Windows writes the command-line launcher and its launch file beside the launcher.
+// Launches need writable launch-file folders and, on Linux, a writable Wine prefix and helper folder.
 std::vector<std::filesystem::path> launchWriteFolders(const Account& account);
 
 // The folder a new Guild Wars install goes into, by default.

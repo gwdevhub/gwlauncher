@@ -1,6 +1,4 @@
-// The command-line launcher, GW_Launcher.cli.exe: `GW_Launcher.cli.exe --launch <account.json> <timeout-ms> [--confirm]`. It starts the
-// game the way the Windows launcher does, then exits once the game's window is ready. With --confirm it prints "suspended" and waits
-// for "resume" or "cancel" on stdin while the game is held suspended. Windows only.
+// Windows game-launch mode, used by GW_Launcher.exe and Linux's GW_Launcher.cli.exe helper.
 
 #pragma once
 

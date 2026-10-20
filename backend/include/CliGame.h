@@ -1,5 +1,4 @@
-// Starting a game in this process, for the command-line launcher, which the Windows and Linux launchers run as GW_Launcher.cli.exe. The
-// GUI doesn't call it: it starts the game through the command line. Windows only.
+// Starts a game in Windows CLI mode, through GW_Launcher.exe or Linux's Windows helper.
 
 #pragma once
 
