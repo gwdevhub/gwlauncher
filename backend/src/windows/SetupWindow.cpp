@@ -19,11 +19,6 @@ std::string SetupWindow::devUrl() const {
     return developmentUrl();
 }
 
-bool SetupWindow::allowClose() {
-    hide();
-    return false;
-}
-
 void AppState::openSetup() {
     if (setupWindow) {
         setupWindow->present();

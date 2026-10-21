@@ -51,6 +51,7 @@ public:
     void open();
 
     void show();
+    // Hides the window. Its web view is freed after a cooldown, unless the window is shown again first.
     void hide();
     // Brings the window to the front and gives it the focus. A hidden or minimised window is shown and restored first.
     void present();
@@ -82,7 +83,7 @@ public:
     void beginResize(ResizeEdge edge);
     void minimize();
     void toggleMaximize();
-    // Asks the window to close, as the window manager's close would: allowClose decides.
+    // Asks the window to close, as the window manager's close would: allowClose decides, and a close hides the window.
     void close();
 
     // Sends an event to the page: window.gwlReceive({event, data}).
@@ -99,22 +100,24 @@ public:
     virtual std::string devUrl() const { return {}; }
     virtual std::string title() const { return options_.title; }
 
-    // Called by the platform when the page posts a message, when the user asks to close the window, and after it closes.
+    // Called by the platform when the page posts a message, and when the user asks to close the window.
     void receive(const std::string& text);
-    bool requestClose();
-    void notifyClosed();
+    void requestClose();
     void notifyFocusLost();
 
 protected:
-    // Return false to keep the window open. A window that returns false should hide itself to stay reusable.
+    // Return false to keep the window open. A window that allows the close is hidden.
     virtual bool allowClose() { return true; }
-    virtual void onClosed() {}
     // Called when another window takes the focus from this one.
     virtual void onFocusLost() {}
 
 private:
     // Each platform implements these in platform/<os>/WebViewWindow.cpp.
     void platformOpen();
+    void platformUnload();
+    // Starts the cooldown after which a hidden window frees its web view. A show or present cancels it.
+    void startCooldown();
+    void freeWebView();
     void platformShow(bool visible);
     void platformPresent();
     void platformResize(int width, int height);
@@ -141,6 +144,10 @@ private:
     int baseHeight_ = 0;
     bool visible_ = false;
     bool opened_ = false;
+    // Counts the hides and shows, so a cooldown started by an earlier hide does nothing once the window is shown again.
+    std::uint64_t cooldownGeneration_ = 0;
+    // Expires with the window, so a cooldown still waiting when the window is destroyed does nothing.
+    std::shared_ptr<bool> alive_ = std::make_shared<bool>(true);
     MessageHandler handler_;
     std::unique_ptr<NativeWindow, NativeWindowDeleter> native_;
 };

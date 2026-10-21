@@ -14,9 +14,6 @@ public:
     std::string html() const override;
     std::string devUrl() const override;
 
-protected:
-    bool allowClose() override;
-
 private:
     AppState& app_;
 };

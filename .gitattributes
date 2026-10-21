@@ -1,6 +1,10 @@
 # Store text as LF in the repository; each checkout gets its platform's line endings.
 * text=auto
 
+# Shell scripts and Dockerfiles run on Linux, so they keep LF even on a Windows checkout.
+*.sh text eol=lf
+Dockerfile* text eol=lf
+
 # Binary assets are never converted.
 *.ico binary
 *.png binary

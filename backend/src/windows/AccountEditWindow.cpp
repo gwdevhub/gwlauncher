@@ -23,11 +23,6 @@ std::string AccountEditWindow::devUrl() const {
     return developmentUrl();
 }
 
-bool AccountEditWindow::allowClose() {
-    hide();
-    return false;
-}
-
 void AccountEditWindow::installHandlers() {
     auto& handler = this->handler();
 

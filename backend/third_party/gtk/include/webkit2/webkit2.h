@@ -11,3 +11,11 @@ typedef struct _WebKitWebInspector WebKitWebInspector;
 
 // The JavaScriptCore value a script message carries, from the JavaScriptCore part of WebKitGTK.
 typedef struct _JSCValue JSCValue;
+
+// The load progress a load-changed signal reports.
+typedef enum {
+    WEBKIT_LOAD_STARTED,
+    WEBKIT_LOAD_REDIRECTED,
+    WEBKIT_LOAD_COMMITTED,
+    WEBKIT_LOAD_FINISHED
+} WebKitLoadEvent;

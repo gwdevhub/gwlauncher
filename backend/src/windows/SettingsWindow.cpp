@@ -19,11 +19,6 @@ std::string SettingsWindow::devUrl() const {
     return developmentUrl();
 }
 
-bool SettingsWindow::allowClose() {
-    hide();
-    return false;
-}
-
 void AppState::openSettings() {
     if (settingsWindow) {
         settingsWindow->present();

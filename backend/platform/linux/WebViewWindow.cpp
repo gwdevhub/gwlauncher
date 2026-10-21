@@ -17,6 +17,10 @@ struct NativeWindow {
     GtkWidget* window = nullptr;
     WebKitWebView* view = nullptr;
     WebKitUserContentManager* manager = nullptr;
+    // The window stays hidden until its page has loaded, so it never shows as an empty frame.
+    bool pageLoaded = false;
+    bool wantsVisible = false;
+    bool wantsFocus = false;
 };
 
 namespace {
@@ -174,12 +178,37 @@ gboolean onFocusOut(GtkWidget*, GdkEvent*, gpointer data) {
 }
 
 gboolean onDeleteEvent(GtkWidget*, GdkEvent*, gpointer data) {
-    auto* window = static_cast<WebViewWindow*>(data);
-    if (!window->requestClose()) {
-        return TRUE;
+    // A close hides the window, so GTK keeps it.
+    static_cast<WebViewWindow*>(data)->requestClose();
+    return TRUE;
+}
+
+// The X server's time, which a window manager needs on a focus or move request. GDK_CURRENT_TIME when it isn't available.
+guint32 serverTime(GtkWidget* widget) {
+    if (!api().x11_server_time) {
+        return GDK_CURRENT_TIME;
     }
-    window->notifyClosed();
-    return FALSE;
+    GdkWindow* gdkWindow = api().widget_get_window(widget);
+    return gdkWindow ? api().x11_server_time(gdkWindow) : GDK_CURRENT_TIME;
+}
+
+// Shows the window once its page has loaded, if it's wanted yet. Focus goes to it only if it was asked for.
+void showLoadedPage(NativeWindow* native) {
+    native->pageLoaded = true;
+    if (!native->window || !native->wantsVisible) {
+        return;
+    }
+    api().widget_show_all(native->window);
+    if (native->wantsFocus) {
+        native->wantsFocus = false;
+        api().window_present_with_time(reinterpret_cast<GtkWindow*>(native->window), serverTime(native->window));
+    }
+}
+
+void onLoadChanged(WebKitWebView*, WebKitLoadEvent event, gpointer data) {
+    if (event == WEBKIT_LOAD_FINISHED) {
+        showLoadedPage(static_cast<NativeWindow*>(data));
+    }
 }
 
 }  // namespace
@@ -221,6 +250,9 @@ void WebViewWindow::platformOpen() {
     gtk.user_content_manager_register_script_message_handler_with_reply(native.manager, "gwl", nullptr);
     native.view = reinterpret_cast<WebKitWebView*>(gtk.web_view_new_with_user_content_manager(native.manager));
     gtk.container_add(reinterpret_cast<GtkContainer*>(native.window), reinterpret_cast<GtkWidget*>(native.view));
+    native.wantsVisible = options_.visible;
+    gtk.g_signal_connect_data(native.view, "load-changed", reinterpret_cast<GCallback>(onLoadChanged), &native, nullptr,
+                              static_cast<GConnectFlags>(0));
 
     gtk.g_signal_connect_data(native.window, "delete-event", reinterpret_cast<GCallback>(onDeleteEvent), this, nullptr,
                               static_cast<GConnectFlags>(0));
@@ -238,26 +270,19 @@ void WebViewWindow::platformOpen() {
     } else {
         gtk.web_view_load_html(native.view, html().c_str(), nullptr);
     }
-    if (options_.visible) {
-        gtk.widget_show_all(native.window);
-    }
 }
 
-namespace {
-
-// The X server's time, which a window manager needs on a focus or move request. GDK_CURRENT_TIME when it isn't available.
-guint32 serverTime(GtkWidget* widget) {
-    if (!api().x11_server_time) {
-        return GDK_CURRENT_TIME;
-    }
-    GdkWindow* gdkWindow = api().widget_get_window(widget);
-    return gdkWindow ? api().x11_server_time(gdkWindow) : GDK_CURRENT_TIME;
+void WebViewWindow::platformUnload() {
+    native_.reset();
 }
-
-}  // namespace
 
 void WebViewWindow::platformPresent() {
     if (!native_ || !native_->window) {
+        return;
+    }
+    native_->wantsVisible = true;
+    if (!native_->pageLoaded) {
+        native_->wantsFocus = true;
         return;
     }
     // Restores it from minimised, shows it if it's hidden, and asks the window manager to raise it and give it the focus. The
@@ -311,6 +336,10 @@ void WebViewWindow::platformClose() {
 
 void WebViewWindow::platformShow(bool visible) {
     if (!native_ || !native_->window) {
+        return;
+    }
+    native_->wantsVisible = visible;
+    if (!native_->pageLoaded) {
         return;
     }
     if (visible) {

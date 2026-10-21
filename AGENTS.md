@@ -17,3 +17,4 @@ Build with the scripts at the repository root, not the CMake presets or Docker d
   - `all`: changes to shared code (`backend/src`, `backend/include`, `backend/CMakeLists.txt`, `backend/cmake`, `assets`), or before handing work off.
 - The scripts start Docker if it isn't running, rebuild `frontend/dist`, and write the results to `bin/`. Don't build `frontend` or run `docker` by hand for a build.
 - Don't commit `bin/`, `frontend/dist`, or `backend/build*` output.
+- When a change needs a rebuild to take effect and GW Launcher is running, stop the running instance, rebuild, then launch the rebuilt `bin/` executable again.

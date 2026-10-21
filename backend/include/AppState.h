@@ -62,7 +62,9 @@ struct AppState {
     gwl::Json changeAccounts(const std::function<void()>& change);
 
     // The page's startup state: settings, flags, the lock and any update.
-    gwl::Json state() const;
+    gwl::Json state();
+    // Clears what state reads from the machine's installs, so the next state reads it again. Call after an install or a path change.
+    void forgetInstallState();
     // The page the windows show: the built page with the user's stylesheet overrides, read each time a window opens.
     std::string pageHtml() const;
 
@@ -192,6 +194,9 @@ struct AppState {
 
     // GW Launcher's own update: the newest release, when it's newer than this build. Defined in AppUpdate.cpp.
     std::optional<gwl::LauncherRelease> availableUpdate;
+    // Read once per run, and the install part read again after forgetInstallState.
+    std::optional<gwl::Json> fixedState_;
+    std::optional<gwl::Json> installState_;
     // Asks GitHub at startup whether a newer launcher is out. Shows the update icon, and the prompt when the setting asks.
     void checkLauncherUpdate();
     // Asks whether to update to the release. Update downloads and installs it, then this launcher exits.

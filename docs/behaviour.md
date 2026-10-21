@@ -19,10 +19,10 @@ Statements marked *(to confirm)* describe intended behaviour that the code doesn
 
 *Tray mode is the setting Keep in system tray.*
 
-- In tray mode the account list has no title bar and no taskbar button.
+- In tray mode the account list has no taskbar button, and no title bar unless Show title bar in tray mode is on (it's on by default).
 - Left-clicking the tray icon shows the list beside the icon when it's hidden, and hides it when it's shown.
 - When the list opens from the tray, it sits centred on the icon, above the icon when the icon is in the bottom half of the screen, and below it otherwise. It stays inside the screen.
-- Closing the list (its close button or Escape) hides it. The launcher keeps running.
+- Closing the list (its close button or Escape) hides it. The launcher keeps running. With Show title bar in tray mode on, closing the list quits the launcher instead.
 - When focus leaves the shown list, the list hides, unless the pointer is over it.
 - A list that has just been shown ignores focus loss for 400 ms, so the click that opened it can't close it.
 - With Launch minimized on, the list stays hidden at startup. Otherwise it opens at startup.

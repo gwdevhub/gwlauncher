@@ -76,6 +76,7 @@ gwl::Json AppState::startSetup(const std::string& requested) {
         }
         gwl::runOnUiThread([this, failure] {
             setup.running = false;
+            forgetInstallState();
             if (failure) {
                 setup.error = "Guild Wars couldn't be installed: " + *failure;
             } else {

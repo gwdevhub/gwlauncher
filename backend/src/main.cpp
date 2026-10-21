@@ -55,7 +55,11 @@ int main(int argc, char** argv) {
         app.applyTrayMode();
         launcher::AccountListWindow list(app);
         app.list = &list;
-        list.open();
+        // A tray list is made when it's first shown, so a hidden tray list holds no web view. Its runtime is still checked here.
+        gwl::requireWindowingRuntime();
+        if (!app.tray) {
+            list.open();
+        }
         app.checkLauncherUpdate();
         if (app.tray && !app.settings.launchMinimized) {
             app.showListAtStart();
