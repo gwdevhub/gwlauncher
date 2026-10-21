@@ -195,24 +195,39 @@ gwl::Json AppState::changeAccounts(const std::function<void()>& change) {
 }
 
 // The page's startup state. Every window's page asks for it before it draws.
-gwl::Json AppState::state() const {
+gwl::Json AppState::state() {
+    if (!fixedState_) {
+        fixedState_ = gwl::Json{
+            {"hasLinuxPaths", gwl::launchesThroughWine()},
+            {"hasTray", gwl::hasTray()},
+            {"version", "GW Launcher r" + std::to_string(gwl::currentBuild()) + " \u00b7 " + gwl::osDescription()},
+        };
+    }
+    if (!installState_) {
+        installState_ = gwl::Json{
+            {"canLaunchDefaultClient", gwl::defaultInstall().has_value()},
+            {"detectedPaths", gwl::Json{{"steam", gwl::detectedSteamPath()}, {"wine", gwl::detectedWinePath()}}},
+        };
+    }
     const gwl::Settings effective = settings.effective(gwl::hasTray());
-    return {
+    gwl::Json state = {
         {"locked", accountsLocked},
         {"startup", nullptr},
         {"canCreateShortcuts", true},
         {"debug", false},
-        {"canLaunchDefaultClient", gwl::defaultInstall().has_value()},
-        {"hasLinuxPaths", gwl::launchesThroughWine()},
-        {"detectedPaths", gwl::Json{{"steam", gwl::detectedSteamPath()}, {"wine", gwl::detectedWinePath()}}},
         {"hasWindowsOptions", true},
-        {"hasTray", gwl::hasTray()},
         {"hasSetup", false},
         {"setupNeeded", false},
-        {"version", "GW Launcher r" + std::to_string(gwl::currentBuild()) + " \u00b7 " + gwl::osDescription()},
         {"update", availableUpdate ? gwl::Json{{"revision", availableUpdate->revision}} : gwl::Json(nullptr)},
         {"settings", effective.forPage()},
     };
+    state.update(*fixedState_);
+    state.update(*installState_);
+    return state;
+}
+
+void AppState::forgetInstallState() {
+    installState_.reset();
 }
 
 namespace {
@@ -410,6 +425,7 @@ void installCommonHandlers(gwl::MessageHandler& handler, AppState& app) {
             updated.save(kSettingsFile);
             app.settings = updated;
             gwl::setInstallPaths(updated.steamPath, updated.winePath);
+            app.forgetInstallState();
             gwl::setUiScale(static_cast<int>(updated.uiScale));
             if (app.list && app.list->isVisible()) {
                 app.list->resize(static_cast<int>(updated.listWidth), static_cast<int>(updated.listHeight));
