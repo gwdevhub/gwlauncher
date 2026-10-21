@@ -181,7 +181,6 @@ export function AccountListWindow() {
         item('Open DevTools', () => call('devtools'), e.ctrlKey);
         rule();
         item('Settings...', () => show('settings'));
-        item('Restart', () => call('restart'));
         item('Exit', () => call('quit'));
         setMenuActions(actions);
         call('openMenu', items);
