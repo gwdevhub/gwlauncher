@@ -16,7 +16,7 @@ struct Settings {
     bool launchMinimized = false;
     bool keepInSystemTray = true;
     // In tray mode the list keeps its title bar, instead of being a flyout without one.
-    bool showTitleBarInTray = false;
+    bool showTitleBarInTray = true;
     std::int64_t listWidth = 220;
     std::int64_t listHeight = 340;
     std::optional<std::int64_t> listX;

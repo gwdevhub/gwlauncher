@@ -28,7 +28,7 @@ std::string AccountListWindow::devUrl() const {
 }
 
 bool AccountListWindow::allowClose() {
-    if (app_.tray) {
+    if (app_.tray && !app_.listHasTitleBar()) {
         app_.hideList();
         return false;
     }

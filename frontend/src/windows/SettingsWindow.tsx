@@ -93,7 +93,7 @@ export function SettingsWindow() {
                 onChange={e => set({ keepInSystemTray: e.target.checked })}
             />
             <Note className="indent ml-[22px]">
-                {app.hasTray ? 'Run from a tray icon; closing hides it to the tray.' : 'Not available: no system tray was found on this desktop.'}
+                {app.hasTray ? 'Run from a tray icon; closing hides it to the tray, unless the title bar is shown.' : 'Not available: no system tray was found on this desktop.'}
             </Note>
             <Check
                 label="Launch minimised"
