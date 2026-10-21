@@ -45,9 +45,9 @@ void downloadLauncherRelease(const LauncherRelease& release, const std::filesyst
 // The release asset the launcher downloads to update itself: GW_Launcher.exe on Windows, GW_Launcher on Linux.
 const char* launcherAssetName();
 
-// Puts the downloaded release in place of the running launcher, and starts the new one with the same arguments. The old files are
-// kept until the swap has worked. Throws std::runtime_error with the reason when it fails. Implemented in platform/<os>/LauncherUpdate.cpp.
-void installLauncherRelease(const std::filesystem::path& current, const std::filesystem::path& staged, const std::vector<std::string>& arguments);
+// Puts the downloaded release in place of the running launcher. The old files are kept until the swap has worked. Throws
+// std::runtime_error with the reason when it fails. Implemented in platform/<os>/LauncherUpdate.cpp.
+void installLauncherRelease(const std::filesystem::path& current, const std::filesystem::path& staged);
 
 // Deletes what a previous update left beside the running launcher. Implemented in platform/<os>/LauncherUpdate.cpp.
 void removeLauncherLeftovers(const std::filesystem::path& current);

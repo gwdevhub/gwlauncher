@@ -8,6 +8,7 @@
 #include <sys/un.h>
 #include <unistd.h>
 
+#include <atomic>
 #include <cerrno>
 #include <cstdio>
 #include <cstring>
@@ -24,6 +25,9 @@ namespace {
 std::string socketPath() {
     return (launcherDataDir() / "gwlauncher.sock").string();
 }
+
+// The listening socket, so stopListeningForRequests can end its accept. -1 when this launcher isn't listening.
+std::atomic<int> listeningSocket{-1};
 
 // The address for the socket path, or false when the path is too long for one.
 bool addressFor(const std::string& path, sockaddr_un& address) {
@@ -85,6 +89,7 @@ void listenForRequests(std::function<void(InstanceRequest)> handle) {
         close(fd);
         return;
     }
+    listeningSocket = fd;
     std::thread([fd, handle = std::move(handle)] {
         for (;;) {
             const int client = accept4(fd, nullptr, nullptr, SOCK_CLOEXEC);
@@ -112,7 +117,17 @@ void listenForRequests(std::function<void(InstanceRequest)> handle) {
                 handle(*request);
             }
         }
+        close(fd);
     }).detach();
+}
+
+void stopListeningForRequests() {
+    const int fd = listeningSocket.exchange(-1);
+    if (fd >= 0) {
+        // Ends the accept in the listener, which then closes the socket.
+        shutdown(fd, SHUT_RDWR);
+    }
+    unlink(socketPath().c_str());
 }
 
 }  // namespace gwl

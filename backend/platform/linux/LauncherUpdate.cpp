@@ -1,10 +1,8 @@
 #include <stdexcept>
 #include <string>
 #include <system_error>
-#include <vector>
 
 #include "LauncherUpdate.h"
-#include "Process.h"
 
 namespace gwl {
 
@@ -22,8 +20,7 @@ const char* launcherAssetName() {
     return "GW_Launcher";
 }
 
-void installLauncherRelease(const std::filesystem::path& current, const std::filesystem::path& staged,
-                            const std::vector<std::string>& arguments) {
+void installLauncherRelease(const std::filesystem::path& current, const std::filesystem::path& staged) {
     namespace fs = std::filesystem;
     const fs::path dir = current.parent_path();
     const fs::path old = dir / oldName(current);
@@ -50,10 +47,6 @@ void installLauncherRelease(const std::filesystem::path& current, const std::fil
         fs::remove(staged, restore);
         throw std::runtime_error("The update couldn't be put in place: " + error.message());
     }
-
-    std::vector<std::string> command{current.string()};
-    command.insert(command.end(), arguments.begin(), arguments.end());
-    runProgramDetached(command);
 }
 
 void removeLauncherLeftovers(const std::filesystem::path& current) {

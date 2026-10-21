@@ -202,8 +202,12 @@ struct AppState {
     // Asks whether to update to the release. Update downloads and installs it, then this launcher exits.
     void openLauncherUpdatePrompt(const gwl::LauncherRelease& release);
     void startLauncherUpdate(const gwl::LauncherRelease& release);
+    // Starts a fresh launcher at the executable this one started from, with the same arguments, then closes this one.
+    void restart();
     // The arguments the launcher was started with, which a restarted launcher is started with too.
     std::vector<std::string> launchArguments;
+    // Read at startup, since an update renames the running file and restart needs where the launcher was started from.
+    std::filesystem::path executable;
 };
 
 // The handlers every window answers, for the calls the page makes from any of its windows.

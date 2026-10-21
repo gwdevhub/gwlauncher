@@ -12,7 +12,10 @@
 #include "AppState.h"
 #include "LauncherUpdate.h"
 #include "Progress.h"
+#include "Instance.h"
+#include "Process.h"
 #include "Shell.h"
+#include "utils/Files.h"
 #include "WebViewWindow.h"
 #include "AccountListWindow.h"
 
@@ -78,22 +81,29 @@ void AppState::startLauncherUpdate(const gwl::LauncherRelease& release) {
         {"cancellable", true},
         {"failure", "GW Launcher couldn't be updated"},
     };
-    const std::vector<std::string> arguments = launchArguments;
+    const std::filesystem::path current = executable;
     runWithProgress(
         popup,
-        [release, arguments](const gwl::ProgressReport& report, const std::atomic<bool>& cancel) {
-            const std::filesystem::path current = gwl::executablePath();
+        [release, current](const gwl::ProgressReport& report, const std::atomic<bool>& cancel) {
             const std::filesystem::path staged =
                 current.parent_path() / (".new" + std::filesystem::path(gwl::launcherAssetName()).extension().string());
             gwl::downloadLauncherRelease(release, staged, cancel, report);
-            gwl::installLauncherRelease(current, staged, arguments);
+            gwl::installLauncherRelease(current, staged);
         },
-        [](const std::optional<std::string>& failure) {
-            // The restarted launcher takes over, so this one exits once the update is in place.
+        [this](const std::optional<std::string>& failure) {
             if (!failure) {
-                gwl::stopEventLoop();
+                restart();
             }
         });
+}
+
+void AppState::restart() {
+    // A fresh launcher would be handed its start by this one, and this one is about to exit, so it stops answering first.
+    gwl::stopListeningForRequests();
+    std::vector<std::string> command{gwl::pathToUtf8(executable)};
+    command.insert(command.end(), launchArguments.begin(), launchArguments.end());
+    gwl::runProgramDetached(command);
+    gwl::stopEventLoop();
 }
 
 }  // namespace launcher
