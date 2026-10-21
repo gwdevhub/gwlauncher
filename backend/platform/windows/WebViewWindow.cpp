@@ -80,8 +80,6 @@ struct NativeWindow {
     EventRegistrationToken messageToken{};
     // Scripts asked for before the web view exists. They run once it's ready.
     std::vector<std::wstring> pendingScripts;
-    // Set while the window is being destroyed by its owner, so no close notification is sent for it.
-    bool destroying = false;
     // The window stays hidden until its page has loaded, so it never shows as an empty frame.
     bool pageLoaded = false;
     bool wantsVisible = false;
@@ -204,15 +202,11 @@ LRESULT CALLBACK windowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lPara
             }
             return 0;
         case WM_CLOSE:
-            if (!native->owner->requestClose()) {
-                return 0;
-            }
-            return DefWindowProcW(hwnd, message, wParam, lParam);
+            // A close hides the window, so it's never destroyed by one.
+            native->owner->requestClose();
+            return 0;
         case WM_DESTROY:
             native->hwnd = nullptr;
-            if (!native->destroying) {
-                native->owner->notifyClosed();
-            }
             return 0;
         default:
             return DefWindowProcW(hwnd, message, wParam, lParam);
@@ -251,7 +245,6 @@ void NativeWindowDeleter::operator()(NativeWindow* native) const {
     if (!native) {
         return;
     }
-    native->destroying = true;
     if (native->webview) {
         native->webview->Release();
     }
@@ -402,6 +395,10 @@ void WebViewWindow::platformOpen() {
     createEnvironment(nullptr, nullptr, nullptr, webview2::environmentDone(onEnvironment));
 
     native->wantsVisible = options.visible;
+}
+
+void WebViewWindow::platformUnload() {
+    native_.reset();
 }
 
 void WebViewWindow::platformPresent() {

@@ -26,7 +26,7 @@ std::string ContextMenuWindow::devUrl() const {
 void ContextMenuWindow::onFocusLost() {
     using namespace std::chrono_literals;
     if (std::chrono::steady_clock::now() - shownAt_ > 400ms) {
-        hide();
+        close();
     }
 }
 
@@ -43,7 +43,7 @@ void ContextMenuWindow::installHandlers() {
         if (app_.list) {
             app_.list->emit("menuPick", args.at(0));
         }
-        window.hide();
+        window.close();
         reply.result(nullptr);
     });
 }

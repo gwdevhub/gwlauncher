@@ -15,10 +15,6 @@ public:
     std::string html() const override;
     std::string devUrl() const override;
 
-protected:
-    // Closing an editor hides it, so it can be shown again from the list.
-    bool allowClose() override;
-
 private:
     void installHandlers();
 

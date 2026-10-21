@@ -174,12 +174,9 @@ gboolean onFocusOut(GtkWidget*, GdkEvent*, gpointer data) {
 }
 
 gboolean onDeleteEvent(GtkWidget*, GdkEvent*, gpointer data) {
-    auto* window = static_cast<WebViewWindow*>(data);
-    if (!window->requestClose()) {
-        return TRUE;
-    }
-    window->notifyClosed();
-    return FALSE;
+    // A close hides the window, so GTK keeps it.
+    static_cast<WebViewWindow*>(data)->requestClose();
+    return TRUE;
 }
 
 }  // namespace
@@ -255,6 +252,10 @@ guint32 serverTime(GtkWidget* widget) {
 }
 
 }  // namespace
+
+void WebViewWindow::platformUnload() {
+    native_.reset();
+}
 
 void WebViewWindow::platformPresent() {
     if (!native_ || !native_->window) {

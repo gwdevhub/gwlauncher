@@ -528,7 +528,7 @@ void installCommonHandlers(gwl::MessageHandler& handler, AppState& app) {
     });
     handler.on("hide", [&app](gwl::WebViewWindow& window, const gwl::Json&, const gwl::Reply& reply) {
         logRequest("hide");
-        window.hide();
+        window.close();
         reply.result(nullptr);
         app.endQuickIfIdle();
     });

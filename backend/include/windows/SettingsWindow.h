@@ -15,10 +15,6 @@ public:
     std::string html() const override;
     std::string devUrl() const override;
 
-protected:
-    // Closing the window hides it, so it can be shown again.
-    bool allowClose() override;
-
 private:
     AppState& app_;
 };

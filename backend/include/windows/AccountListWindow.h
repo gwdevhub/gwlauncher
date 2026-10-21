@@ -20,8 +20,6 @@ protected:
     bool allowClose() override;
     // In tray mode losing focus hides the list, as a click away from it does.
     void onFocusLost() override;
-    // Closing the list quits the launcher.
-    void onClosed() override;
 
 private:
     void installHandlers();

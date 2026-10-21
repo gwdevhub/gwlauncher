@@ -32,8 +32,10 @@ bool AccountListWindow::allowClose() {
         app_.hideList();
         return false;
     }
+    // Closing the list quits the launcher.
     app_.rememberListPlace();
-    return true;
+    gwl::stopEventLoop();
+    return false;
 }
 
 void AccountListWindow::onFocusLost() {
@@ -50,10 +52,6 @@ void AccountListWindow::onFocusLost() {
     }
     app_.listHiddenByFocusAt = std::chrono::steady_clock::now();
     app_.hideList();
-}
-
-void AccountListWindow::onClosed() {
-    gwl::stopEventLoop();
 }
 
 void AccountListWindow::installHandlers() {
@@ -108,6 +106,17 @@ void AccountListWindow::installHandlers() {
             window.minimize();
         }
         reply.result(nullptr);
+    });
+    // Escape hides the list. In tray mode that goes through hideList, which frees the web view after a while.
+    handler.on("hide", [this](gwl::WebViewWindow& window, const gwl::Json&, const gwl::Reply& reply) {
+        logRequest("hide");
+        if (app_.tray) {
+            app_.hideList();
+        } else {
+            window.hide();
+        }
+        reply.result(nullptr);
+        app_.endQuickIfIdle();
     });
     handler.on("devtools", [](gwl::WebViewWindow& window, const gwl::Json&, const gwl::Reply& reply) {
         logRequest("devtools");
