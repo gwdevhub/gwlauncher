@@ -15,6 +15,7 @@ namespace webview2 {
 ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler* environmentDone(std::function<void(HRESULT, ICoreWebView2Environment*)> done);
 ICoreWebView2CreateCoreWebView2ControllerCompletedHandler* controllerDone(std::function<void(HRESULT, ICoreWebView2Controller*)> done);
 ICoreWebView2WebMessageReceivedEventHandler* messageReceived(std::function<void(ICoreWebView2WebMessageReceivedEventArgs*)> received);
+ICoreWebView2NavigationCompletedEventHandler* navigationDone(std::function<void()> done);
 ICoreWebView2ExecuteScriptCompletedHandler* scriptDone();
 
 }  // namespace webview2

@@ -82,6 +82,11 @@ struct NativeWindow {
     std::vector<std::wstring> pendingScripts;
     // Set while the window is being destroyed by its owner, so no close notification is sent for it.
     bool destroying = false;
+    // The window stays hidden until its page has loaded, so it never shows as an empty frame.
+    bool pageLoaded = false;
+    bool wantsVisible = false;
+    bool wantsFocus = false;
+    EventRegistrationToken navigationToken{};
 };
 
 namespace {
@@ -117,6 +122,20 @@ void useLowMemoryTarget(ICoreWebView2* webview) {
     }
 }
 
+// Shows the window once its page has loaded, if it's wanted yet. Focus goes to it only if it was asked for.
+void showLoadedPage(NativeWindow* native) {
+    native->pageLoaded = true;
+    if (!native->hwnd || !native->wantsVisible) {
+        return;
+    }
+    ShowWindow(native->hwnd, SW_SHOW);
+    syncWebViewVisibility(native);
+    if (native->wantsFocus) {
+        native->wantsFocus = false;
+        SetForegroundWindow(native->hwnd);
+    }
+}
+
 void attachWebView(NativeWindow* native, ICoreWebView2Controller* controller) {
     native->controller = controller;
     native->controller->AddRef();
@@ -124,6 +143,8 @@ void attachWebView(NativeWindow* native, ICoreWebView2Controller* controller) {
     useLowMemoryTarget(native->webview);
     resizeWebView(native);
     syncWebViewVisibility(native);
+
+    native->webview->add_NavigationCompleted(webview2::navigationDone([native] { showLoadedPage(native); }), &native->navigationToken);
 
     native->webview->add_WebMessageReceived(
         webview2::messageReceived([native](ICoreWebView2WebMessageReceivedEventArgs* args) {
@@ -380,11 +401,16 @@ void WebViewWindow::platformOpen() {
     auto createEnvironment = loaderFunction<CreateEnvironmentFn>("CreateCoreWebView2EnvironmentWithOptions");
     createEnvironment(nullptr, nullptr, nullptr, webview2::environmentDone(onEnvironment));
 
-    ShowWindow(native->hwnd, options.visible ? SW_SHOW : SW_HIDE);
+    native->wantsVisible = options.visible;
 }
 
 void WebViewWindow::platformPresent() {
     if (native_ && native_->hwnd) {
+        native_->wantsVisible = true;
+        if (!native_->pageLoaded) {
+            native_->wantsFocus = true;
+            return;
+        }
         // Restores the window if it's minimised, then asks for the foreground. Windows may keep the focus where it is.
         ShowWindow(native_->hwnd, IsIconic(native_->hwnd) ? SW_RESTORE : SW_SHOW);
         syncWebViewVisibility(native_.get());
@@ -394,8 +420,11 @@ void WebViewWindow::platformPresent() {
 
 void WebViewWindow::platformShow(bool visible) {
     if (native_ && native_->hwnd) {
-        ShowWindow(native_->hwnd, visible ? SW_SHOW : SW_HIDE);
-        syncWebViewVisibility(native_.get());
+        native_->wantsVisible = visible;
+        if (native_->pageLoaded) {
+            ShowWindow(native_->hwnd, visible ? SW_SHOW : SW_HIDE);
+            syncWebViewVisibility(native_.get());
+        }
     }
 }
 

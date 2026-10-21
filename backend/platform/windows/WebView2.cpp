@@ -29,6 +29,10 @@ template <>
 struct CallbackIid<ICoreWebView2ExecuteScriptCompletedHandler> {
     static const IID& value() { return IID_ICoreWebView2ExecuteScriptCompletedHandler; }
 };
+template <>
+struct CallbackIid<ICoreWebView2NavigationCompletedEventHandler> {
+    static const IID& value() { return IID_ICoreWebView2NavigationCompletedEventHandler; }
+};
 
 // A COM object for a WebView2 callback. The concrete handlers below supply each interface's Invoke.
 template <typename Iface>
@@ -93,6 +97,18 @@ private:
     std::function<void(ICoreWebView2WebMessageReceivedEventArgs*)> received_;
 };
 
+class NavigationDone : public ComObject<ICoreWebView2NavigationCompletedEventHandler> {
+public:
+    explicit NavigationDone(std::function<void()> done) : done_(std::move(done)) {}
+    HRESULT STDMETHODCALLTYPE Invoke(ICoreWebView2* /*sender*/, ICoreWebView2NavigationCompletedEventArgs* /*args*/) override {
+        done_();
+        return S_OK;
+    }
+
+private:
+    std::function<void()> done_;
+};
+
 class ScriptDone : public ComObject<ICoreWebView2ExecuteScriptCompletedHandler> {
 public:
     HRESULT STDMETHODCALLTYPE Invoke(HRESULT /*result*/, LPCWSTR /*json*/) override { return S_OK; }
@@ -110,6 +126,10 @@ ICoreWebView2CreateCoreWebView2ControllerCompletedHandler* controllerDone(std::f
 
 ICoreWebView2WebMessageReceivedEventHandler* messageReceived(std::function<void(ICoreWebView2WebMessageReceivedEventArgs*)> received) {
     return new MessageReceived(std::move(received));
+}
+
+ICoreWebView2NavigationCompletedEventHandler* navigationDone(std::function<void()> done) {
+    return new NavigationDone(std::move(done));
 }
 
 ICoreWebView2ExecuteScriptCompletedHandler* scriptDone() {
