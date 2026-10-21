@@ -97,6 +97,12 @@ void AccountListWindow::installHandlers() {
         gwl::stopEventLoop();
         reply.result(nullptr);
     });
+    handler.on("restart", [this](gwl::WebViewWindow&, const gwl::Json&, const gwl::Reply& reply) {
+        logRequest("restart");
+        app_.rememberListPlace();
+        app_.restart();
+        reply.result(nullptr);
+    });
     // In tray mode the list has no taskbar button to come back from, so minimising hides it into the tray.
     handler.on("minimize", [this](gwl::WebViewWindow& window, const gwl::Json&, const gwl::Reply& reply) {
         logRequest("minimize");
