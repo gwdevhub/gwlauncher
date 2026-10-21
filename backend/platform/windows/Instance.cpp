@@ -6,6 +6,7 @@
 
 #include <chrono>
 #include <cstddef>
+#include <mutex>
 #include <string>
 #include <thread>
 
@@ -21,6 +22,16 @@ std::wstring pipeName() {
         name += user;
     }
     return name;
+}
+
+// Set by stopListeningForRequests. A listener that finds it set closes its pipe, then signals listenerDone.
+std::mutex listenerMutex;
+bool listenerStopped = false;
+HANDLE listenerDone = nullptr;
+
+bool isListenerStopped() {
+    std::lock_guard<std::mutex> lock(listenerMutex);
+    return listenerStopped;
 }
 
 // One line, up to its newline. False when the pipe closes or fails first.
@@ -61,7 +72,9 @@ bool forwardRequest(const InstanceRequest& request) {
 
 void listenForRequests(std::function<void(InstanceRequest)> handle) {
     const std::wstring name = pipeName();
-    std::thread([name, handle = std::move(handle)] {
+    listenerDone = CreateEventW(nullptr, TRUE, FALSE, nullptr);
+    HANDLE done = listenerDone;
+    std::thread([name, done, handle = std::move(handle)] {
         bool first = true;
         for (;;) {
             // Only the first pipe can be made by this launcher; a launcher that finds it taken is listened to by another one.
@@ -70,12 +83,17 @@ void listenForRequests(std::function<void(InstanceRequest)> handle) {
                                            512, 512, 2000, nullptr);
             if (pipe == INVALID_HANDLE_VALUE) {
                 if (first) {
-                    return;
+                    break;
                 }
                 std::this_thread::sleep_for(std::chrono::milliseconds(100));
                 continue;
             }
             first = false;
+            // Checked once the pipe exists, so the connection that wakes a stopped listener finds it.
+            if (isListenerStopped()) {
+                CloseHandle(pipe);
+                break;
+            }
             if (!ConnectNamedPipe(pipe, nullptr) && GetLastError() != ERROR_PIPE_CONNECTED) {
                 CloseHandle(pipe);
                 continue;
@@ -93,7 +111,24 @@ void listenForRequests(std::function<void(InstanceRequest)> handle) {
                 handle(*request);
             }
         }
+        SetEvent(done);
     }).detach();
+}
+
+void stopListeningForRequests() {
+    {
+        std::lock_guard<std::mutex> lock(listenerMutex);
+        listenerStopped = true;
+    }
+    // A listener waiting for a start is woken by this connection, and then sees that it's stopped.
+    HANDLE wake = CreateFileW(pipeName().c_str(), GENERIC_READ | GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, 0, nullptr);
+    if (wake != INVALID_HANDLE_VALUE) {
+        CloseHandle(wake);
+    }
+    // The listener closes its pipe before signalling, so a fresh launcher can make the first pipe once this returns.
+    if (listenerDone) {
+        WaitForSingleObject(listenerDone, 2000);
+    }
 }
 
 }  // namespace gwl

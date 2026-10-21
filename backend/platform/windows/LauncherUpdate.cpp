@@ -4,7 +4,6 @@
 #include <vector>
 
 #include "LauncherUpdate.h"
-#include "Process.h"
 #include "utils/Files.h"
 
 namespace gwl {
@@ -13,8 +12,7 @@ const char* launcherAssetName() {
     return "GW_Launcher.exe";
 }
 
-void installLauncherRelease(const std::filesystem::path& current, const std::filesystem::path& staged,
-                            const std::vector<std::string>& arguments) {
+void installLauncherRelease(const std::filesystem::path& current, const std::filesystem::path& staged) {
     namespace fs = std::filesystem;
     // The running exe is renamed rather than replaced, since Windows locks a running exe. The old one is kept until the swap works.
     const fs::path old = current.parent_path() / ".old.exe";
@@ -30,9 +28,6 @@ void installLauncherRelease(const std::filesystem::path& current, const std::fil
         fs::rename(old, current, restore);
         throw std::runtime_error("The update couldn't be put in place: " + error.message());
     }
-    std::vector<std::string> command{pathToUtf8(current)};
-    command.insert(command.end(), arguments.begin(), arguments.end());
-    runProgramDetached(command);
 }
 
 void removeLauncherLeftovers(const std::filesystem::path& current) {

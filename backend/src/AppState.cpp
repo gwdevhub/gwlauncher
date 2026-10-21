@@ -79,6 +79,7 @@ void fetchSteamIconFor(const std::vector<gwl::Account>& accounts, const std::fun
 }  // namespace
 
 AppState::AppState(std::string pageHtml) : page(std::move(pageHtml)) {
+    executable = gwl::executablePath();
     try {
         settings = gwl::loadSettings(kSettingsFile);
     } catch (const std::exception& error) {

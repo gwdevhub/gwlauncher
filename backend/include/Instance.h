@@ -31,4 +31,7 @@ bool forwardRequest(const InstanceRequest& request);
 // Accepts requests from later starts on a thread, and passes each one to handle, which runs on that thread.
 void listenForRequests(std::function<void(InstanceRequest)> handle);
 
+// Stops answering later starts, so a fresh launcher started after this call runs instead of being handed to this one.
+void stopListeningForRequests();
+
 }  // namespace gwl
