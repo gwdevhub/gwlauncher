@@ -10,7 +10,6 @@
 
 #include "utils/Bytes.h"
 #include "utils/Files.h"
-#include "utils/Parsing.h"
 
 namespace gwl {
 
@@ -503,7 +502,10 @@ std::optional<std::size_t> numberAfter(const std::string& text, const std::strin
     while (end < text.size() && text[end] >= '0' && text[end] <= '9') {
         end += 1;
     }
-    return stringToSize(text.substr(i, end - i));
+    if (end == i) {
+        return std::nullopt;
+    }
+    return static_cast<std::size_t>(std::stoull(text.substr(i, end - i)));
 }
 
 // The text between each occurrence of marker and the next one, as Rust's split(...).skip(1) gives it.

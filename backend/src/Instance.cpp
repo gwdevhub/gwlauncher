@@ -1,7 +1,7 @@
 #include "Instance.h"
 
 #include "Messages.h"
-#include "utils/Parsing.h"
+#include "utils/Strings.h"
 
 namespace gwl {
 

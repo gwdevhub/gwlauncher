@@ -1,5 +1,7 @@
 #include "utils/Strings.h"
 
+#include <algorithm>
+#include <charconv>
 #include <cctype>
 #include <cstddef>
 
@@ -27,14 +29,25 @@ std::string lowerCase(std::string text) {
     return text;
 }
 
-std::string millisecondsAsSeconds(std::uint32_t milliseconds) {
-    std::string seconds = std::to_string(milliseconds / 1000);
-    if (milliseconds % 1000 != 0) {
-        std::string fraction = std::to_string(1000 + milliseconds % 1000).substr(1);
-        fraction.erase(fraction.find_last_not_of('0') + 1);
-        seconds += "." + fraction;
+std::optional<std::uint32_t> stringToUint32(const std::string& text) {
+    std::uint32_t value;
+    const auto [end, error] = std::from_chars(text.data(), text.data() + text.size(), value);
+    if (error != std::errc{} || end != text.data() + text.size()) {
+        return std::nullopt;
     }
-    return seconds;
+    return value;
+}
+
+std::optional<std::string> parseArgumentWithValue(const std::vector<std::string>& arguments, const std::string& name,
+                                                std::size_t first) {
+    if (first >= arguments.size()) {
+        return std::nullopt;
+    }
+    const auto found = std::find(arguments.begin() + first, arguments.end(), name);
+    if (found == arguments.end() || found + 1 == arguments.end() || (found + 1)->empty()) {
+        return std::nullopt;
+    }
+    return *(found + 1);
 }
 
 std::string hexEncode(const Bytes& bytes) {

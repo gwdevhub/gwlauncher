@@ -10,7 +10,7 @@ import type { Settings } from '../types';
 import { Button } from '../components/Button';
 import { Check } from '../components/Check';
 import { Note } from '../components/Note';
-import { parseTimeoutSeconds, stringToUint32, timeoutSecondsText } from '../utils/numbers';
+import { parseTimeoutSeconds, timeoutSecondsText } from '../utils/numbers';
 
 export function SettingsWindow() {
     const app = useAppState();
@@ -117,12 +117,7 @@ export function SettingsWindow() {
             <h2 className="m-0 text-sm">Display</h2>
             <label className="row form-grid-wide grid items-center gap-2">
                 <span>UI scale:</span>
-                <input className="w-full" type="range" min={50} max={200} step={5} value={settings.uiScale} onChange={e => {
-                    const scale = stringToUint32(e.target.value);
-                    if (scale !== undefined) {
-                        set({ uiScale: scale });
-                    }
-                }} />
+                <input className="w-full" type="range" min={50} max={200} step={5} value={settings.uiScale} onChange={e => set({ uiScale: e.target.valueAsNumber })} />
                 <span>{settings.uiScale}%</span>
             </label>
 

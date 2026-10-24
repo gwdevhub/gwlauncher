@@ -5,10 +5,8 @@
 
 #include <windows.h>
 
+#include <cstdlib>
 #include <string>
-
-#include "utils/Parsing.h"
-#include "utils/Strings.h"
 
 namespace gwl {
 
@@ -34,6 +32,14 @@ std::string registryString(const wchar_t* name) {
     return text;
 }
 
+std::string trimmed(std::string text) {
+    const auto first = text.find_first_not_of(' ');
+    if (first == std::string::npos) {
+        return "";
+    }
+    return text.substr(first, text.find_last_not_of(' ') - first + 1);
+}
+
 }  // namespace
 
 std::string osDescription() {
@@ -45,8 +51,7 @@ std::string osDescription() {
             edition = edition.substr(prefix.size());
         }
     }
-    const auto buildNumber = stringToUint32(build);
-    const bool windows11 = buildNumber && *buildNumber >= 22000;
+    const bool windows11 = !build.empty() && std::strtoul(build.c_str(), nullptr, 10) >= 22000;
     const std::string description = std::string(windows11 ? "Windows 11" : "Windows 10") + " " + trimmed(edition) + " " + build;
     // Single spaces only, as the Rust launcher's description has them when the edition or build is missing.
     std::string out;

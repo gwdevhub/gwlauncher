@@ -112,10 +112,4 @@ The launcher keeps its files in `$XDG_DATA_HOME/gwlauncher` (default `~/.local/s
 
 On Windows, accounts launch by restarting `GW_Launcher.exe` with `--launch <account.json> <timeout-ms> [--window-timeout-ms <ms>] [--confirm]`. The positional timeout controls each mod DLL load; `--window-timeout-ms` controls each wait for the game window and input readiness, defaulting to 20000 when omitted. Both CLI values are milliseconds; the settings window displays whole seconds. This mode bypasses the UI and WebView2 initialization. Linux extracts its embedded `GW_Launcher.cli.exe` and runs the same launch mode under Wine.
 
-## Parsing and numeric conversions
-
-Use `utils/Parsing.h` for checked argument and numeric parsing. `parseArgumentWithValue`, `stringToUint32`, `stringToSize`, `stringToFloat`, `intToUint32`, and `floatToUint32` return `std::optional<T>`, with `std::nullopt` for invalid or out-of-range input. Check the optional before dereferencing it; a parsed zero is a valid result. String conversions require the entire input, reject whitespace and overflow, and do not throw conversion exceptions. Unsigned text is decimal digits only. Floating-point text is parsed at double precision and must be finite; `floatToUint32` rounds nonnegative values to the nearest integer, with halves rounded up.
-
-`hasArgument` and `parseArgumentWithValue` accept an optional starting index so positional values cannot be mistaken for flags. The latter reads the token following the first matching argument and returns `std::nullopt` if the argument is absent or its value is missing or empty. Use the boolean `hasArgument` predicate when an absent argument needs different handling from a malformed one. `millisecondsAsSeconds` in `utils/Strings.h` formats durations without floating-point conversion in launch code.
-
-The frontend's `src/utils/numbers.ts` returns `number | undefined` for checked conversions. Compare with `undefined` explicitly so zero is not mistaken for failure. Keep timeout rounding, range checks, and seconds/milliseconds conversions there; views call `parseTimeoutSeconds` and `timeoutSecondsText`. Percentage formatting lives in `src/utils/format.ts`.
+Shared argument and unsigned-number parsing lives in `utils/Strings.h` and returns `std::optional<T>`. The frontend's `src/utils/numbers.ts` handles whole-second timeout conversion and validation.

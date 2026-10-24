@@ -1,6 +1,5 @@
 #include "Settings.h"
 #include "utils/Files.h"
-#include "utils/Parsing.h"
 
 #include <fstream>
 #include <sstream>
@@ -117,18 +116,11 @@ Settings loadSettings(const std::string& path) {
             settings.winePath = stringValue(key, value);
         } else if (key == "TimeoutOnModlaunch" || key == "TimeoutOnGameWindow") {
             const std::int64_t timeout = intValue(key, value);
-            const auto milliseconds = intToUint32(timeout);
-            if (!milliseconds) {
+            if (timeout < 0 || timeout > UINT32_MAX || (key == "TimeoutOnGameWindow" && (timeout == 0 || timeout == UINT32_MAX))) {
                 throw std::runtime_error("Settings.json is invalid: " + key + " is out of range");
             }
-            if (key == "TimeoutOnGameWindow") {
-                if (timeout == 0 || timeout == UINT32_MAX) {
-                    throw std::runtime_error("Settings.json is invalid: " + key + " is out of range");
-                }
-                settings.timeoutOnGameWindow = *milliseconds;
-            } else {
-                settings.timeoutOnModlaunch = *milliseconds;
-            }
+            auto& target = key == "TimeoutOnGameWindow" ? settings.timeoutOnGameWindow : settings.timeoutOnModlaunch;
+            target = static_cast<std::uint32_t>(timeout);
         }
     }
     return settings;
@@ -205,15 +197,11 @@ Settings Settings::applyFields(const Json& fields) const {
             continue;
         }
         const Json& timeout = fields[key];
-        const auto milliseconds = timeout.is_number_integer() ? intToUint32(timeout.get<std::int64_t>()) : std::nullopt;
-        if (!milliseconds || *milliseconds == 0 || *milliseconds == UINT32_MAX) {
+        if (!timeout.is_number_integer() || timeout.get<std::int64_t>() <= 0 || timeout.get<std::int64_t>() >= UINT32_MAX) {
             throw std::runtime_error("Timeouts must be greater than zero and less than 4294967.295 seconds.");
         }
-        if (std::string(key) == "timeoutOnGameWindow") {
-            updated.timeoutOnGameWindow = *milliseconds;
-        } else {
-            updated.timeoutOnModlaunch = *milliseconds;
-        }
+        auto& target = std::string(key) == "timeoutOnGameWindow" ? updated.timeoutOnGameWindow : updated.timeoutOnModlaunch;
+        target = timeout.get<std::uint32_t>();
     }
     return updated;
 }

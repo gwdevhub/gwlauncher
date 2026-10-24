@@ -17,7 +17,6 @@
 #include "Cli.h"
 #include "Launch.h"
 #include "utils/Files.h"
-#include "utils/Parsing.h"
 #include "utils/Strings.h"
 
 namespace gwl {
@@ -73,7 +72,7 @@ int launch(const std::vector<std::string>& arguments) {
         throw std::runtime_error("--launch needs the timeout in milliseconds.");
     }
     std::uint32_t windowTimeout = 20000;
-    if (hasArgument(arguments, "--window-timeout-ms", 2)) {
+    if (std::find(arguments.begin() + 2, arguments.end(), "--window-timeout-ms") != arguments.end()) {
         const auto value = parseArgumentWithValue(arguments, "--window-timeout-ms", 2);
         const auto parsed = value ? stringToUint32(*value) : std::nullopt;
         if (!parsed || *parsed == 0 || *parsed == UINT32_MAX) {
@@ -100,7 +99,7 @@ int launch(const std::vector<std::string>& arguments) {
     }
 
     std::function<bool()> confirm;
-    if (hasArgument(arguments, "--confirm", 2)) {
+    if (std::find(arguments.begin(), arguments.end(), "--confirm") != arguments.end()) {
         confirm = [] {
             std::cout << "suspended" << std::endl;
             std::string answer;
