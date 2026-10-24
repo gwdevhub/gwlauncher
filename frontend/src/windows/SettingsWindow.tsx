@@ -12,9 +12,8 @@ import { Check } from '../components/Check';
 import { Note } from '../components/Note';
 
 function timeoutMilliseconds(seconds: string): number | null {
-    const value = Number(seconds) * 1000;
-    const rounded = Math.round(value);
-    return Number.isFinite(value) && rounded > 0 && rounded < 0xFFFFFFFF && Math.abs(value - rounded) < 0.000001 ? rounded : null;
+    const rounded = Math.round(Number(seconds));
+    return Number.isFinite(rounded) && rounded >= 1 && rounded <= 4294967 ? rounded * 1000 : null;
 }
 
 export function SettingsWindow() {
@@ -39,8 +38,8 @@ export function SettingsWindow() {
             setEncrypted(isEncrypted);
             setProtect(isEncrypted);
             setLocal({ ...state.settings! });
-            setModTimeoutSeconds(String(Number(state.settings!.timeoutOnModlaunch) / 1000));
-            setWindowTimeoutSeconds(String(Number(state.settings!.timeoutOnGameWindow) / 1000));
+            setModTimeoutSeconds(String(Math.max(1, Math.min(4294967, Math.round(Number(state.settings!.timeoutOnModlaunch) / 1000)))));
+            setWindowTimeoutSeconds(String(Math.max(1, Math.min(4294967, Math.round(Number(state.settings!.timeoutOnGameWindow) / 1000)))));
             setLoaded(true);
         })();
     }, []);
@@ -76,7 +75,7 @@ export function SettingsWindow() {
         const timeout = timeoutMilliseconds(modTimeoutSeconds);
         const windowTimeout = timeoutMilliseconds(windowTimeoutSeconds);
         if (timeout === null || windowTimeout === null) {
-            setError('Enter each timeout in seconds, from 0.001 to 4294967.294, with up to three decimal places.');
+            setError('Enter each timeout in whole seconds, from 1 to 4294967.');
             return;
         }
         const saved = { ...settings, timeoutOnModlaunch: timeout, timeoutOnGameWindow: windowTimeout, steamPath: settings.steamPath.trim(), winePath: settings.winePath.trim() };
@@ -168,13 +167,13 @@ export function SettingsWindow() {
             <h2 className="m-0 text-sm">Advanced</h2>
             <label className="row grid grid-cols-[220px_1fr_auto] items-center gap-2">
                 <span>Game window timeout (seconds):</span>
-                <input className="text-input w-full select-text rounded border border-border px-1.5 py-1" type="number" min="0.001" max="4294967.294" step="0.001" value={windowTimeoutSeconds} onChange={e => setWindowTimeoutSeconds(e.target.value)} />
+                <input className="text-input w-full select-text rounded border border-border px-1.5 py-1" type="number" min="1" max="4294967" step="1" value={windowTimeoutSeconds} onChange={e => setWindowTimeoutSeconds(e.target.value)} />
                 <span />
             </label>
             <Note>How long to wait for the game window to appear and then become ready, for each step. Applies even without mods.</Note>
             <label className="row grid grid-cols-[220px_1fr_auto] items-center gap-2">
                 <span>Mod launch timeout (seconds):</span>
-                <input className="text-input w-full select-text rounded border border-border px-1.5 py-1" type="number" min="0.001" max="4294967.294" step="0.001" value={modTimeoutSeconds} onChange={e => setModTimeoutSeconds(e.target.value)} />
+                <input className="text-input w-full select-text rounded border border-border px-1.5 py-1" type="number" min="1" max="4294967" step="1" value={modTimeoutSeconds} onChange={e => setModTimeoutSeconds(e.target.value)} />
                 <span />
             </label>
             <Note>How long to wait for each mod DLL to load into the game. Does not change the game window timeout.</Note>

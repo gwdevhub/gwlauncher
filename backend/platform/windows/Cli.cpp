@@ -44,7 +44,7 @@ const char* const kUsage = R"usage(Usage: GW_Launcher.cli.exe --launch <account.
                   A mod's "type" is 0 for a texture mod or 1 for a DLL, and it's required.
                   "fileName" is the mod's path, and "active" defaults to true.
   <timeout-ms>    How long to wait for each mod DLL to load, in milliseconds.
-  --window-timeout-ms <ms>  How long to wait for the game's window and input readiness (each), default 10000.
+  --window-timeout-ms <ms>  How long to wait for the game's window and input readiness (each), default 20000.
   --confirm       Hold the game suspended after it's started. Prints "suspended" on stdout, then
                   reads "resume" or "cancel" from stdin.
 
@@ -81,7 +81,7 @@ int launch(const std::vector<std::string>& arguments) {
         throw std::runtime_error("--launch needs the timeout in milliseconds.");
     }
     const std::uint32_t timeout = parseTimeout(arguments[1]);
-    std::uint32_t windowTimeout = 10000;
+    std::uint32_t windowTimeout = 20000;
     const auto windowOption = std::find(arguments.begin() + 2, arguments.end(), "--window-timeout-ms");
     if (windowOption != arguments.end()) {
         if (windowOption + 1 == arguments.end()) {
