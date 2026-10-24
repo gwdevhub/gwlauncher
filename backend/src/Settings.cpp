@@ -59,7 +59,6 @@ Json Settings::forPage() const {
         {"listWidth", listWidth},
         {"listHeight", listHeight},
         {"timeoutOnModlaunch", timeoutOnModlaunch},
-        {"timeoutOnGameWindow", timeoutOnGameWindow},
         {"steamPath", steamPath},
         {"uiScale", uiScale},
         {"winePath", winePath},
@@ -114,13 +113,12 @@ Settings loadSettings(const std::string& path) {
             settings.steamPath = stringValue(key, value);
         } else if (key == "WinePath") {
             settings.winePath = stringValue(key, value);
-        } else if (key == "TimeoutOnModlaunch" || key == "TimeoutOnGameWindow") {
+        } else if (key == "TimeoutOnModlaunch") {
             const std::int64_t timeout = intValue(key, value);
-            if (timeout < 0 || timeout > UINT32_MAX || (key == "TimeoutOnGameWindow" && (timeout == 0 || timeout == UINT32_MAX))) {
+            if (timeout < 0 || timeout > UINT32_MAX) {
                 throw std::runtime_error("Settings.json is invalid: " + key + " is out of range");
             }
-            auto& target = key == "TimeoutOnGameWindow" ? settings.timeoutOnGameWindow : settings.timeoutOnModlaunch;
-            target = static_cast<std::uint32_t>(timeout);
+            settings.timeoutOnModlaunch = static_cast<std::uint32_t>(timeout);
         }
     }
     return settings;
@@ -139,7 +137,6 @@ void Settings::save(const std::string& path) const {
         {"ListX", listX ? Json(*listX) : Json(nullptr)},
         {"ListY", listY ? Json(*listY) : Json(nullptr)},
         {"TimeoutOnModlaunch", timeoutOnModlaunch},
-        {"TimeoutOnGameWindow", timeoutOnGameWindow},
         {"SteamPath", steamPath},
         {"UiScale", uiScale},
         {"WinePath", winePath},
@@ -192,16 +189,12 @@ Settings Settings::applyFields(const Json& fields) const {
     if (fields.contains("winePath")) {
         updated.winePath = fields["winePath"].get<std::string>();
     }
-    for (const char* key : {"timeoutOnModlaunch", "timeoutOnGameWindow"}) {
-        if (!fields.contains(key)) {
-            continue;
-        }
-        const Json& timeout = fields[key];
+    if (fields.contains("timeoutOnModlaunch")) {
+        const Json& timeout = fields["timeoutOnModlaunch"];
         if (!timeout.is_number_integer() || timeout.get<std::int64_t>() <= 0 || timeout.get<std::int64_t>() >= UINT32_MAX) {
-            throw std::runtime_error("Timeouts must be greater than zero and less than 4294967.295 seconds.");
+            throw std::runtime_error("The launch timeout must be greater than zero and less than 4294967.295 seconds.");
         }
-        auto& target = std::string(key) == "timeoutOnGameWindow" ? updated.timeoutOnGameWindow : updated.timeoutOnModlaunch;
-        target = timeout.get<std::uint32_t>();
+        updated.timeoutOnModlaunch = timeout.get<std::uint32_t>();
     }
     return updated;
 }

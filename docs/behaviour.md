@@ -72,9 +72,8 @@ Statements marked *(to confirm)* describe intended behaviour that the code doesn
 - A warning doesn't stop a launch.
 - An out-of-date Gw.exe is offered for update before launch. Launch stays available.
 - A suspended launch holds the game until the user chooses Resume or Cancel. Cancel loads nothing.
-- Mods load in order after the game is suspended. Each DLL load gets the Mod launch timeout from Settings > Advanced (default 10 seconds).
-- After resuming the game, the launcher waits for its main window, then for input readiness. Each step gets the Game window timeout from Settings > Advanced (default 20 seconds), even without mods. A timeout terminates the game and reports which step failed, with a hint to increase this setting.
-- Both timeouts are passed to the Windows launch process, including the helper used under Wine/Proton on Linux. CLI launches accept an optional `--window-timeout-ms <ms>` (default 20000); the existing positional timeout controls mod DLL loading.
+- Mods load in order after the game is suspended. After resuming, the launcher waits for its main window, then for input readiness. Each DLL load and each window/readiness wait uses the same Launch timeout from Settings > Advanced (default 20 seconds), even without mods. A timeout terminates the game and reports which step failed.
+- The existing CLI timeout argument controls all these steps on Windows and in the Wine/Proton helper on Linux.
 - A Steam account needs Steam running. On Windows, Steam's client runs the game. On Linux, the game runs under Steam's Proton, with Steam's client files and DXVK in its own prefix, `steam-prefix`.
 - A non-Steam account on Linux runs under the system's Wine. If there's none, it runs under Steam's Proton, with its own prefix, `proton-prefix`.
 - Launch default client starts the default install with no account.
@@ -135,9 +134,9 @@ as written falls back to the mount for that drive.
 
 ## Settings
 
-- Keep in system tray, Launch minimised, Prompt me when an update is available, Game window timeout (seconds), and Mod launch timeout (seconds).
-- Both timeouts use whole seconds, from 1 to 4294967. Decimal input is rounded to the nearest whole second on save. Game window timeout defaults to 20 seconds; Mod launch timeout defaults to 10 seconds.
-- Settings.json keeps timeout values in milliseconds: TimeoutOnModlaunch is preserved for compatibility and TimeoutOnGameWindow defaults to 20000 when missing from an older file. The settings window displays existing values rounded to whole seconds, clamped to the input range, and saves them in that form.
+- Keep in system tray, Launch minimised, Prompt me when an update is available, and Launch timeout (seconds).
+- The launch timeout uses whole seconds, from 1 to 4294967, and defaults to 20 seconds. Decimal input is rounded to the nearest whole second on save.
+- Settings.json keeps the original TimeoutOnModlaunch field in milliseconds; existing saved durations are retained and now also control window readiness. The settings window displays them rounded to whole seconds, clamped to the input range, and saves them in that form.
 - Update checks always run at startup. They aren't a setting.
 
 ## Updates

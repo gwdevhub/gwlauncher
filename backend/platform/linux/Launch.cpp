@@ -471,7 +471,7 @@ std::optional<std::string> linuxPathFor(const std::string& windowsPath) {
     return candidate.string();
 }
 
-void startGame(const Account& account, const std::string& dir, std::uint32_t timeoutMs, std::uint32_t windowTimeoutMs, const std::function<bool()>& confirm, bool requireSteam) {
+void startGame(const Account& account, const std::string& dir, std::uint32_t timeoutMs, const std::function<bool()>& confirm, bool requireSteam) {
     (void)requireSteam;
     const std::string exe = account.gwpath;
     if (!fs::is_regular_file(exe)) {
@@ -526,8 +526,7 @@ void startGame(const Account& account, const std::string& dir, std::uint32_t tim
         }
     } cleanup{accountFile, errorFile};
 
-    std::vector<std::string> argv{runtime.wine.string(), helper.string(), "--launch", name, std::to_string(timeoutMs),
-                                  "--window-timeout-ms", std::to_string(windowTimeoutMs)};
+    std::vector<std::string> argv{runtime.wine.string(), helper.string(), "--launch", name, std::to_string(timeoutMs)};
     if (confirm) {
         argv.push_back("--confirm");
     }

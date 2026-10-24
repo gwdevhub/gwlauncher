@@ -24,8 +24,7 @@ export function SettingsWindow() {
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
-    const [modTimeoutSeconds, setModTimeoutSeconds] = useState('');
-    const [windowTimeoutSeconds, setWindowTimeoutSeconds] = useState('');
+    const [launchTimeoutSeconds, setLaunchTimeoutSeconds] = useState('');
 
     useEffect(() => {
         (async () => {
@@ -34,8 +33,7 @@ export function SettingsWindow() {
             setEncrypted(isEncrypted);
             setProtect(isEncrypted);
             setLocal({ ...state.settings! });
-            setModTimeoutSeconds(timeoutSecondsText(state.settings!.timeoutOnModlaunch));
-            setWindowTimeoutSeconds(timeoutSecondsText(state.settings!.timeoutOnGameWindow));
+            setLaunchTimeoutSeconds(timeoutSecondsText(state.settings!.timeoutOnModlaunch));
             setLoaded(true);
         })();
     }, []);
@@ -68,13 +66,12 @@ export function SettingsWindow() {
     };
 
     const save = async () => {
-        const timeout = parseTimeoutSeconds(modTimeoutSeconds);
-        const windowTimeout = parseTimeoutSeconds(windowTimeoutSeconds);
-        if (timeout === undefined || windowTimeout === undefined) {
-            setError('Enter each timeout in whole seconds, from 1 to 4294967.');
+        const timeout = parseTimeoutSeconds(launchTimeoutSeconds);
+        if (timeout === undefined) {
+            setError('Enter the launch timeout in whole seconds, from 1 to 4294967.');
             return;
         }
-        const saved = { ...settings, timeoutOnModlaunch: timeout, timeoutOnGameWindow: windowTimeout, steamPath: settings.steamPath.trim(), winePath: settings.winePath.trim() };
+        const saved = { ...settings, timeoutOnModlaunch: timeout, steamPath: settings.steamPath.trim(), winePath: settings.winePath.trim() };
         const message = await call<string | null>('saveSettings', saved);
         if (message) {
             setError(message);
@@ -162,17 +159,11 @@ export function SettingsWindow() {
 
             <h2 className="m-0 text-sm">Advanced</h2>
             <label className="row grid grid-cols-[220px_1fr_auto] items-center gap-2">
-                <span>Game window timeout (seconds):</span>
-                <input className="text-input w-full select-text rounded border border-border px-1.5 py-1" type="number" min="1" max="4294967" step="1" value={windowTimeoutSeconds} onChange={e => setWindowTimeoutSeconds(e.target.value)} />
+                <span>Launch timeout (seconds):</span>
+                <input className="text-input w-full select-text rounded border border-border px-1.5 py-1" type="number" min="1" max="4294967" step="1" value={launchTimeoutSeconds} onChange={e => setLaunchTimeoutSeconds(e.target.value)} />
                 <span />
             </label>
-            <Note>How long to wait for the game window to appear and then become ready, for each step. Applies even without mods.</Note>
-            <label className="row grid grid-cols-[220px_1fr_auto] items-center gap-2">
-                <span>Mod launch timeout (seconds):</span>
-                <input className="text-input w-full select-text rounded border border-border px-1.5 py-1" type="number" min="1" max="4294967" step="1" value={modTimeoutSeconds} onChange={e => setModTimeoutSeconds(e.target.value)} />
-                <span />
-            </label>
-            <Note>How long to wait for each mod DLL to load into the game. Does not change the game window timeout.</Note>
+            <Note>How long to wait for each mod DLL to load, the game window to appear, and input readiness. Applies even without mods; each step gets this timeout.</Note>
 
             {error && <p className="error text-danger">{error}</p>}
             <div className="buttons mt-auto flex justify-end gap-2 pt-1.5">

@@ -29,11 +29,10 @@ Settings are saved to [`Settings.json`](/docs/files/) and can also be edited the
 
 | Setting | Default | What it does |
 | --- | --- | --- |
-| **Game window timeout (seconds)** | 20 | How long to wait for the game window to appear (`MainWindowHandle`), then for input readiness (`WaitForInputIdle`). Each step gets this timeout. Applies even without mods; raise it if clients start slowly or you launch many clients. |
-| **Mod launch timeout (seconds)** | 10 | How long to wait for each mod DLL to load. Raise it if mod loading times out. This does not affect the game window timeout. |
+| **Launch timeout (seconds)** | 20 | How long to wait for each mod DLL to load, the game window to appear (`MainWindowHandle`), and input readiness (`WaitForInputIdle`). Each step gets this timeout. Applies even without mods; raise it if clients start slowly or you launch many clients. |
 
-Both timeouts use whole seconds, from 1 to 4294967. For example, enter **30** to wait 30 seconds. Decimal values are rounded to the nearest whole second when saved.
-`Settings.json` stores these values in milliseconds as `TimeoutOnGameWindow` and `TimeoutOnModlaunch`. Existing values are displayed rounded to whole seconds (minimum 1 second); older settings files default to a 20-second game window timeout.
+The timeout uses whole seconds, from 1 to 4294967. For example, enter **30** to wait 30 seconds per step. Decimal values are rounded to the nearest whole second when saved.
+`Settings.json` keeps the original `TimeoutOnModlaunch` field in milliseconds. Existing saved values are retained and now also apply to game-window readiness; they are displayed rounded to whole seconds (minimum 1 second).
 
 <div class="note">
 

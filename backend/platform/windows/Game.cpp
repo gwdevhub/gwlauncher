@@ -519,19 +519,19 @@ bool waitFor(const std::function<bool()>& test, DWORD timeoutMs) {
 }
 
 // Waits for the window, its input and its title, then checks the game still responds. The game is ended if a wait fails.
-void waitForWindow(const GameProcess& game, const std::string& name, DWORD windowTimeoutMs) {
+void waitForWindow(const GameProcess& game, const std::string& name, DWORD timeoutMs) {
     const DWORD processId = game.processId();
     const auto fail = [&game](const std::string& message) {
         game.terminate();
         throw std::runtime_error(message);
     };
 
-    const std::string timeoutSeconds = std::to_string(windowTimeoutMs / 1000);
-    if (!waitFor([processId] { return mainWindow(processId) != nullptr; }, windowTimeoutMs)) {
-        fail("Failed to wait for MainWindowHandle after " + timeoutSeconds + " seconds. Increase Game window timeout in Settings > Advanced.");
+    const std::string timeoutSeconds = std::to_string(timeoutMs / 1000);
+    if (!waitFor([processId] { return mainWindow(processId) != nullptr; }, timeoutMs)) {
+        fail("Failed to wait for MainWindowHandle after " + timeoutSeconds + " seconds. Increase Launch timeout in Settings > Advanced.");
     }
-    if (!waitFor([&game] { return WaitForInputIdle(game.handle(), kInputIdleMs) == 0; }, windowTimeoutMs)) {
-        fail("Failed to wait for WaitForInputIdle after " + timeoutSeconds + " seconds. Increase Game window timeout in Settings > Advanced.");
+    if (!waitFor([&game] { return WaitForInputIdle(game.handle(), kInputIdleMs) == 0; }, timeoutMs)) {
+        fail("Failed to wait for WaitForInputIdle after " + timeoutSeconds + " seconds. Increase Launch timeout in Settings > Advanced.");
     }
     SetForegroundWindow(mainWindow(processId));
 
@@ -659,7 +659,7 @@ std::unique_ptr<GameProcess> startPatched(const Account& account, const fs::path
             }
             if (result == ModuleLoad::RemoteThreadDidNotStart) {
                 throw std::runtime_error("The mod " + pathToUtf8(dll.filename()) + " didn't load within the " + std::to_string(timeoutMs) +
-                                         " ms limit. Increase Mod launch timeout under Settings > Advanced.");
+                                         " ms limit. Increase Launch timeout under Settings > Advanced.");
             }
             throw std::runtime_error(std::string("Result ") + moduleLoadName(result) + ": memory.LoadModule(" + pathToUtf8(dll) + ")");
         }
@@ -687,7 +687,7 @@ std::set<std::string> runningGamePaths() {
     return paths;
 }
 
-void launchGameInProcess(const Account& account, const std::string& dir, std::uint32_t timeoutMs, std::uint32_t windowTimeoutMs, const std::function<bool()>& confirm,
+void launchGameInProcess(const Account& account, const std::string& dir, std::uint32_t timeoutMs, const std::function<bool()>& confirm,
                          bool requireSteam) {
     const auto appIdPath = steamAppIdPath(account.gwpath);
     if (!appIdPath) {
@@ -715,7 +715,7 @@ void launchGameInProcess(const Account& account, const std::string& dir, std::ui
     }
 
     const auto game = startPatched(account, pathFromUtf8(dir), timeoutMs, confirm);
-    waitForWindow(*game, account.name(), windowTimeoutMs);
+    waitForWindow(*game, account.name(), timeoutMs);
     appId.keep();
 }
 
