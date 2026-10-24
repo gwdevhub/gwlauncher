@@ -17,6 +17,7 @@
 #include "Cli.h"
 #include "Launch.h"
 #include "utils/Files.h"
+#include "utils/Parsing.h"
 #include "utils/Strings.h"
 
 namespace gwl {
@@ -53,19 +54,6 @@ stderr), 2 when --launch is missing.
 )usage";
 
 
-std::uint32_t parseTimeout(const std::string& text) {
-    try {
-        std::size_t used = 0;
-        const unsigned long value = std::stoul(text, &used);
-        if (used == text.size() && value <= 0xFFFFFFFFul) {
-            return static_cast<std::uint32_t>(value);
-        }
-    } catch (const std::exception&) {
-        // Not a number, so it's reported below.
-    }
-    throw std::runtime_error("--launch needs the timeout in milliseconds.");
-}
-
 int launch(const std::vector<std::string>& arguments) {
     // Guild Wars needs d3d9.dll. It's loaded here the way Guild Wars will load it, so a Wine that can't find or load it stops the launch
     // before anything starts.
@@ -80,15 +68,15 @@ int launch(const std::vector<std::string>& arguments) {
     if (arguments.size() < 2) {
         throw std::runtime_error("--launch needs the timeout in milliseconds.");
     }
-    const std::uint32_t timeout = parseTimeout(arguments[1]);
+    std::uint32_t timeout;
+    if (!stringToUint32(arguments[1], &timeout)) {
+        throw std::runtime_error("--launch needs the timeout in milliseconds.");
+    }
     std::uint32_t windowTimeout = 20000;
-    const auto windowOption = std::find(arguments.begin() + 2, arguments.end(), "--window-timeout-ms");
-    if (windowOption != arguments.end()) {
-        if (windowOption + 1 == arguments.end()) {
-            throw std::runtime_error("--window-timeout-ms needs a timeout in milliseconds.");
-        }
-        windowTimeout = parseTimeout(*(windowOption + 1));
-        if (windowTimeout == 0 || windowTimeout == UINT32_MAX) {
+    if (hasArgument(arguments, "--window-timeout-ms", 2)) {
+        std::string value;
+        if (!parseArgumentWithValue(arguments, "--window-timeout-ms", &value, 2) ||
+            !stringToUint32(value, &windowTimeout) || windowTimeout == 0 || windowTimeout == UINT32_MAX) {
             throw std::runtime_error("--window-timeout-ms must be between 1 and 4294967294.");
         }
     }
@@ -111,7 +99,7 @@ int launch(const std::vector<std::string>& arguments) {
     }
 
     std::function<bool()> confirm;
-    if (std::find(arguments.begin(), arguments.end(), "--confirm") != arguments.end()) {
+    if (hasArgument(arguments, "--confirm", 2)) {
         confirm = [] {
             std::cout << "suspended" << std::endl;
             std::string answer;

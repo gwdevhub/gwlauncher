@@ -27,6 +27,16 @@ std::string lowerCase(std::string text) {
     return text;
 }
 
+std::string millisecondsAsSeconds(std::uint32_t milliseconds) {
+    std::string seconds = std::to_string(milliseconds / 1000);
+    if (milliseconds % 1000 != 0) {
+        std::string fraction = std::to_string(1000 + milliseconds % 1000).substr(1);
+        fraction.erase(fraction.find_last_not_of('0') + 1);
+        seconds += "." + fraction;
+    }
+    return seconds;
+}
+
 std::string hexEncode(const Bytes& bytes) {
     static const char* const digits = "0123456789abcdef";
     std::string text;

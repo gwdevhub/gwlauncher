@@ -5,6 +5,7 @@
 
 #include "utils/Crypto.h"
 #include "utils/Files.h"
+#include "utils/Parsing.h"
 #include "utils/Strings.h"
 #include "Messages.h"
 #include "Process.h"
@@ -27,10 +28,11 @@ std::optional<std::uint32_t> revisionOfTag(const std::string& tag) {
     }
     const std::string rest = tag.substr(1);
     const std::string number = rest.substr(0, rest.find('.'));
-    if (number.empty() || number.size() > 9 || number.find_first_not_of("0123456789") != std::string::npos) {
+    std::uint32_t revision;
+    if (number.size() > 9 || !stringToUint32(number, &revision)) {
         return std::nullopt;
     }
-    return static_cast<std::uint32_t>(std::stoul(number));
+    return revision;
 }
 
 std::optional<LauncherRelease> releaseFromJson(const std::string& releasesJson) {

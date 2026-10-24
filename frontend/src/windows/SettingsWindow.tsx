@@ -10,11 +10,7 @@ import type { Settings } from '../types';
 import { Button } from '../components/Button';
 import { Check } from '../components/Check';
 import { Note } from '../components/Note';
-
-function timeoutMilliseconds(seconds: string): number | null {
-    const rounded = Math.round(Number(seconds));
-    return Number.isFinite(rounded) && rounded >= 1 && rounded <= 4294967 ? rounded * 1000 : null;
-}
+import { parseTimeoutSeconds, stringToUint32, timeoutSecondsText } from '../utils/numbers';
 
 export function SettingsWindow() {
     const app = useAppState();
@@ -38,8 +34,8 @@ export function SettingsWindow() {
             setEncrypted(isEncrypted);
             setProtect(isEncrypted);
             setLocal({ ...state.settings! });
-            setModTimeoutSeconds(String(Math.max(1, Math.min(4294967, Math.round(Number(state.settings!.timeoutOnModlaunch) / 1000)))));
-            setWindowTimeoutSeconds(String(Math.max(1, Math.min(4294967, Math.round(Number(state.settings!.timeoutOnGameWindow) / 1000)))));
+            setModTimeoutSeconds(timeoutSecondsText(state.settings!.timeoutOnModlaunch));
+            setWindowTimeoutSeconds(timeoutSecondsText(state.settings!.timeoutOnGameWindow));
             setLoaded(true);
         })();
     }, []);
@@ -72,13 +68,13 @@ export function SettingsWindow() {
     };
 
     const save = async () => {
-        const timeout = timeoutMilliseconds(modTimeoutSeconds);
-        const windowTimeout = timeoutMilliseconds(windowTimeoutSeconds);
-        if (timeout === null || windowTimeout === null) {
+        const timeout = { value: 0 };
+        const windowTimeout = { value: 0 };
+        if (!parseTimeoutSeconds(modTimeoutSeconds, timeout) || !parseTimeoutSeconds(windowTimeoutSeconds, windowTimeout)) {
             setError('Enter each timeout in whole seconds, from 1 to 4294967.');
             return;
         }
-        const saved = { ...settings, timeoutOnModlaunch: timeout, timeoutOnGameWindow: windowTimeout, steamPath: settings.steamPath.trim(), winePath: settings.winePath.trim() };
+        const saved = { ...settings, timeoutOnModlaunch: timeout.value, timeoutOnGameWindow: windowTimeout.value, steamPath: settings.steamPath.trim(), winePath: settings.winePath.trim() };
         const message = await call<string | null>('saveSettings', saved);
         if (message) {
             setError(message);
@@ -121,7 +117,12 @@ export function SettingsWindow() {
             <h2 className="m-0 text-sm">Display</h2>
             <label className="row form-grid-wide grid items-center gap-2">
                 <span>UI scale:</span>
-                <input className="w-full" type="range" min={50} max={200} step={5} value={settings.uiScale} onChange={e => set({ uiScale: Number(e.target.value) })} />
+                <input className="w-full" type="range" min={50} max={200} step={5} value={settings.uiScale} onChange={e => {
+                    const scale = { value: 0 };
+                    if (stringToUint32(e.target.value, scale)) {
+                        set({ uiScale: scale.value });
+                    }
+                }} />
                 <span>{settings.uiScale}%</span>
             </label>
 

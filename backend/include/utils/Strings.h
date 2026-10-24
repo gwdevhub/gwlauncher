@@ -18,6 +18,9 @@ std::string trimmed(const std::string& text);
 // The text in lower case, for ASCII letters.
 std::string lowerCase(std::string text);
 
+// Seconds without trailing decimal zeroes, preserving millisecond precision.
+std::string millisecondsAsSeconds(std::uint32_t milliseconds);
+
 // The bytes as lower-case hex.
 std::string hexEncode(const Bytes& bytes);
 

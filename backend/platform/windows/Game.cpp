@@ -526,11 +526,7 @@ void waitForWindow(const GameProcess& game, const std::string& name, DWORD windo
         throw std::runtime_error(message);
     };
 
-    std::string timeoutSeconds = std::to_string(windowTimeoutMs / 1000.0);
-    timeoutSeconds.erase(timeoutSeconds.find_last_not_of('0') + 1);
-    if (timeoutSeconds.back() == '.') {
-        timeoutSeconds.pop_back();
-    }
+    const std::string timeoutSeconds = millisecondsAsSeconds(windowTimeoutMs);
     if (!waitFor([processId] { return mainWindow(processId) != nullptr; }, windowTimeoutMs)) {
         fail("Failed to wait for MainWindowHandle after " + timeoutSeconds + " seconds. Increase Game window timeout in Settings > Advanced.");
     }
@@ -662,8 +658,8 @@ std::unique_ptr<GameProcess> startPatched(const Account& account, const fs::path
                 continue;
             }
             if (result == ModuleLoad::RemoteThreadDidNotStart) {
-                throw std::runtime_error("The mod " + pathToUtf8(dll.filename()) + " didn't load within the " + std::to_string(timeoutMs) +
-                                         " ms limit. Increase Mod launch timeout under Settings > Advanced.");
+                throw std::runtime_error("The mod " + pathToUtf8(dll.filename()) + " didn't load within the " + millisecondsAsSeconds(timeoutMs) +
+                                         " second limit. Increase Mod launch timeout under Settings > Advanced.");
             }
             throw std::runtime_error(std::string("Result ") + moduleLoadName(result) + ": memory.LoadModule(" + pathToUtf8(dll) + ")");
         }

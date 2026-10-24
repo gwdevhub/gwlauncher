@@ -111,3 +111,11 @@ The launcher keeps its files in `$XDG_DATA_HOME/gwlauncher` (default `~/.local/s
 `Settings.json` can set `SteamPath` (the Steam client's folder, the one with `legacycompat`) and `WinePath` (the Wine program) by hand. Empty means the launcher finds them, and the settings window shows what it found as the placeholder.
 
 On Windows, accounts launch by restarting `GW_Launcher.exe` with `--launch <account.json> <timeout-ms> [--window-timeout-ms <ms>] [--confirm]`. The positional timeout controls each mod DLL load; `--window-timeout-ms` controls each wait for the game window and input readiness, defaulting to 20000 when omitted. Both CLI values are milliseconds; the settings window displays whole seconds. This mode bypasses the UI and WebView2 initialization. Linux extracts its embedded `GW_Launcher.cli.exe` and runs the same launch mode under Wine.
+
+## Parsing and numeric conversions
+
+Use `utils/Parsing.h` for checked argument and numeric parsing. `parseArgumentWithValue`, `stringToUint32`, `stringToSize`, `stringToFloat`, `intToUint32`, and `floatToUint32` return `bool` and write through an output pointer only on success. Null pointers fail; invalid input leaves the output unchanged. String conversions require the entire input, reject whitespace and overflow, and do not throw conversion exceptions. Unsigned text is decimal digits only. Floating-point text is parsed at double precision and must be finite; `floatToUint32` rounds nonnegative values to the nearest integer, with halves rounded up.
+
+`hasArgument` and `parseArgumentWithValue` accept an optional starting index so positional values cannot be mistaken for flags. The latter reads the token following the first matching argument and fails if it is missing or empty. `millisecondsAsSeconds` in `utils/Strings.h` formats durations without floating-point conversion in launch code.
+
+The frontend's `src/utils/numbers.ts` follows the same bool/output convention using mutable `{ value }` objects. Keep timeout rounding, range checks, and seconds/milliseconds conversions there; views call `parseTimeoutSeconds` and `timeoutSecondsText`. Percentage formatting lives in `src/utils/format.ts`.
