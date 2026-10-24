@@ -1,16 +1,13 @@
 #include "Instance.h"
 
-#include <cstddef>
-
 #include "Messages.h"
+#include "utils/Strings.h"
 
 namespace gwl {
 
 InstanceRequest InstanceRequest::fromArgs(const std::vector<std::string>& arguments) {
-    for (std::size_t i = 0; i + 1 < arguments.size(); ++i) {
-        if (arguments[i] == "-launch") {
-            return {InstanceRequest::Kind::Launch, arguments[i + 1]};
-        }
+    if (const auto name = parseArgumentWithValue(arguments, "-launch")) {
+        return {InstanceRequest::Kind::Launch, *name};
     }
     return {};
 }

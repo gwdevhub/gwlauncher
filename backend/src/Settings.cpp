@@ -191,8 +191,8 @@ Settings Settings::applyFields(const Json& fields) const {
     }
     if (fields.contains("timeoutOnModlaunch")) {
         const Json& timeout = fields["timeoutOnModlaunch"];
-        if (!timeout.is_number_integer() || timeout.get<std::int64_t>() <= 0) {
-            throw std::runtime_error("The timeout must be a positive whole number of milliseconds.");
+        if (!timeout.is_number_integer() || timeout.get<std::int64_t>() <= 0 || timeout.get<std::int64_t>() >= UINT32_MAX) {
+            throw std::runtime_error("The launch timeout must be greater than zero and less than 4294967.295 seconds.");
         }
         updated.timeoutOnModlaunch = timeout.get<std::uint32_t>();
     }
