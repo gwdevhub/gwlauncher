@@ -56,7 +56,8 @@ separate copy of the game for each — see [Run Multiple Accounts](/docs/multibo
 ## "Failed to wait for MainWindowHandle / WaitForInputIdle"
 
 The client took too long to start. Try launching again. On a slow machine, raise the
-**Timeout on mod launch** value in [Settings](/docs/settings/).
+**Game window timeout (seconds)** value under **Advanced** in [Settings](/docs/settings/) (for example, from **10** to **30**).
+This applies even without mods. The separate **Mod launch timeout (seconds)** only controls DLL loading and will not fix this timeout.
 
 ## A launch needs admin rights
 

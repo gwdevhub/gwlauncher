@@ -136,6 +136,7 @@ void AppState::startGameAsync(const gwl::Account& account, std::optional<std::si
     const auto key = account.pathKey();
     launching.insert(name);
     const std::uint32_t timeout = settings.timeoutOnModlaunch;
+    const std::uint32_t windowTimeout = settings.timeoutOnGameWindow;
     const std::string dir = gwl::pathToUtf8(std::filesystem::current_path());
     const gwl::Json note = checkFirst ? gwl::Json("Checking the account...")
                                       : gwl::Json(suspended ? "Guild Wars starts paused, so its plugins can load." : "Guild Wars is starting.");
@@ -152,7 +153,7 @@ void AppState::startGameAsync(const gwl::Account& account, std::optional<std::si
     auto blocked = std::make_shared<std::optional<gwl::Json>>();
     runWithProgress(
         popup,
-        [this, account, key, suspended, checkFirst, timeout, dir, resume = launchContinue, blocked](const gwl::ProgressReport& report,
+        [this, account, key, suspended, checkFirst, timeout, windowTimeout, dir, resume = launchContinue, blocked](const gwl::ProgressReport& report,
                                                                                               const std::atomic<bool>& cancel) {
             if (checkFirst) {
                 // The checks finish on several threads, and the window's reports aren't safe to send from all of them at once.
@@ -221,7 +222,7 @@ void AppState::startGameAsync(const gwl::Account& account, std::optional<std::si
                     return true;
                 };
             }
-            gwl::startGame(account, dir, timeout, confirm);
+            gwl::startGame(account, dir, timeout, windowTimeout, confirm);
         },
         [this, name, key, index, blocked, done](const std::optional<std::string>& failure) {
             launching.erase(name);

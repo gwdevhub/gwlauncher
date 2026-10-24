@@ -24,7 +24,7 @@ namespace gwl {
 namespace {
 
 // The usage, with the account file's format. Each account field is as Accounts.json holds it.
-const char* const kUsage = R"usage(Usage: GW_Launcher.cli.exe --launch <account.json> <timeout-ms> [--confirm]
+const char* const kUsage = R"usage(Usage: GW_Launcher.cli.exe --launch <account.json> <timeout-ms> [--window-timeout-ms <ms>] [--confirm]
 
   <account.json>  An account, in the form Accounts.json holds one:
                   {
@@ -43,7 +43,8 @@ const char* const kUsage = R"usage(Usage: GW_Launcher.cli.exe --launch <account.
                   }
                   A mod's "type" is 0 for a texture mod or 1 for a DLL, and it's required.
                   "fileName" is the mod's path, and "active" defaults to true.
-  <timeout-ms>    How long to wait for the game's window, in milliseconds.
+  <timeout-ms>    How long to wait for each mod DLL to load, in milliseconds.
+  --window-timeout-ms <ms>  How long to wait for the game's window and input readiness (each), default 10000.
   --confirm       Hold the game suspended after it's started. Prints "suspended" on stdout, then
                   reads "resume" or "cancel" from stdin.
 
@@ -80,6 +81,17 @@ int launch(const std::vector<std::string>& arguments) {
         throw std::runtime_error("--launch needs the timeout in milliseconds.");
     }
     const std::uint32_t timeout = parseTimeout(arguments[1]);
+    std::uint32_t windowTimeout = 10000;
+    const auto windowOption = std::find(arguments.begin() + 2, arguments.end(), "--window-timeout-ms");
+    if (windowOption != arguments.end()) {
+        if (windowOption + 1 == arguments.end()) {
+            throw std::runtime_error("--window-timeout-ms needs a timeout in milliseconds.");
+        }
+        windowTimeout = parseTimeout(*(windowOption + 1));
+        if (windowTimeout == 0 || windowTimeout == UINT32_MAX) {
+            throw std::runtime_error("--window-timeout-ms must be between 1 and 4294967294.");
+        }
+    }
 
     const auto bytes = readFileBytes(pathFromUtf8(arguments[0]));
     if (!bytes) {
@@ -107,7 +119,7 @@ int launch(const std::vector<std::string>& arguments) {
         };
     }
     // The Linux launcher checks for Steam before it starts this, because Wine can't see the Linux Steam client's processes.
-    launchGameInProcess(account, pathToUtf8(std::filesystem::current_path()), timeout, confirm, false);
+    launchGameInProcess(account, pathToUtf8(std::filesystem::current_path()), timeout, windowTimeout, confirm, false);
     return 0;
 }
 

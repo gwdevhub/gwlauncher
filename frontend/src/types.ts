@@ -9,6 +9,7 @@ export interface Settings {
     listWidth: number;
     listHeight: number;
     timeoutOnModlaunch: number | string;
+    timeoutOnGameWindow: number | string;
     steamPath: string;
     winePath: string;
     uiScale: number;

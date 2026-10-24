@@ -22,6 +22,7 @@ struct Settings {
     std::optional<std::int64_t> listX;
     std::optional<std::int64_t> listY;
     std::uint32_t timeoutOnModlaunch = 10000;
+    std::uint32_t timeoutOnGameWindow = 10000;
     // The Steam client's folder and the Wine program, when set by hand. Empty means the launcher finds them.
     std::string steamPath;
     std::string winePath;

@@ -21,7 +21,7 @@ namespace gwl {
 // Blocks until the game's window is ready or the attempt fails. Throws std::runtime_error with the reason when it fails.
 // requireSteam makes a Steam account wait for the Steam client, as the launcher does; the Windows helper passes false, because the
 // Linux launcher has checked Steam already. Only Windows checks it.
-void startGame(const Account& account, const std::string& dir, std::uint32_t timeoutMs, const std::function<bool()>& confirm,
+void startGame(const Account& account, const std::string& dir, std::uint32_t timeoutMs, std::uint32_t windowTimeoutMs, const std::function<bool()>& confirm,
                bool requireSteam = true);
 
 // The lower-case paths, in the launcher's own form, of the Guild Wars executables that are running.

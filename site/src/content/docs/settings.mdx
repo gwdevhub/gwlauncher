@@ -29,7 +29,11 @@ Settings are saved to [`Settings.json`](/docs/files/) and can also be edited the
 
 | Setting | Default | What it does |
 | --- | --- | --- |
-| **Timeout on mod launch (ms)** | 10000 | How long to wait for mods to finish injecting before giving up. Raise it if plugin-heavy launches time out on a slow machine. |
+| **Game window timeout (seconds)** | 10 | How long to wait for the game window to appear (`MainWindowHandle`), then for input readiness (`WaitForInputIdle`). Each step gets this timeout. Applies even without mods; raise it if clients start slowly or you launch many clients. |
+| **Mod launch timeout (seconds)** | 10 | How long to wait for each mod DLL to load. Raise it if mod loading times out. This does not affect the game window timeout. |
+
+Both timeouts are entered in seconds, with up to three decimal places, and must be greater than zero (maximum 4294967.294 seconds). For example, enter **20** to wait 20 seconds.
+`Settings.json` stores these values in milliseconds as `TimeoutOnGameWindow` and `TimeoutOnModlaunch`. Existing mod timeout values are preserved; older settings files default to a 10-second game window timeout.
 
 <div class="note">
 

@@ -1,4 +1,4 @@
-// Settings: the general options, the master password, updates and the mod launch timeout.
+// Settings: the general options, the master password, updates and launch timeouts.
 
 import { useEffect, useState } from 'react';
 import { call } from '../bridge';
@@ -11,7 +11,11 @@ import { Button } from '../components/Button';
 import { Check } from '../components/Check';
 import { Note } from '../components/Note';
 
-const TIMEOUT_ERROR = 'Enter the mod launch timeout as a whole number of milliseconds.';
+function timeoutMilliseconds(seconds: string): number | null {
+    const value = Number(seconds) * 1000;
+    const rounded = Math.round(value);
+    return Number.isFinite(value) && rounded > 0 && rounded < 0xFFFFFFFF && Math.abs(value - rounded) < 0.000001 ? rounded : null;
+}
 
 export function SettingsWindow() {
     const app = useAppState();
@@ -25,6 +29,8 @@ export function SettingsWindow() {
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
+    const [modTimeoutSeconds, setModTimeoutSeconds] = useState('');
+    const [windowTimeoutSeconds, setWindowTimeoutSeconds] = useState('');
 
     useEffect(() => {
         (async () => {
@@ -33,6 +39,8 @@ export function SettingsWindow() {
             setEncrypted(isEncrypted);
             setProtect(isEncrypted);
             setLocal({ ...state.settings! });
+            setModTimeoutSeconds(String(Number(state.settings!.timeoutOnModlaunch) / 1000));
+            setWindowTimeoutSeconds(String(Number(state.settings!.timeoutOnGameWindow) / 1000));
             setLoaded(true);
         })();
     }, []);
@@ -65,12 +73,13 @@ export function SettingsWindow() {
     };
 
     const save = async () => {
-        const timeout = Number(settings.timeoutOnModlaunch);
-        if (!Number.isInteger(timeout) || timeout <= 0) {
-            setError(TIMEOUT_ERROR);
+        const timeout = timeoutMilliseconds(modTimeoutSeconds);
+        const windowTimeout = timeoutMilliseconds(windowTimeoutSeconds);
+        if (timeout === null || windowTimeout === null) {
+            setError('Enter each timeout in seconds, from 0.001 to 4294967.294, with up to three decimal places.');
             return;
         }
-        const saved = { ...settings, timeoutOnModlaunch: timeout, steamPath: settings.steamPath.trim(), winePath: settings.winePath.trim() };
+        const saved = { ...settings, timeoutOnModlaunch: timeout, timeoutOnGameWindow: windowTimeout, steamPath: settings.steamPath.trim(), winePath: settings.winePath.trim() };
         const message = await call<string | null>('saveSettings', saved);
         if (message) {
             setError(message);
@@ -157,12 +166,18 @@ export function SettingsWindow() {
             )}
 
             <h2 className="m-0 text-sm">Advanced</h2>
-            <label className="row form-grid-wide grid items-center gap-2">
-                <span>Timeout (ms):</span>
-                <input className="text-input w-full select-text rounded border border-border px-1.5 py-1" type="text" value={String(settings.timeoutOnModlaunch)} onChange={e => set({ timeoutOnModlaunch: e.target.value })} />
+            <label className="row grid grid-cols-[220px_1fr_auto] items-center gap-2">
+                <span>Game window timeout (seconds):</span>
+                <input className="text-input w-full select-text rounded border border-border px-1.5 py-1" type="number" min="0.001" max="4294967.294" step="0.001" value={windowTimeoutSeconds} onChange={e => setWindowTimeoutSeconds(e.target.value)} />
                 <span />
             </label>
-            <Note>How long to wait for a mod DLL to load into the game.</Note>
+            <Note>How long to wait for the game window to appear and then become ready, for each step. Applies even without mods.</Note>
+            <label className="row grid grid-cols-[220px_1fr_auto] items-center gap-2">
+                <span>Mod launch timeout (seconds):</span>
+                <input className="text-input w-full select-text rounded border border-border px-1.5 py-1" type="number" min="0.001" max="4294967.294" step="0.001" value={modTimeoutSeconds} onChange={e => setModTimeoutSeconds(e.target.value)} />
+                <span />
+            </label>
+            <Note>How long to wait for each mod DLL to load into the game. Does not change the game window timeout.</Note>
 
             {error && <p className="error text-danger">{error}</p>}
             <div className="buttons mt-auto flex justify-end gap-2 pt-1.5">
