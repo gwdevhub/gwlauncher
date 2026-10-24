@@ -68,17 +68,18 @@ int launch(const std::vector<std::string>& arguments) {
     if (arguments.size() < 2) {
         throw std::runtime_error("--launch needs the timeout in milliseconds.");
     }
-    std::uint32_t timeout;
-    if (!stringToUint32(arguments[1], &timeout)) {
+    const auto timeout = stringToUint32(arguments[1]);
+    if (!timeout) {
         throw std::runtime_error("--launch needs the timeout in milliseconds.");
     }
     std::uint32_t windowTimeout = 20000;
     if (hasArgument(arguments, "--window-timeout-ms", 2)) {
-        std::string value;
-        if (!parseArgumentWithValue(arguments, "--window-timeout-ms", &value, 2) ||
-            !stringToUint32(value, &windowTimeout) || windowTimeout == 0 || windowTimeout == UINT32_MAX) {
+        const auto value = parseArgumentWithValue(arguments, "--window-timeout-ms", 2);
+        const auto parsed = value ? stringToUint32(*value) : std::nullopt;
+        if (!parsed || *parsed == 0 || *parsed == UINT32_MAX) {
             throw std::runtime_error("--window-timeout-ms must be between 1 and 4294967294.");
         }
+        windowTimeout = *parsed;
     }
 
     const auto bytes = readFileBytes(pathFromUtf8(arguments[0]));
@@ -107,7 +108,7 @@ int launch(const std::vector<std::string>& arguments) {
         };
     }
     // The Linux launcher checks for Steam before it starts this, because Wine can't see the Linux Steam client's processes.
-    launchGameInProcess(account, pathToUtf8(std::filesystem::current_path()), timeout, windowTimeout, confirm, false);
+    launchGameInProcess(account, pathToUtf8(std::filesystem::current_path()), *timeout, windowTimeout, confirm, false);
     return 0;
 }
 

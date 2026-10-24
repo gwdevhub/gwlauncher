@@ -28,11 +28,10 @@ std::optional<std::uint32_t> revisionOfTag(const std::string& tag) {
     }
     const std::string rest = tag.substr(1);
     const std::string number = rest.substr(0, rest.find('.'));
-    std::uint32_t revision;
-    if (number.size() > 9 || !stringToUint32(number, &revision)) {
+    if (number.size() > 9) {
         return std::nullopt;
     }
-    return revision;
+    return stringToUint32(number);
 }
 
 std::optional<LauncherRelease> releaseFromJson(const std::string& releasesJson) {

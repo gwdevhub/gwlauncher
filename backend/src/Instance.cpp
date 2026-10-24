@@ -6,9 +6,8 @@
 namespace gwl {
 
 InstanceRequest InstanceRequest::fromArgs(const std::vector<std::string>& arguments) {
-    std::string name;
-    if (parseArgumentWithValue(arguments, "-launch", &name)) {
-        return {InstanceRequest::Kind::Launch, name};
+    if (const auto name = parseArgumentWithValue(arguments, "-launch")) {
+        return {InstanceRequest::Kind::Launch, *name};
     }
     return {};
 }

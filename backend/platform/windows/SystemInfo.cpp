@@ -45,8 +45,8 @@ std::string osDescription() {
             edition = edition.substr(prefix.size());
         }
     }
-    std::uint32_t buildNumber;
-    const bool windows11 = stringToUint32(build, &buildNumber) && buildNumber >= 22000;
+    const auto buildNumber = stringToUint32(build);
+    const bool windows11 = buildNumber && *buildNumber >= 22000;
     const std::string description = std::string(windows11 ? "Windows 11" : "Windows 10") + " " + trimmed(edition) + " " + build;
     // Single spaces only, as the Rust launcher's description has them when the edition or build is missing.
     std::string out;

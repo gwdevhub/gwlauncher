@@ -1,51 +1,44 @@
-export interface Output<T> {
-    value: T;
-}
-
 export const UINT32_MAX = 0xFFFFFFFF;
 const MAX_TIMEOUT_SECONDS = Math.floor((UINT32_MAX - 1) / 1000);
 
-// Checked conversions leave the output unchanged on failure.
-export function stringToFloat(text: string, output: Output<number>): boolean {
+// Checked conversions return undefined when the input is invalid or out of range.
+export function stringToFloat(text: string): number | undefined {
     if (text.trim() !== text || !/^-?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(text)) {
-        return false;
+        return undefined;
     }
     const value = Number(text);
     if (!Number.isFinite(value)) {
-        return false;
+        return undefined;
     }
-    output.value = value;
-    return true;
+    return value;
 }
 
 // Round nonnegative finite values to the nearest integer, with halves rounded up.
-export function floatToUint32(value: number, output: Output<number>): boolean {
+export function floatToUint32(value: number): number | undefined {
     if (!Number.isFinite(value) || value < 0) {
-        return false;
+        return undefined;
     }
     const rounded = Math.round(value);
     if (rounded > UINT32_MAX) {
-        return false;
+        return undefined;
     }
-    output.value = rounded;
-    return true;
+    return rounded;
 }
 
-export function stringToUint32(text: string, output: Output<number>): boolean {
+export function stringToUint32(text: string): number | undefined {
     if (text.trim() !== text || !/^\d+$/.test(text)) {
-        return false;
+        return undefined;
     }
-    return floatToUint32(Number(text), output);
+    return floatToUint32(Number(text));
 }
 
-export function parseTimeoutSeconds(text: string, milliseconds: Output<number>): boolean {
-    const seconds = { value: 0 };
-    if (!stringToFloat(text, seconds) || !floatToUint32(seconds.value, seconds) ||
-        seconds.value < 1 || seconds.value > MAX_TIMEOUT_SECONDS) {
-        return false;
+export function parseTimeoutSeconds(text: string): number | undefined {
+    const parsed = stringToFloat(text);
+    const seconds = parsed === undefined ? undefined : floatToUint32(parsed);
+    if (seconds === undefined || seconds < 1 || seconds > MAX_TIMEOUT_SECONDS) {
+        return undefined;
     }
-    milliseconds.value = seconds.value * 1000;
-    return true;
+    return seconds * 1000;
 }
 
 export function timeoutSecondsText(milliseconds: number): string {

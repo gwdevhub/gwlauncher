@@ -68,13 +68,13 @@ export function SettingsWindow() {
     };
 
     const save = async () => {
-        const timeout = { value: 0 };
-        const windowTimeout = { value: 0 };
-        if (!parseTimeoutSeconds(modTimeoutSeconds, timeout) || !parseTimeoutSeconds(windowTimeoutSeconds, windowTimeout)) {
+        const timeout = parseTimeoutSeconds(modTimeoutSeconds);
+        const windowTimeout = parseTimeoutSeconds(windowTimeoutSeconds);
+        if (timeout === undefined || windowTimeout === undefined) {
             setError('Enter each timeout in whole seconds, from 1 to 4294967.');
             return;
         }
-        const saved = { ...settings, timeoutOnModlaunch: timeout.value, timeoutOnGameWindow: windowTimeout.value, steamPath: settings.steamPath.trim(), winePath: settings.winePath.trim() };
+        const saved = { ...settings, timeoutOnModlaunch: timeout, timeoutOnGameWindow: windowTimeout, steamPath: settings.steamPath.trim(), winePath: settings.winePath.trim() };
         const message = await call<string | null>('saveSettings', saved);
         if (message) {
             setError(message);
@@ -118,9 +118,9 @@ export function SettingsWindow() {
             <label className="row form-grid-wide grid items-center gap-2">
                 <span>UI scale:</span>
                 <input className="w-full" type="range" min={50} max={200} step={5} value={settings.uiScale} onChange={e => {
-                    const scale = { value: 0 };
-                    if (stringToUint32(e.target.value, scale)) {
-                        set({ uiScale: scale.value });
+                    const scale = stringToUint32(e.target.value);
+                    if (scale !== undefined) {
+                        set({ uiScale: scale });
                     }
                 }} />
                 <span>{settings.uiScale}%</span>
