@@ -50,6 +50,8 @@ void MessageHandler::dispatch(WebViewWindow& window, const Request& request, con
         found->second(window, request.args, reply);
     } catch (const std::exception& error) {
         reply.error(error.what());
+    } catch (...) {
+        reply.error("The launcher request failed with an unknown error.");
     }
 }
 

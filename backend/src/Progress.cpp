@@ -95,6 +95,8 @@ void AppState::runWithProgress(const gwl::Json& popup, const gwl::ProgressWork& 
             work(report, *cancel);
         } catch (const std::exception& error) {
             failure = error.what();
+        } catch (...) {
+            failure = "The background operation failed with an unknown error.";
         }
         gwl::runOnUiThread([this, job, failure, failureText, finishedText, summary, done] {
             // A cancelled job ends quietly. Any other failure shows its reason in the window. A finished job with a message stays

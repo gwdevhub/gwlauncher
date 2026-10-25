@@ -102,6 +102,8 @@ public:
 
     // Called by the platform when the page posts a message, and when the user asks to close the window.
     void receive(const std::string& text);
+    void reload();
+    void keepAliveForRecovery() { ++cooldownGeneration_; }
     void requestClose();
     void notifyFocusLost();
 
@@ -131,7 +133,9 @@ private:
     void platformMinimize();
     void platformToggleMaximize();
     void platformClose();
-    void platformRunScript(const std::string& script);
+    void platformRunScript(const std::string& script, bool requiresReady = false);
+    void platformPageReady();
+    void platformFailure(const std::string& message);
     void platformOpenDevTools();
     // Converts a size on the screen to the device-independent pixels resize takes, before the UI scale is removed.
     int platformToIndependent(int pixels) const;
@@ -144,6 +148,9 @@ private:
     int baseHeight_ = 0;
     bool visible_ = false;
     bool opened_ = false;
+    // A long-running operation may finish after this window has opened a different page.
+    std::uint64_t pageGeneration_ = 0;
+    Json progressSnapshot_;
     // Counts the hides and shows, so a cooldown started by an earlier hide does nothing once the window is shown again.
     std::uint64_t cooldownGeneration_ = 0;
     // Expires with the window, so a cooldown still waiting when the window is destroyed does nothing.

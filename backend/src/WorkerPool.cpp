@@ -3,6 +3,8 @@
 #include <cstdio>
 #include <exception>
 
+#include "WebViewWindow.h"
+
 namespace gwl {
 
 WorkerPool::WorkerPool(std::size_t threads) {
@@ -48,8 +50,16 @@ void WorkerPool::runWorker() {
             task();
         } catch (const std::exception& error) {
             std::fprintf(stderr, "Worker task failed: %s\n", error.what());
+            runOnUiThread([message = std::string(error.what())] {
+                showError("A background launcher task failed: " + message + ". Restart GW Launcher.");
+                stopEventLoop();
+            });
         } catch (...) {
             std::fprintf(stderr, "Worker task failed.\n");
+            runOnUiThread([] {
+                showError("A background launcher task failed with an unknown error. Restart GW Launcher.");
+                stopEventLoop();
+            });
         }
     }
 }

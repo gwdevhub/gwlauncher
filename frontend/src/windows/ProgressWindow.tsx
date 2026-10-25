@@ -30,6 +30,7 @@ export function ProgressWindow({ heading, note, cancellable, icon }: { heading: 
 
     useEffect(() => on('progress', (p: ProgressUpdate) => {
         if (p.phase === 'update') {
+            setPaused(false);
             setFraction(p.fraction ?? null);
             setDetail(p.detail ?? '');
             if (p.cancellable === false) {
@@ -44,6 +45,7 @@ export function ProgressWindow({ heading, note, cancellable, icon }: { heading: 
             setCanCancel(false);
             setFinished(p.text ?? 'Done');
         } else if (p.phase === 'failed') {
+            setCanCancel(false);
             setFailure(p.text ?? '');
         }
     }), []);

@@ -9,6 +9,7 @@
 #include <functional>
 #include <map>
 #include <memory>
+#include <mutex>
 #include <optional>
 #include <set>
 #include <string>
@@ -44,6 +45,7 @@ struct AppState {
     // Accounts.json's password, when the file is encrypted, and whether it's still locked until the password is entered.
     std::optional<gwl::PasswordHash> accountsPassword;
     bool accountsLocked = false;
+    bool accountsReloading = false;
     // Opens Accounts.json at startup, with the remembered password when the file is encrypted. Defined in AppState.cpp.
     void openAccountsFile();
     // Opens the locked accounts with the password, and remembers it when asked. The reply is the page's message, or null.
@@ -130,6 +132,16 @@ struct AppState {
 
     // Each account's state in the list: Launching, Active, In Use or Inactive.
     std::vector<std::string> accountStates() const;
+    struct AccountEnrichment {
+        std::mutex mutex;
+        std::set<std::string> running;
+        std::map<std::string, std::string> icons;
+        std::string warning;
+        bool pending = false;
+        std::chrono::steady_clock::time_point started{};
+    };
+    std::shared_ptr<AccountEnrichment> accountEnrichment = std::make_shared<AccountEnrichment>();
+    void refreshAccountEnrichment();
     // Keeps which game each account started right when the list changes: removed accounts drop out, and the others move.
     void accountRemoved(std::size_t index);
     void accountMoved(std::size_t from, std::size_t to);
@@ -208,6 +220,8 @@ struct AppState {
     std::vector<std::string> launchArguments;
     // Read at startup, since an update renames the running file and restart needs where the launcher was started from.
     std::filesystem::path executable;
+    // Destroyed before other state, so queued reload completions cannot touch a shutting-down app.
+    std::shared_ptr<bool> alive = std::make_shared<bool>(true);
 };
 
 // The handlers every window answers, for the calls the page makes from any of its windows.

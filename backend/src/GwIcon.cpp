@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <map>
+#include <mutex>
 #include <system_error>
 
 #include "DataUrl.h"
@@ -22,6 +23,9 @@ struct Cached {
     std::optional<std::string> url;
 };
 
+std::mutex cacheMutex;
+std::map<fs::path, Cached> cache;
+
 std::optional<std::string> readIcon(const fs::path& exe) {
     const auto data = readFileBytes(exe);
     if (!data) {
@@ -41,20 +45,28 @@ std::optional<std::string> readIcon(const fs::path& exe) {
 }  // namespace
 
 std::optional<std::string> gwIconUrl(const fs::path& exe) {
-    // The window reads icons on its own thread only, so the cache needs no lock.
-    static std::map<fs::path, Cached> cache;
     std::error_code error;
     const fs::file_time_type modified = fs::last_write_time(exe, error);
     if (error) {
         return std::nullopt;
     }
-    const auto found = cache.find(exe);
-    if (found != cache.end() && found->second.modified == modified) {
-        return found->second.url;
+    {
+        std::lock_guard<std::mutex> lock(cacheMutex);
+        const auto found = cache.find(exe);
+        if (found != cache.end() && found->second.modified == modified) {
+            return found->second.url;
+        }
     }
     auto url = readIcon(exe);
+    std::lock_guard<std::mutex> lock(cacheMutex);
     cache[exe] = Cached{modified, url};
     return url;
+}
+
+std::optional<std::string> cachedGwIconUrl(const fs::path& exe) {
+    std::lock_guard<std::mutex> lock(cacheMutex);
+    const auto found = cache.find(exe);
+    return found == cache.end() ? std::nullopt : found->second.url;
 }
 
 }  // namespace gwl

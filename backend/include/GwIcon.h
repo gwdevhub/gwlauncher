@@ -8,8 +8,10 @@
 
 namespace gwl {
 
-// The icon of the Gw.exe at exe, scaled for an account row. Nothing when the file is missing or has no icon. Keeps its results
-// for the launcher's window, which is the only caller.
+// A nonblocking cache lookup for UI callers; filesystem reads belong on a worker.
+std::optional<std::string> cachedGwIconUrl(const std::filesystem::path& exe);
+
+// Reads and caches an executable icon on a worker. Missing files and icons use the caller's fallback.
 std::optional<std::string> gwIconUrl(const std::filesystem::path& exe);
 
 }  // namespace gwl

@@ -233,7 +233,11 @@ void AppState::startGameAsync(const gwl::Account& account, std::optional<std::si
 }
 
 std::vector<std::string> AppState::accountStates() const {
-    const std::set<std::string> running = gwl::runningGamePaths();
+    std::set<std::string> running;
+    {
+        std::lock_guard<std::mutex> lock(accountEnrichment->mutex);
+        running = accountEnrichment->running;
+    }
     std::vector<std::string> states;
     for (std::size_t index = 0; index < accounts.size(); ++index) {
         const gwl::Account& account = accounts[index];

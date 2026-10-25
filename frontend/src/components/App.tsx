@@ -1,7 +1,7 @@
 // The page's root: which view shows, the host's events, and the keyboard. Each view is one component in its own file.
 
-import { useEffect, useState } from 'react';
-import { call } from '../bridge';
+import { useEffect, useRef, useState } from 'react';
+import { call, read } from '../bridge';
 import { loadChrome } from '../chrome';
 import { on } from '../events';
 import { listKey } from '../listKeys';
@@ -26,6 +26,8 @@ import { WindowFrame } from './WindowFrame';
 
 export function App() {
     const [view, setView] = useState<ViewState | null>(null);
+    const [startupError, setStartupError] = useState<string | null>(null);
+    const readySent = useRef(false);
     const app = useAppState();
 
     useEffect(() => applyUiScale(app.settings?.uiScale ?? 100), [app.settings?.uiScale]);
@@ -34,22 +36,37 @@ export function App() {
     useEffect(() => bindViewSetter(setView), []);
 
     useEffect(() => {
+        if (!view || readySent.current) return;
+        readySent.current = true;
+        read('ready').catch(error => {
+            const text = `Could not finish initializing the launcher interface: ${String(error)}`;
+            setStartupError(text);
+            call('frontendError', text).catch(() => undefined);
+        });
+    }, [view]);
+
+    useEffect(() => {
         (async () => {
-            // Before the first view, so a popup's size counts the title bar.
-            await loadChrome();
-            const state = await refreshState();
-            const role: Role | null = await call<Role | null>('window');
-            session.popup = role;
-            if (role?.view === 'menu') {
-                showNow('menu', [role.args[0]]);
-            } else if (role) {
-                show(role.view, ...role.args);
-            } else if (state.locked) {
-                show('password');
-            } else if (state.startup) {
-                openView(state.startup, showMessage);
-            } else {
-                show('list');
+            try {
+                // Before the first view, so a popup's size counts the title bar.
+                await loadChrome();
+                const state = await refreshState();
+                const role: Role | null = await read<Role | null>('window');
+                session.popup = role;
+                if (role?.view === 'menu') {
+                    showNow('menu', [role.args[0]]);
+                } else if (role) {
+                    await show(role.view, ...role.args);
+                } else if (state.locked) {
+                    await show('password');
+                } else {
+                    await show('list');
+                    if (state.startup) await openView(state.startup, showMessage);
+                }
+            } catch (error) {
+                const text = `Could not initialize the launcher interface: ${String(error)}`;
+                setStartupError(text);
+                call('frontendError', text).catch(() => undefined);
             }
         })();
     }, []);
@@ -96,7 +113,11 @@ export function App() {
         };
     }, []);
 
-    return <WindowFrame>{view && <Current key={view.key} name={view.name} args={view.args} />}</WindowFrame>;
+    return <WindowFrame>{startupError ? <section role="alert" className="p-3.5">
+        <p>{startupError}</p>
+        <button onClick={() => location.reload()}>Retry</button>
+        <button onClick={() => call('quit')}>Exit</button>
+    </section> : view ? <Current key={view.key} name={view.name} args={view.args} /> : <p role="status">Loading GW Launcher…</p>}</WindowFrame>;
 }
 
 // Picks the view component for a view name, with the arguments the view was shown with.
