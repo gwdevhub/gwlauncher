@@ -110,4 +110,6 @@ The launcher keeps its files in `$XDG_DATA_HOME/gwlauncher` (default `~/.local/s
 
 `Settings.json` can set `SteamPath` (the Steam client's folder, the one with `legacycompat`) and `WinePath` (the Wine program) by hand. Empty means the launcher finds them, and the settings window shows what it found as the placeholder.
 
-On Windows, accounts launch by restarting `GW_Launcher.exe` with `--launch <account.json> <timeout-ms> [--confirm]`. This mode bypasses the UI and WebView2 initialization. Linux extracts its embedded `GW_Launcher.cli.exe` and runs the same launch mode under Wine.
+On Windows, accounts launch by restarting `GW_Launcher.exe` with `--launch <account.json> <timeout-ms> [--confirm]`. The timeout controls each mod DLL load and each wait for the game window and input readiness. The CLI and the existing `TimeoutOnModlaunch` settings field use milliseconds; the settings window displays whole seconds. This mode bypasses the UI and WebView2 initialization. Linux extracts its embedded `GW_Launcher.cli.exe` and runs the same launch mode under Wine.
+
+Shared argument and unsigned-number parsing lives in `utils/Strings.h` and returns `std::optional<T>`. The frontend's `src/utils/numbers.ts` handles whole-second timeout conversion and validation.

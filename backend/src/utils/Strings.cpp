@@ -1,5 +1,7 @@
 #include "utils/Strings.h"
 
+#include <algorithm>
+#include <charconv>
 #include <cctype>
 #include <cstddef>
 
@@ -25,6 +27,27 @@ std::string lowerCase(std::string text) {
         c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
     }
     return text;
+}
+
+std::optional<std::uint32_t> stringToUint32(const std::string& text) {
+    std::uint32_t value;
+    const auto [end, error] = std::from_chars(text.data(), text.data() + text.size(), value);
+    if (error != std::errc{} || end != text.data() + text.size()) {
+        return std::nullopt;
+    }
+    return value;
+}
+
+std::optional<std::string> parseArgumentWithValue(const std::vector<std::string>& arguments, const std::string& name,
+                                                std::size_t first) {
+    if (first >= arguments.size()) {
+        return std::nullopt;
+    }
+    const auto found = std::find(arguments.begin() + first, arguments.end(), name);
+    if (found == arguments.end() || found + 1 == arguments.end() || (found + 1)->empty()) {
+        return std::nullopt;
+    }
+    return *(found + 1);
 }
 
 std::string hexEncode(const Bytes& bytes) {

@@ -8,7 +8,7 @@ export interface Settings {
     showTitleBarInTray: boolean;
     listWidth: number;
     listHeight: number;
-    timeoutOnModlaunch: number | string;
+    timeoutOnModlaunch: number;
     steamPath: string;
     winePath: string;
     uiScale: number;
