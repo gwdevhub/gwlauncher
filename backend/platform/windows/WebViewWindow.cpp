@@ -8,10 +8,13 @@
 #include <WebView2.h>
 
 #include <cstdio>
+#include <atomic>
+#include <chrono>
 #include <functional>
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <thread>
 #include <utility>
 #include <vector>
 
@@ -37,6 +40,9 @@ const wchar_t* const kWindowClass = L"GwlWebViewWindow";
 // Where the WebView2 runtime is downloaded from.
 const char* const kWebView2Download = "https://go.microsoft.com/fwlink/p/?LinkId=2124703";
 void initializeTaskDispatch();
+std::atomic<const wchar_t*> startupStage{L"initializing Windows windowing and the WebView2 loader"};
+std::atomic<bool> startupFinished{false};
+std::atomic<unsigned> startupDialogs{0};
 
 std::wstring toWide(const std::string& text) {
     if (text.empty()) {
@@ -592,7 +598,10 @@ std::optional<RuntimeProblem> missingWindowingRuntime() {
 
 void offerLink(const std::string& message, const std::string& link) {
     const std::wstring text = toWide(message + "\n\nOpen the WebView2 download page now?");
-    if (MessageBoxW(nullptr, text.c_str(), L"GW Launcher", MB_YESNO | MB_ICONERROR) == IDYES) {
+    pauseStartupMonitoring(true);
+    const int answer = MessageBoxW(nullptr, text.c_str(), L"GW Launcher", MB_YESNO | MB_ICONERROR);
+    pauseStartupMonitoring(false);
+    if (answer == IDYES) {
         const std::wstring url = toWide(link);
         ShellExecuteW(nullptr, L"open", url.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
     }
@@ -636,9 +645,35 @@ void installWebView2Loader() {
 }
 
 void initializeWindowing() {
+    // This watchdog cannot depend on a message pump that configuration or loader I/O might block.
+    std::thread([] {
+        unsigned seconds = 0;
+        while (seconds < 30) {
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+            if (startupFinished.load()) return;
+            seconds = startupDialogs.load() ? 0 : seconds + 1;
+        }
+        const std::wstring message = std::wstring(L"GW Launcher startup has not completed within 30 seconds. It is currently ") + startupStage.load() +
+            L". Startup may be blocked by inaccessible files or security software.\n\nPress OK to exit, check the launcher folder, and restart. Press Ctrl+C to copy this error.";
+        MessageBoxW(nullptr, message.c_str(), L"GW Launcher startup timed out", MB_OK | MB_ICONERROR);
+        ExitProcess(1);
+    }).detach();
     initializeTaskDispatch();
     installWebView2Loader();
     requireWindowingRuntime();
+}
+
+void monitorConfigurationStartup() {
+    startupStage = L"reading launcher settings and Accounts.json";
+}
+
+void finishStartupMonitoring() {
+    startupFinished = true;
+}
+
+void pauseStartupMonitoring(bool paused) {
+    if (paused) ++startupDialogs;
+    else --startupDialogs;
 }
 
 void setApplicationIcon(const std::string&) {}

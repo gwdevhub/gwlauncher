@@ -182,6 +182,12 @@ void requireWindowingRuntime();
 // Starts the platform's windowing, so that windows and menus can be made. Throws RuntimeMissingError when a runtime is missing.
 void initializeWindowing();
 
+#ifdef _WIN32
+void monitorConfigurationStartup();
+void finishStartupMonitoring();
+void pauseStartupMonitoring(bool paused);
+#endif
+
 // Sets the icon every window of the launcher shows, from the PNG the launcher embeds. Windows takes its icon from the
 // executable's resource instead, so there it does nothing.
 void setApplicationIcon(const std::string& png);

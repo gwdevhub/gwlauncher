@@ -6,6 +6,7 @@ Tracking issue: https://github.com/gwdevhub/gwlauncher/issues/264
 
 - The Windows window stays hidden until the frontend has mounted its first view and acknowledged readiness.
 - A 30-second native startup watchdog covers environment/controller creation, navigation, and frontend initialization. Startup/read bridge requests have a 15-second deadline; launch, update, and interactive requests do not inherit that deadline.
+- A separate Windows watchdog runs independently of the UI pump during loader/configuration startup. If initial synchronous settings/account-file I/O stalls for 30 seconds, it shows the blocked startup stage in a native diagnostic and offers acknowledgment followed by process exit. Time spent reading an existing startup error/runtime-installation dialog does not count. It does not attempt to retry an operation still blocked in the original thread.
 - Native creation, navigation, messaging, script, and process failures open a Windows Retry/Cancel dialog. Ctrl+C copies its full diagnostic text. Retry creates a fresh WebView, invalidates its old callbacks/replies, and restores the latest progress snapshot. Cancel exits the launcher. Running jobs are not restarted by Retry.
 - Uncaught frontend errors use that native path too. The frontend also has an initialization-error screen. If JavaScript cannot execute at all, the native watchdog remains responsible for reporting failure.
 - Account loading has distinct loading, failure, and successfully empty states. A failed refresh retains existing rows; a later successful refresh can change the account count.
@@ -19,6 +20,7 @@ Run these against a separately requested Windows build. Fault injection requires
 
 | Fault / action | Expected result |
 | --- | --- |
+| Block loader initialization or initial settings/account-file reading before the UI pump starts | Independent watchdog displays the startup stage after 30 seconds; acknowledging the native diagnostic exits the blocked launcher |
 | Reject the first `accounts` reply; allow the next poll to succeed | Visible error followed by populated rows, regardless of account count |
 | Delay `accounts` past 15 seconds or drop its reply | Read timeout and Retry, never the successful-empty UI |
 | Add/remove accounts while the list is open | Next successful refresh reflects the new count |
