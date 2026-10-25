@@ -81,6 +81,18 @@ elseif(UNIX AND NOT APPLE)
     if(NOT OPENSSL_CRYPTO_LIBRARY MATCHES "\\.a$")
         message(FATAL_ERROR "The Linux launcher requires static libcrypto. Install its development archive and clear cached OpenSSL paths.")
     endif()
+    # FindOpenSSL leaves zstd as a bare library name, which would otherwise select the shared library.
+    get_target_property(GWL_CRYPTO_DEPENDENCIES OpenSSL::Crypto INTERFACE_LINK_LIBRARIES)
+    if("zstd" IN_LIST GWL_CRYPTO_DEPENDENCIES)
+        set(CMAKE_FIND_LIBRARY_SUFFIXES .a)
+        find_library(GWL_ZSTD_LIBRARY NAMES zstd REQUIRED)
+        set(CMAKE_FIND_LIBRARY_SUFFIXES "${GWL_LIBRARY_SUFFIXES}")
+        if(NOT GWL_ZSTD_LIBRARY MATCHES "\\.a$")
+            message(FATAL_ERROR "Static libcrypto requires static zstd. Install its development archive and clear GWL_ZSTD_LIBRARY.")
+        endif()
+        list(TRANSFORM GWL_CRYPTO_DEPENDENCIES REPLACE "^zstd$" "${GWL_ZSTD_LIBRARY}")
+        set_property(TARGET OpenSSL::Crypto PROPERTY INTERFACE_LINK_LIBRARIES "${GWL_CRYPTO_DEPENDENCIES}")
+    endif()
     # The headers only: the libraries themselves are opened at runtime, so they're not linked.
     # GTK, GLib, GIO and WebKitGTK are declared by the stub headers in third_party/gtk, so the build needs none of their development
     # packages, and no pkg-config. The libraries are loaded at runtime, as the windows are.

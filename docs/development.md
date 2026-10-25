@@ -52,14 +52,15 @@ The Linux build needs:
 - MinGW-w64 (`x86_64-w64-mingw32-g++`). The Linux launcher carries `GW_Launcher.cli.exe`, which is a Windows program built with MinGW during the build.
 - OpenSSL 3 development headers and the static libcrypto archive. Account encryption is linked into the executable.
 - zlib development headers and its static archive, required by static libcrypto.
+- The static zstd archive when OpenSSL is built with zstd support, as in the Docker toolchain.
 - Optional: `ccache`, which CMake uses when it's found
 
 Packages by distribution:
-- Debian and Ubuntu: `cmake ninja-build g++ mingw-w64 libssl-dev zlib1g-dev`
-- Fedora: `cmake ninja-build gcc-c++ mingw64-gcc-c++ openssl-devel openssl-static zlib-devel zlib-static`
+- Debian and Ubuntu: `cmake ninja-build g++ mingw-w64 libssl-dev zlib1g-dev libzstd-dev`
+- Fedora: `cmake ninja-build gcc-c++ mingw64-gcc-c++ openssl-devel openssl-static zlib-devel zlib-static libzstd-devel libzstd-static`
 - Arch: use `./build.sh linux`; the distribution's `openssl` package does not include the static archive.
 
-Linux builds check the executable's ELF dependencies with `readelf` and fail if libcrypto, libssl or zlib is linked dynamically.
+Linux builds check the executable's ELF dependencies with `readelf` and fail if libcrypto, libssl, zlib or zstd is linked dynamically.
 
 The launcher needs GTK 3 and WebKitGTK 4.1 at runtime. It opens them with `dlopen`, so there are no development packages to install, and a missing library shows a message instead of stopping the launch. Install the runtime packages to run it:
 - Debian and Ubuntu: `libgtk-3-0 libwebkit2gtk-4.1-0`

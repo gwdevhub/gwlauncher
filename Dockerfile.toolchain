@@ -7,7 +7,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 # The equiv_files helper identifies the backported fix; checking only GCC's version would miss it.
 RUN apt-get update \
- && apt-get install -y --no-install-recommends cmake ninja-build pkg-config g++ mingw-w64 libssl-dev zlib1g-dev \
+ && apt-get install -y --no-install-recommends cmake ninja-build pkg-config g++ mingw-w64 libssl-dev zlib1g-dev libzstd-dev \
  && x86_64-w64-mingw32-g++ --version \
  && x86_64-w64-mingw32-nm -C "$(x86_64-w64-mingw32-g++ -print-file-name=libstdc++.a)" | grep ' T std::filesystem::equiv_files(' \
  && rm -rf /var/lib/apt/lists/*
