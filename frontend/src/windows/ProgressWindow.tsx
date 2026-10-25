@@ -58,7 +58,7 @@ export function ProgressWindow({ heading, note, cancellable, icon }: { heading: 
             </h2>
             {note && <p className="note text-[11px] text-muted">{note}</p>}
             <ProgressBar fraction={fraction} label={heading} />
-            <p className="note text-[11px] text-muted">{paused ? 'Guild Wars is paused, so its plugins can load. Continue?' : finished || detail}</p>
+            <p className="note text-[11px] text-muted">{paused ? 'Launch paused.' : finished || detail}</p>
             {failed && <p className="error text-danger">{failure}</p>}
             <div className="buttons mt-auto flex justify-end gap-2 pt-1.5">
                 {failed ? (

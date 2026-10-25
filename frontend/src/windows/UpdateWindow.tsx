@@ -13,7 +13,7 @@ export function UpdateWindow({ id, title, message, notes, releaseUrl }: { id: nu
             <div className="buttons mt-auto flex justify-end gap-2 pt-1.5">
                 {releaseUrl && (
                     <Button className="left mr-auto" onClick={() => call('openUrl', releaseUrl)}>
-                        View release on GitHub
+                        View release
                     </Button>
                 )}
                 <Button

@@ -84,7 +84,7 @@ void startGame(const Account& account, const std::string& dir, std::uint32_t tim
                bool requireSteam) {
     (void)dir;
     if (requireSteam && account.isSteamAccount && !steamRunning()) {
-        throw std::runtime_error("Steam is not running. Please start Steam before launching a Steam account.");
+        throw std::runtime_error("Start Steam before launching a Steam account.");
     }
     const fs::path cli = executablePath();
     const fs::path folder = cli.parent_path();

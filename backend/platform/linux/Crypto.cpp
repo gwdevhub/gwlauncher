@@ -44,7 +44,7 @@ LibCrypto load() {
         library = dlopen("libcrypto.so", RTLD_NOW);
     }
     if (!library) {
-        throw std::runtime_error("Encrypted accounts need the system's OpenSSL library (libcrypto.so.3), which isn't installed.");
+        throw std::runtime_error("Encrypted accounts require OpenSSL (libcrypto.so.3).");
     }
     LibCrypto lib{};
     lib.cipherCtxNew = symbol<decltype(lib.cipherCtxNew)>(library, "EVP_CIPHER_CTX_new");

@@ -67,20 +67,16 @@ export function SetupWindow() {
         return <section className="view flex h-full flex-col gap-2.5 overflow-auto p-3.5" />;
     }
 
-    let message: string;
-    if (complete) {
-        message = 'Click the tray icon to open the launcher.';
-    } else if (progress.running) {
-        message = 'Installing. This can take several minutes. You can close this window; the install keeps going.';
-    } else if (!current?.canInstall) {
-        message = `${current?.title ?? ''} can't be installed automatically on this distro. Install it with your package manager, then reopen this window.`;
-    } else {
-        message = 'Click install. If asked, enter your password in the system prompt.';
+    let message = '';
+    if (!complete && progress.running) {
+        message = 'Installation continues if this window is closed.';
+    } else if (!complete && !current?.canInstall) {
+        message = `Install ${current?.title ?? ''} with your package manager, then reopen setup.`;
     }
 
     return (
         <section className="view flex h-full flex-col gap-2.5 overflow-auto p-3.5">
-            <h2 className="m-0 text-sm">{complete ? 'Setup complete' : 'GW Launcher needs a few things before it can run accounts.'}</h2>
+            <h2 className="m-0 text-sm">{complete ? 'Setup complete' : 'Setup'}</h2>
             <ul className="steps m-0 list-none p-0">
                 {items.map((item, i) => (
                     <li key={item.title} className={`flex gap-2.5 mb-2 ${item.done ? 'done' : i === next ? '' : 'later opacity-50'}`}>
@@ -92,7 +88,7 @@ export function SetupWindow() {
                     </li>
                 ))}
             </ul>
-            <p>{message}</p>
+            {message && <p>{message}</p>}
             {progress.error && <p className="error text-danger">{progress.error}</p>}
             {progress.running && <ProgressBar fraction={null} label="Installing" />}
             {progress.running && <Note>{progress.lastLine}</Note>}

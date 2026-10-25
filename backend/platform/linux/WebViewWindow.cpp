@@ -408,10 +408,10 @@ void WebViewWindow::platformRunScript(const std::string& script) {
 
 std::optional<RuntimeProblem> missingWindowingRuntime() {
     if (!dlopen("libgtk-3.so.0", RTLD_LAZY | RTLD_LOCAL)) {
-        return RuntimeProblem{"GTK 3 isn't installed, so the launcher's windows can't open. Install GTK 3 (libgtk-3-0 on Debian and Ubuntu, gtk3 on Fedora and Arch) and start the launcher again.", ""};
+        return RuntimeProblem{"Install GTK 3 (libgtk-3-0 on Debian and Ubuntu, gtk3 on Fedora and Arch), then restart the launcher.", ""};
     }
     if (!dlopen("libwebkit2gtk-4.1.so.0", RTLD_LAZY | RTLD_LOCAL)) {
-        return RuntimeProblem{"WebKitGTK 4.1 isn't installed, so the launcher's windows can't open. Install it (libwebkit2gtk-4.1-0 on Debian and Ubuntu, webkit2gtk4.1 on Fedora, webkit2gtk-4.1 on Arch) and start the launcher again.", ""};
+        return RuntimeProblem{"Install WebKitGTK 4.1 (libwebkit2gtk-4.1-0 on Debian and Ubuntu, webkit2gtk4.1 on Fedora, webkit2gtk-4.1 on Arch), then restart the launcher.", ""};
     }
     try {
         if (!api().init_check(nullptr, nullptr)) {
