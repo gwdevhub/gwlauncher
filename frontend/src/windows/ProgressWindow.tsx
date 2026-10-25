@@ -5,6 +5,7 @@
 import { useEffect, useState } from 'react';
 import { call } from '../bridge';
 import { on } from '../events';
+import { useAutosize } from '../autosize';
 import { Button } from '../components/Button';
 import { ProgressBar } from '../components/ProgressBar';
 
@@ -17,6 +18,8 @@ interface ProgressUpdate {
 }
 
 export function ProgressWindow({ heading, note, cancellable, icon }: { heading: string; note?: string; cancellable?: boolean; icon?: string }) {
+    const [root, setRoot] = useState<HTMLElement | null>(null);
+    useAutosize(root);
     const [fraction, setFraction] = useState<number | null>(null);
     const [detail, setDetail] = useState('');
     const [failure, setFailure] = useState('');
@@ -51,7 +54,7 @@ export function ProgressWindow({ heading, note, cancellable, icon }: { heading: 
     };
     const failed = failure !== '';
     return (
-        <section className="view flex h-full flex-col gap-2.5 overflow-auto p-3.5">
+        <section ref={setRoot} className="view flex min-h-[190px] w-[420px] shrink-0 self-start flex-col gap-2.5 overflow-hidden p-3.5 [overflow-wrap:anywhere]">
             <h2 className="m-0 flex items-center gap-2 text-sm">
                 {icon && <img src={icon} alt="" className="h-5 w-5 shrink-0" />}
                 {heading}
