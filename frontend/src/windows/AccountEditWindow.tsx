@@ -123,7 +123,7 @@ export function AccountEditWindow({ index, keepDraft, copyOf }: { index: number 
                     )}
                     {app.hasWindowsOptions && (
                         <Check
-                            label="Run as administrator"
+                            label="Run elevated"
                             checked={draft.elevated}
                             onChange={e => update({ elevated: e.target.checked })}
                         />
