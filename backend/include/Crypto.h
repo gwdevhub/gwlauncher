@@ -1,5 +1,5 @@
 // The primitives the encrypted accounts file and the remembered password use. Each platform implements them in
-// platform/<os>/Crypto.cpp: BCrypt on Windows, and the system's libcrypto on Linux, which is loaded when first used.
+// platform/<os>/Crypto.cpp: BCrypt on Windows, and statically linked OpenSSL libcrypto on Linux.
 
 #pragma once
 

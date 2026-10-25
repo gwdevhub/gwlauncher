@@ -34,7 +34,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${GWL_BIN_DIR}")
 # The WebView2 loader, vendored in third_party/webview2. The Windows launcher carries it as a resource.
 set(GWL_WEBVIEW2_LOADER "${CMAKE_CURRENT_SOURCE_DIR}/third_party/webview2/bin/x64/WebView2Loader.dll")
 
-# The platform's sources. Headers only: the Linux libraries are opened at runtime, not linked.
+# The platform's sources.
 add_library(gwl_core STATIC src/Messages.cpp src/WebViewWindow.cpp src/Settings.cpp src/Accounts.cpp src/DataUrl.cpp src/tray/TrayRegion.cpp src/GMod.cpp src/WorkerPool.cpp src/MachineFacts.cpp src/IssueChecker.cpp src/Instance.cpp src/Stylesheets.cpp src/EmbeddedAssets.cpp src/utils/Strings.cpp src/utils/Files.cpp src/utils/Crypto.cpp src/AccountFile.cpp src/ShellLink.cpp src/ModFiles.cpp src/LauncherUpdate.cpp src/GameLaunch.cpp src/CliInstall.cpp src/Steam.cpp src/Modlist.cpp src/GwNet.cpp src/GwHuffman.cpp src/GwPe.cpp src/GwInstall.cpp src/WofDecode.cpp src/Wof.cpp src/utils/Bytes.cpp src/utils/Crc.cpp src/utils/Images.cpp src/utils/Inflate.cpp src/GwIcon.cpp src/Issue.cpp src/issues/GwExeMissingIssue.cpp src/issues/SteamNotInstalledIssue.cpp src/issues/ProtonMissingIssue.cpp src/issues/WineMissingIssue.cpp src/issues/GModMissingIssue.cpp src/issues/ModMissingIssue.cpp src/issues/InvalidModIssue.cpp src/issues/InvalidTexmodIssue.cpp src/issues/WofIssue.cpp src/issues/GwExeOutdatedIssue.cpp src/issues/LaunchFoldersIssue.cpp src/issues/InUseIssue.cpp src/Starting.cpp src/SteamIcon.cpp src/TempFiles.cpp)
 # The commit count this build is made from, which the launcher checks for updates against. Zero without git history.
 # A container build has no .git, so the build script passes the number in as GWL_BUILD_NUMBER.
@@ -66,12 +66,18 @@ if(WIN32)
     target_include_directories(gwl_core PRIVATE ${WEBVIEW2_INCLUDE_DIR} platform/windows/compat)
     target_link_libraries(gwl_core PUBLIC user32 ole32 shell32 shlwapi uuid comdlg32 ws2_32 bcrypt advapi32 crypt32)
 elseif(UNIX AND NOT APPLE)
+    # Carry account encryption in the executable rather than requiring the host's libcrypto.
+    set(OPENSSL_USE_STATIC_LIBS TRUE)
+    find_package(OpenSSL 3.0 MODULE REQUIRED COMPONENTS Crypto)
+    if(NOT OPENSSL_CRYPTO_LIBRARY MATCHES "\\.a$")
+        message(FATAL_ERROR "The Linux launcher requires static libcrypto. Install its development archive and clear cached OpenSSL paths.")
+    endif()
     # The headers only: the libraries themselves are opened at runtime, so they're not linked.
     # GTK, GLib, GIO and WebKitGTK are declared by the stub headers in third_party/gtk, so the build needs none of their development
     # packages, and no pkg-config. The libraries are loaded at runtime, as the windows are.
     target_sources(gwl_core PRIVATE platform/linux/WebViewWindow.cpp platform/linux/Desktop.cpp platform/linux/Launch.cpp platform/linux/Network.cpp platform/linux/Crypto.cpp platform/linux/PasswordCache.cpp platform/linux/LauncherUpdate.cpp platform/linux/Wof.cpp platform/linux/SystemInfo.cpp platform/linux/Process.cpp platform/linux/Shell.cpp platform/linux/Instance.cpp platform/linux/Tray.cpp platform/linux/TrayPosition.cpp)
     target_include_directories(gwl_core PRIVATE "${GWL_THIRD_PARTY}/gtk/include")
-    target_link_libraries(gwl_core PUBLIC ${CMAKE_DL_LIBS})
+    target_link_libraries(gwl_core PUBLIC OpenSSL::Crypto ${CMAKE_DL_LIBS})
 else()
     message(FATAL_ERROR "The native layer supports Windows and Linux only.")
 endif()
