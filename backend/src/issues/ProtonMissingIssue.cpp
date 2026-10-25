@@ -13,14 +13,14 @@ namespace {
 class ProtonMissingIssue : public Issue {
 public:
     int severity() const override { return kBlocking; }
-    std::string message() const override { return "No Proton is installed in Steam's library, so a Steam account can't start."; }
+    std::string message() const override { return "Proton isn't installed in Steam's library."; }
 
     void describe(Json& json) const override { json["canInstallProton"] = true; }
 
     void fix(Reply reply, const JobRunner& runJob) override {
         try {
             openProtonInstall();
-            reply.result("Steam has been asked to install Proton Experimental. Confirm the install in Steam.");
+            reply.result("Confirm the Proton Experimental installation in Steam.");
         } catch (const std::exception&) {
             reply.result(nullptr);
         }

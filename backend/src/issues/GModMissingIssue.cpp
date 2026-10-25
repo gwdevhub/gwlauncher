@@ -32,7 +32,6 @@ public:
         const Json popup{
             {"title", "Downloading gMod"},
             {"heading", "Downloading gMod.dll"},
-            {"note", "Texture mods need gMod.dll, which is saved beside the launcher."},
             {"cancellable", true},
             {"failure", "gMod.dll couldn't be downloaded"},
         };
@@ -40,7 +39,7 @@ public:
             popup,
             [folder](const ProgressReport& report, const std::atomic<bool>& cancel) { downloadGMod(folder, report, cancel); },
             [reply](const std::optional<std::string>& failure) {
-                reply.result(failure ? Json(nullptr) : Json("gMod.dll is downloaded. Launch the account again."));
+                reply.result(failure ? Json(nullptr) : Json("gMod.dll downloaded."));
             });
     }
 };

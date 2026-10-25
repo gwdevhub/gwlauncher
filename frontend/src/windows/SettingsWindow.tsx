@@ -94,22 +94,20 @@ export function SettingsWindow() {
                 onChange={e => set({ keepInSystemTray: e.target.checked })}
             />
             <Note className="indent ml-[22px]">
-                {app.hasTray ? 'Run from a tray icon; closing hides it to the tray, unless the title bar is shown.' : 'Not available: no system tray was found on this desktop.'}
+                {app.hasTray ? 'Closing hides the window unless the title bar is shown.' : 'No system tray available.'}
             </Note>
             <Check
-                label="Launch minimised"
+                label="Start hidden in tray"
                 checked={settings.launchMinimized}
                 disabled={trayOptionsDisabled}
                 onChange={e => set({ launchMinimized: e.target.checked })}
             />
-            <Note className="indent ml-[22px]">Start hidden in the tray instead of showing the window.</Note>
             <Check
                 label="Show title bar in tray mode"
                 checked={settings.showTitleBarInTray}
                 disabled={trayOptionsDisabled}
                 onChange={e => set({ showTitleBarInTray: e.target.checked })}
             />
-            <Note className="indent ml-[22px]">Keep the window's title bar when it's run from the tray.</Note>
 
             <h2 className="m-0 text-sm">Display</h2>
             <label className="row form-grid-wide grid items-center gap-2">
@@ -120,7 +118,6 @@ export function SettingsWindow() {
 
             <h2 className="m-0 text-sm">Security</h2>
             <Check label="Password protect Accounts.json" checked={protect} onChange={e => setProtect(e.target.checked)} />
-            <Note className="indent ml-[22px]">Encrypts saved accounts; asked for at startup.</Note>
             <div hidden={!protect} className="flex flex-col gap-2.5">
                 <label className="row form-grid-wide grid items-center gap-2">
                     <span>Master password:</span>
@@ -132,12 +129,12 @@ export function SettingsWindow() {
 
             <h2 className="m-0 text-sm">Updates</h2>
             <Check
-                label="Prompt me when an update is available"
+                label="Prompt for updates at startup"
                 checked={settings.promptForUpdates}
                 onChange={e => set({ promptForUpdates: e.target.checked })}
             />
             <Note className="indent ml-[22px]">
-                Open the update prompt at startup when a new launcher or Gw.exe version is out. The update icon in the account list is always shown.
+                The update icon is shown even when prompts are disabled.
             </Note>
 
             {app.hasLinuxPaths && (
@@ -153,7 +150,7 @@ export function SettingsWindow() {
                         <input className="text-input w-full select-text rounded border border-border px-1.5 py-1" type="text" value={settings.winePath} placeholder={app.detectedPaths?.wine || 'Not found'} onChange={e => set({ winePath: e.target.value })} />
                         <span />
                     </label>
-                    <Note>Leave these empty to use the locations the launcher finds.</Note>
+                    <Note>Leave blank to auto-detect.</Note>
                 </>
             )}
 
@@ -163,7 +160,7 @@ export function SettingsWindow() {
                 <input className="text-input w-full select-text rounded border border-border px-1.5 py-1" type="number" min="1" max="4294967" step="1" value={launchTimeoutSeconds} onChange={e => setLaunchTimeoutSeconds(e.target.value)} />
                 <span />
             </label>
-            <Note>How long to wait for each mod DLL to load, the game window to appear, and input readiness. Applies even without mods; each step gets this timeout.</Note>
+            <Note>Per-step timeout for mod loading, the game window, and input readiness.</Note>
 
             {error && <p className="error text-danger">{error}</p>}
             <div className="buttons mt-auto flex justify-end gap-2 pt-1.5">

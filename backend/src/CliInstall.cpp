@@ -37,7 +37,7 @@ bool sameAsEmbedded(const fs::path& path, const std::pair<const unsigned char*, 
 fs::path installEmbeddedCli() {
     const auto bytes = embeddedCli();
     if (bytes.second == 0) {
-        throw std::runtime_error("This build carries no command-line launcher, so a game can't be started.");
+        throw std::runtime_error("This build has no command-line launcher.");
     }
     const fs::path folder = launcherDataDir();
     const fs::path target = folder / kCliName;
@@ -59,7 +59,7 @@ fs::path installEmbeddedCli() {
     fs::rename(staged, target, error);
     if (error) {
         fs::remove(staged, error);
-        throw std::runtime_error("The command-line launcher is in use, so it can't be replaced: " + pathToUtf8(target));
+        throw std::runtime_error("Can't replace the command-line launcher while it's in use: " + pathToUtf8(target));
     }
     return target;
 }

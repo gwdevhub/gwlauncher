@@ -12,7 +12,7 @@ namespace {
 class SteamNotInstalledIssue : public Issue {
 public:
     int severity() const override { return kBlocking; }
-    std::string message() const override { return "Steam for Linux isn't installed, so a Steam account can't start."; }
+    std::string message() const override { return "Steam for Linux isn't installed."; }
     void describe(Json& json) const override { json["canInstallSteam"] = true; }
 
     void fix(Reply reply, const JobRunner&) override {

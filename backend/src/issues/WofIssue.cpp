@@ -75,8 +75,8 @@ public:
         }
         const Json popup{
             {"title", "Decompressing"},
-            {"heading", "Decompressing a file Windows compacted"},
-            {"note", "Asks for your password to read the disk. The file is replaced by its decompressed copy."},
+            {"heading", "Decompressing file"},
+            {"note", "Requires administrator authentication to read the disk."},
             {"cancellable", true},
             {"failure", "The file couldn't be decompressed"},
         };
@@ -86,7 +86,7 @@ public:
             [path = *path](const ProgressReport& report, const std::atomic<bool>& cancel) { resolveWof(path, report, cancel); },
             [reply, fileName](const std::optional<std::string>& failure) {
                 reply.result(failure ? Json(nullptr)
-                                     : Json("Decompressed " + fileName + ". It replaces the compressed original."));
+                                     : Json("Decompressed " + fileName + "."));
             });
     }
 

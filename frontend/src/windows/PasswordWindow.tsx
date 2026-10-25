@@ -28,7 +28,7 @@ export function PasswordWindow() {
 
     return (
         <section className="view flex h-full flex-col gap-2.5 overflow-auto p-3.5">
-            <p>Accounts are encrypted. Enter the master password to open them.</p>
+            <p>Unlock accounts</p>
             <input
                 className="text-input w-full select-text rounded border border-border px-1.5 py-1"
                 type="password"

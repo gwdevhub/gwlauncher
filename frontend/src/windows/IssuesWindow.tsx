@@ -48,7 +48,7 @@ export function IssuesWindow({ view }: { view: IssuesRequest }) {
         return (
             <section className="view flex h-full flex-col gap-2.5 overflow-auto p-3.5">
                 <h2 className="m-0 text-sm">{`Issues: ${view.name}`}</h2>
-                <Note>Checking the account…</Note>
+                <Note>Checking…</Note>
                 {failure ? <p className="error text-danger">{failure}</p> : <ProgressBar fraction={null} label="Checking the account" />}
                 <div className="buttons mt-auto flex justify-end gap-2 pt-1.5">
                     <Button onClick={() => show('list')}>Close</Button>
@@ -83,7 +83,7 @@ function IssueList({
             const name = issue.wofPath.split(/[\\/]/).pop() ?? issue.wofPath;
             const answer = await choose(
                 'Decompress file',
-                `${name} was compressed by Windows, which this launcher can't read. Decompress it now? The decompressed file replaces the original.`,
+                `Decompress ${name}? This replaces the compressed original.`,
                 ['Decompress', 'Cancel'],
             );
             if (answer !== 0) {
@@ -102,8 +102,7 @@ function IssueList({
     return (
         <section className="view flex h-full flex-col gap-2.5 overflow-auto p-3.5">
             <h2 className="m-0 text-sm">{view.launchBlocked ? `Can't launch ${view.name}` : `Issues: ${view.name}`}</h2>
-            <p>{view.launchBlocked ? 'Fix these before launching:' : 'Issues found for this account:'}</p>
-            {issues.length === 0 && <p>No issues. This account should launch.</p>}
+            {issues.length === 0 && <p>No issues found.</p>}
             {sorted.map((issue, i) => {
                 const blocking = issue.severity === 0;
                 const fixable = Boolean(
@@ -119,7 +118,7 @@ function IssueList({
                         <p className={blocking ? 'error text-danger' : 'warning text-warning'}>{(blocking ? 'Blocking: ' : 'Warning: ') + issue.message}</p>
                         {fixable && (
                             <Button className="small fix mt-2.5 block" disabled={busy === issue} onClick={() => fix(issue)}>
-                                Fix now!
+                                Fix
                             </Button>
                         )}
                     </div>

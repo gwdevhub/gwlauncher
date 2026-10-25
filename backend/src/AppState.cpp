@@ -88,9 +88,8 @@ AppState::AppState(std::string pageHtml) : page(std::move(pageHtml)) {
     // Settings, accounts and Guild Wars downloads are kept in the folder the launcher runs from, so without a writable folder none
     // of them save.
     if (const auto folder = gwl::executablePath().parent_path(); !gwl::isWritableFolder(folder)) {
-        gwl::showError("GW Launcher is in " + gwl::pathToUtf8(folder) +
-                       ", which this user can't write to, so settings, accounts and downloads won't save. Move the launcher to a folder "
-                       "you can write to, or check the folder's permissions.");
+        gwl::showError("Launcher folder isn't writable: " + gwl::pathToUtf8(folder) +
+                       ". Move the launcher or change the folder's permissions to save settings, accounts and downloads.");
     }
     gwl::setInstallPaths(settings.steamPath, settings.winePath);
     gwl::setUiScale(static_cast<int>(settings.uiScale));
