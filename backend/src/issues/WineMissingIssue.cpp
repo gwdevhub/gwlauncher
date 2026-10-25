@@ -20,7 +20,7 @@ public:
     explicit WineMissingIssue(std::optional<std::string> installCommand) : installCommand_(std::move(installCommand)) {}
 
     int severity() const override { return kBlocking; }
-    std::string message() const override { return "Wine isn't installed, so this account can't start."; }
+    std::string message() const override { return "Wine isn't installed."; }
 
     void describe(Json& json) const override { json["canInstallWine"] = installCommand_.has_value(); }
 
@@ -37,7 +37,7 @@ public:
             }
             // -1 means pkexec couldn't be started at all, so the cause is its absence, not the install.
             const std::string message = status < 0
-                ? "pkexec isn't installed, so Wine can't be installed from here. Install polkit, which provides pkexec, or install Wine yourself with: " + command
+                ? "pkexec isn't installed. Install polkit or install Wine manually with: " + command
                 : "Wine couldn't be installed. Install it yourself with: " + command;
             runOnUiThread([message] { showError(message); });
         }).detach();

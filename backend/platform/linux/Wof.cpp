@@ -178,10 +178,10 @@ bool onPath(const std::string& name) {
 
 std::unique_ptr<WofData> openWofData(const fs::path& path) {
     if (!onPath("ntfsinfo") || !onPath("ntfscat")) {
-        throw std::runtime_error("The ntfs-3g tools (ntfsinfo and ntfscat) aren't installed, so compressed files can't be read. Install the ntfs-3g package, then try again.");
+        throw std::runtime_error("Install ntfs-3g (ntfsinfo and ntfscat) to read Windows-compressed files.");
     }
     if (!onPath("pkexec")) {
-        throw std::runtime_error("pkexec isn't installed, so compressed files can't be read as root. Install polkit, which provides pkexec, then try again.");
+        throw std::runtime_error("Install polkit (pkexec) to read Windows-compressed files as root.");
     }
     const auto [device, relative] = volumeFor(path);
     const std::string script =
@@ -207,7 +207,7 @@ std::unique_ptr<WofData> openWofData(const fs::path& path) {
     close(pipeFds[1]);
     if (status != 0) {
         close(pipeFds[0]);
-        throw std::runtime_error(std::string("pkexec couldn't be started (") + std::strerror(status) + "). Install polkit, which provides pkexec, then try again.");
+        throw std::runtime_error(std::string("pkexec couldn't start (") + std::strerror(status) + "). Check the polkit installation.");
     }
     return std::make_unique<PrivilegedData>(pid, pipeFds[0]);
 }

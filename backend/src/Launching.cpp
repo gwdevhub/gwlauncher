@@ -29,7 +29,7 @@ namespace launcher {
 
 namespace {
 
-constexpr const char* kDefaultMissing = "Couldn't find a default installation of Guild Wars, is it installed?";
+constexpr const char* kDefaultMissing = "No default Guild Wars installation found.";
 
 // The launch result the list expects: started, or the error the launch gave.
 gwl::Json launchResult(const std::optional<std::string>& failure) {
@@ -137,13 +137,10 @@ void AppState::startGameAsync(const gwl::Account& account, std::optional<std::si
     launching.insert(name);
     const std::uint32_t timeout = settings.timeoutOnModlaunch;
     const std::string dir = gwl::pathToUtf8(std::filesystem::current_path());
-    const gwl::Json note = checkFirst ? gwl::Json("Checking the account...")
-                                      : gwl::Json(suspended ? "Guild Wars starts paused, so its plugins can load." : "Guild Wars is starting.");
     const gwl::Json popup{
         {"title", "Starting " + name},
         {"heading", "Starting " + name},
         {"icon", accountIconUrl(account)},
-        {"note", note},
         {"cancellable", true},
         {"failure", "Guild Wars couldn't be started"},
     };

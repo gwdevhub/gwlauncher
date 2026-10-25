@@ -705,10 +705,10 @@ void launchGameInProcess(const Account& account, const std::string& dir, std::ui
     SteamAppIdFile appId(*appIdPath);
 
     if (!fs::is_regular_file(pathFromUtf8(account.gwpath), error)) {
-        throw std::runtime_error("Path to the Guild Wars executable incorrect, aborting launch.");
+        throw std::runtime_error("Invalid path to Gw.exe.");
     }
     if (requireSteam && account.isSteamAccount && !steamRunning()) {
-        throw std::runtime_error("Steam is not running. Please start Steam before launching a Steam account.");
+        throw std::runtime_error("Start Steam before launching a Steam account.");
     }
     if (isRunningFrom(account.gwpath)) {
         throw std::runtime_error("The Guild Wars executable at " + account.gwpath + " is already running");

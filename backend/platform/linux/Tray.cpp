@@ -275,7 +275,7 @@ void onMethodCall(GDBusConnection*, const gchar*, const gchar*, const gchar* int
 TrayItem::TrayItem(const std::string& iconPng, TrayHandler handler) : onEvent(std::move(handler)) {
     const TrayApi* api = trayApi();
     if (!api) {
-        throw std::runtime_error("GTK isn't installed, so the tray icon can't be shown.");
+        throw std::runtime_error("GTK is required for the tray icon.");
     }
     if (!decodeIcon(*api, iconPng, *this)) {
         throw std::runtime_error("The tray icon couldn't be read.");

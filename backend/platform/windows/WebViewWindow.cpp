@@ -374,13 +374,13 @@ void WebViewWindow::platformOpen() {
     const std::string page = html();
     auto onEnvironment = [native, url, page](HRESULT result, ICoreWebView2Environment* environment) {
         if (FAILED(result) || !environment) {
-            showError("The web view couldn't start, so the window is empty. Is the WebView2 runtime installed?");
+            showError("WebView2 couldn't start. Check that the WebView2 runtime is installed.");
             return;
         }
         environment->CreateCoreWebView2Controller(
             native->hwnd, webview2::controllerDone([native, url, page](HRESULT controllerResult, ICoreWebView2Controller* controller) {
                 if (FAILED(controllerResult) || !controller) {
-                    showError("The web view couldn't be attached to its window, so the window is empty.");
+                    showError("WebView2 couldn't be attached to its window.");
                     return;
                 }
                 attachWebView(native, controller);
@@ -455,13 +455,13 @@ std::optional<RuntimeProblem> missingWindowingRuntime() {
     // The loader is found beside the executable, and it reports the runtime's version when the runtime is installed.
     HMODULE loader = LoadLibraryW((launcherDataDir() / "WebView2Loader.dll").c_str());
     if (!loader) {
-        return RuntimeProblem{"WebView2Loader.dll isn't next to the launcher, so its windows can't open.", ""};
+        return RuntimeProblem{"WebView2Loader.dll is missing from the launcher folder.", ""};
     }
     using VersionFn = HRESULT(WINAPI*)(LPCWSTR, LPWSTR*);
     auto version = reinterpret_cast<VersionFn>(GetProcAddress(loader, "GetAvailableCoreWebView2BrowserVersionString"));
     LPWSTR text = nullptr;
     if (!version || FAILED(version(nullptr, &text)) || !text) {
-        return RuntimeProblem{"The Microsoft Edge WebView2 runtime isn't installed, so the launcher's windows can't open. Install it, then start the launcher again.", kWebView2Download};
+        return RuntimeProblem{"Install the Microsoft Edge WebView2 runtime, then restart the launcher.", kWebView2Download};
     }
     CoTaskMemFree(text);
     return std::nullopt;
@@ -508,7 +508,7 @@ void installWebView2Loader() {
     std::filesystem::rename(staged, target, error);
     if (error) {
         std::filesystem::remove(staged, error);
-        throw std::runtime_error("The WebView2 loader is in use, so it can't be replaced: " + pathToUtf8(target));
+        throw std::runtime_error("Can't replace the WebView2 loader while it's in use: " + pathToUtf8(target));
     }
 }
 

@@ -55,8 +55,7 @@ void AppState::checkLauncherUpdate() {
 void AppState::openLauncherUpdatePrompt(const gwl::LauncherRelease& release) {
     const gwl::Json prompt{
         {"title", "GW Launcher update"},
-        {"message", "GW Launcher r" + std::to_string(release.revision) + " is available. This is r" + std::to_string(gwl::currentBuild()) +
-                        (release.download.empty() ? ".\n\nOpen the release page?" : ".\n\nUpdate now?")},
+        {"message", "GW Launcher r" + std::to_string(release.revision) + " is available (current: r" + std::to_string(gwl::currentBuild()) + ")."},
         {"notes", release.notes},
         {"releaseUrl", release.url},
     };
@@ -77,7 +76,7 @@ void AppState::startLauncherUpdate(const gwl::LauncherRelease& release) {
     const gwl::Json popup{
         {"title", "Updating GW Launcher"},
         {"heading", "Downloading the latest GW Launcher"},
-        {"note", "The launcher restarts when the update is in place."},
+        {"note", "Restarts after updating."},
         {"cancellable", true},
         {"failure", "GW Launcher couldn't be updated"},
     };

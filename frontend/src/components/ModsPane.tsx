@@ -118,7 +118,7 @@ export function ModsPane({ draft, update }: { draft: AccountDraft; update: (patc
                 <Button
                     onClick={() => {
                         if (picked.size === 0) {
-                            setMessage('Select account mods to remove. Plugin-folder files can only be removed from the folder.');
+                            setMessage('Select account mods to remove. Manage shared mods in the plugins folder.');
                             return;
                         }
                         update({ mods: draft.mods.filter(mod => !picked.has(mod.fileName)) });

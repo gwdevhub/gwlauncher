@@ -22,7 +22,7 @@ public:
 
     int severity() const override { return kBlocking; }
     std::string message() const override {
-        return folder_ + " can't be written to, which a launch needs. Check that its permissions let this user write to it.";
+        return folder_ + " isn't writable. Check its permissions.";
     }
 
 private:

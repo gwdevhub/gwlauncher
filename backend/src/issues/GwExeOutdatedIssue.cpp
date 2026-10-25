@@ -22,14 +22,13 @@ public:
     GwExeOutdatedIssue(std::string gwpath, std::filesystem::path exe) : gwpath_(std::move(gwpath)), exe_(std::move(exe)) {}
 
     int severity() const override { return kWarning; }
-    std::string message() const override { return "Gw.exe is out of date. Update it to match the latest game build."; }
+    std::string message() const override { return "Gw.exe is out of date."; }
     void describe(Json& json) const override { json["canUpdateGwExe"] = true; }
 
     void fix(Reply reply, const JobRunner& runJob) override {
         const Json popup{
             {"title", "Updating Gw.exe"},
-            {"heading", "Downloading the latest Gw.exe from ArenaNet"},
-            {"note", "It replaces the account's Gw.exe. Gw.dat is left as it is."},
+            {"heading", "Downloading the latest Gw.exe"},
             {"cancellable", true},
             {"failure", "Gw.exe couldn't be updated. If the game is in a protected folder, run GW Launcher as administrator"},
         };
