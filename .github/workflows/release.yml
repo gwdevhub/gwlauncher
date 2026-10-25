@@ -7,6 +7,10 @@ on:
             - 'frontend/**'
             - 'assets/**'
             - 'build.sh'
+            - 'build.ps1'
+            - 'Dockerfile'
+            - 'Dockerfile.toolchain'
+            - '.github/workflows/release.yml'
     workflow_dispatch:
 jobs:
     release:

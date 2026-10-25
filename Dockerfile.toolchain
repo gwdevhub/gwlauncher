@@ -1,9 +1,13 @@
 # The compilers for Linux and mingw, in one image so builds reuse them instead of reinstalling.
 # build.sh and build.ps1 tag it by a hash of this file, so it is rebuilt only when this file changes.
-FROM ubuntu:24.04
+# Debian's GCC 14 packages include the Windows copy_file overwrite fix missing from Ubuntu 24.04's MinGW GCC 13.2.
+FROM debian:trixie
 
 ENV DEBIAN_FRONTEND=noninteractive
 
+# The equiv_files helper identifies the backported fix; checking only GCC's version would miss it.
 RUN apt-get update \
  && apt-get install -y --no-install-recommends cmake ninja-build pkg-config g++ mingw-w64 \
+ && x86_64-w64-mingw32-g++ --version \
+ && x86_64-w64-mingw32-nm -C "$(x86_64-w64-mingw32-g++ -print-file-name=libstdc++.a)" | grep ' T std::filesystem::equiv_files(' \
  && rm -rf /var/lib/apt/lists/*
