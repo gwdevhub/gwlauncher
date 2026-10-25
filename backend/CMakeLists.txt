@@ -67,6 +67,15 @@ if(WIN32)
     target_link_libraries(gwl_core PUBLIC user32 ole32 shell32 shlwapi uuid comdlg32 ws2_32 bcrypt advapi32 crypt32)
 elseif(UNIX AND NOT APPLE)
     # Carry account encryption in the executable rather than requiring the host's libcrypto.
+    # FindZLIB before CMake 3.24 has no static-library option.
+    set(GWL_LIBRARY_SUFFIXES "${CMAKE_FIND_LIBRARY_SUFFIXES}")
+    set(CMAKE_FIND_LIBRARY_SUFFIXES .a)
+    set(ZLIB_USE_STATIC_LIBS TRUE)
+    find_package(ZLIB REQUIRED)
+    set(CMAKE_FIND_LIBRARY_SUFFIXES "${GWL_LIBRARY_SUFFIXES}")
+    if(NOT ZLIB_LIBRARY_RELEASE MATCHES "\\.a$")
+        message(FATAL_ERROR "The Linux launcher requires static zlib. Install its development archive and clear cached ZLIB paths.")
+    endif()
     set(OPENSSL_USE_STATIC_LIBS TRUE)
     find_package(OpenSSL 3.0 MODULE REQUIRED COMPONENTS Crypto)
     if(NOT OPENSSL_CRYPTO_LIBRARY MATCHES "\\.a$")
@@ -77,7 +86,7 @@ elseif(UNIX AND NOT APPLE)
     # packages, and no pkg-config. The libraries are loaded at runtime, as the windows are.
     target_sources(gwl_core PRIVATE platform/linux/WebViewWindow.cpp platform/linux/Desktop.cpp platform/linux/Launch.cpp platform/linux/Network.cpp platform/linux/Crypto.cpp platform/linux/PasswordCache.cpp platform/linux/LauncherUpdate.cpp platform/linux/Wof.cpp platform/linux/SystemInfo.cpp platform/linux/Process.cpp platform/linux/Shell.cpp platform/linux/Instance.cpp platform/linux/Tray.cpp platform/linux/TrayPosition.cpp)
     target_include_directories(gwl_core PRIVATE "${GWL_THIRD_PARTY}/gtk/include")
-    target_link_libraries(gwl_core PUBLIC OpenSSL::Crypto ${CMAKE_DL_LIBS})
+    target_link_libraries(gwl_core PUBLIC OpenSSL::Crypto ZLIB::ZLIB ${CMAKE_DL_LIBS})
 else()
     message(FATAL_ERROR "The native layer supports Windows and Linux only.")
 endif()
@@ -177,9 +186,13 @@ if(EXISTS "${GWL_FRONTEND}/dist/index.html")
         add_dependencies(gwlauncher gwlauncher_cli_windows)
     endif()
 
-    # A Linux executable can't carry an icon, so a desktop entry beside it gives the file manager one. The window's class matches
-    # the entry's StartupWMClass, so the taskbar groups the window with it.
     if(UNIX AND NOT APPLE)
+        add_custom_command(TARGET gwlauncher POST_BUILD
+            COMMAND ${CMAKE_COMMAND} "-DREADELF=${CMAKE_READELF}" "-DEXECUTABLE=$<TARGET_FILE:gwlauncher>"
+                    -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/CheckCryptoDependencies.cmake"
+            COMMENT "Checking crypto dependencies are linked statically"
+            VERBATIM)
+        # The desktop entry supplies the executable's icon and groups windows through StartupWMClass.
         get_filename_component(GWL_BIN_ABS "${GWL_BIN_DIR}" ABSOLUTE)
         file(COPY "${GWL_ASSETS}/gwlauncher-helmet-128.png" DESTINATION "${GWL_BIN_ABS}")
         file(WRITE "${GWL_BIN_ABS}/GW_Launcher.desktop" "[Desktop Entry]\nType=Application\nName=GW Launcher\nComment=Launches Guild Wars accounts\nExec=${GWL_BIN_ABS}/GW_Launcher\nIcon=${GWL_BIN_ABS}/gwlauncher-helmet-128.png\nStartupWMClass=gwlauncher\nTerminal=false\nCategories=Game;\n")
