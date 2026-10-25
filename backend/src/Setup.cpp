@@ -120,7 +120,6 @@ void AppState::startUpdateAll(gwl::Reply reply) {
     const gwl::Json popup{
         {"title", "Updating Gw.exe"},
         {"heading", "Checking the latest Gw.exe from ArenaNet"},
-        {"note", "Each distinct Gw.exe that is out of date is replaced. Gw.dat is left as it is."},
         {"cancellable", true},
         {"failure", "Gw.exe couldn't be updated"},
     };
