@@ -1,4 +1,4 @@
-// Settings: the general options, the master password, updates and the mod launch timeout.
+// Settings: the general options, the master password, updates and launch timeouts.
 
 import { useEffect, useState } from 'react';
 import { call } from '../bridge';
@@ -10,8 +10,7 @@ import type { Settings } from '../types';
 import { Button } from '../components/Button';
 import { Check } from '../components/Check';
 import { Note } from '../components/Note';
-
-const TIMEOUT_ERROR = 'Enter the mod launch timeout as a whole number of milliseconds.';
+import { parseTimeoutSeconds, timeoutSecondsText } from '../utils/numbers';
 
 export function SettingsWindow() {
     const app = useAppState();
@@ -25,6 +24,7 @@ export function SettingsWindow() {
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
+    const [launchTimeoutSeconds, setLaunchTimeoutSeconds] = useState('');
 
     useEffect(() => {
         (async () => {
@@ -33,6 +33,7 @@ export function SettingsWindow() {
             setEncrypted(isEncrypted);
             setProtect(isEncrypted);
             setLocal({ ...state.settings! });
+            setLaunchTimeoutSeconds(timeoutSecondsText(state.settings!.timeoutOnModlaunch));
             setLoaded(true);
         })();
     }, []);
@@ -65,9 +66,9 @@ export function SettingsWindow() {
     };
 
     const save = async () => {
-        const timeout = Number(settings.timeoutOnModlaunch);
-        if (!Number.isInteger(timeout) || timeout <= 0) {
-            setError(TIMEOUT_ERROR);
+        const timeout = parseTimeoutSeconds(launchTimeoutSeconds);
+        if (timeout === undefined) {
+            setError('Enter the launch timeout in whole seconds, from 1 to 4294967.');
             return;
         }
         const saved = { ...settings, timeoutOnModlaunch: timeout, steamPath: settings.steamPath.trim(), winePath: settings.winePath.trim() };
@@ -113,7 +114,7 @@ export function SettingsWindow() {
             <h2 className="m-0 text-sm">Display</h2>
             <label className="row form-grid-wide grid items-center gap-2">
                 <span>UI scale:</span>
-                <input className="w-full" type="range" min={50} max={200} step={5} value={settings.uiScale} onChange={e => set({ uiScale: Number(e.target.value) })} />
+                <input className="w-full" type="range" min={50} max={200} step={5} value={settings.uiScale} onChange={e => set({ uiScale: e.target.valueAsNumber })} />
                 <span>{settings.uiScale}%</span>
             </label>
 
@@ -157,12 +158,12 @@ export function SettingsWindow() {
             )}
 
             <h2 className="m-0 text-sm">Advanced</h2>
-            <label className="row form-grid-wide grid items-center gap-2">
-                <span>Timeout (ms):</span>
-                <input className="text-input w-full select-text rounded border border-border px-1.5 py-1" type="text" value={String(settings.timeoutOnModlaunch)} onChange={e => set({ timeoutOnModlaunch: e.target.value })} />
+            <label className="row grid grid-cols-[220px_1fr_auto] items-center gap-2">
+                <span>Launch timeout (seconds):</span>
+                <input className="text-input w-full select-text rounded border border-border px-1.5 py-1" type="number" min="1" max="4294967" step="1" value={launchTimeoutSeconds} onChange={e => setLaunchTimeoutSeconds(e.target.value)} />
                 <span />
             </label>
-            <Note>How long to wait for a mod DLL to load into the game.</Note>
+            <Note>How long to wait for each mod DLL to load, the game window to appear, and input readiness. Applies even without mods; each step gets this timeout.</Note>
 
             {error && <p className="error text-danger">{error}</p>}
             <div className="buttons mt-auto flex justify-end gap-2 pt-1.5">

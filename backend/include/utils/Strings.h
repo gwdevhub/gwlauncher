@@ -18,6 +18,10 @@ std::string trimmed(const std::string& text);
 // The text in lower case, for ASCII letters.
 std::string lowerCase(std::string text);
 
+std::optional<std::uint32_t> stringToUint32(const std::string& text);
+std::optional<std::string> parseArgumentWithValue(const std::vector<std::string>& arguments, const std::string& name,
+                                                std::size_t first = 0);
+
 // The bytes as lower-case hex.
 std::string hexEncode(const Bytes& bytes);
 

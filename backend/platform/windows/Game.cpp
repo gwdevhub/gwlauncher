@@ -41,7 +41,6 @@ namespace fs = std::filesystem;
 namespace {
 
 const int kWaitStepMs = 200;
-const DWORD kWindowTimeoutMs = 10000;
 const DWORD kTitleTimeoutMs = 5000;
 const DWORD kInputIdleMs = 1000;
 const UINT kWmSetText = 0x0C;
@@ -508,31 +507,31 @@ bool isResponding(HWND window) {
     return !window || !IsHungAppWindow(window);
 }
 
-// Checks, then checks again every step until the timeout passes, as the C# WaitFor does.
+// Count time spent in the check too, since WaitForInputIdle can block.
 bool waitFor(const std::function<bool()>& test, DWORD timeoutMs) {
-    DWORD elapsed = 0;
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(timeoutMs);
     bool ok = test();
-    while (!ok && elapsed <= timeoutMs) {
+    while (!ok && std::chrono::steady_clock::now() < deadline) {
         std::this_thread::sleep_for(std::chrono::milliseconds(kWaitStepMs));
-        elapsed += kWaitStepMs;
         ok = test();
     }
     return ok;
 }
 
 // Waits for the window, its input and its title, then checks the game still responds. The game is ended if a wait fails.
-void waitForWindow(const GameProcess& game, const std::string& name) {
+void waitForWindow(const GameProcess& game, const std::string& name, DWORD timeoutMs) {
     const DWORD processId = game.processId();
     const auto fail = [&game](const std::string& message) {
         game.terminate();
         throw std::runtime_error(message);
     };
 
-    if (!waitFor([processId] { return mainWindow(processId) != nullptr; }, kWindowTimeoutMs)) {
-        fail("Failed to wait for MainWindowHandle after " + std::to_string(kWindowTimeoutMs / 1000) + " seconds.");
+    const std::string timeoutSeconds = std::to_string(timeoutMs / 1000);
+    if (!waitFor([processId] { return mainWindow(processId) != nullptr; }, timeoutMs)) {
+        fail("Failed to wait for MainWindowHandle after " + timeoutSeconds + " seconds. Increase Launch timeout in Settings > Advanced.");
     }
-    if (!waitFor([&game] { return WaitForInputIdle(game.handle(), kInputIdleMs) == 0; }, kWindowTimeoutMs)) {
-        fail("Failed to wait for WaitForInputIdle after " + std::to_string(kWindowTimeoutMs / 1000) + " seconds.");
+    if (!waitFor([&game] { return WaitForInputIdle(game.handle(), kInputIdleMs) == 0; }, timeoutMs)) {
+        fail("Failed to wait for WaitForInputIdle after " + timeoutSeconds + " seconds. Increase Launch timeout in Settings > Advanced.");
     }
     SetForegroundWindow(mainWindow(processId));
 
@@ -660,7 +659,7 @@ std::unique_ptr<GameProcess> startPatched(const Account& account, const fs::path
             }
             if (result == ModuleLoad::RemoteThreadDidNotStart) {
                 throw std::runtime_error("The mod " + pathToUtf8(dll.filename()) + " didn't load within the " + std::to_string(timeoutMs) +
-                                         " ms limit. Increase Timeout (ms) under Settings > Advanced.");
+                                         " ms limit. Increase Launch timeout under Settings > Advanced.");
             }
             throw std::runtime_error(std::string("Result ") + moduleLoadName(result) + ": memory.LoadModule(" + pathToUtf8(dll) + ")");
         }
@@ -716,7 +715,7 @@ void launchGameInProcess(const Account& account, const std::string& dir, std::ui
     }
 
     const auto game = startPatched(account, pathFromUtf8(dir), timeoutMs, confirm);
-    waitForWindow(*game, account.name());
+    waitForWindow(*game, account.name(), timeoutMs);
     appId.keep();
 }
 
