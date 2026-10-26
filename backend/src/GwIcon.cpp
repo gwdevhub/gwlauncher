@@ -48,6 +48,8 @@ std::optional<std::string> gwIconUrl(const fs::path& exe) {
     std::error_code error;
     const fs::file_time_type modified = fs::last_write_time(exe, error);
     if (error) {
+        std::lock_guard<std::mutex> lock(cacheMutex);
+        cache.erase(exe);
         return std::nullopt;
     }
     {

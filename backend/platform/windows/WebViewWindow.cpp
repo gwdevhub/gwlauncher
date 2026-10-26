@@ -20,7 +20,6 @@
 
 #include "WebViewWindow.h"
 #include "WebView2.h"
-#include "Utf8.h"
 
 #include <cstring>
 #include <filesystem>
@@ -30,6 +29,7 @@
 #include "Launch.h"
 #include "utils/Errors.h"
 #include "utils/Files.h"
+#include "utils/Strings.h"
 
 namespace gwl {
 
@@ -90,7 +90,7 @@ void failWebView(NativeWindow* native, const std::string& message) {
     const auto alive = std::weak_ptr<bool>(native->alive);
     runOnUiThread([native, alive, message] {
         if (alive.expired()) return;
-        const std::wstring text = toWide(message + "\n\nRetry recreates the interface; running jobs are not restarted. Cancel exits GW Launcher.\nPress Ctrl+C to copy this error.");
+        const std::wstring text = wide(message + "\n\nRetry recreates the interface; running jobs are not restarted. Cancel exits GW Launcher.\nPress Ctrl+C to copy this error.");
         const int answer = MessageBoxW(native->hwnd, text.c_str(), L"GW Launcher interface error", MB_RETRYCANCEL | MB_ICONERROR);
         if (alive.expired()) return;
         if (answer == IDRETRY) {
@@ -117,7 +117,7 @@ void executeScript(NativeWindow* native, const std::wstring& script) {
         if (alive.expired() || native->failed) return;
         if (!checkWebView(native, result, "Delivering a message to the launcher interface failed")) return;
         if (!json || std::wstring(json) != L"null") {
-            failWebView(native, "The launcher interface could not process a host message: " + toUtf8(json));
+            failWebView(native, "The launcher interface could not process a host message: " + narrow(json ? json : L""));
         }
     });
     const std::wstring wrapped = L"(function(){try{" + script + L";return null;}catch(error){return String(error);}})()";
@@ -214,7 +214,7 @@ void attachWebView(NativeWindow* native, ICoreWebView2Controller* controller) {
         LPWSTR message = nullptr;
         const HRESULT result = args->TryGetWebMessageAsString(&message);
         if (checkWebView(native, result, "Reading a launcher message failed") && message) {
-            const auto text = toUtf8(message);
+            const auto text = narrow(message);
             CoTaskMemFree(message);
             const auto error = captureError([&] { native->owner->receive(text); }, "Processing a launcher message failed: ");
             if (!error.empty()) failWebView(native, error);
@@ -433,7 +433,7 @@ void WebViewWindow::platformOpen() {
     native_.reset(new NativeWindow);
     NativeWindow* native = native_.get();
     native->owner = this;
-    std::wstring windowTitle = toWide(title());
+    std::wstring windowTitle = wide(title());
     // Opened in the middle of the work area. A caller that places the window moves it after it's opened.
     const auto area = workArea();
     // Sizes are in device-independent pixels, so they grow with the display's DPI.
@@ -478,9 +478,9 @@ void WebViewWindow::platformOpen() {
             if (native->failed) return;
             native->stage = "Loading the launcher page";
             if (!url.empty()) {
-                checkWebView(native, native->webview->Navigate(toWide(url).c_str()), "Navigating to the launcher page failed");
+                checkWebView(native, native->webview->Navigate(wide(url).c_str()), "Navigating to the launcher page failed");
             } else {
-                checkWebView(native, native->webview->NavigateToString(toWide(page).c_str()), "Loading the embedded launcher page failed");
+                checkWebView(native, native->webview->NavigateToString(wide(page).c_str()), "Loading the embedded launcher page failed");
             }
         });
         checkWebView(native, environment->CreateCoreWebView2Controller(native->hwnd, done.get()),
@@ -562,12 +562,12 @@ std::optional<RuntimeProblem> missingWindowingRuntime() {
 }
 
 void offerLink(const std::string& message, const std::string& link) {
-    const std::wstring text = toWide(message + "\n\nOpen the WebView2 download page now?");
+    const std::wstring text = wide(message + "\n\nOpen the WebView2 download page now?");
     pauseStartupMonitoring(true);
     const int answer = MessageBoxW(nullptr, text.c_str(), L"GW Launcher", MB_YESNO | MB_ICONERROR);
     pauseStartupMonitoring(false);
     if (answer == IDYES) {
-        const std::wstring url = toWide(link);
+        const std::wstring url = wide(link);
         ShellExecuteW(nullptr, L"open", url.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
     }
 }
@@ -651,8 +651,7 @@ void WebViewWindow::platformMove(int x, int y) {
 
 void WebViewWindow::platformSetTitle(const std::string& title) {
     if (native_ && native_->hwnd) {
-        std::wstring wide = toWide(title);
-        SetWindowTextW(native_->hwnd, wide.c_str());
+        SetWindowTextW(native_->hwnd, wide(title).c_str());
     }
 }
 
@@ -677,12 +676,12 @@ void WebViewWindow::platformRunScript(const std::string& script, bool requiresRe
     if (!native_) {
         return;
     }
-    std::wstring wide = toWide(script);
+    std::wstring source = wide(script);
     if (native_->failed) return;
     if (native_->webview && (!requiresReady || native_->pageLoaded)) {
-        executeScript(native_.get(), wide);
+        executeScript(native_.get(), source);
     } else {
-        native_->pendingScripts.push_back(std::move(wide));
+        native_->pendingScripts.push_back(std::move(source));
     }
 }
 

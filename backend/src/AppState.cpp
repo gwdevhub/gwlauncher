@@ -76,7 +76,8 @@ bool accountsReloading = false;
 struct AccountListCache {
     std::mutex mutex;
     std::set<std::string> running;
-    std::map<std::string, std::string> icons;
+    // Resolve launcher paths on the worker; PNGs stay in GwIcon's existing cache.
+    std::map<std::string, std::filesystem::path> paths;
     std::string warning;
     bool pending = false;
     std::chrono::steady_clock::time_point started{};
@@ -295,14 +296,13 @@ void refreshAccountEnrichment(AppState& app) {
                 std::lock_guard<std::mutex> lock(accountListCache.mutex);
                 accountListCache.running = std::move(running);
             }, "Could not refresh game status: ");
-            std::map<std::filesystem::path, std::string> icons;
+            std::set<std::filesystem::path> refreshed;
             for (const auto& path : paths) {
                 const auto error = gwl::captureError([&] {
                     if (const auto exe = gwl::gameFilePath(path)) {
-                        auto [icon, inserted] = icons.try_emplace(*exe, helmetIcon());
-                        if (inserted) icon->second = gwl::gwIconUrl(*exe).value_or(helmetIcon());
+                        if (refreshed.insert(*exe).second) gwl::gwIconUrl(*exe);
                         std::lock_guard<std::mutex> lock(accountListCache.mutex);
-                        accountListCache.icons[path] = icon->second;
+                        accountListCache.paths[path] = *exe;
                     }
                 }, "Some account icons could not be loaded: ");
                 if (!error.empty()) warning = error;
@@ -325,8 +325,9 @@ gwl::Json accountList(AppState& app) {
     gwl::Json entries = gwl::Json::array();
     for (std::size_t index = 0; index < app.accounts.size(); ++index) {
         const auto& account = app.accounts[index];
-        const auto icon = accountListCache.icons.find(account.gwpath);
-        auto entry = account.listRow(account.isSteamAccount ? accountIconUrl(account) : icon == accountListCache.icons.end() ? helmetIcon() : icon->second);
+        const auto path = accountListCache.paths.find(account.gwpath);
+        const auto icon = path == accountListCache.paths.end() ? std::nullopt : gwl::cachedGwIconUrl(path->second);
+        auto entry = account.listRow(account.isSteamAccount ? accountIconUrl(account) : icon.value_or(helmetIcon()));
         const auto key = account.pathKey();
         if (app.launching.count(account.name())) {
             entry["state"] = "Launching";

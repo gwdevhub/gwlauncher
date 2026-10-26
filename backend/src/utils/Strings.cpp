@@ -5,6 +5,10 @@
 #include <cctype>
 #include <cstddef>
 
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
 namespace gwl {
 
 namespace {
@@ -153,6 +157,21 @@ std::string utf16ToUtf8(const std::vector<std::uint16_t>& units) {
     }
     return text;
 }
+
+#ifdef _WIN32
+std::wstring wide(const std::string& text) {
+    const int length = MultiByteToWideChar(CP_UTF8, 0, text.data(), static_cast<int>(text.size()), nullptr, 0);
+    std::wstring out(length > 0 ? length : 0, L'\0');
+    if (length > 0) {
+        MultiByteToWideChar(CP_UTF8, 0, text.data(), static_cast<int>(text.size()), out.data(), length);
+    }
+    return out;
+}
+
+std::string narrow(const std::wstring& text) {
+    return utf16ToUtf8(std::vector<std::uint16_t>(text.begin(), text.end()));
+}
+#endif
 
 std::string latin1ToUtf8(const Bytes& data, std::size_t offset, std::size_t count) {
     std::string text;
