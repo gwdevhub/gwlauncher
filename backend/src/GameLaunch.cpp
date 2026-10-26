@@ -1,5 +1,6 @@
 #include "GameLaunch.h"
 #include "utils/Files.h"
+#include "utils/Strings.h"
 
 #include <fstream>
 #include <stdexcept>
@@ -32,10 +33,10 @@ std::string gameCommandLine(const std::string& gwpath, const Account& account) {
         if (i > 0) {
             joined += " ";
         }
-        joined += arguments[i].first + " \"" + arguments[i].second + "\"";
+        joined += arguments[i].first + " " + quoteWindowsArgument(arguments[i].second);
     }
     // The extra arguments follow a space even when there are none, as the C# launcher writes it.
-    return "\"" + gwpath + "\" " + joined + " " + account.extraargs;
+    return quoteWindowsArgument(gwpath) + " " + joined + " " + account.extraargs;
 }
 
 std::optional<fs::path> steamAppIdPath(const std::string& gwpath) {

@@ -15,8 +15,10 @@ const std::uint32_t kHasName = 0x04;
 const std::uint32_t kHasRelativePath = 0x08;
 const std::uint32_t kHasWorkingDir = 0x10;
 const std::uint32_t kHasArguments = 0x20;
+const std::uint32_t kHasIconLocation = 0x40;
 const std::uint32_t kIsUnicode = 0x80;
 const std::uint32_t kVolumeIdAndLocalBasePath = 0x01;
+const std::uint32_t kCommonNetworkRelativeLink = 0x02;
 const std::size_t kHeaderSize = 0x4C;
 
 [[noreturn]] void truncated() {
@@ -81,31 +83,39 @@ std::string readString(const std::vector<std::uint8_t>& data, std::size_t& posit
 
 std::size_t skipString(const std::vector<std::uint8_t>& data, std::size_t position, bool unicode) {
     const std::size_t count = u16At(data, position);
-    return position + 2 + (unicode ? count * 2 : count);
+    const auto end = position + 2 + (unicode ? count * 2 : count);
+    if (end > data.size()) truncated();
+    return end;
 }
 
 // LinkInfo holds the local base path and a common suffix. The Unicode forms are used when the header has them.
 std::optional<std::string> linkInfoPath(const std::vector<std::uint8_t>& data, std::size_t start) {
     const std::uint32_t flags = u32At(data, start + 8);
-    if ((flags & kVolumeIdAndLocalBasePath) == 0) {
+    if ((flags & (kVolumeIdAndLocalBasePath | kCommonNetworkRelativeLink)) == 0) {
         return std::nullopt;
     }
     const std::uint32_t headerSize = u32At(data, start + 4);
     const bool hasUnicodeOffsets = headerSize >= 0x24;
 
     std::optional<std::string> basePath;
-    if (hasUnicodeOffsets) {
-        basePath = zeroTerminated(data, start + u32At(data, start + 0x1C), true);
-    }
-    if (!basePath) {
-        basePath = zeroTerminated(data, start + u32At(data, start + 0x10), false);
+    const auto text = [&](std::size_t base, std::uint32_t offset, bool unicode) {
+        return offset ? zeroTerminated(data, base + offset, unicode) : std::nullopt;
+    };
+    if (flags & kVolumeIdAndLocalBasePath) {
+        if (hasUnicodeOffsets) basePath = text(start, u32At(data, start + 0x1C), true);
+        if (!basePath) basePath = text(start, u32At(data, start + 0x10), false);
+    } else {
+        const auto network = start + u32At(data, start + 0x14);
+        const auto nameOffset = u32At(data, network + 8);
+        if (nameOffset > 0x14) basePath = text(network, u32At(data, network + 0x14), true);
+        if (!basePath) basePath = text(network, nameOffset, false);
     }
     std::optional<std::string> suffix;
     if (hasUnicodeOffsets) {
-        suffix = zeroTerminated(data, start + u32At(data, start + 0x20), true);
+        suffix = text(start, u32At(data, start + 0x20), true);
     }
     if (!suffix) {
-        suffix = zeroTerminated(data, start + u32At(data, start + 0x18), false);
+        suffix = text(start, u32At(data, start + 0x18), false);
     }
 
     if (!basePath || basePath->empty()) {
@@ -114,6 +124,8 @@ std::optional<std::string> linkInfoPath(const std::vector<std::uint8_t>& data, s
     if (!suffix || suffix->empty()) {
         return basePath;
     }
+    const auto tail = "\\" + lowerCase(*suffix);
+    if (lowerCase(*basePath).ends_with(tail)) return basePath;
     // Joined in Windows form, since this is the path the shortcut's owner stores.
     return *basePath + "\\" + *suffix;
 }
@@ -147,9 +159,8 @@ ShellLinkTarget parseShellLink(const std::vector<std::uint8_t>& data, const std:
         relative = readString(data, position, unicode);
     }
 
-    if (flags & kHasWorkingDir) {
-        position = skipString(data, position, unicode);
-    }
+    std::optional<std::string> workingDirectory;
+    if (flags & kHasWorkingDir) workingDirectory = readString(data, position, unicode);
 
     std::optional<std::string> arguments;
     if (flags & kHasArguments) {
@@ -164,9 +175,17 @@ ShellLinkTarget parseShellLink(const std::vector<std::uint8_t>& data, const std:
                 c = '/';
             }
         }
-        target = pathToUtf8((shortcutFolder / pathFromUtf8(replaced)).lexically_normal());
+        if (relative->size() > 1 && (*relative)[1] == ':') target = *relative;
+        else if (workingDirectory && workingDirectory->size() > 1 && (*workingDirectory)[1] == ':') {
+            target = *workingDirectory + "\\" + *relative;
+        } else {
+            const auto folder = workingDirectory ? shortcutFolder / pathFromUtf8(*workingDirectory) : shortcutFolder;
+            target = pathToUtf8((folder / pathFromUtf8(replaced)).lexically_normal());
+        }
     }
-    return ShellLinkTarget{target, arguments};
+    std::optional<std::string> icon;
+    if (flags & kHasIconLocation) icon = readString(data, position, unicode);
+    return ShellLinkTarget{target, arguments, icon, workingDirectory, static_cast<std::int32_t>(u32At(data, 0x38))};
 }
 
 ShellLinkTarget readShellLink(const std::filesystem::path& path) {

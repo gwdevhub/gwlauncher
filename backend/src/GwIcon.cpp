@@ -2,10 +2,12 @@
 
 #include <cstdint>
 #include <map>
+#include <mutex>
 #include <system_error>
+#include <utility>
 
-#include "DataUrl.h"
 #include "GwPe.h"
+#include "Shortcuts.h"
 #include "utils/Files.h"
 #include "utils/Images.h"
 
@@ -18,43 +20,67 @@ namespace {
 const std::uint32_t kIconSize = 64;
 
 struct Cached {
-    fs::file_time_type modified;
-    std::optional<std::string> url;
+    std::mutex mutex;
+    std::optional<fs::file_time_type> modified;
+    std::optional<Bytes> png;
 };
 
-std::optional<std::string> readIcon(const fs::path& exe) {
-    const auto data = readFileBytes(exe);
+std::mutex cacheMutex;
+std::map<std::pair<fs::path, int>, Cached> cache;
+
+std::optional<Bytes> readIcon(const fs::path& path, int iconIndex) {
+    const auto data = readFileBytes(path);
     if (!data) {
         return std::nullopt;
     }
-    const auto ico = gwIconFile(*data);
-    if (!ico) {
-        return std::nullopt;
+    auto frame = decodePng(*data);
+    if (!frame) frame = decodeLargestIcon(*data);
+    if (!frame) {
+        if (const auto ico = gwIconFile(*data, iconIndex)) frame = decodeLargestIcon(*ico);
     }
-    const auto frame = decodeLargestIcon(*ico);
     if (!frame) {
         return std::nullopt;
     }
-    return pngDataUrl(textOf(encodePng(scaleToFit(*frame, kIconSize))));
+    return encodePng(scaleToFit(*frame, kIconSize));
 }
 
 }  // namespace
 
-std::optional<std::string> gwIconUrl(const fs::path& exe) {
-    // The window reads icons on its own thread only, so the cache needs no lock.
-    static std::map<fs::path, Cached> cache;
+namespace {
+
+std::optional<Bytes> cachedIcon(const fs::path& path, int iconIndex = 0) {
     std::error_code error;
-    const fs::file_time_type modified = fs::last_write_time(exe, error);
+    const auto file = fs::weakly_canonical(path, error);
+    if (error) return std::nullopt;
+    Cached* entry;
+    {
+        std::lock_guard<std::mutex> lock(cacheMutex);
+        // Entries are never erased, so their addresses remain valid for the process lifetime.
+        entry = &cache.try_emplace(std::make_pair(file, iconIndex)).first->second;
+    }
+    // Serialize requests for the same file without holding up unrelated icon loads.
+    std::lock_guard<std::mutex> lock(entry->mutex);
+    const auto modified = fs::last_write_time(file, error);
     if (error) {
+        entry->modified.reset();
+        entry->png.reset();
         return std::nullopt;
     }
-    const auto found = cache.find(exe);
-    if (found != cache.end() && found->second.modified == modified) {
-        return found->second.url;
+    if (entry->modified != modified) {
+        entry->png = readIcon(file, iconIndex);
+        entry->modified = modified;
     }
-    auto url = readIcon(exe);
-    cache[exe] = Cached{modified, url};
-    return url;
+    return entry->png;
+}
+
+}  // namespace
+
+std::optional<Bytes> pathIcon(const fs::path& path) {
+    const auto target = resolveShortcut(path);
+    if (target.icon) {
+        if (auto png = cachedIcon(resolveShortcut(*target.icon).file, target.iconIndex)) return png;
+    }
+    return cachedIcon(target.file);
 }
 
 }  // namespace gwl

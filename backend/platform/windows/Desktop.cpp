@@ -44,7 +44,7 @@ void showError(const std::string& message) {
 
 std::optional<std::string> pickFile(const std::string& title, bool modsOnly, const std::string& startFolder) {
     // The filters are pairs of description and pattern, each ended by a NUL, and the list ends with an extra NUL.
-    static const wchar_t gwFilter[] = L"Guild Wars\0Gw.exe\0\0";
+    static const wchar_t gwFilter[] = L"Guild Wars or shortcut\0*.exe;*.lnk;*.desktop\0\0";
     static const wchar_t modFilter[] = L"Mods\0*.dll;*.tpf;*.zip\0\0";
     const std::wstring wideTitle = toWide(title);
     const std::wstring wideFolder = toWide(startFolder);

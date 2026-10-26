@@ -20,6 +20,7 @@
 #include "Issue.h"
 #include "GwNet.h"
 #include "Launch.h"
+#include "Shortcuts.h"
 #include "Process.h"
 #include "IssueChecker.h"
 #include "Progress.h"
@@ -133,7 +134,7 @@ void AppState::launchDefault(gwl::Reply reply) {
 void AppState::startGameAsync(const gwl::Account& account, std::optional<std::size_t> index, bool suspended, bool checkFirst,
                               std::function<void(const std::optional<std::string>&, const std::optional<gwl::Json>&)> done) {
     const std::string name = account.name();
-    const auto key = account.pathKey();
+    const auto key = std::make_shared<std::optional<std::string>>(account.pathKey());
     launching.insert(name);
     const std::uint32_t timeout = settings.timeoutOnModlaunch;
     const std::string dir = gwl::pathToUtf8(std::filesystem::current_path());
@@ -141,6 +142,7 @@ void AppState::startGameAsync(const gwl::Account& account, std::optional<std::si
         {"title", "Starting " + name},
         {"heading", "Starting " + name},
         {"icon", accountIconUrl(account)},
+        {"iconPath", account.isSteamAccount ? gwl::Json(nullptr) : gwl::Json(account.gwpath)},
         {"cancellable", true},
         {"failure", "Guild Wars couldn't be started"},
     };
@@ -150,7 +152,9 @@ void AppState::startGameAsync(const gwl::Account& account, std::optional<std::si
     runWithProgress(
         popup,
         [this, account, key, suspended, checkFirst, timeout, dir, resume = launchContinue, blocked](const gwl::ProgressReport& report,
-                                                                                              const std::atomic<bool>& cancel) {
+                                                                                               const std::atomic<bool>& cancel) {
+            const auto resolved = gwl::resolveAccountShortcut(account);
+            *key = resolved.pathKey();
             if (checkFirst) {
                 // The checks finish on several threads, and the window's reports aren't safe to send from all of them at once.
                 auto reporting = std::make_shared<std::mutex>();
@@ -165,7 +169,7 @@ void AppState::startGameAsync(const gwl::Account& account, std::optional<std::si
                 auto facts = std::make_shared<const gwl::MachineFacts>(gwl::measureMachine());
                 auto promise = std::make_shared<std::promise<gwl::IssueChecker::Issues>>();
                 std::future<gwl::IssueChecker::Issues> found = promise->get_future();
-                gwl::IssueChecker checker(account, facts);
+                gwl::IssueChecker checker(resolved, facts);
                 checker.start(workers, [promise](gwl::IssueChecker::Issues issues) { promise->set_value(std::move(issues)); }, checking);
                 const gwl::IssueChecker::Issues issues = found.get();
                 const bool stopped = std::any_of(issues.begin(), issues.end(),
@@ -179,10 +183,10 @@ void AppState::startGameAsync(const gwl::Account& account, std::optional<std::si
                 throw std::runtime_error(gwl::kCancelledMessage);
             }
             // Once the checks pass, the game path counts as in use for any other account that shares it.
-            if (key) {
-                gwl::markStarting(*key);
+            if (*key) {
+                gwl::markStarting(**key);
             }
-            if (account.isSteamAccount) {
+            if (resolved.isSteamAccount) {
                 gwl::startSteamForLaunch(report, cancel);
             }
             report("Starting the game...", std::nullopt);
@@ -218,15 +222,15 @@ void AppState::startGameAsync(const gwl::Account& account, std::optional<std::si
                     return true;
                 };
             }
-            gwl::startGame(account, dir, timeout, confirm);
+            gwl::startGame(resolved, dir, timeout, confirm);
         },
         [this, name, key, index, blocked, done](const std::optional<std::string>& failure) {
             launching.erase(name);
-            if (key) {
-                gwl::unmarkStarting(*key);
+            if (*key) {
+                gwl::unmarkStarting(**key);
             }
-            if (!failure && !blocked->has_value() && key && index) {
-                startedBy[*key] = *index;
+            if (!failure && !blocked->has_value() && *key && index) {
+                startedBy[**key] = *index;
             }
             done(failure, *blocked);
         });
@@ -285,7 +289,13 @@ std::optional<std::string> Account::pathKey() const {
     if (!linuxPath) {
         return std::nullopt;
     }
-    std::string key = *linuxPath;
+    auto path = pathFromUtf8(*linuxPath);
+    if (isShortcut(path)) {
+        const auto target = cachedShortcutTarget(path);
+        if (!target) return std::nullopt;
+        path = *target;
+    }
+    std::string key = pathToUtf8(path);
     for (char& c : key) {
         c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
     }

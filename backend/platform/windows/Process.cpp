@@ -1,6 +1,7 @@
 // Windows: running programs with CreateProcess, with no console window.
 
 #include "Process.h"
+#include "utils/Strings.h"
 
 #include <windows.h>
 
@@ -15,14 +16,7 @@ std::wstring commandLine(const std::vector<std::string>& argv) {
         if (!line.empty()) {
             line += ' ';
         }
-        line += '"';
-        for (char c : arg) {
-            if (c == '"') {
-                line += '\\';
-            }
-            line += c;
-        }
-        line += '"';
+        line += quoteWindowsArgument(arg);
     }
     const int length = MultiByteToWideChar(CP_UTF8, 0, line.c_str(), -1, nullptr, 0);
     std::wstring wide(length > 0 ? length : 1, L'\0');

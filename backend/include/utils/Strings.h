@@ -19,6 +19,8 @@ std::string trimmed(const std::string& text);
 std::string lowerCase(std::string text);
 
 std::optional<std::uint32_t> stringToUint32(const std::string& text);
+// One argument using Windows command-line quoting, also used by the Wine helper.
+std::string quoteWindowsArgument(const std::string& argument);
 std::optional<std::string> parseArgumentWithValue(const std::vector<std::string>& arguments, const std::string& name,
                                                 std::size_t first = 0);
 
