@@ -5,15 +5,72 @@
 #include <cctype>
 #include <cstddef>
 
-#ifdef _WIN32
-#include <windows.h>
-#endif
-
 namespace gwl {
 
 namespace {
 
 const char* const kAlphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+static_assert(sizeof(wchar_t) == 2 || sizeof(wchar_t) == 4, "Wide text requires 16-bit or 32-bit wchar_t");
+
+template <typename Input, typename Append>
+bool decodeUtf8(const Input& bytes, Append append) {
+    bool invalid = false;
+    std::size_t i = 0;
+    while (i < bytes.size()) {
+        const std::uint8_t lead = static_cast<std::uint8_t>(bytes[i]);
+        if (lead < 0x80) {
+            append(lead);
+            i += 1;
+            continue;
+        }
+        std::size_t length = 0;
+        std::uint8_t low = 0x80;
+        std::uint8_t high = 0xBF;
+        if (lead >= 0xC2 && lead <= 0xDF) {
+            length = 2;
+        } else if (lead >= 0xE0 && lead <= 0xEF) {
+            length = 3;
+            low = lead == 0xE0 ? 0xA0 : 0x80;
+            high = lead == 0xED ? 0x9F : 0xBF;
+        } else if (lead >= 0xF0 && lead <= 0xF4) {
+            length = 4;
+            low = lead == 0xF0 ? 0x90 : 0x80;
+            high = lead == 0xF4 ? 0x8F : 0xBF;
+        } else {
+            invalid = true;
+            append(0xFFFD);
+            i += 1;
+            continue;
+        }
+        std::uint32_t codePoint = lead & (0x7F >> length);
+        // Each continuation byte must be in range; the first bad one ends the sequence, which is then replaced once.
+        std::size_t next = i + 1;
+        bool valid = true;
+        for (std::size_t k = 1; k < length; ++k, ++next) {
+            if (next >= bytes.size()) {
+                valid = false;
+                break;
+            }
+            const std::uint8_t continuation = static_cast<std::uint8_t>(bytes[next]);
+            const std::uint8_t lowBound = k == 1 ? low : 0x80;
+            const std::uint8_t highBound = k == 1 ? high : 0xBF;
+            if (continuation < lowBound || continuation > highBound) {
+                valid = false;
+                break;
+            }
+            codePoint = (codePoint << 6) | (continuation & 0x3F);
+        }
+        if (!valid) {
+            invalid = true;
+            append(0xFFFD);
+        } else {
+            append(codePoint);
+        }
+        i = next;
+    }
+    return invalid;
+}
 
 }  // namespace
 
@@ -158,20 +215,35 @@ std::string utf16ToUtf8(const std::vector<std::uint16_t>& units) {
     return text;
 }
 
-#ifdef _WIN32
 std::wstring wide(const std::string& text) {
-    const int length = MultiByteToWideChar(CP_UTF8, 0, text.data(), static_cast<int>(text.size()), nullptr, 0);
-    std::wstring out(length > 0 ? length : 0, L'\0');
-    if (length > 0) {
-        MultiByteToWideChar(CP_UTF8, 0, text.data(), static_cast<int>(text.size()), out.data(), length);
-    }
+    std::wstring out;
+    decodeUtf8(text, [&](std::uint32_t codePoint) {
+        if constexpr (sizeof(wchar_t) == 2) {
+            if (codePoint > 0xFFFF) {
+                codePoint -= 0x10000;
+                out.push_back(static_cast<wchar_t>(0xD800 + (codePoint >> 10)));
+                out.push_back(static_cast<wchar_t>(0xDC00 + (codePoint & 0x3FF)));
+                return;
+            }
+        }
+        out.push_back(static_cast<wchar_t>(codePoint));
+    });
     return out;
 }
 
 std::string narrow(const std::wstring& text) {
-    return utf16ToUtf8(std::vector<std::uint16_t>(text.begin(), text.end()));
+    if constexpr (sizeof(wchar_t) == 2) {
+        return utf16ToUtf8(std::vector<std::uint16_t>(text.begin(), text.end()));
+    } else {
+        std::string out;
+        for (wchar_t unit : text) {
+            const auto codePoint = static_cast<std::uint32_t>(unit);
+            const bool invalid = codePoint > 0x10FFFF || (codePoint >= 0xD800 && codePoint <= 0xDFFF);
+            appendUtf8(out, invalid ? 0xFFFD : codePoint);
+        }
+        return out;
+    }
 }
-#endif
 
 std::string latin1ToUtf8(const Bytes& data, std::size_t offset, std::size_t count) {
     std::string text;
@@ -182,61 +254,8 @@ std::string latin1ToUtf8(const Bytes& data, std::size_t offset, std::size_t coun
 }
 
 std::string decodeUtf8Lossy(const Bytes& bytes, bool& invalid) {
-    const std::string replacement = "\xEF\xBF\xBD";
     std::string text;
-    invalid = false;
-    std::size_t i = 0;
-    while (i < bytes.size()) {
-        const std::uint8_t lead = bytes[i];
-        if (lead < 0x80) {
-            text.push_back(static_cast<char>(lead));
-            i += 1;
-            continue;
-        }
-        std::size_t length = 0;
-        std::uint8_t low = 0x80;
-        std::uint8_t high = 0xBF;
-        if (lead >= 0xC2 && lead <= 0xDF) {
-            length = 2;
-        } else if (lead >= 0xE0 && lead <= 0xEF) {
-            length = 3;
-            low = lead == 0xE0 ? 0xA0 : 0x80;
-            high = lead == 0xED ? 0x9F : 0xBF;
-        } else if (lead >= 0xF0 && lead <= 0xF4) {
-            length = 4;
-            low = lead == 0xF0 ? 0x90 : 0x80;
-            high = lead == 0xF4 ? 0x8F : 0xBF;
-        } else {
-            invalid = true;
-            text += replacement;
-            i += 1;
-            continue;
-        }
-        // Each continuation byte must be in range; the first bad one ends the sequence, which is then replaced once.
-        std::size_t next = i + 1;
-        bool valid = true;
-        for (std::size_t k = 1; k < length; ++k, ++next) {
-            if (next >= bytes.size()) {
-                valid = false;
-                break;
-            }
-            const std::uint8_t continuation = bytes[next];
-            const std::uint8_t lowBound = k == 1 ? low : 0x80;
-            const std::uint8_t highBound = k == 1 ? high : 0xBF;
-            if (continuation < lowBound || continuation > highBound) {
-                valid = false;
-                break;
-            }
-        }
-        if (!valid) {
-            invalid = true;
-            text += replacement;
-            i = next;
-            continue;
-        }
-        text.append(bytes.begin() + static_cast<std::ptrdiff_t>(i), bytes.begin() + static_cast<std::ptrdiff_t>(next));
-        i = next;
-    }
+    invalid = decodeUtf8(bytes, [&](std::uint32_t codePoint) { appendUtf8(text, codePoint); });
     return text;
 }
 

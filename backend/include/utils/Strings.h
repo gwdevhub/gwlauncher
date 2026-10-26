@@ -44,11 +44,9 @@ void appendUtf8(std::string& text, std::uint32_t codePoint);
 // UTF-16 code units as UTF-8. Unpaired surrogates become U+FFFD, as Rust's from_utf16_lossy does.
 std::string utf16ToUtf8(const std::vector<std::uint16_t>& units);
 
-#ifdef _WIN32
-// wchar_t carries UTF-16 only at the Windows API boundary.
+// Native UTF-16/UTF-32 wide text, selected by wchar_t width; malformed input becomes U+FFFD.
 std::wstring wide(const std::string& text);
 std::string narrow(const std::wstring& text);
-#endif
 
 // Single-byte text as UTF-8, where each byte is a code point of its own, as the C# code's ANSI paths read.
 std::string latin1ToUtf8(const Bytes& data, std::size_t offset, std::size_t count);
