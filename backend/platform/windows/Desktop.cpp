@@ -25,7 +25,7 @@ namespace gwl {
 void showError(const std::string& message) {
     std::fprintf(stderr, "%s\n", message.c_str());
     pauseStartupMonitoring(true);
-    MessageBoxW(nullptr, wide(message).c_str(), L"GW Launcher", MB_OK | MB_ICONERROR);
+    MessageBoxW(nullptr, toWide(message).c_str(), L"GW Launcher", MB_OK | MB_ICONERROR);
     pauseStartupMonitoring(false);
 }
 
@@ -33,8 +33,8 @@ std::optional<std::string> pickFile(const std::string& title, bool modsOnly, con
     // The filters are pairs of description and pattern, each ended by a NUL, and the list ends with an extra NUL.
     static const wchar_t gwFilter[] = L"Guild Wars or shortcut\0*.exe;*.lnk;*.desktop\0\0";
     static const wchar_t modFilter[] = L"Mods\0*.dll;*.tpf;*.zip\0\0";
-    const std::wstring wideTitle = wide(title);
-    const std::wstring wideFolder = wide(startFolder);
+    const std::wstring wideTitle = toWide(title);
+    const std::wstring wideFolder = toWide(startFolder);
     wchar_t file[1024] = {};
     OPENFILENAMEW dialog{};
     dialog.lStructSize = sizeof(dialog);
@@ -47,7 +47,7 @@ std::optional<std::string> pickFile(const std::string& title, bool modsOnly, con
     if (!GetOpenFileNameW(&dialog)) {
         return std::nullopt;
     }
-    return narrow(file);
+    return toUtf8(file);
 }
 
 std::optional<std::pair<int, int>> cursorPosition() {
@@ -131,7 +131,7 @@ std::filesystem::path webViewDataFolder() {
 }
 
 bool confirmRetry(const std::string& message) {
-    const std::wstring text = wide(message + "\n\nRetry recreates the interface; running jobs are not restarted. Cancel exits GW Launcher.\nPress Ctrl+C to copy this error.");
+    const std::wstring text = toWide(message + "\n\nRetry recreates the interface; running jobs are not restarted. Cancel exits GW Launcher.\nPress Ctrl+C to copy this error.");
     pauseStartupMonitoring(true);
     const int answer = MessageBoxW(nullptr, text.c_str(), L"GW Launcher interface error", MB_RETRYCANCEL | MB_ICONERROR);
     pauseStartupMonitoring(false);

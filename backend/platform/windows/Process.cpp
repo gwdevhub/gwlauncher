@@ -18,7 +18,7 @@ std::wstring commandLine(const std::vector<std::string>& argv) {
         }
         line += quoteWindowsArgument(arg);
     }
-    return wide(line);
+    return toWide(line);
 }
 
 bool start(const std::vector<std::string>& argv, PROCESS_INFORMATION& info) {
