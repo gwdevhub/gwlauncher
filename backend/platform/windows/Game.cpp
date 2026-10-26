@@ -56,25 +56,6 @@ const std::size_t kMulticlientSignatureOffset = 0x1A;
 const std::size_t kMulticlientSearchStart = 0x1000;
 const std::size_t kMulticlientSearchLength = 0x48D000;
 
-// UTF-8 to UTF-16, and back, for the Win32 functions that take wide text.
-std::wstring wide(const std::string& text) {
-    const int length = MultiByteToWideChar(CP_UTF8, 0, text.data(), static_cast<int>(text.size()), nullptr, 0);
-    std::wstring out(static_cast<std::size_t>(std::max(length, 0)), L'\0');
-    if (length > 0) {
-        MultiByteToWideChar(CP_UTF8, 0, text.data(), static_cast<int>(text.size()), out.data(), length);
-    }
-    return out;
-}
-
-std::string narrow(const std::wstring& text) {
-    const int length = WideCharToMultiByte(CP_UTF8, 0, text.data(), static_cast<int>(text.size()), nullptr, 0, nullptr, nullptr);
-    std::string out(static_cast<std::size_t>(std::max(length, 0)), '\0');
-    if (length > 0) {
-        WideCharToMultiByte(CP_UTF8, 0, text.data(), static_cast<int>(text.size()), out.data(), length, nullptr, nullptr);
-    }
-    return out;
-}
-
 // "<step> failed: <Windows' message for the last error>".
 std::string lastError(const char* step) {
     const DWORD code = GetLastError();

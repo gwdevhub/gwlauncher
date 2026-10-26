@@ -12,42 +12,21 @@
 #include "Settings.h"
 #include "WebViewWindow.h"
 #include "utils/Files.h"
+#include "utils/Strings.h"
 
 namespace gwl {
 
-namespace {
-
-std::wstring toWide(const std::string& text) {
-    const int length = MultiByteToWideChar(CP_UTF8, 0, text.c_str(), -1, nullptr, 0);
-    std::wstring wide(length > 0 ? length : 1, L'\0');
-    if (length > 0) {
-        MultiByteToWideChar(CP_UTF8, 0, text.c_str(), -1, wide.data(), length);
-    }
-    return wide;
-}
-
-std::string toUtf8(const wchar_t* text) {
-    const int length = WideCharToMultiByte(CP_UTF8, 0, text, -1, nullptr, 0, nullptr, nullptr);
-    std::string utf8(length > 0 ? length - 1 : 0, '\0');
-    if (length > 1) {
-        WideCharToMultiByte(CP_UTF8, 0, text, -1, utf8.data(), length, nullptr, nullptr);
-    }
-    return utf8;
-}
-
-}  // namespace
-
 void showError(const std::string& message) {
     std::fprintf(stderr, "%s\n", message.c_str());
-    MessageBoxW(nullptr, toWide(message).c_str(), L"GW Launcher", MB_OK | MB_ICONERROR);
+    MessageBoxW(nullptr, wide(message).c_str(), L"GW Launcher", MB_OK | MB_ICONERROR);
 }
 
 std::optional<std::string> pickFile(const std::string& title, bool modsOnly, const std::string& startFolder) {
     // The filters are pairs of description and pattern, each ended by a NUL, and the list ends with an extra NUL.
     static const wchar_t gwFilter[] = L"Guild Wars\0Gw.exe\0\0";
     static const wchar_t modFilter[] = L"Mods\0*.dll;*.tpf;*.zip\0\0";
-    const std::wstring wideTitle = toWide(title);
-    const std::wstring wideFolder = toWide(startFolder);
+    const std::wstring wideTitle = wide(title);
+    const std::wstring wideFolder = wide(startFolder);
     wchar_t file[1024] = {};
     OPENFILENAMEW dialog{};
     dialog.lStructSize = sizeof(dialog);
@@ -60,7 +39,7 @@ std::optional<std::string> pickFile(const std::string& title, bool modsOnly, con
     if (!GetOpenFileNameW(&dialog)) {
         return std::nullopt;
     }
-    return toUtf8(file);
+    return narrow(file);
 }
 
 std::optional<std::pair<int, int>> cursorPosition() {
