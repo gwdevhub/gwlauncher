@@ -141,6 +141,7 @@ void AppState::startGameAsync(const gwl::Account& account, std::optional<std::si
         {"title", "Starting " + name},
         {"heading", "Starting " + name},
         {"icon", accountIconUrl(account)},
+        {"iconPath", account.isSteamAccount ? gwl::Json(nullptr) : gwl::Json(account.gwpath)},
         {"cancellable", true},
         {"failure", "Guild Wars couldn't be started"},
     };

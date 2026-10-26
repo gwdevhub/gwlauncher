@@ -11,9 +11,10 @@ Tracking issue: https://github.com/gwdevhub/gwlauncher/issues/264
 - Uncaught frontend errors use that native path too. The frontend also has an initialization-error screen. If JavaScript cannot execute at all, the native watchdog remains responsible for reporting failure.
 - Account loading has distinct loading, failure, and successfully empty states. A failed refresh retains existing rows; a later successful refresh can change the account count.
 - Account-file reloads run on workers. Mutations are blocked during reload and after an account-file read failure. Retry rereads the file without discarding the last successfully loaded rows on failure.
-- Executable icons and process scans run on workers. Rows use cached data/fallback icons immediately. One enrichment round runs at a time; a round exceeding 15 seconds shows a stale-status warning. The shared PE icon parser still reads whole executables, but no longer on the UI thread.
+- Process scans run on workers. Rows use cached status immediately. One scan runs at a time; a scan exceeding 15 seconds shows a stale-status warning.
 - The single account list uses one namespace-private cache and reload gate, rather than per-window cache ownership in `AppState`. Editor requests reuse the same account-list data. The cache survives hiding/recreating the list's WebView.
-- Executable PNGs are stored only in the existing `GwIcon` cache. The list retains resolved paths so row rendering can use cache-only lookups without filesystem/path-conversion work.
+- JavaScript requests file icons through `pathIcon(path)`, independently of account loading. The backend resolves native/Wine paths on workers and returns PNG bytes as a JSON array of numbers, or null for missing/unsupported files. PE, ICO and PNG inputs use the existing image helpers.
+- The PNG cache is process-owned and survives page/window recreation. Canonical paths share entries; requests for the same file serialize extraction, and modification timestamps invalidate changed files. Icon loading no longer occurs in account replies. A separate worker pool keeps optional icon I/O from occupying game-launch workers. Frontend `PathIcon` components deduplicate in-flight requests and revoke their blob URLs when replaced/unmounted. Explicit account refresh and Update All request icons again.
 - Unexpected worker/COM callback exceptions and UI dispatch failures produce native errors. Fatal internal errors require restarting rather than leaving an incomplete operation silently pending.
 
 ## Windows verification matrix
@@ -30,7 +31,9 @@ Run these against a separately requested Windows build. Fault injection requires
 | Corrupt/unreadable Accounts.json at startup, then repair and Retry | Error explains the read failure; saving is blocked until reread succeeds |
 | Fail an explicit reload after a successful load | Previously displayed rows remain; file mutations are blocked; Retry can recover |
 | Delay a reload indefinitely | Native UI remains responsive; request timeout/reload warning is visible; no second reload or account save runs concurrently |
-| Slow/unavailable executable path, multiple distinct executables, changed executable timestamp | Names and fallback icons render immediately; UI stays responsive; icons/status update later or show a slow-enrichment warning |
+| Slow/unavailable executable path, multiple distinct executables, changed executable timestamp | Names and fallback icons render immediately; icon requests cannot hold up account replies; explicit refresh picks up changed icons |
+| Request 32-/64-bit PE, ICO and PNG icons through `pathIcon`, including native/Wine paths with spaces and Unicode | Replies contain PNG byte arrays; missing/unsupported files return null and the component keeps its fallback |
+| Request the same canonical file concurrently, then destroy/recreate its WebView and request again | Backend extraction is shared and cached across page lifetimes; stale replies cannot update a replaced page; old blob URLs are released |
 | Return an immediate failing HRESULT from environment/controller creation or navigation | Native error identifies the operation and HRESULT; Retry uses a new instance |
 | Return failed navigation completion | Native error includes WebView2 web error status; failed page is not marked ready |
 | Drop a startup reply, break the frontend before mounting, or prevent the ready handshake | Frontend error or native watchdog gives an actionable failure within the configured deadline |

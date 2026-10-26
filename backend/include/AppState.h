@@ -218,7 +218,7 @@ std::string developmentUrl();
 
 // The icon for a row: the Steam icon for Steam accounts, and the helmet for the rest, as data URLs.
 const std::string& helmetIcon();
-// The image beside an account, as the account list shows it. Used for the account's launch window.
+// The fallback image for an account; JavaScript requests executable icons by path.
 std::string accountIconUrl(const gwl::Account& account);
 const std::string& steamIcon();
 

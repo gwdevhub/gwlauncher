@@ -76,14 +76,18 @@ bool accountsReloading = false;
 struct AccountListCache {
     std::mutex mutex;
     std::set<std::string> running;
-    // Resolve launcher paths on the worker; PNGs stay in GwIcon's existing cache.
-    std::map<std::string, std::filesystem::path> paths;
     std::string warning;
     bool pending = false;
     std::chrono::steady_clock::time_point started{};
 };
 
 AccountListCache accountListCache;
+
+gwl::WorkerPool& iconWorkers() {
+    // Optional file I/O must not occupy the workers used by game launches.
+    static gwl::WorkerPool workers{2};
+    return workers;
+}
 
 // Starts the Steam icon's download when a Steam account is listed. Accounts added during the session start it too.
 void fetchSteamIconFor(const std::vector<gwl::Account>& accounts, const std::function<void()>& done) {
@@ -267,17 +271,12 @@ std::string accountIconUrl(const gwl::Account& account) {
         }
         return helmetIcon();
     }
-    if (const auto exe = gwl::gameFilePath(account.gwpath)) {
-        if (const auto url = gwl::cachedGwIconUrl(*exe)) {
-            return *url;
-        }
-    }
     return helmetIcon();
 }
 
 namespace {
 
-void refreshAccountEnrichment(AppState& app) {
+void refreshAccountStates(AppState& app) {
     {
         std::lock_guard<std::mutex> lock(accountListCache.mutex);
         const auto now = std::chrono::steady_clock::now();
@@ -286,27 +285,12 @@ void refreshAccountEnrichment(AppState& app) {
         accountListCache.started = now;
     }
     try {
-        std::set<std::string> paths;
-        for (const auto& account : app.accounts) {
-            if (!account.isSteamAccount) paths.insert(account.gwpath);
-        }
-        app.workers.submit([paths = std::move(paths)] {
+        app.workers.submit([] {
             std::string warning = gwl::captureError([&] {
                 auto running = gwl::runningGamePaths();
                 std::lock_guard<std::mutex> lock(accountListCache.mutex);
                 accountListCache.running = std::move(running);
             }, "Could not refresh game status: ");
-            std::set<std::filesystem::path> refreshed;
-            for (const auto& path : paths) {
-                const auto error = gwl::captureError([&] {
-                    if (const auto exe = gwl::gameFilePath(path)) {
-                        if (refreshed.insert(*exe).second) gwl::gwIconUrl(*exe);
-                        std::lock_guard<std::mutex> lock(accountListCache.mutex);
-                        accountListCache.paths[path] = *exe;
-                    }
-                }, "Some account icons could not be loaded: ");
-                if (!error.empty()) warning = error;
-            }
             std::lock_guard<std::mutex> lock(accountListCache.mutex);
             accountListCache.warning = std::move(warning);
             accountListCache.pending = false;
@@ -320,14 +304,13 @@ void refreshAccountEnrichment(AppState& app) {
 
 gwl::Json accountList(AppState& app) {
     fetchSteamIconFor(app.accounts, [] {});
-    refreshAccountEnrichment(app);
+    refreshAccountStates(app);
     std::lock_guard<std::mutex> lock(accountListCache.mutex);
     gwl::Json entries = gwl::Json::array();
     for (std::size_t index = 0; index < app.accounts.size(); ++index) {
         const auto& account = app.accounts[index];
-        const auto path = accountListCache.paths.find(account.gwpath);
-        const auto icon = path == accountListCache.paths.end() ? std::nullopt : gwl::cachedGwIconUrl(path->second);
-        auto entry = account.listRow(account.isSteamAccount ? accountIconUrl(account) : icon.value_or(helmetIcon()));
+        auto entry = account.listRow(accountIconUrl(account));
+        entry["iconPath"] = account.isSteamAccount ? gwl::Json(nullptr) : gwl::Json(account.gwpath);
         const auto key = account.pathKey();
         if (app.launching.count(account.name())) {
             entry["state"] = "Launching";
@@ -341,7 +324,7 @@ gwl::Json accountList(AppState& app) {
     }
     std::string warning = accountListCache.warning;
     if (accountListCache.pending && std::chrono::steady_clock::now() - accountListCache.started > std::chrono::seconds(15)) {
-        warning = "Game status or icons are taking longer than expected. Accounts remain available; status may be out of date.";
+        warning = "Game status is taking longer than expected. Accounts remain available; status may be out of date.";
     }
     if (accountsReloading) warning = "Accounts.json is being reloaded. Changes are disabled until loading finishes.";
     return {{"entries", std::move(entries)}, {"warning", warning.empty() ? gwl::Json(nullptr) : gwl::Json(warning)},
@@ -358,6 +341,22 @@ void installCommonHandlers(gwl::MessageHandler& handler, AppState& app) {
     handler.on("icon", [](gwl::WebViewWindow&, const gwl::Json&, const gwl::Reply& reply) {
         logRequest("icon");
         reply.result(helmetIcon());
+    });
+    handler.on("pathIcon", [](gwl::WebViewWindow&, const gwl::Json& args, const gwl::Reply& reply) {
+        logRequest("pathIcon");
+        const auto path = args.at(0).get<std::string>();
+        iconWorkers().submit([path, reply] {
+            std::optional<gwl::Bytes> png;
+            const auto error = gwl::captureError([&] {
+                if (!path.empty()) {
+                    if (const auto file = gwl::gameFilePath(path)) png = gwl::pathIcon(*file);
+                }
+            }, "Could not load path icon: ");
+            gwl::runOnUiThread([reply, png = std::move(png), error] {
+                if (!error.empty()) reply.error(error);
+                else reply.result(png ? gwl::Json(*png) : gwl::Json(nullptr));
+            });
+        });
     });
     handler.on("accounts", [&app](gwl::WebViewWindow&, const gwl::Json&, const gwl::Reply& reply) {
         logRequest("accounts");

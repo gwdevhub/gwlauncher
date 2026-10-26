@@ -1,17 +1,14 @@
-// The Guild Wars icon an account shows: the one in its Gw.exe, as a PNG data URL. Kept per file, and read again when the file changes.
+// PNG icon bytes from PE, ICO or PNG files, cached for the life of the process and refreshed when the file changes.
 
 #pragma once
 
 #include <filesystem>
 #include <optional>
-#include <string>
+#include "utils/Strings.h"
 
 namespace gwl {
 
-// A nonblocking cache lookup for UI callers; filesystem reads belong on a worker.
-std::optional<std::string> cachedGwIconUrl(const std::filesystem::path& exe);
-
-// Reads and caches an executable icon on a worker. Missing files and icons use the caller's fallback.
-std::optional<std::string> gwIconUrl(const std::filesystem::path& exe);
+// Reads on a worker; missing files and unsupported formats return nothing.
+std::optional<Bytes> pathIcon(const std::filesystem::path& path);
 
 }  // namespace gwl
