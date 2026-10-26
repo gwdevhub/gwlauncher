@@ -27,6 +27,7 @@
 #include "Accounts.h"
 #include "CliGame.h"
 #include "GameLaunch.h"
+#include "Shortcuts.h"
 #include "Launch.h"
 #include "ModFiles.h"
 #include "Modlist.h"
@@ -687,8 +688,9 @@ std::set<std::string> runningGamePaths() {
     return paths;
 }
 
-void launchGameInProcess(const Account& account, const std::string& dir, std::uint32_t timeoutMs, const std::function<bool()>& confirm,
-                         bool requireSteam) {
+void launchGameInProcess(const Account& original, const std::string& dir, std::uint32_t timeoutMs, const std::function<bool()>& confirm,
+                          bool requireSteam) {
+    const auto account = resolveAccountShortcut(original);
     const auto appIdPath = steamAppIdPath(account.gwpath);
     if (!appIdPath) {
         throw std::runtime_error("Failed to determine Guild Wars directory path.");

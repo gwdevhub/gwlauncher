@@ -4,6 +4,7 @@
 #include "Progress.h"
 #include "EmbeddedCli.h"
 #include "Launch.h"
+#include "Shortcuts.h"
 #include "utils/Strings.h"
 
 #include <dlfcn.h>
@@ -471,7 +472,8 @@ std::optional<std::string> linuxPathFor(const std::string& windowsPath) {
     return candidate.string();
 }
 
-void startGame(const Account& account, const std::string& dir, std::uint32_t timeoutMs, const std::function<bool()>& confirm, bool requireSteam) {
+void startGame(const Account& original, const std::string& dir, std::uint32_t timeoutMs, const std::function<bool()>& confirm, bool requireSteam) {
+    const auto account = resolveAccountShortcut(original);
     (void)requireSteam;
     const std::string exe = account.gwpath;
     if (!fs::is_regular_file(exe)) {
@@ -837,11 +839,6 @@ std::optional<std::string> invalidInstallPath(const std::string& steamPath, cons
         return "There's no runnable Wine program at " + winePath + ".";
     }
     return std::nullopt;
-}
-
-std::optional<std::filesystem::path> gameFilePath(const std::string& launcherPath) {
-    const auto linuxPath = linuxPathFor(launcherPath);
-    return linuxPath ? std::optional<fs::path>(fs::path(*linuxPath)) : std::nullopt;
 }
 
 std::filesystem::path defaultGameFolder() {

@@ -50,6 +50,7 @@ export interface Role {
 export interface AccountEntry {
     name: string;
     icon: string | null;
+    iconPath?: string | null;
     state: string;
     blocked: boolean;
     issues: Issue[];

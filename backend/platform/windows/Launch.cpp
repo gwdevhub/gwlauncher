@@ -157,10 +157,6 @@ std::optional<std::string> linuxPathFor(const std::string& windowsPath) {
     return windowsPath;
 }
 
-std::optional<std::filesystem::path> gameFilePath(const std::string& launcherPath) {
-    return pathFromUtf8(launcherPath);
-}
-
 std::filesystem::path defaultGameFolder() {
     const wchar_t* local = _wgetenv(L"LOCALAPPDATA");
     return std::filesystem::path(local ? local : L".") / "GW_Launcher" / "Guild Wars";

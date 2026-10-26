@@ -6,7 +6,7 @@
 
 #include "Launch.h"
 #include "Shell.h"
-#include "ShellLink.h"
+#include "Shortcuts.h"
 #include "utils/Files.h"
 #include "utils/Strings.h"
 #include "Wof.h"
@@ -24,16 +24,6 @@ bool isModPath(const fs::path& path) {
 
 ModType typeForPath(const fs::path& path) {
     return lowerExtension(path) == ".dll" ? ModType::Dll : ModType::Texmod;
-}
-
-// The file's absolute path when it's on this computer, which is how a shortcut's target is checked.
-std::optional<fs::path> mapExisting(const fs::path& path) {
-    const auto local = linuxPathFor(pathToUtf8(path));
-    std::error_code error;
-    if (!local || !fs::is_regular_file(pathFromUtf8(*local), error)) {
-        return std::nullopt;
-    }
-    return fs::absolute(pathFromUtf8(*local), error);
 }
 
 // Plugin files compare by lower-case name, as the C# code orders them.
@@ -54,21 +44,15 @@ std::vector<fs::path> sortedDistinct(const std::vector<fs::path>& paths) {
 }
 
 std::optional<PluginFile> fromShortcut(const fs::path& shortcut) {
-    ShellLinkTarget link;
     try {
-        link = readShellLink(shortcut);
+        const auto file = resolveShortcut(shortcut, false).file;
+        if (!isModPath(file)) return std::nullopt;
+        std::error_code error;
+        return PluginFile{shortcut, fs::is_regular_file(file, error) ? std::optional<fs::path>(file) : std::nullopt, typeForPath(file)};
     } catch (const std::runtime_error&) {
         // A shortcut that can't be read is kept, with no target, so the user can see it was there.
         return PluginFile{shortcut, std::nullopt, ModType::Dll};
     }
-    if (!link.windowsPath) {
-        return std::nullopt;
-    }
-    const fs::path windowsPath = pathFromUtf8(*link.windowsPath);
-    if (!isModPath(windowsPath)) {
-        return std::nullopt;
-    }
-    return PluginFile{shortcut, mapExisting(windowsPath), typeForPath(windowsPath)};
 }
 
 std::optional<PluginFile> scanPluginFile(const fs::path& path) {
@@ -77,7 +61,7 @@ std::optional<PluginFile> scanPluginFile(const fs::path& path) {
     if (!fs::is_regular_file(path, error) && !wofProblem(path)) {
         return std::nullopt;
     }
-    if (lowerExtension(path) == ".lnk") {
+    if (isShortcut(path)) {
         return fromShortcut(path);
     }
     if (!isModPath(path)) {
@@ -131,22 +115,9 @@ ModSelection ModSelection::withGmod(const fs::path& gmod) const {
 }
 
 bool modFileExists(const std::string& fileName) {
-    const auto local = linuxPathFor(fileName);
-    if (!local) {
-        return false;
-    }
+    const auto file = gameFilePath(fileName);
     std::error_code error;
-    const fs::path path = pathFromUtf8(*local);
-    if (lowerExtension(path) == ".lnk") {
-        try {
-            const auto target = readShellLink(path).windowsPath;
-            const auto targetLocal = target ? linuxPathFor(*target) : std::nullopt;
-            return targetLocal && fs::is_regular_file(pathFromUtf8(*targetLocal), error);
-        } catch (const std::runtime_error&) {
-            return false;
-        }
-    }
-    return fs::is_regular_file(path, error);
+    return file && fs::is_regular_file(*file, error);
 }
 
 Json refreshedMod(Json mod) {
