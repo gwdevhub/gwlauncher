@@ -12,6 +12,7 @@ Tracking issue: https://github.com/gwdevhub/gwlauncher/issues/264
 - Account loading has distinct loading, failure, and successfully empty states. A failed refresh retains existing rows; a later successful refresh can change the account count.
 - Account-file reloads run on workers. Mutations are blocked during reload and after an account-file read failure. Retry rereads the file without discarding the last successfully loaded rows on failure.
 - Executable icons and process scans run on workers. Rows use cached data/fallback icons immediately. One enrichment round runs at a time; a round exceeding 15 seconds shows a stale-status warning. The shared PE icon parser still reads whole executables, but no longer on the UI thread.
+- The single account list uses one namespace-private cache and reload gate, rather than per-window cache ownership in `AppState`. Editor requests reuse the same account-list data. The cache survives hiding/recreating the list's WebView.
 - Unexpected worker/COM callback exceptions and UI dispatch failures produce native errors. Fatal internal errors require restarting rather than leaving an incomplete operation silently pending.
 
 ## Windows verification matrix

@@ -232,28 +232,6 @@ void AppState::startGameAsync(const gwl::Account& account, std::optional<std::si
         });
 }
 
-std::vector<std::string> AppState::accountStates() const {
-    std::set<std::string> running;
-    {
-        std::lock_guard<std::mutex> lock(accountEnrichment->mutex);
-        running = accountEnrichment->running;
-    }
-    std::vector<std::string> states;
-    for (std::size_t index = 0; index < accounts.size(); ++index) {
-        const gwl::Account& account = accounts[index];
-        const auto key = account.pathKey();
-        if (launching.count(account.name())) {
-            states.push_back("Launching");
-        } else if (!key || !running.count(*key)) {
-            states.push_back("Inactive");
-        } else {
-            const auto started = startedBy.find(*key);
-            states.push_back(started != startedBy.end() && started->second == index ? "Active" : "In Use");
-        }
-    }
-    return states;
-}
-
 void AppState::accountRemoved(std::size_t index) {
     for (auto it = startedBy.begin(); it != startedBy.end();) {
         if (it->second == index) {
