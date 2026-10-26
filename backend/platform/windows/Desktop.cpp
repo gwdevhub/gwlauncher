@@ -39,7 +39,9 @@ std::string toUtf8(const wchar_t* text) {
 
 void showError(const std::string& message) {
     std::fprintf(stderr, "%s\n", message.c_str());
+    pauseStartupMonitoring(true);
     MessageBoxW(nullptr, toWide(message).c_str(), L"GW Launcher", MB_OK | MB_ICONERROR);
+    pauseStartupMonitoring(false);
 }
 
 std::optional<std::string> pickFile(const std::string& title, bool modsOnly, const std::string& startFolder) {

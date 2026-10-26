@@ -102,6 +102,8 @@ public:
 
     // Called by the platform when the page posts a message, and when the user asks to close the window.
     void receive(const std::string& text);
+    void reload();
+    void keepAliveForRecovery() { ++cooldownGeneration_; }
     void requestClose();
     void notifyFocusLost();
 
@@ -131,7 +133,9 @@ private:
     void platformMinimize();
     void platformToggleMaximize();
     void platformClose();
-    void platformRunScript(const std::string& script);
+    void platformRunScript(const std::string& script, bool requiresReady = false);
+    void platformPageReady();
+    void platformFailure(const std::string& message);
     void platformOpenDevTools();
     // Converts a size on the screen to the device-independent pixels resize takes, before the UI scale is removed.
     int platformToIndependent(int pixels) const;
@@ -144,6 +148,9 @@ private:
     int baseHeight_ = 0;
     bool visible_ = false;
     bool opened_ = false;
+    // A long-running operation may finish after this window has opened a different page.
+    std::uint64_t pageGeneration_ = 0;
+    Json progressSnapshot_;
     // Counts the hides and shows, so a cooldown started by an earlier hide does nothing once the window is shown again.
     std::uint64_t cooldownGeneration_ = 0;
     // Expires with the window, so a cooldown still waiting when the window is destroyed does nothing.
@@ -175,6 +182,12 @@ void requireWindowingRuntime();
 // Starts the platform's windowing, so that windows and menus can be made. Throws RuntimeMissingError when a runtime is missing.
 void initializeWindowing();
 
+#ifdef _WIN32
+void monitorConfigurationStartup();
+void finishStartupMonitoring();
+void pauseStartupMonitoring(bool paused);
+#endif
+
 // Sets the icon every window of the launcher shows, from the PNG the launcher embeds. Windows takes its icon from the
 // executable's resource instead, so there it does nothing.
 void setApplicationIcon(const std::string& png);
@@ -185,6 +198,8 @@ void stopEventLoop();
 
 // Shows an error in a dialog, and writes it to stderr. Used where nothing else would show the failure.
 void showError(const std::string& message);
+// Reports from any thread and exits the event loop after the user acknowledges the error.
+void reportFatalError(const std::string& message);
 
 // The file the user picks in an open dialog: a Gw.exe, or a mod file when modsOnly. Empty when they cancel.
 // The file the user picks, or nothing. startFolder, when it's given, is the folder the dialog opens in.

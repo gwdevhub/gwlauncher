@@ -20,7 +20,7 @@ interface HostMessage {
     error?: string;
 }
 
-const pending = new Map<number, { resolve: (value: unknown) => void; reject: (error: Error) => void }>();
+const pending = new Map<number, { resolve: (value: unknown) => void; reject: (error: Error) => void; timer?: ReturnType<typeof setTimeout> }>();
 let nextRequest = 1;
 
 function post(text: string) {
@@ -30,15 +30,40 @@ function post(text: string) {
         window.webkit.messageHandlers.gwl.postMessage(text);
     } else {
         // wry's own channel, used by the Rust launcher on WebKitGTK.
-        window.ipc?.postMessage(text);
+        if (!window.ipc) throw new Error('The connection to GW Launcher is unavailable. Restart the launcher.');
+        window.ipc.postMessage(text);
     }
 }
 
 export function call<T = any>(method: string, ...args: unknown[]): Promise<T> {
+    return request<T>(method, args);
+}
+
+export function read<T = any>(method: string, ...args: unknown[]): Promise<T> {
+    return request<T>(method, args, 15000);
+}
+
+export function reportFrontendError(error: unknown, context = 'The launcher interface failed'): string {
+    const message = `${context}: ${String(error)}`;
+    call('frontendError', message).catch(() => undefined);
+    return message;
+}
+
+function request<T>(method: string, args: unknown[], timeout?: number): Promise<T> {
     const id = nextRequest++;
     return new Promise<T>((resolve, reject) => {
-        pending.set(id, { resolve: resolve as (value: unknown) => void, reject });
-        post(JSON.stringify({ id, method, args }));
+        const timer = timeout ? setTimeout(() => {
+            pending.delete(id);
+            reject(new Error(`GW Launcher did not answer '${method}' within ${timeout / 1000} seconds.`));
+        }, timeout) : undefined;
+        pending.set(id, { resolve: resolve as (value: unknown) => void, reject, timer });
+        try {
+            post(JSON.stringify({ id, method, args }));
+        } catch (error) {
+            clearTimeout(timer);
+            pending.delete(id);
+            reject(error);
+        }
     });
 }
 
@@ -49,6 +74,7 @@ window.gwlReceive = message => {
     }
 
     const request = message.id !== undefined ? pending.get(message.id) : undefined;
+    clearTimeout(request?.timer);
     if (message.id !== undefined) {
         pending.delete(message.id);
     }
@@ -58,3 +84,11 @@ window.gwlReceive = message => {
         request?.resolve(message.result);
     }
 };
+
+window.addEventListener('pagehide', () => {
+    pending.forEach(request => {
+        clearTimeout(request.timer);
+        request.reject(new Error('The launcher page was closed.'));
+    });
+    pending.clear();
+});

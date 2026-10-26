@@ -1,5 +1,4 @@
 #include <chrono>
-#include <exception>
 #include <memory>
 #include <mutex>
 #include <optional>
@@ -10,6 +9,7 @@
 #include "AppState.h"
 #include "Progress.h"
 #include "windows/ProgressWindow.h"
+#include "utils/Errors.h"
 
 namespace gwl {
 
@@ -91,11 +91,8 @@ void AppState::runWithProgress(const gwl::Json& popup, const gwl::ProgressWork& 
             });
         });
         std::optional<std::string> failure;
-        try {
-            work(report, *cancel);
-        } catch (const std::exception& error) {
-            failure = error.what();
-        }
+        const auto error = gwl::captureError([&] { work(report, *cancel); });
+        if (!error.empty()) failure = error;
         gwl::runOnUiThread([this, job, failure, failureText, finishedText, summary, done] {
             // A cancelled job ends quietly. Any other failure shows its reason in the window. A finished job with a message stays
             // open until the user dismisses it.
