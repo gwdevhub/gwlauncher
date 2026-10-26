@@ -1,7 +1,7 @@
 // The page's root: which view shows, the host's events, and the keyboard. Each view is one component in its own file.
 
 import { useEffect, useRef, useState } from 'react';
-import { call, read } from '../bridge';
+import { call, read, reportFrontendError } from '../bridge';
 import { loadChrome } from '../chrome';
 import { on } from '../events';
 import { listKey } from '../listKeys';
@@ -30,6 +30,10 @@ export function App() {
     const readySent = useRef(false);
     const app = useAppState();
 
+    function failStartup(error: unknown) {
+        setStartupError(reportFrontendError(error, 'Could not initialize the launcher interface'));
+    }
+
     useEffect(() => applyUiScale(app.settings?.uiScale ?? 100), [app.settings?.uiScale]);
 
     // Bound first, so the start-up view below can be shown.
@@ -38,37 +42,27 @@ export function App() {
     useEffect(() => {
         if (!view || readySent.current) return;
         readySent.current = true;
-        read('ready').catch(error => {
-            const text = `Could not finish initializing the launcher interface: ${String(error)}`;
-            setStartupError(text);
-            call('frontendError', text).catch(() => undefined);
-        });
+        read('ready').catch(failStartup);
     }, [view]);
 
     useEffect(() => {
         (async () => {
-            try {
-                // Before the first view, so a popup's size counts the title bar.
-                await loadChrome();
-                const state = await refreshState();
-                const role: Role | null = await read<Role | null>('window');
-                session.popup = role;
-                if (role?.view === 'menu') {
-                    showNow('menu', [role.args[0]]);
-                } else if (role) {
-                    await show(role.view, ...role.args);
-                } else if (state.locked) {
-                    await show('password');
-                } else {
-                    await show('list');
-                    if (state.startup) await openView(state.startup, showMessage);
-                }
-            } catch (error) {
-                const text = `Could not initialize the launcher interface: ${String(error)}`;
-                setStartupError(text);
-                call('frontendError', text).catch(() => undefined);
+            // Before the first view, so a popup's size counts the title bar.
+            await loadChrome();
+            const state = await refreshState();
+            const role: Role | null = await read<Role | null>('window');
+            session.popup = role;
+            if (role?.view === 'menu') {
+                showNow('menu', [role.args[0]]);
+            } else if (role) {
+                await show(role.view, ...role.args);
+            } else if (state.locked) {
+                await show('password');
+            } else {
+                await show('list');
+                if (state.startup) await openView(state.startup, showMessage);
             }
-        })();
+        })().catch(failStartup);
     }, []);
 
     // The host pushes these: a view to open from the tray, a refresh of the list, and a pick from the tray menu.

@@ -7,17 +7,17 @@
 #include <WebView2.h>
 
 #include <functional>
+#include "ComPtr.h"
 
 namespace gwl {
 namespace webview2 {
 
-// Each returns one caller-owned reference; release it after submitting the callback to WebView2.
-ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler* environmentDone(std::function<void(HRESULT, ICoreWebView2Environment*)> done);
-ICoreWebView2CreateCoreWebView2ControllerCompletedHandler* controllerDone(std::function<void(HRESULT, ICoreWebView2Controller*)> done);
-ICoreWebView2WebMessageReceivedEventHandler* messageReceived(std::function<void(ICoreWebView2WebMessageReceivedEventArgs*)> received);
-ICoreWebView2NavigationCompletedEventHandler* navigationDone(std::function<void(ICoreWebView2NavigationCompletedEventArgs*)> done);
-ICoreWebView2ProcessFailedEventHandler* processFailed(std::function<void(ICoreWebView2ProcessFailedEventArgs*)> failed);
-ICoreWebView2ExecuteScriptCompletedHandler* scriptDone(std::function<void(HRESULT, LPCWSTR)> done);
+ComPtr<ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler> environmentDone(std::function<void(HRESULT, ICoreWebView2Environment*)> done);
+ComPtr<ICoreWebView2CreateCoreWebView2ControllerCompletedHandler> controllerDone(std::function<void(HRESULT, ICoreWebView2Controller*)> done);
+ComPtr<ICoreWebView2WebMessageReceivedEventHandler> messageReceived(std::function<void(ICoreWebView2WebMessageReceivedEventArgs*)> received);
+ComPtr<ICoreWebView2NavigationCompletedEventHandler> navigationDone(std::function<void(ICoreWebView2NavigationCompletedEventArgs*)> done);
+ComPtr<ICoreWebView2ProcessFailedEventHandler> processFailed(std::function<void(ICoreWebView2ProcessFailedEventArgs*)> failed);
+ComPtr<ICoreWebView2ExecuteScriptCompletedHandler> scriptDone(std::function<void(HRESULT, LPCWSTR)> done);
 
 }  // namespace webview2
 }  // namespace gwl

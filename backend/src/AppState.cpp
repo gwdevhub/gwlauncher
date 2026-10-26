@@ -23,6 +23,7 @@
 #include "Shell.h"
 #include "SteamIcon.h"
 #include "Stylesheets.h"
+#include "utils/Errors.h"
 #include "utils/Files.h"
 
 namespace launcher {
@@ -289,30 +290,22 @@ void refreshAccountEnrichment(AppState& app) {
             if (!account.isSteamAccount) paths.insert(account.gwpath);
         }
         app.workers.submit([paths = std::move(paths)] {
-            std::string warning;
-            try {
+            std::string warning = gwl::captureError([&] {
                 auto running = gwl::runningGamePaths();
                 std::lock_guard<std::mutex> lock(accountListCache.mutex);
                 accountListCache.running = std::move(running);
-            } catch (const std::exception& error) {
-                warning = std::string("Could not refresh game status: ") + error.what();
-            } catch (...) {
-                warning = "Could not refresh game status: unknown worker error.";
-            }
+            }, "Could not refresh game status: ");
             std::map<std::filesystem::path, std::string> icons;
             for (const auto& path : paths) {
-                try {
+                const auto error = gwl::captureError([&] {
                     if (const auto exe = gwl::gameFilePath(path)) {
                         auto [icon, inserted] = icons.try_emplace(*exe, helmetIcon());
                         if (inserted) icon->second = gwl::gwIconUrl(*exe).value_or(helmetIcon());
                         std::lock_guard<std::mutex> lock(accountListCache.mutex);
                         accountListCache.icons[path] = icon->second;
                     }
-                } catch (const std::exception& error) {
-                    warning = std::string("Some account icons could not be loaded: ") + error.what();
-                } catch (...) {
-                    warning = "Some account icons could not be loaded: unknown worker error.";
-                }
+                }, "Some account icons could not be loaded: ");
+                if (!error.empty()) warning = error;
             }
             std::lock_guard<std::mutex> lock(accountListCache.mutex);
             accountListCache.warning = std::move(warning);
@@ -445,15 +438,8 @@ void installCommonHandlers(gwl::MessageHandler& handler, AppState& app) {
         try {
             app.workers.submit([&app, alive, password = app.accountsPassword, reply] {
                 std::optional<gwl::OpenedAccounts> opened;
-                std::string failure;
-                try {
-                    opened = gwl::openAccounts(kAccountsFile, password);
-                    if (!opened) failure = "Could not reload Accounts.json: the file is locked or its password changed.";
-                } catch (const std::exception& error) {
-                    failure = std::string("Could not reload Accounts.json: ") + error.what();
-                } catch (...) {
-                    failure = "Could not reload Accounts.json: unknown worker error.";
-                }
+                auto failure = gwl::captureError([&] { opened = gwl::openAccounts(kAccountsFile, password); }, "Could not reload Accounts.json: ");
+                if (failure.empty() && !opened) failure = "Could not reload Accounts.json: the file is locked or its password changed.";
                 gwl::runOnUiThread([&app, alive, reply, opened = std::move(opened), failure] {
                     if (alive.expired()) return;
                     accountsReloading = false;

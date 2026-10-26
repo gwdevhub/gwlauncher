@@ -41,6 +41,13 @@ WebViewWindow::~WebViewWindow() {
     liveWindows().erase(this);
 }
 
+void reportFatalError(const std::string& message) {
+    runOnUiThread([message] {
+        showError(message + "\n\nRestart GW Launcher.");
+        stopEventLoop();
+    });
+}
+
 void requireWindowingRuntime() {
     if (const auto problem = missingWindowingRuntime()) {
         if (problem->link.empty()) {

@@ -37,10 +37,16 @@ export function AccountListWindow() {
         const refreshSettings = () => refreshState().catch(error => {
             if (alive) setStatus(`Could not refresh launcher settings: ${String(error)}`);
         });
-        const refresh = async () => {
+        const refresh = async (reload = false) => {
             if (busy || !alive) return;
             busy = true;
             try {
+                if (reload) {
+                    void refreshSettings();
+                    const failure = await read<string | null>('reloadAccounts');
+                    if (failure) throw new Error(failure);
+                }
+                if (!alive) return;
                 const next = await read<{ entries: AccountEntry[]; error: string | null; warning?: string }>('accounts');
                 if (!alive) return;
                 if (next.error) throw new Error(next.error);
@@ -55,19 +61,7 @@ export function AccountListWindow() {
                 busy = false;
             }
         };
-        retry.current = () => {
-            if (busy) return;
-            void refreshSettings();
-            busy = true;
-            read<string | null>('reloadAccounts').then(failure => {
-                if (failure) throw new Error(failure);
-            }).catch(error => {
-                if (alive) setError(String(error));
-            }).finally(() => {
-                busy = false;
-                if (alive) void refresh();
-            });
-        };
+        retry.current = () => { void refresh(true); };
         void refresh();
         void refreshSettings();
         read<string>('icon').then(icon => { if (alive) setRowIcon(icon); }).catch(() => undefined);

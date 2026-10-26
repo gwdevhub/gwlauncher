@@ -198,6 +198,8 @@ void stopEventLoop();
 
 // Shows an error in a dialog, and writes it to stderr. Used where nothing else would show the failure.
 void showError(const std::string& message);
+// Reports from any thread and exits the event loop after the user acknowledges the error.
+void reportFatalError(const std::string& message);
 
 // The file the user picks in an open dialog: a Gw.exe, or a mod file when modsOnly. Empty when they cancel.
 // The file the user picks, or nothing. startFolder, when it's given, is the folder the dialog opens in.

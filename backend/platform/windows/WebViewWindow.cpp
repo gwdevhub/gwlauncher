@@ -7,9 +7,9 @@
 
 #include <WebView2.h>
 
-#include <cstdio>
 #include <atomic>
 #include <chrono>
+#include <cstdio>
 #include <functional>
 #include <memory>
 #include <stdexcept>
@@ -20,6 +20,7 @@
 
 #include "WebViewWindow.h"
 #include "WebView2.h"
+#include "Utf8.h"
 
 #include <cstring>
 #include <filesystem>
@@ -27,6 +28,7 @@
 #include <iterator>
 #include <system_error>
 #include "Launch.h"
+#include "utils/Errors.h"
 #include "utils/Files.h"
 
 namespace gwl {
@@ -43,29 +45,6 @@ void initializeTaskDispatch();
 std::atomic<const wchar_t*> startupStage{L"initializing Windows windowing and the WebView2 loader"};
 std::atomic<bool> startupFinished{false};
 std::atomic<unsigned> startupDialogs{0};
-
-std::wstring toWide(const std::string& text) {
-    if (text.empty()) {
-        return {};
-    }
-    int length = MultiByteToWideChar(CP_UTF8, 0, text.data(), static_cast<int>(text.size()), nullptr, 0);
-    std::wstring wide(length, L'\0');
-    MultiByteToWideChar(CP_UTF8, 0, text.data(), static_cast<int>(text.size()), wide.data(), length);
-    return wide;
-}
-
-std::string toUtf8(const wchar_t* text) {
-    if (!text) {
-        return {};
-    }
-    int length = WideCharToMultiByte(CP_UTF8, 0, text, -1, nullptr, 0, nullptr, nullptr);
-    std::string utf8(length > 0 ? length : 0, '\0');
-    if (length > 0) {
-        WideCharToMultiByte(CP_UTF8, 0, text, -1, utf8.data(), length, nullptr, nullptr);
-        utf8.pop_back();
-    }
-    return utf8;
-}
 
 template <typename F>
 F loaderFunction(const char* name) {
@@ -115,12 +94,8 @@ void failWebView(NativeWindow* native, const std::string& message) {
         const int answer = MessageBoxW(native->hwnd, text.c_str(), L"GW Launcher interface error", MB_RETRYCANCEL | MB_ICONERROR);
         if (alive.expired()) return;
         if (answer == IDRETRY) {
-            try {
-                native->owner->reload();
-            } catch (const std::exception& error) {
-                showError(error.what());
-                stopEventLoop();
-            }
+            const auto error = captureError([&] { native->owner->reload(); }, "Recreating the launcher interface failed: ");
+            if (!error.empty()) reportFatalError(error);
         } else {
             stopEventLoop();
         }
@@ -138,7 +113,7 @@ bool checkWebView(NativeWindow* native, HRESULT result, const char* operation) {
 void executeScript(NativeWindow* native, const std::wstring& script) {
     if (native->failed) return;
     const auto alive = std::weak_ptr<bool>(native->alive);
-    auto* done = webview2::scriptDone([native, alive](HRESULT result, LPCWSTR json) {
+    auto done = webview2::scriptDone([native, alive](HRESULT result, LPCWSTR json) {
         if (alive.expired() || native->failed) return;
         if (!checkWebView(native, result, "Delivering a message to the launcher interface failed")) return;
         if (!json || std::wstring(json) != L"null") {
@@ -146,9 +121,8 @@ void executeScript(NativeWindow* native, const std::wstring& script) {
         }
     });
     const std::wstring wrapped = L"(function(){try{" + script + L";return null;}catch(error){return String(error);}})()";
-    const HRESULT result = native->webview->ExecuteScript(wrapped.c_str(), done);
-    done->Release();
-    checkWebView(native, result, "Sending a message to the launcher interface failed");
+    checkWebView(native, native->webview->ExecuteScript(wrapped.c_str(), done.get()),
+                 "Sending a message to the launcher interface failed");
 }
 
 void resizeWebView(NativeWindow* native) {
@@ -211,7 +185,7 @@ void attachWebView(NativeWindow* native, ICoreWebView2Controller* controller) {
     if (native->failed) return;
 
     const auto alive = std::weak_ptr<bool>(native->alive);
-    auto* navigation = webview2::navigationDone([native, alive](ICoreWebView2NavigationCompletedEventArgs* args) {
+    auto navigation = webview2::navigationDone([native, alive](ICoreWebView2NavigationCompletedEventArgs* args) {
         if (alive.expired() || native->failed) return;
         BOOL success = FALSE;
         if (!checkWebView(native, args->get_IsSuccess(&success), "Reading the navigation result failed")) return;
@@ -223,37 +197,31 @@ void attachWebView(NativeWindow* native, ICoreWebView2Controller* controller) {
             native->stage = "Waiting for the launcher interface to initialize";
         }
     });
-    const HRESULT navigationResult = native->webview->add_NavigationCompleted(navigation, &native->navigationToken);
-    navigation->Release();
-    if (!checkWebView(native, navigationResult, "Registering navigation notifications failed")) return;
+    if (!checkWebView(native, native->webview->add_NavigationCompleted(navigation.get(), &native->navigationToken),
+                      "Registering navigation notifications failed")) return;
 
-    auto* process = webview2::processFailed([native, alive](ICoreWebView2ProcessFailedEventArgs* args) {
+    auto process = webview2::processFailed([native, alive](ICoreWebView2ProcessFailedEventArgs* args) {
         if (alive.expired() || native->failed) return;
         COREWEBVIEW2_PROCESS_FAILED_KIND kind{};
         if (!checkWebView(native, args->get_ProcessFailedKind(&kind), "Reading the WebView2 process failure failed")) return;
         failWebView(native, "A WebView2 process failed or became unresponsive (failure kind " + std::to_string(static_cast<int>(kind)) + "). The launcher interface must be recreated.");
     });
-    const HRESULT processResult = native->webview->add_ProcessFailed(process, &native->processToken);
-    process->Release();
-    if (!checkWebView(native, processResult, "Registering WebView2 process notifications failed")) return;
+    if (!checkWebView(native, native->webview->add_ProcessFailed(process.get(), &native->processToken),
+                      "Registering WebView2 process notifications failed")) return;
 
-    auto* messages = webview2::messageReceived([native, alive](ICoreWebView2WebMessageReceivedEventArgs* args) {
-            if (alive.expired() || native->failed) return;
-            LPWSTR message = nullptr;
-            const HRESULT result = args->TryGetWebMessageAsString(&message);
-            if (checkWebView(native, result, "Reading a launcher message failed") && message) {
-                const auto text = toUtf8(message);
-                CoTaskMemFree(message);
-                try {
-                    native->owner->receive(text);
-                } catch (const std::exception& error) {
-                    failWebView(native, std::string("Processing a launcher message failed: ") + error.what());
-                }
-            }
-        });
-    const HRESULT messageResult = native->webview->add_WebMessageReceived(messages, &native->messageToken);
-    messages->Release();
-    checkWebView(native, messageResult, "Registering launcher messages failed");
+    auto messages = webview2::messageReceived([native, alive](ICoreWebView2WebMessageReceivedEventArgs* args) {
+        if (alive.expired() || native->failed) return;
+        LPWSTR message = nullptr;
+        const HRESULT result = args->TryGetWebMessageAsString(&message);
+        if (checkWebView(native, result, "Reading a launcher message failed") && message) {
+            const auto text = toUtf8(message);
+            CoTaskMemFree(message);
+            const auto error = captureError([&] { native->owner->receive(text); }, "Processing a launcher message failed: ");
+            if (!error.empty()) failWebView(native, error);
+        }
+    });
+    checkWebView(native, native->webview->add_WebMessageReceived(messages.get(), &native->messageToken),
+                 "Registering launcher messages failed");
 }
 
 LRESULT CALLBACK windowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
@@ -496,34 +464,31 @@ void WebViewWindow::platformOpen() {
             return;
         }
         native->stage = "Creating the WebView2 controller";
-        auto* done = webview2::controllerDone([native, alive, url, page](HRESULT controllerResult, ICoreWebView2Controller* controller) {
-                if (alive.expired() || native->failed) {
-                    if (controller) controller->Close();
-                    return;
-                }
-                if (!checkWebView(native, controllerResult, "Creating the WebView2 controller failed")) return;
-                if (!controller) {
-                    failWebView(native, "WebView2 returned no controller.");
-                    return;
-                }
-                attachWebView(native, controller);
-                if (native->failed) return;
-                native->stage = "Loading the launcher page";
-                if (!url.empty()) {
-                    checkWebView(native, native->webview->Navigate(toWide(url).c_str()), "Navigating to the launcher page failed");
-                } else {
-                    checkWebView(native, native->webview->NavigateToString(toWide(page).c_str()), "Loading the embedded launcher page failed");
-                }
-            });
-        const HRESULT controllerResult = environment->CreateCoreWebView2Controller(native->hwnd, done);
-        done->Release();
-        checkWebView(native, controllerResult, "Starting WebView2 controller creation failed");
+        auto done = webview2::controllerDone([native, alive, url, page](HRESULT controllerResult, ICoreWebView2Controller* controller) {
+            if (alive.expired() || native->failed) {
+                if (controller) controller->Close();
+                return;
+            }
+            if (!checkWebView(native, controllerResult, "Creating the WebView2 controller failed")) return;
+            if (!controller) {
+                failWebView(native, "WebView2 returned no controller.");
+                return;
+            }
+            attachWebView(native, controller);
+            if (native->failed) return;
+            native->stage = "Loading the launcher page";
+            if (!url.empty()) {
+                checkWebView(native, native->webview->Navigate(toWide(url).c_str()), "Navigating to the launcher page failed");
+            } else {
+                checkWebView(native, native->webview->NavigateToString(toWide(page).c_str()), "Loading the embedded launcher page failed");
+            }
+        });
+        checkWebView(native, environment->CreateCoreWebView2Controller(native->hwnd, done.get()),
+                     "Starting WebView2 controller creation failed");
     };
     auto createEnvironment = loaderFunction<CreateEnvironmentFn>("CreateCoreWebView2EnvironmentWithOptions");
-    auto* done = webview2::environmentDone(onEnvironment);
-    const HRESULT result = createEnvironment(nullptr, nullptr, nullptr, done);
-    done->Release();
-    checkWebView(native, result, "Starting WebView2 environment creation failed");
+    auto done = webview2::environmentDone(onEnvironment);
+    checkWebView(native, createEnvironment(nullptr, nullptr, nullptr, done.get()), "Starting WebView2 environment creation failed");
 }
 
 void WebViewWindow::platformUnload() {
@@ -729,15 +694,8 @@ HWND taskWindow = nullptr;
 LRESULT CALLBACK taskWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
     if (message != kRunTask) return DefWindowProcW(hwnd, message, wParam, lParam);
     std::unique_ptr<std::function<void()>> task(reinterpret_cast<std::function<void()>*>(lParam));
-    try {
-        (*task)();
-    } catch (const std::exception& error) {
-        showError(std::string("A launcher UI task failed: ") + error.what() + ". Restart GW Launcher.");
-        stopEventLoop();
-    } catch (...) {
-        showError("A launcher UI task failed with an unknown error. Restart GW Launcher.");
-        stopEventLoop();
-    }
+    const auto error = captureError(*task, "A launcher UI task failed: ");
+    if (!error.empty()) reportFatalError(error);
     return 0;
 }
 

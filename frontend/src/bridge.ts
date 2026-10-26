@@ -43,6 +43,12 @@ export function read<T = any>(method: string, ...args: unknown[]): Promise<T> {
     return request<T>(method, args, 15000);
 }
 
+export function reportFrontendError(error: unknown, context = 'The launcher interface failed'): string {
+    const message = `${context}: ${String(error)}`;
+    call('frontendError', message).catch(() => undefined);
+    return message;
+}
+
 function request<T>(method: string, args: unknown[], timeout?: number): Promise<T> {
     const id = nextRequest++;
     return new Promise<T>((resolve, reject) => {
