@@ -18,15 +18,15 @@ namespace gwl {
 
 void showError(const std::string& message) {
     std::fprintf(stderr, "%s\n", message.c_str());
-    MessageBoxW(nullptr, wide(message).c_str(), L"GW Launcher", MB_OK | MB_ICONERROR);
+    MessageBoxW(nullptr, toWide(message).c_str(), L"GW Launcher", MB_OK | MB_ICONERROR);
 }
 
 std::optional<std::string> pickFile(const std::string& title, bool modsOnly, const std::string& startFolder) {
     // The filters are pairs of description and pattern, each ended by a NUL, and the list ends with an extra NUL.
     static const wchar_t gwFilter[] = L"Guild Wars\0Gw.exe\0\0";
     static const wchar_t modFilter[] = L"Mods\0*.dll;*.tpf;*.zip\0\0";
-    const std::wstring wideTitle = wide(title);
-    const std::wstring wideFolder = wide(startFolder);
+    const std::wstring wideTitle = toWide(title);
+    const std::wstring wideFolder = toWide(startFolder);
     wchar_t file[1024] = {};
     OPENFILENAMEW dialog{};
     dialog.lStructSize = sizeof(dialog);
@@ -39,7 +39,7 @@ std::optional<std::string> pickFile(const std::string& title, bool modsOnly, con
     if (!GetOpenFileNameW(&dialog)) {
         return std::nullopt;
     }
-    return narrow(file);
+    return toUtf8(file);
 }
 
 std::optional<std::pair<int, int>> cursorPosition() {

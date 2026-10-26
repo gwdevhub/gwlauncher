@@ -215,7 +215,7 @@ std::string utf16ToUtf8(const std::vector<std::uint16_t>& units) {
     return text;
 }
 
-std::wstring wide(const std::string& text) {
+std::wstring toWide(const std::string& text) {
     std::wstring out;
     decodeUtf8(text, [&](std::uint32_t codePoint) {
         if constexpr (sizeof(wchar_t) == 2) {
@@ -231,7 +231,7 @@ std::wstring wide(const std::string& text) {
     return out;
 }
 
-std::string narrow(const std::wstring& text) {
+std::string toUtf8(const std::wstring& text) {
     if constexpr (sizeof(wchar_t) == 2) {
         return utf16ToUtf8(std::vector<std::uint16_t>(text.begin(), text.end()));
     } else {

@@ -114,7 +114,7 @@ private:
 // The medium integrity level, which a launch's process runs at unless the account is elevated.
 void setMediumIntegrity(HANDLE token) {
     PSID sid = nullptr;
-    if (!ConvertStringSidToSidW(wide(kMediumIntegritySid).c_str(), &sid)) {
+    if (!ConvertStringSidToSidW(toWide(kMediumIntegritySid).c_str(), &sid)) {
         throw std::runtime_error(lastError("ConvertStringSidToSidW"));
     }
     TOKEN_MANDATORY_LABEL label{};
@@ -160,7 +160,7 @@ std::unique_ptr<GameProcess> createSuspended(const std::string& gwpath, const st
         throw std::runtime_error("the game path has no folder");
     }
     const std::wstring folder = parent.wstring();
-    std::wstring command = wide(commandLine);
+    std::wstring command = toWide(commandLine);
     STARTUPINFOW startup{};
     startup.cb = sizeof(STARTUPINFOW);
     PROCESS_INFORMATION info{};
@@ -571,7 +571,7 @@ std::optional<std::string> imagePath(DWORD processId) {
     if (!read) {
         return std::nullopt;
     }
-    return narrow(buffer.substr(0, length));
+    return toUtf8(buffer.substr(0, length));
 }
 
 bool processExists(const std::wstring& stem) {

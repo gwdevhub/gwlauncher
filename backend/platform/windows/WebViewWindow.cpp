@@ -127,7 +127,7 @@ void attachWebView(NativeWindow* native, ICoreWebView2Controller* controller) {
         webview2::messageReceived([native](ICoreWebView2WebMessageReceivedEventArgs* args) {
             LPWSTR message = nullptr;
             if (SUCCEEDED(args->TryGetWebMessageAsString(&message)) && message) {
-                native->owner->receive(narrow(message));
+                native->owner->receive(toUtf8(message));
                 CoTaskMemFree(message);
             }
         }),
@@ -333,7 +333,7 @@ void WebViewWindow::platformOpen() {
     native_.reset(new NativeWindow);
     NativeWindow* native = native_.get();
     native->owner = this;
-    std::wstring windowTitle = wide(title());
+    std::wstring windowTitle = toWide(title());
     // Opened in the middle of the work area. A caller that places the window moves it after it's opened.
     const auto area = workArea();
     // Sizes are in device-independent pixels, so they grow with the display's DPI.
@@ -364,9 +364,9 @@ void WebViewWindow::platformOpen() {
                 }
                 attachWebView(native, controller);
                 if (!url.empty()) {
-                    native->webview->Navigate(wide(url).c_str());
+                    native->webview->Navigate(toWide(url).c_str());
                 } else {
-                    native->webview->NavigateToString(wide(page).c_str());
+                    native->webview->NavigateToString(toWide(page).c_str());
                 }
             }));
     };
@@ -447,9 +447,9 @@ std::optional<RuntimeProblem> missingWindowingRuntime() {
 }
 
 void offerLink(const std::string& message, const std::string& link) {
-    const std::wstring text = wide(message + "\n\nOpen the WebView2 download page now?");
+    const std::wstring text = toWide(message + "\n\nOpen the WebView2 download page now?");
     if (MessageBoxW(nullptr, text.c_str(), L"GW Launcher", MB_YESNO | MB_ICONERROR) == IDYES) {
-        const std::wstring url = wide(link);
+        const std::wstring url = toWide(link);
         ShellExecuteW(nullptr, L"open", url.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
     }
 }
@@ -506,7 +506,7 @@ void WebViewWindow::platformMove(int x, int y) {
 
 void WebViewWindow::platformSetTitle(const std::string& title) {
     if (native_ && native_->hwnd) {
-        SetWindowTextW(native_->hwnd, wide(title).c_str());
+        SetWindowTextW(native_->hwnd, toWide(title).c_str());
     }
 }
 
@@ -520,7 +520,7 @@ void WebViewWindow::platformRunScript(const std::string& script) {
     if (!native_) {
         return;
     }
-    std::wstring source = wide(script);
+    std::wstring source = toWide(script);
     if (native_->webview) {
         native_->webview->ExecuteScript(source.c_str(), webview2::scriptDone());
     } else {
