@@ -2,6 +2,7 @@
 
 #include "Shell.h"
 #include "utils/Files.h"
+#include "utils/Strings.h"
 
 #include <windows.h>
 #include <knownfolders.h>
@@ -16,20 +17,7 @@
 
 namespace gwl {
 
-namespace {
-
 namespace fs = std::filesystem;
-
-std::wstring wide(const std::string& text) {
-    const int length = MultiByteToWideChar(CP_UTF8, 0, text.c_str(), -1, nullptr, 0);
-    std::wstring result(length > 0 ? length - 1 : 0, L'\0');
-    if (length > 0) {
-        MultiByteToWideChar(CP_UTF8, 0, text.c_str(), -1, result.data(), length);
-    }
-    return result;
-}
-
-}  // namespace
 
 void copyText(const std::string& text) {
     const std::wstring wideText = wide(text);
