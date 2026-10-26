@@ -12,30 +12,9 @@
 #include "Settings.h"
 #include "WebViewWindow.h"
 #include "utils/Files.h"
+#include "utils/Strings.h"
 
 namespace gwl {
-
-namespace {
-
-std::wstring toWide(const std::string& text) {
-    const int length = MultiByteToWideChar(CP_UTF8, 0, text.c_str(), -1, nullptr, 0);
-    std::wstring wide(length > 0 ? length : 1, L'\0');
-    if (length > 0) {
-        MultiByteToWideChar(CP_UTF8, 0, text.c_str(), -1, wide.data(), length);
-    }
-    return wide;
-}
-
-std::string toUtf8(const wchar_t* text) {
-    const int length = WideCharToMultiByte(CP_UTF8, 0, text, -1, nullptr, 0, nullptr, nullptr);
-    std::string utf8(length > 0 ? length - 1 : 0, '\0');
-    if (length > 1) {
-        WideCharToMultiByte(CP_UTF8, 0, text, -1, utf8.data(), length, nullptr, nullptr);
-    }
-    return utf8;
-}
-
-}  // namespace
 
 void showError(const std::string& message) {
     std::fprintf(stderr, "%s\n", message.c_str());

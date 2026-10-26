@@ -56,25 +56,6 @@ const std::size_t kMulticlientSignatureOffset = 0x1A;
 const std::size_t kMulticlientSearchStart = 0x1000;
 const std::size_t kMulticlientSearchLength = 0x48D000;
 
-// UTF-8 to UTF-16, and back, for the Win32 functions that take wide text.
-std::wstring wide(const std::string& text) {
-    const int length = MultiByteToWideChar(CP_UTF8, 0, text.data(), static_cast<int>(text.size()), nullptr, 0);
-    std::wstring out(static_cast<std::size_t>(std::max(length, 0)), L'\0');
-    if (length > 0) {
-        MultiByteToWideChar(CP_UTF8, 0, text.data(), static_cast<int>(text.size()), out.data(), length);
-    }
-    return out;
-}
-
-std::string narrow(const std::wstring& text) {
-    const int length = WideCharToMultiByte(CP_UTF8, 0, text.data(), static_cast<int>(text.size()), nullptr, 0, nullptr, nullptr);
-    std::string out(static_cast<std::size_t>(std::max(length, 0)), '\0');
-    if (length > 0) {
-        WideCharToMultiByte(CP_UTF8, 0, text.data(), static_cast<int>(text.size()), out.data(), length, nullptr, nullptr);
-    }
-    return out;
-}
-
 // "<step> failed: <Windows' message for the last error>".
 std::string lastError(const char* step) {
     const DWORD code = GetLastError();
@@ -133,7 +114,7 @@ private:
 // The medium integrity level, which a launch's process runs at unless the account is elevated.
 void setMediumIntegrity(HANDLE token) {
     PSID sid = nullptr;
-    if (!ConvertStringSidToSidW(wide(kMediumIntegritySid).c_str(), &sid)) {
+    if (!ConvertStringSidToSidW(toWide(kMediumIntegritySid).c_str(), &sid)) {
         throw std::runtime_error(lastError("ConvertStringSidToSidW"));
     }
     TOKEN_MANDATORY_LABEL label{};
@@ -179,7 +160,7 @@ std::unique_ptr<GameProcess> createSuspended(const std::string& gwpath, const st
         throw std::runtime_error("the game path has no folder");
     }
     const std::wstring folder = parent.wstring();
-    std::wstring command = wide(commandLine);
+    std::wstring command = toWide(commandLine);
     STARTUPINFOW startup{};
     startup.cb = sizeof(STARTUPINFOW);
     PROCESS_INFORMATION info{};
@@ -590,7 +571,7 @@ std::optional<std::string> imagePath(DWORD processId) {
     if (!read) {
         return std::nullopt;
     }
-    return narrow(buffer.substr(0, length));
+    return toUtf8(buffer.substr(0, length));
 }
 
 bool processExists(const std::wstring& stem) {
