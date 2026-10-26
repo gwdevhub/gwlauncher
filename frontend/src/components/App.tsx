@@ -1,7 +1,7 @@
 // The page's root: which view shows, the host's events, and the keyboard. Each view is one component in its own file.
 
-import { useEffect, useState } from 'react';
-import { call } from '../bridge';
+import { useEffect, useRef, useState } from 'react';
+import { call, read, reportFrontendError } from '../bridge';
 import { loadChrome } from '../chrome';
 import { on } from '../events';
 import { listKey } from '../listKeys';
@@ -26,7 +26,13 @@ import { WindowFrame } from './WindowFrame';
 
 export function App() {
     const [view, setView] = useState<ViewState | null>(null);
+    const [startupError, setStartupError] = useState<string | null>(null);
+    const readySent = useRef(false);
     const app = useAppState();
+
+    function failStartup(error: unknown) {
+        setStartupError(reportFrontendError(error, 'Could not initialize the launcher interface'));
+    }
 
     useEffect(() => applyUiScale(app.settings?.uiScale ?? 100), [app.settings?.uiScale]);
 
@@ -34,24 +40,29 @@ export function App() {
     useEffect(() => bindViewSetter(setView), []);
 
     useEffect(() => {
+        if (!view || readySent.current) return;
+        readySent.current = true;
+        read('ready').catch(failStartup);
+    }, [view]);
+
+    useEffect(() => {
         (async () => {
             // Before the first view, so a popup's size counts the title bar.
             await loadChrome();
             const state = await refreshState();
-            const role: Role | null = await call<Role | null>('window');
+            const role: Role | null = await read<Role | null>('window');
             session.popup = role;
             if (role?.view === 'menu') {
                 showNow('menu', [role.args[0]]);
             } else if (role) {
-                show(role.view, ...role.args);
+                await show(role.view, ...role.args);
             } else if (state.locked) {
-                show('password');
-            } else if (state.startup) {
-                openView(state.startup, showMessage);
+                await show('password');
             } else {
-                show('list');
+                await show('list');
+                if (state.startup) await openView(state.startup, showMessage);
             }
-        })();
+        })().catch(failStartup);
     }, []);
 
     // The host pushes these: a view to open from the tray, a refresh of the list, and a pick from the tray menu.
@@ -96,7 +107,11 @@ export function App() {
         };
     }, []);
 
-    return <WindowFrame>{view && <Current key={view.key} name={view.name} args={view.args} />}</WindowFrame>;
+    return <WindowFrame>{startupError ? <section role="alert" className="p-3.5">
+        <p>{startupError}</p>
+        <button onClick={() => location.reload()}>Retry</button>
+        <button onClick={() => call('quit')}>Exit</button>
+    </section> : view ? <Current key={view.key} name={view.name} args={view.args} /> : <p role="status">Loading GW Launcher…</p>}</WindowFrame>;
 }
 
 // Picks the view component for a view name, with the arguments the view was shown with.

@@ -1,7 +1,7 @@
 #include "WorkerPool.h"
 
-#include <cstdio>
-#include <exception>
+#include "WebViewWindow.h"
+#include "utils/Errors.h"
 
 namespace gwl {
 
@@ -44,13 +44,8 @@ void WorkerPool::runWorker() {
             queue_.pop_front();
         }
         // The task runs with no lock held, so a slow one never holds up the queue.
-        try {
-            task();
-        } catch (const std::exception& error) {
-            std::fprintf(stderr, "Worker task failed: %s\n", error.what());
-        } catch (...) {
-            std::fprintf(stderr, "Worker task failed.\n");
-        }
+        const auto error = captureError(task, "A background launcher task failed: ");
+        if (!error.empty()) reportFatalError(error);
     }
 }
 

@@ -1,7 +1,7 @@
 // The account list: the accounts, their states and issues, the empty state, and the right-click menu.
 
 import { useEffect, useRef, useState, type MouseEvent } from 'react';
-import { call } from '../bridge';
+import { call, read } from '../bridge';
 import { useChrome } from '../chrome';
 import { choose, showMessage } from '../dialogs';
 import { stateClass } from '../utils/format';
@@ -20,6 +20,9 @@ export function AccountListWindow() {
     const [carried] = useState(takeCarriedListState);
     const [entries, setEntries] = useState<AccountEntry[]>([]);
     const [error, setError] = useState<string | null>(null);
+    const [warning, setWarning] = useState<string | null>(null);
+    const [loaded, setLoaded] = useState(false);
+    const retry = useRef<() => void>(() => undefined);
     const [selected, setSelected] = useState(carried.selected ?? -1);
     const [status, setStatus] = useState(carried.status);
     const [rowIcon, setRowIcon] = useState<string | null>(null);
@@ -30,28 +33,39 @@ export function AccountListWindow() {
 
     useEffect(() => {
         let alive = true;
-        (async () => {
-            await refreshState();
-            const icon = await call<string>('icon');
-            const loaded = await call<{ entries: AccountEntry[]; error: string | null }>('accounts');
-            if (!alive) {
-                return;
+        let busy = false;
+        const refreshSettings = () => refreshState().catch(error => {
+            if (alive) setStatus(`Could not refresh launcher settings: ${String(error)}`);
+        });
+        const refresh = async (reload = false) => {
+            if (busy || !alive) return;
+            busy = true;
+            try {
+                if (reload) {
+                    void refreshSettings();
+                    const failure = await read<string | null>('reloadAccounts');
+                    if (failure) throw new Error(failure);
+                }
+                if (!alive) return;
+                const next = await read<{ entries: AccountEntry[]; error: string | null; warning?: string }>('accounts');
+                if (!alive) return;
+                if (next.error) throw new Error(next.error);
+                setEntries(next.entries);
+                setLoaded(true);
+                setError(null);
+                setWarning(next.warning ?? null);
+                if (latest.current.selected >= next.entries.length) setSelected(-1);
+            } catch (error) {
+                if (alive) setError(`Could not load accounts: ${String(error)}`);
+            } finally {
+                busy = false;
             }
-            setRowIcon(icon);
-            setEntries(loaded.entries);
-            setError(loaded.error ?? null);
-            if (latest.current.selected >= loaded.entries.length) {
-                setSelected(-1);
-            }
-        })();
-
-        // States (Launching, Active, In Use) change while the list is open, so the accounts are read again every two seconds.
-        const timer = setInterval(async () => {
-            const { entries: next } = await call<{ entries: AccountEntry[] }>('accounts');
-            if (alive && next.length === latest.current.entries.length) {
-                setEntries(next);
-            }
-        }, 2000);
+        };
+        retry.current = () => { void refresh(true); };
+        void refresh();
+        void refreshSettings();
+        read<string>('icon').then(icon => { if (alive) setRowIcon(icon); }).catch(() => undefined);
+        const timer = setInterval(() => { void refresh(); }, 2000);
 
         setListKeys({
             ArrowDown: () => select(Math.min(latest.current.selected + 1, latest.current.entries.length - 1)),
@@ -104,10 +118,8 @@ export function AccountListWindow() {
         show('list');
     }
 
-    async function refreshAccounts() {
-        const failure = (await call<string | null>('reloadAccounts')) ?? '';
-        carryListState({ status: failure, selected: latest.current.selected });
-        show('list');
+    function refreshAccounts() {
+        retry.current();
     }
 
     async function launchDefault() {
@@ -196,7 +208,7 @@ export function AccountListWindow() {
     }
 
     const hasEntries = entries.length > 0;
-    const line = error ?? status;
+    const line = warning ?? status;
 
     return (
         <section className="view list relative flex h-full flex-col overflow-hidden" onContextMenu={e => openMenu(e, null)}>
@@ -223,7 +235,9 @@ export function AccountListWindow() {
                     </li>
                 ))}
             </ul>}
-            {!hasEntries && (
+            {!loaded && !error && <p role="status" className="p-3.5">Loading accounts…</p>}
+            {error && <div role="alert" className="p-3.5"><p>{error}</p><Button onClick={() => retry.current()}>Retry</Button></div>}
+            {loaded && !hasEntries && !error && (
                 // Centred over the whole window, not the space above the status line and footer.
                 <div className="empty pointer-events-none flex-1 flex items-center justify-center">
                     <div className="stack pointer-events-auto flex flex-col items-center gap-2">

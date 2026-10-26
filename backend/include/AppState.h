@@ -128,8 +128,6 @@ struct AppState {
     void startGameAsync(const gwl::Account& account, std::optional<std::size_t> index, bool suspended, bool checkFirst,
                         std::function<void(const std::optional<std::string>& failure, const std::optional<gwl::Json>& blocked)> done);
 
-    // Each account's state in the list: Launching, Active, In Use or Inactive.
-    std::vector<std::string> accountStates() const;
     // Keeps which game each account started right when the list changes: removed accounts drop out, and the others move.
     void accountRemoved(std::size_t index);
     void accountMoved(std::size_t from, std::size_t to);
@@ -208,6 +206,8 @@ struct AppState {
     std::vector<std::string> launchArguments;
     // Read at startup, since an update renames the running file and restart needs where the launcher was started from.
     std::filesystem::path executable;
+    // Destroyed before other state, so queued reload completions cannot touch a shutting-down app.
+    std::shared_ptr<bool> alive = std::make_shared<bool>(true);
 };
 
 // The handlers every window answers, for the calls the page makes from any of its windows.
@@ -218,7 +218,7 @@ std::string developmentUrl();
 
 // The icon for a row: the Steam icon for Steam accounts, and the helmet for the rest, as data URLs.
 const std::string& helmetIcon();
-// The image beside an account, as the account list shows it. Used for the account's launch window.
+// The fallback image used for an account and its launch window.
 std::string accountIconUrl(const gwl::Account& account);
 const std::string& steamIcon();
 

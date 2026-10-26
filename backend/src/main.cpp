@@ -39,7 +39,13 @@ int main(int argc, char** argv) {
         // Windows and menus need the windowing started, and the tray's menu is made before the list window.
         gwl::initializeWindowing();
         gwl::setApplicationIcon(gwl::embeddedHelmetPng());
+#ifdef _WIN32
+        gwl::monitorConfigurationStartup();
+#endif
         launcher::AppState app(gwl::embeddedPage());
+#ifdef _WIN32
+        gwl::finishStartupMonitoring();
+#endif
         if (quick) {
             app.quickLaunch(request.name);
             gwl::runEventLoop();

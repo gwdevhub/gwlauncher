@@ -37,7 +37,15 @@ WebViewWindow::WebViewWindow(WindowOptions options)
 }
 
 WebViewWindow::~WebViewWindow() {
+    alive_.reset();
     liveWindows().erase(this);
+}
+
+void reportFatalError(const std::string& message) {
+    runOnUiThread([message] {
+        showError(message + "\n\nRestart GW Launcher.");
+        stopEventLoop();
+    });
 }
 
 void requireWindowingRuntime() {
@@ -59,6 +67,7 @@ void WebViewWindow::open() {
     }
     requireWindowingRuntime();
     visible_ = options_.visible;
+    ++pageGeneration_;
     platformOpen();
     opened_ = true;
     keepOnScreen();
@@ -107,8 +116,17 @@ void WebViewWindow::startCooldown() {
 }
 
 void WebViewWindow::freeWebView() {
+    ++pageGeneration_;
     opened_ = false;
     platformUnload();
+}
+
+void WebViewWindow::reload() {
+    ++cooldownGeneration_;
+    freeWebView();
+    options_.visible = true;
+    open();
+    present();
 }
 
 void WebViewWindow::resize(int width, int height) {
@@ -227,7 +245,11 @@ void WebViewWindow::setTitle(const std::string& title) {
 }
 
 void WebViewWindow::emit(const std::string& event, const Json& data) {
-    runScript("window.gwlReceive(" + Json{{"event", event}, {"data", data}}.dump() + ")");
+    if (event == "progress") {
+        if (!progressSnapshot_.is_object()) progressSnapshot_ = Json::object();
+        progressSnapshot_.update(data);
+    }
+    platformRunScript("window.gwlReceive(" + Json{{"event", event}, {"data", data}}.dump() + ")", true);
 }
 
 void WebViewWindow::openDevTools() {
@@ -247,10 +269,27 @@ void WebViewWindow::receive(const std::string& text) {
         return;
     }
     const std::uint64_t id = request.id;
+    const auto generation = pageGeneration_;
+    const auto alive = std::weak_ptr<bool>(alive_);
     Reply reply{
-        [this, id](const Json& result) { runScript(replyScript(id, result)); },
-        [this, id](const std::string& message) { runScript(errorScript(id, message)); },
+        [this, id, alive, generation](const Json& result) {
+            if (!alive.expired() && generation == pageGeneration_) runScript(replyScript(id, result));
+        },
+        [this, id, alive, generation](const std::string& message) {
+            if (!alive.expired() && generation == pageGeneration_) runScript(errorScript(id, message));
+        },
     };
+    if (request.method == "ready") {
+        reply.result(nullptr);
+        platformPageReady();
+        if (progressSnapshot_.is_object()) emit("progress", progressSnapshot_);
+        return;
+    }
+    if (request.method == "frontendError") {
+        reply.result(nullptr);
+        platformFailure(request.args.empty() ? "The launcher interface failed." : request.args.at(0).get<std::string>());
+        return;
+    }
     handler_.dispatch(*this, request, reply);
 }
 

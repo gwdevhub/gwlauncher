@@ -400,7 +400,13 @@ void WebViewWindow::platformOpenDevTools() {
     }
 }
 
-void WebViewWindow::platformRunScript(const std::string& script) {
+void WebViewWindow::platformPageReady() {}
+
+void WebViewWindow::platformFailure(const std::string& message) {
+    showError(message);
+}
+
+void WebViewWindow::platformRunScript(const std::string& script, bool) {
     if (native_ && native_->view) {
         api().web_view_run_javascript(native_->view, script.c_str(), nullptr, nullptr, nullptr);
     }

@@ -1,6 +1,7 @@
 #include "Messages.h"
+#include "utils/Errors.h"
 
-#include <stdexcept>
+#include <utility>
 
 namespace gwl {
 
@@ -46,11 +47,8 @@ void MessageHandler::dispatch(WebViewWindow& window, const Request& request, con
         reply.error("Unknown method '" + request.method + "'.");
         return;
     }
-    try {
-        found->second(window, request.args, reply);
-    } catch (const std::exception& error) {
-        reply.error(error.what());
-    }
+    const auto error = captureError([&] { found->second(window, request.args, reply); });
+    if (!error.empty()) reply.error(error);
 }
 
 }  // namespace gwl
