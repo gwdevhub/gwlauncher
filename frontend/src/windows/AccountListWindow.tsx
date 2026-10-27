@@ -21,12 +21,14 @@ export function AccountListWindow() {
     const [entries, setEntries] = useState<AccountEntry[]>([]);
     const [error, setError] = useState<string | null>(null);
     const [selected, setSelected] = useState(carried.selected ?? -1);
+    const [selectedIndices, setSelectedIndices] = useState<number[]>(carried.selectedIndices ?? (selected >= 0 ? [selected] : []));
+    const anchor = useRef(selected);
     const [status, setStatus] = useState(carried.status);
     const [rowIcon, setRowIcon] = useState<string | null>(null);
 
     // The handlers below run from events and timers, so they read the latest values through this ref.
-    const latest = useRef({ entries, selected, app });
-    latest.current = { entries, selected, app };
+    const latest = useRef({ entries, selected, selectedIndices, app });
+    latest.current = { entries, selected, selectedIndices, app };
 
     useEffect(() => {
         let alive = true;
@@ -40,8 +42,11 @@ export function AccountListWindow() {
             setRowIcon(icon);
             setEntries(loaded.entries);
             setError(loaded.error ?? null);
+            setSelectedIndices(indices => indices.filter(index => index >= 0 && index < loaded.entries.length));
             if (latest.current.selected >= loaded.entries.length) {
                 setSelected(-1);
+                setSelectedIndices([]);
+                anchor.current = -1;
             }
         })();
 
@@ -54,10 +59,10 @@ export function AccountListWindow() {
         }, 2000);
 
         setListKeys({
-            ArrowDown: () => select(Math.min(latest.current.selected + 1, latest.current.entries.length - 1)),
-            ArrowUp: () => select(Math.max(latest.current.selected - 1, 0)),
-            Enter: e => latest.current.selected >= 0 && launch(latest.current.selected, e.ctrlKey),
-            Delete: () => latest.current.selected >= 0 && remove(latest.current.selected),
+            ArrowDown: e => select(Math.min(latest.current.selected + 1, latest.current.entries.length - 1), e, true),
+            ArrowUp: e => select(Math.max(latest.current.selected - 1, 0), e, true),
+            Enter: e => launchSelected(latest.current.selectedIndices, e.ctrlKey),
+            Delete: () => remove(latest.current.selectedIndices),
         });
 
         return () => {
@@ -71,9 +76,37 @@ export function AccountListWindow() {
 
     const { settings, setupNeeded, canLaunchDefaultClient, canCreateShortcuts } = app;
 
-    function select(index: number) {
+    function select(index: number, modifiers = { ctrlKey: false, shiftKey: false }, keyboard = false) {
+        if (index < 0 || index >= latest.current.entries.length) {
+            return;
+        }
+        const previous = latest.current.selectedIndices;
+        let next: number[];
+        if (modifiers.shiftKey) {
+            if (anchor.current < 0) {
+                anchor.current = latest.current.selected >= 0 ? latest.current.selected : index;
+            }
+            const start = Math.min(anchor.current, index);
+            const range = Array.from({ length: Math.abs(index - anchor.current) + 1 }, (_, offset) => start + offset);
+            next = modifiers.ctrlKey ? [...new Set([...previous, ...range])] : range;
+        } else if (modifiers.ctrlKey) {
+            next = keyboard ? [...previous] : previous.includes(index) ? previous.filter(value => value !== index) : [...previous, index];
+            if (!keyboard) {
+                anchor.current = index;
+            }
+        } else {
+            next = [index];
+            anchor.current = index;
+        }
         setSelected(index);
+        setSelectedIndices(next.sort((a, b) => a - b));
         document.querySelectorAll<HTMLLIElement>('ul.accounts li')[index]?.scrollIntoView({ block: 'nearest' });
+    }
+
+    async function launchSelected(indices: number[], suspended = false) {
+        for (const index of indices) {
+            await launch(index, suspended);
+        }
     }
 
     async function launch(index: number, suspended = false) {
@@ -88,31 +121,55 @@ export function AccountListWindow() {
         }
     }
 
-    async function remove(index: number) {
-        const account = latest.current.entries[index];
-        if (await choose('Remove Account', `Are you sure you want to remove '${account.name}'?`, ['No', 'Yes']) !== 1) {
+    async function remove(indices: number[]) {
+        if (!indices.length) {
             return;
         }
-        const failure = await call<string | null>('remove', index);
+        const message = indices.length === 1
+            ? `Are you sure you want to remove '${latest.current.entries[indices[0]].name}'?`
+            : `Are you sure you want to remove the ${indices.length} selected accounts?`;
+        if (await choose(indices.length === 1 ? 'Remove Account' : 'Remove Accounts', message, ['No', 'Yes']) !== 1) {
+            return;
+        }
+        let failure: string | null = null;
+        // Remove from the bottom so earlier account indices stay valid.
+        for (const index of [...indices].sort((a, b) => b - a)) {
+            failure = await call<string | null>('remove', index);
+            if (failure) break;
+        }
         carryListState({ status: failure ? `Could not save: ${failure}` : '', selected: -1 });
         show('list');
     }
 
-    async function move(from: number, to: number) {
-        const failure = await call<string | null>('move', from, to);
-        carryListState(failure ? { status: `Could not save: ${failure}`, selected: from } : { selected: to });
+    async function move(indices: number[], direction: number) {
+        const positions = latest.current.entries.map((_, index) => index);
+        const order = [...indices].sort((a, b) => direction < 0 ? a - b : b - a);
+        let failure: string | null = null;
+        for (const index of order) {
+            const from = positions.indexOf(index);
+            const to = from + direction;
+            if (to < 0 || to >= positions.length || indices.includes(positions[to])) continue;
+            failure = await call<string | null>('move', from, to);
+            if (failure) break;
+            [positions[from], positions[to]] = [positions[to], positions[from]];
+        }
+        carryListState({
+            status: failure ? `Could not save: ${failure}` : '',
+            selected: positions.indexOf(latest.current.selected),
+            selectedIndices: indices.map(index => positions.indexOf(index)).sort((a, b) => a - b),
+        });
         show('list');
     }
 
     async function refreshAccounts() {
         const failure = (await call<string | null>('reloadAccounts')) ?? '';
-        carryListState({ status: failure, selected: latest.current.selected });
+        carryListState({ status: failure, selected: latest.current.selected, selectedIndices: latest.current.selectedIndices });
         show('list');
     }
 
     async function launchDefault() {
         const failure = (await call<string | null>('launchDefault')) ?? '';
-        carryListState({ status: failure, selected: latest.current.selected });
+        carryListState({ status: failure, selected: latest.current.selected, selectedIndices: latest.current.selectedIndices });
         show('list');
     }
 
@@ -149,6 +206,8 @@ export function AccountListWindow() {
         const { entries: list } = latest.current;
         const index = hovered ?? -1;
         const has = index >= 0;
+        const indices = has && latest.current.selectedIndices.includes(index) ? latest.current.selectedIndices : [index];
+        const multiple = indices.length > 1;
         const items: { text?: string; hidden?: boolean; separator?: boolean }[] = [];
         const actions: (() => void)[] = [];
         const item = (text: string, action: () => void, shown = true) => {
@@ -162,12 +221,12 @@ export function AccountListWindow() {
 
         if (has) {
             item('Edit Account', () => show('editor', index));
-            item('Move Up', () => move(index, index - 1), index > 0);
-            item('Move Down', () => move(index, index + 1), index < list.length - 1);
-            item('Remove Account', () => remove(index));
-            item('Launch Account', () => launch(index));
+            item('Move Up', () => move(indices, -1), indices.some(value => value > 0));
+            item('Move Down', () => move(indices, 1), indices.some(value => value < list.length - 1));
+            item(multiple ? 'Remove Accounts' : 'Remove Account', () => remove(indices));
+            item(multiple ? 'Launch Accounts' : 'Launch Account', () => launchSelected(indices));
             // Only offered while Ctrl is held when the menu opens.
-            item('Launch Suspended...', () => launch(index, true), e.ctrlKey);
+            item('Launch Suspended...', () => launchSelected(indices, true), e.ctrlKey);
             item('Create Desktop Shortcut', () => shortcut(index), canCreateShortcuts);
             item('Open in File Explorer', () => revealAccount(index));
             item('View issues...', () => viewIssues(index));
@@ -204,16 +263,21 @@ export function AccountListWindow() {
             {hasEntries && <ul
                 className={`accounts m-0 min-h-0 flex-1 list-none overflow-auto p-0 ${settings?.keepInSystemTray ? 'tray' : ''}`}
                 hidden={!hasEntries}
+                role="listbox"
+                aria-label="Accounts"
+                aria-multiselectable="true"
             >
                 {entries.map((entry, i) => (
                     <li
                         key={entry.name + i}
                         title={entry.name}
-                        className={`account-row flex cursor-default items-center justify-between gap-3 border-b border-l-2 border-divider px-2 py-1.5 hover:bg-row-hover ${entry.issues.length ? 'border-l-orange-500' : 'border-l-transparent'} ${i === selected ? 'selected' : ''}`}
-                        onClick={() => select(i)}
+                        role="option"
+                        aria-selected={selectedIndices.includes(i)}
+                        className={`account-row flex cursor-default select-none items-center justify-between gap-3 border-b border-l-2 border-divider px-2 py-1.5 hover:bg-row-hover ${entry.issues.length ? 'border-l-orange-500' : 'border-l-transparent'} ${selectedIndices.includes(i) ? 'selected' : ''}`}
+                        onClick={e => select(i, e)}
                         onDoubleClick={e => launch(i, e.ctrlKey)}
                         onContextMenu={e => {
-                            select(i);
+                            if (!selectedIndices.includes(i)) select(i);
                             openMenu(e, i);
                         }}
                     >
