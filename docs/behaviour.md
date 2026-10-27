@@ -130,6 +130,7 @@ as written falls back to the mount for that drive.
 
 - On Windows, before any window is made, the launcher checks for Microsoft's WebView2 runtime. Its window needs the runtime, so the check can't be a setup step.
 - If the runtime is missing, a message offers to open Microsoft's installer page. The launcher then exits.
+- WebView2 stores its profile and caches in `%LOCALAPPDATA%\GWLauncher\WebView2`, reused across launches and kept on exit. Older `<launcher.exe>.WebView2` folders beside the executable can be deleted with the launcher closed after updating.
 - Linux has no WebView2 check. It uses WebKitGTK.
 
 ## Settings

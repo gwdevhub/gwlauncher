@@ -3,7 +3,9 @@
 // message event; the page reads the host through window.chrome.webview.
 
 #include <windows.h>
+#include <knownfolders.h>
 #include <objbase.h>
+#include <shlobj.h>
 
 #include <WebView2.h>
 
@@ -34,6 +36,23 @@ using CreateEnvironmentFn = HRESULT(STDMETHODCALLTYPE*)(PCWSTR, PCWSTR, ICoreWeb
 const wchar_t* const kWindowClass = L"GwlWebViewWindow";
 // Where the WebView2 runtime is downloaded from.
 const char* const kWebView2Download = "https://go.microsoft.com/fwlink/p/?LinkId=2124703";
+
+std::filesystem::path webViewDataFolder() {
+    PWSTR folder = nullptr;
+    if (FAILED(SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, nullptr, &folder))) {
+        throw std::runtime_error("The local application data folder couldn't be found for WebView2.");
+    }
+    std::filesystem::path path(folder);
+    CoTaskMemFree(folder);
+    path /= "GWLauncher";
+    path /= "WebView2";
+    std::error_code error;
+    std::filesystem::create_directories(path, error);
+    if (error) {
+        throw std::runtime_error("The WebView2 data folder couldn't be created: " + pathToUtf8(path));
+    }
+    return path;
+}
 
 std::wstring toWide(const std::string& text) {
     if (text.empty()) {
@@ -342,6 +361,7 @@ void WebViewWindow::platformClose() {
 
 void WebViewWindow::platformOpen() {
     ensureComInitialized();
+    const std::filesystem::path userDataFolder = webViewDataFolder();
     registerWindowClass();
 
     const WindowOptions& options = options_;
@@ -392,7 +412,7 @@ void WebViewWindow::platformOpen() {
             }));
     };
     auto createEnvironment = loaderFunction<CreateEnvironmentFn>("CreateCoreWebView2EnvironmentWithOptions");
-    createEnvironment(nullptr, nullptr, nullptr, webview2::environmentDone(onEnvironment));
+    createEnvironment(nullptr, userDataFolder.c_str(), nullptr, webview2::environmentDone(onEnvironment));
 
     native->wantsVisible = options.visible;
 }
