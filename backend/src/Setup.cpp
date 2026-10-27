@@ -39,7 +39,7 @@ gwl::Json AppState::setupItems() const {
     }
     return gwl::Json::array({gwl::Json{
         {"title", "Guild Wars client"},
-        {"description", "Downloads Gw.exe into the folder below and records it as the default install, so accounts can launch."},
+        {"description", "Downloads Gw.exe as the default installation."},
         {"done", installed},
         {"canInstall", true},
         {"folder", gwl::pathToUtf8(gwl::defaultGameFolder())},
@@ -101,7 +101,7 @@ namespace {
 // The result of checking the installs: how many there were, and how many were replaced.
 std::string updateSummary(std::size_t checked, std::size_t replaced) {
     const std::string count = "Checked " + std::to_string(checked) + " installations; ";
-    return replaced == 0 ? count + "All up-to-date!" : count + std::to_string(replaced) + " updated";
+    return replaced == 0 ? count + "all up to date" : count + std::to_string(replaced) + " updated";
 }
 
 }  // namespace
@@ -119,8 +119,7 @@ void AppState::startUpdateAll(gwl::Reply reply) {
     }
     const gwl::Json popup{
         {"title", "Updating Gw.exe"},
-        {"heading", "Checking the latest Gw.exe from ArenaNet"},
-        {"note", "Each distinct Gw.exe that is out of date is replaced. Gw.dat is left as it is."},
+        {"heading", "Checking the latest Gw.exe"},
         {"cancellable", true},
         {"failure", "Gw.exe couldn't be updated"},
     };

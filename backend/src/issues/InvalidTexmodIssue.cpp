@@ -18,7 +18,7 @@ public:
     explicit InvalidTexmodIssue(std::string fileName) : name_(pathToUtf8(pathFromUtf8(fileName).filename())) {}
 
     int severity() const override { return kBlocking; }
-    std::string message() const override { return name_ + " isn't a .tpf or .zip texmod, so gMod can't load it."; }
+    std::string message() const override { return name_ + " isn't a .tpf or .zip texmod."; }
 
 private:
     std::string name_;

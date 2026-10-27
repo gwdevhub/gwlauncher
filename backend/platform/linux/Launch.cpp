@@ -310,7 +310,7 @@ Runtime steamRuntime(const fs::path& dataDir) {
     const auto root = steamRoot();
     const auto files = root ? steamProtonFiles(*root) : std::nullopt;
     if (!files) {
-        throw std::runtime_error("Steam's Proton isn't installed, so a Steam account can't start.");
+        throw std::runtime_error("Steam's Proton isn't installed.");
     }
     const fs::path lib = *files / "lib" / "wine";
     return Runtime{*files / "bin" / "wine", dataDir / "steam-prefix", {{"WINEDLLPATH", lib.string()},
@@ -369,7 +369,7 @@ Environment steamSetup(const Runtime& runtime, const fs::path& root) {
     std::string pid;
     pidFile >> pid;
     if (pid.empty()) {
-        throw std::runtime_error("Steam's process ID isn't known, so a Steam account can't start.");
+        throw std::runtime_error("Steam's process ID isn't known.");
     }
     const std::string steamExe = std::string(kSteamWindowsDir) + "\\steam.exe";
     const std::string client = std::string(kSteamWindowsDir) + "\\steamclient.dll";
@@ -475,13 +475,12 @@ void startGame(const Account& account, const std::string& dir, std::uint32_t tim
     (void)requireSteam;
     const std::string exe = account.gwpath;
     if (!fs::is_regular_file(exe)) {
-        throw std::runtime_error("Path to the Guild Wars executable incorrect, aborting launch.");
+        throw std::runtime_error("Invalid path to Gw.exe.");
     }
     const fs::path dataDir = launcherDataDir();
     const Runtime runtime = account.isSteamAccount ? steamRuntime(dataDir) : systemRuntime(dataDir);
     if (!runs(runtime.wine)) {
-        throw std::runtime_error(account.isSteamAccount ? "Steam's Proton Wine doesn't run, so a Steam account can't start."
-                                                        : "Wine isn't installed, so Guild Wars can't start.");
+        throw std::runtime_error(account.isSteamAccount ? "Steam's Proton Wine couldn't start." : "Wine isn't installed.");
     }
     const fs::path helper = helperPath();
 
@@ -492,7 +491,7 @@ void startGame(const Account& account, const std::string& dir, std::uint32_t tim
     if (runtime.libDir) {
         const auto root = steamRoot();
         if (!root) {
-            throw std::runtime_error("Steam's client files aren't installed, so Steam's Proton can't run Guild Wars.");
+            throw std::runtime_error("Steam's client files aren't installed.");
         }
         copySteamClientFiles(runtime, *root);
         if (account.isSteamAccount) {

@@ -17,7 +17,7 @@ public:
     explicit InvalidModIssue(std::string fileName) : name_(pathToUtf8(pathFromUtf8(fileName).filename())) {}
 
     int severity() const override { return kBlocking; }
-    std::string message() const override { return name_ + " isn't a 32-bit Windows DLL, so the game can't load it."; }
+    std::string message() const override { return name_ + " isn't a 32-bit Windows DLL."; }
 
 private:
     std::string name_;
