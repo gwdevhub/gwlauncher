@@ -4,12 +4,13 @@
 export interface CarriedListState {
     status: string;
     selected: number | null;
+    selectedIndices?: number[];
 }
 
 let carried: CarriedListState = { status: '', selected: null };
 
 export function carryListState(next: Partial<CarriedListState>) {
-    carried = { status: next.status ?? '', selected: next.selected ?? null };
+    carried = { status: next.status ?? '', selected: next.selected ?? null, selectedIndices: next.selectedIndices };
 }
 
 export function takeCarriedListState(): CarriedListState {
