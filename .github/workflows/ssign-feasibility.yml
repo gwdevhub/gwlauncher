@@ -1,0 +1,93 @@
+name: Linux ssign feasibility
+
+on:
+    workflow_dispatch:
+        inputs:
+            run_id:
+                description: Release run containing the windows-unsigned artifact
+                required: true
+
+permissions:
+    contents: read
+    actions: read
+
+jobs:
+    sign-linux:
+        runs-on: ubuntu-24.04
+        timeout-minutes: 10
+        steps:
+            -   name: Download existing unsigned launchers
+                uses: actions/download-artifact@v8
+                with:
+                    github-token: ${{ github.token }}
+                    run-id: ${{ inputs.run_id }}
+                    name: windows-unsigned
+                    path: unsigned
+
+            -   name: Install pinned ssign release
+                shell: bash
+                run: |
+                    set -euo pipefail
+                    curl --fail --location --retry 3 --output "$RUNNER_TEMP/ssign.tar.gz" \
+                        https://github.com/Le-Syl21/ssign/releases/download/v0.1.8/ssign-linux-x86_64.tar.gz
+                    echo "fc38f083ea1f061a097a3a9c5dc1a056c9c7310a47e40f56a8976895ec5a928d  $RUNNER_TEMP/ssign.tar.gz" | sha256sum --check
+                    mkdir -p "$RUNNER_TEMP/ssign-bin"
+                    tar -xzf "$RUNNER_TEMP/ssign.tar.gz" -C "$RUNNER_TEMP/ssign-bin"
+                    "$RUNNER_TEMP/ssign-bin/ssign" --version
+
+            -   name: Sign launchers on Linux
+                shell: bash
+                env:
+                    CERTUM_EMAIL: ${{ secrets.CERTUM_USERID }}
+                    CERTUM_OTP: ${{ secrets.CERTUM_OTP_URI }}
+                run: |
+                    set -euo pipefail
+                    test -n "$CERTUM_EMAIL" || { echo 'Missing CERTUM_USERID'; exit 1; }
+                    test -n "$CERTUM_OTP" || { echo 'Missing CERTUM_OTP_URI'; exit 1; }
+                    "$RUNNER_TEMP/ssign-bin/ssign" --output-dir signed \
+                        --timestamp-url http://time.certum.pl/ \
+                        unsigned/GW_Launcher.exe unsigned/GW_Launcher_Framework_Dependent.exe
+
+            -   name: Upload candidates for Windows verification
+                uses: actions/upload-artifact@v7
+                with:
+                    name: ssign-linux-candidates
+                    path: signed/*.exe
+                    if-no-files-found: error
+                    retention-days: 7
+
+    verify-windows:
+        needs: sign-linux
+        runs-on: windows-2025
+        timeout-minutes: 10
+        steps:
+            -   name: Download Linux-signed candidates
+                uses: actions/download-artifact@v8
+                with:
+                    name: ssign-linux-candidates
+                    path: signed
+
+            -   name: Verify Authenticode, timestamp and signer identity
+                shell: pwsh
+                env:
+                    CERTUM_CERT_SHA1: ${{ secrets.CERTUM_CERT_SHA1 }}
+                run: |
+                    $ErrorActionPreference = 'Stop'
+                    if (-not $env:CERTUM_CERT_SHA1) { throw 'Missing CERTUM_CERT_SHA1' }
+                    $thumb = ($env:CERTUM_CERT_SHA1 -replace '\s', '').ToUpperInvariant()
+                    $kitsBin = 'C:\Program Files (x86)\Windows Kits\10\bin'
+                    $signtool = Get-ChildItem $kitsBin -Recurse -Filter signtool.exe -File |
+                        Where-Object { $_.FullName -like '*\x64\*' } |
+                        Sort-Object { [version]$_.Directory.Parent.Name } |
+                        Select-Object -Last 1 -ExpandProperty FullName
+                    if (-not $signtool) { throw 'signtool.exe not found' }
+                    foreach ($name in @('GW_Launcher.exe', 'GW_Launcher_Framework_Dependent.exe')) {
+                        $file = Join-Path signed $name
+                        & $signtool verify /pa /all /v /tw $file
+                        if ($LASTEXITCODE -ne 0) { throw "signtool verification failed: $name" }
+                        $signature = Get-AuthenticodeSignature $file
+                        if ($signature.Status -ne 'Valid') { throw "Invalid Authenticode signature: $name" }
+                        if ($signature.SignerCertificate.Thumbprint -ne $thumb) { throw "Unexpected signing certificate: $name" }
+                        if (-not $signature.TimeStamperCertificate) { throw "Missing timestamp: $name" }
+                        Write-Host "Verified Linux-signed $name with the expected Certum certificate and timestamp."
+                    }
