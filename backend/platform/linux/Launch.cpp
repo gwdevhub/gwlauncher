@@ -791,16 +791,16 @@ std::optional<std::string> wineInstallCommand() {
             return std::any_of(names.begin(), names.end(), [&id](const char* name) { return id == name; });
         });
     };
-    if (has({"debian", "ubuntu"})) {
+    if (has({"debian", "ubuntu"}) && !findProgram("apt-get").empty()) {
         return "apt-get update && (apt-get install -y wine64 || apt-get install -y wine)";
     }
-    if (has({"fedora", "rhel"})) {
+    if (has({"fedora", "rhel"}) && !findProgram("dnf").empty()) {
         return "dnf install -y wine";
     }
-    if (has({"arch"})) {
+    if (has({"arch"}) && !findProgram("pacman").empty()) {
         return "pacman -S --noconfirm wine";
     }
-    if (has({"suse", "opensuse", "opensuse-tumbleweed"})) {
+    if (has({"suse", "opensuse", "opensuse-tumbleweed"}) && !findProgram("zypper").empty()) {
         return "zypper --non-interactive install wine";
     }
     return std::nullopt;
