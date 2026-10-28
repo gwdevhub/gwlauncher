@@ -11,16 +11,16 @@ on:
             - 'Dockerfile'
             - 'Dockerfile.toolchain'
             - '.github/workflows/release.yml'
-            - '.github/scripts/*simplysign*'
-            - '.github/scripts/sign-certum.ps1'
+            - '.github/scripts/verify-certum.sh'
     workflow_dispatch:
 permissions:
     contents: read
 jobs:
     build:
         runs-on: ubuntu-24.04
-        outputs:
-            tag: ${{ steps.version.outputs.tag }}
+        permissions:
+            contents: write
+            actions: write
         defaults:
             run:
                 shell: bash
@@ -55,110 +55,56 @@ jobs:
                     cp bin/windows/GW_Launcher.exe release/GW_Launcher_Framework_Dependent.exe
                     cp bin/linux/release/GW_Launcher release/GW_Launcher
 
-            -   name: Upload unsigned Windows binaries
-                uses: actions/upload-artifact@v7
-                with:
-                    name: windows-unsigned
-                    path: release/*.exe
-                    if-no-files-found: error
-
-            -   name: Upload Linux binary
-                uses: actions/upload-artifact@v7
-                with:
-                    name: linux-release
-                    path: release/GW_Launcher
-                    if-no-files-found: error
-
-    sign:
-        if: github.ref == 'refs/heads/master'
-        needs: build
-        runs-on: windows-2025
-        timeout-minutes: 20
-        defaults:
-            run:
-                shell: pwsh
-        steps:
-            -   name: Checkout
-                uses: actions/checkout@v7
-
             -   name: Check Certum credentials
+                if: github.ref == 'refs/heads/master'
                 env:
                     CERTUM_OTP_URI: ${{ secrets.CERTUM_OTP_URI }}
                     CERTUM_USERID: ${{ secrets.CERTUM_USERID }}
                     CERTUM_CERT_SHA1: ${{ secrets.CERTUM_CERT_SHA1 }}
                 run: |
-                    foreach ($name in @('CERTUM_OTP_URI', 'CERTUM_USERID', 'CERTUM_CERT_SHA1')) {
-                        if (-not [Environment]::GetEnvironmentVariable($name)) {
-                            throw "Required signing secret $name is missing; refusing to publish unsigned binaries."
-                        }
-                    }
+                    for name in CERTUM_OTP_URI CERTUM_USERID CERTUM_CERT_SHA1; do
+                        if [[ -z "${!name}" ]]; then
+                            echo "Required signing secret $name is missing; refusing to publish unsigned binaries." >&2
+                            exit 1
+                        fi
+                    done
 
-            -   name: Download unsigned Windows binaries
-                uses: actions/download-artifact@v8
-                with:
-                    name: windows-unsigned
-                    path: release
-
-            -   name: Set up Certum SimplySign
-                shell: bash
+            -   name: Install signing and verification tools
+                if: github.ref == 'refs/heads/master'
                 run: |
-                    bash ./.github/scripts/install-simplysign.sh
-                    powershell -ExecutionPolicy Bypass -File "./.github/scripts/configure-simplysign.ps1"
+                    set -euo pipefail
+                    sudo apt-get update -qq
+                    sudo apt-get install -y --no-install-recommends osslsigncode ca-certificates
+                    curl --fail --location --retry 3 --output "$RUNNER_TEMP/ssign.tar.gz" \
+                        https://github.com/Le-Syl21/ssign/releases/download/v0.1.8/ssign-linux-x86_64.tar.gz
+                    echo "fc38f083ea1f061a097a3a9c5dc1a056c9c7310a47e40f56a8976895ec5a928d  $RUNNER_TEMP/ssign.tar.gz" | sha256sum --check
+                    mkdir -p "$RUNNER_TEMP/ssign-bin"
+                    tar -xzf "$RUNNER_TEMP/ssign.tar.gz" -C "$RUNNER_TEMP/ssign-bin"
+                    "$RUNNER_TEMP/ssign-bin/ssign" --version
+                    osslsigncode --version
 
-            -   name: Authenticate Certum SimplySign
-                shell: bash
+            -   name: Sign Windows binaries with Certum
+                if: github.ref == 'refs/heads/master'
+                timeout-minutes: 10
                 env:
-                    CERTUM_OTP_URI: ${{ secrets.CERTUM_OTP_URI }}
-                    CERTUM_USERID: ${{ secrets.CERTUM_USERID }}
-                    CERTUM_CERT_SHA1: ${{ secrets.CERTUM_CERT_SHA1 }}
-                run: powershell -ExecutionPolicy Bypass -File "./.github/scripts/connect-simplysign.ps1"
+                    CERTUM_EMAIL: ${{ secrets.CERTUM_USERID }}
+                    CERTUM_OTP: ${{ secrets.CERTUM_OTP_URI }}
+                run: |
+                    "$RUNNER_TEMP/ssign-bin/ssign" --timestamp-url http://time.certum.pl/ \
+                        release/GW_Launcher.exe release/GW_Launcher_Framework_Dependent.exe
 
-            -   name: Sign and verify Windows binaries
+            -   name: Verify signatures, timestamps and signer identity
+                if: github.ref == 'refs/heads/master'
+                timeout-minutes: 10
                 env:
                     CERTUM_CERT_SHA1: ${{ secrets.CERTUM_CERT_SHA1 }}
-                run: ./.github/scripts/sign-certum.ps1 -Files @("release/GW_Launcher.exe", "release/GW_Launcher_Framework_Dependent.exe")
-
-            -   name: Disconnect Certum SimplySign
-                if: always()
-                run: ./.github/scripts/disconnect-simplysign.ps1
-
-            -   name: Upload signed Windows binaries
-                uses: actions/upload-artifact@v7
-                with:
-                    name: windows-signed
-                    path: release/*.exe
-                    if-no-files-found: error
-
-    release:
-        if: github.ref == 'refs/heads/master'
-        needs: [build, sign]
-        runs-on: ubuntu-24.04
-        permissions:
-            contents: write
-            actions: write
-        defaults:
-            run:
-                shell: bash
-        steps:
-            -   name: Checkout
-                uses: actions/checkout@v7
-
-            -   name: Download signed Windows binaries
-                uses: actions/download-artifact@v8
-                with:
-                    name: windows-signed
-                    path: release
-
-            -   name: Download Linux binary
-                uses: actions/download-artifact@v8
-                with:
-                    name: linux-release
-                    path: release
+                run: bash .github/scripts/verify-certum.sh release/GW_Launcher.exe release/GW_Launcher_Framework_Dependent.exe
 
             -   name: Create the release
+                if: github.ref == 'refs/heads/master'
                 env:
                     GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-                    RELEASE_TAG: ${{ needs.build.outputs.tag }}
+                    RELEASE_TAG: ${{ steps.version.outputs.tag }}
                 run: |
                     gh release create "$RELEASE_TAG" \
                         --target "$GITHUB_SHA" \
@@ -170,6 +116,7 @@ jobs:
 
             # A release made with the workflow token doesn't trigger other workflows, so the site is rebuilt here to pick it up.
             -   name: Rebuild the site
+                if: github.ref == 'refs/heads/master'
                 env:
                     GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
                 run: gh workflow run site-deploy.yml --ref master
