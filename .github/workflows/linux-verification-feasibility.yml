@@ -6,12 +6,6 @@ on:
             run_id:
                 description: ssign feasibility run containing ssign-linux-candidates
                 required: true
-    push:
-        branches: [ 'investigate/linux-authenticode-verify' ]
-        paths:
-            - '.github/scripts/verify-certum.sh'
-            - '.github/scripts/test-verify-certum.py'
-            - '.github/workflows/linux-verification-feasibility.yml'
 
 permissions:
     contents: read
@@ -28,7 +22,7 @@ jobs:
                 uses: actions/download-artifact@v8
                 with:
                     github-token: ${{ github.token }}
-                    run-id: ${{ inputs.run_id || '40617690682' }}
+                    run-id: ${{ inputs.run_id }}
                     name: ssign-linux-candidates
                     path: signed
 
