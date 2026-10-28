@@ -6,10 +6,6 @@ on:
             run_id:
                 description: Release run containing the windows-unsigned artifact
                 required: true
-                default: '40587181994'
-    push:
-        branches: [ 'investigate/ssign-linux' ]
-        paths: [ '.github/workflows/ssign-feasibility.yml' ]
 
 permissions:
     contents: read
@@ -24,7 +20,7 @@ jobs:
                 uses: actions/download-artifact@v8
                 with:
                     github-token: ${{ github.token }}
-                    run-id: ${{ inputs.run_id || '40587181994' }}
+                    run-id: ${{ inputs.run_id }}
                     name: windows-unsigned
                     path: unsigned
 
