@@ -18,8 +18,9 @@ permissions:
 jobs:
     build:
         runs-on: ubuntu-24.04
-        outputs:
-            tag: ${{ steps.version.outputs.tag }}
+        permissions:
+            contents: write
+            actions: write
         defaults:
             run:
                 shell: bash
@@ -54,36 +55,8 @@ jobs:
                     cp bin/windows/GW_Launcher.exe release/GW_Launcher_Framework_Dependent.exe
                     cp bin/linux/release/GW_Launcher release/GW_Launcher
 
-            -   name: Upload unsigned Windows binaries
-                uses: actions/upload-artifact@v7
-                with:
-                    name: windows-unsigned
-                    path: release/*.exe
-                    if-no-files-found: error
-
-            -   name: Upload Linux binary
-                uses: actions/upload-artifact@v7
-                with:
-                    name: linux-release
-                    path: release/GW_Launcher
-                    if-no-files-found: error
-
-    release:
-        if: github.ref == 'refs/heads/master'
-        needs: build
-        runs-on: ubuntu-24.04
-        timeout-minutes: 20
-        permissions:
-            contents: write
-            actions: write
-        defaults:
-            run:
-                shell: bash
-        steps:
-            -   name: Checkout
-                uses: actions/checkout@v7
-
             -   name: Check Certum credentials
+                if: github.ref == 'refs/heads/master'
                 env:
                     CERTUM_OTP_URI: ${{ secrets.CERTUM_OTP_URI }}
                     CERTUM_USERID: ${{ secrets.CERTUM_USERID }}
@@ -96,13 +69,8 @@ jobs:
                         fi
                     done
 
-            -   name: Download unsigned Windows binaries
-                uses: actions/download-artifact@v8
-                with:
-                    name: windows-unsigned
-                    path: release
-
             -   name: Install signing and verification tools
+                if: github.ref == 'refs/heads/master'
                 run: |
                     set -euo pipefail
                     sudo apt-get update -qq
@@ -116,6 +84,8 @@ jobs:
                     osslsigncode --version
 
             -   name: Sign Windows binaries with Certum
+                if: github.ref == 'refs/heads/master'
+                timeout-minutes: 10
                 env:
                     CERTUM_EMAIL: ${{ secrets.CERTUM_USERID }}
                     CERTUM_OTP: ${{ secrets.CERTUM_OTP_URI }}
@@ -124,20 +94,17 @@ jobs:
                         release/GW_Launcher.exe release/GW_Launcher_Framework_Dependent.exe
 
             -   name: Verify signatures, timestamps and signer identity
+                if: github.ref == 'refs/heads/master'
+                timeout-minutes: 10
                 env:
                     CERTUM_CERT_SHA1: ${{ secrets.CERTUM_CERT_SHA1 }}
                 run: bash .github/scripts/verify-certum.sh release/GW_Launcher.exe release/GW_Launcher_Framework_Dependent.exe
 
-            -   name: Download Linux binary
-                uses: actions/download-artifact@v8
-                with:
-                    name: linux-release
-                    path: release
-
             -   name: Create the release
+                if: github.ref == 'refs/heads/master'
                 env:
                     GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-                    RELEASE_TAG: ${{ needs.build.outputs.tag }}
+                    RELEASE_TAG: ${{ steps.version.outputs.tag }}
                 run: |
                     gh release create "$RELEASE_TAG" \
                         --target "$GITHUB_SHA" \
@@ -149,6 +116,7 @@ jobs:
 
             # A release made with the workflow token doesn't trigger other workflows, so the site is rebuilt here to pick it up.
             -   name: Rebuild the site
+                if: github.ref == 'refs/heads/master'
                 env:
                     GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
                 run: gh workflow run site-deploy.yml --ref master
