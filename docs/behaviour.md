@@ -60,10 +60,15 @@ Statements marked *(to confirm)* describe intended behaviour that the code doesn
 ## Accounts list
 
 - Each row shows the account's name, icon, state, and any issues.
-- Arrow keys move the selection.
-- Enter launches the selected account. Ctrl+Enter launches it suspended.
+- Clicking an account selects only that account. Ctrl+click toggles an account without clearing the other selected accounts.
+- Shift+click selects the range from the selection anchor to the clicked account. Ctrl+Shift+click adds that range to the existing selection.
+- Arrow keys move the selection. Shift+arrow selects a range; Ctrl+arrow moves the focused row without changing the selected accounts.
+- Enter launches the selected accounts in list order. Ctrl+Enter launches them suspended.
 - Double-click launches an account. Ctrl+double-click launches it suspended.
-- Delete asks "Are you sure you want to remove '<name>'?" and removes the account on Yes.
+- Right-clicking a selected account keeps the selected group. Right-clicking an unselected account selects only that account.
+- The context menu's Launch, Launch Suspended, Remove, and Move Up/Down actions apply to the selected group. Moving accounts preserves their relative order and keeps them selected.
+- Delete asks "Are you sure you want to remove '<name>'?" for one account, or confirms the number of selected accounts for a group, and removes them on Yes. The context menu's Remove action uses the same confirmation.
+- Selection survives account-state polling, refreshing the list, and reordering accounts.
 - Escape hides the list when it's shown as the list. From another view, Escape returns to the list.
 
 ## Launching
