@@ -68,11 +68,14 @@ jobs:
                     path: release/GW_Launcher
                     if-no-files-found: error
 
-    sign:
+    release:
         if: github.ref == 'refs/heads/master'
         needs: build
         runs-on: ubuntu-24.04
         timeout-minutes: 20
+        permissions:
+            contents: write
+            actions: write
         defaults:
             run:
                 shell: bash
@@ -124,33 +127,6 @@ jobs:
                 env:
                     CERTUM_CERT_SHA1: ${{ secrets.CERTUM_CERT_SHA1 }}
                 run: bash .github/scripts/verify-certum.sh release/GW_Launcher.exe release/GW_Launcher_Framework_Dependent.exe
-
-            -   name: Upload signed Windows binaries
-                uses: actions/upload-artifact@v7
-                with:
-                    name: windows-signed
-                    path: release/*.exe
-                    if-no-files-found: error
-
-    release:
-        if: github.ref == 'refs/heads/master'
-        needs: [build, sign]
-        runs-on: ubuntu-24.04
-        permissions:
-            contents: write
-            actions: write
-        defaults:
-            run:
-                shell: bash
-        steps:
-            -   name: Checkout
-                uses: actions/checkout@v7
-
-            -   name: Download signed Windows binaries
-                uses: actions/download-artifact@v8
-                with:
-                    name: windows-signed
-                    path: release
 
             -   name: Download Linux binary
                 uses: actions/download-artifact@v8
