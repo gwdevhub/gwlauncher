@@ -50,6 +50,11 @@ struct GtkApi {
     void (*widget_show)(GtkWidget*) = nullptr;
     void (*widget_show_all)(GtkWidget*) = nullptr;
     GdkWindow* (*widget_get_window)(GtkWidget*) = nullptr;
+    GdkDisplay* (*widget_get_display)(GtkWidget*) = nullptr;
+    GdkSeat* (*display_get_default_seat)(GdkDisplay*) = nullptr;
+    GdkDevice* (*seat_get_pointer)(GdkSeat*) = nullptr;
+    GdkWindow* (*device_get_window_at_position)(GdkDevice*, gint*, gint*) = nullptr;
+    GdkWindow* (*window_get_toplevel)(GdkWindow*) = nullptr;
     guint32 (*x11_server_time)(GdkWindow*) = nullptr;
     void (*window_begin_resize_drag)(GtkWindow*, GdkWindowEdge, gint, gint, gint, guint32) = nullptr;
     void (*window_begin_move_drag)(GtkWindow*, gint, gint, gint, guint32) = nullptr;
@@ -122,6 +127,11 @@ GtkApi loadApi() {
     bind(api.widget_show, library, "gtk_widget_show");
     bind(api.widget_show_all, library, "gtk_widget_show_all");
     bind(api.widget_get_window, library, "gtk_widget_get_window");
+    bind(api.widget_get_display, library, "gtk_widget_get_display");
+    bind(api.display_get_default_seat, library, "gdk_display_get_default_seat");
+    bind(api.seat_get_pointer, library, "gdk_seat_get_pointer");
+    bind(api.device_get_window_at_position, library, "gdk_device_get_window_at_position");
+    bind(api.window_get_toplevel, library, "gdk_window_get_toplevel");
     // Only on X11. Without it the focus request carries no time, and the window manager may refuse it.
     api.x11_server_time = reinterpret_cast<decltype(api.x11_server_time)>(dlsym(library, "gdk_x11_get_server_time"));
     bind(api.widget_hide, library, "gtk_widget_hide");
@@ -378,6 +388,19 @@ std::optional<Rect> WebViewWindow::platformFrame() const {
     api().window_get_position(window, &x, &y);
     api().window_get_size(window, &width, &height);
     return Rect{x, y, width, height};
+}
+
+bool WebViewWindow::containsPointer() const {
+    if (!native_ || !native_->window) {
+        return false;
+    }
+    GdkWindow* window = api().widget_get_window(native_->window);
+    GdkDisplay* display = api().widget_get_display(native_->window);
+    GdkSeat* seat = display ? api().display_get_default_seat(display) : nullptr;
+    GdkDevice* pointer = seat ? api().seat_get_pointer(seat) : nullptr;
+    GdkWindow* underPointer = pointer ? api().device_get_window_at_position(pointer, nullptr, nullptr) : nullptr;
+    // Wayland has no global coordinates; compare the actual windows, including WebKit's child windows.
+    return window && underPointer && api().window_get_toplevel(underPointer) == window;
 }
 
 void WebViewWindow::platformSetSkipTaskbar() {

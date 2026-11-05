@@ -30,6 +30,8 @@ typedef enum {
     GDK_WINDOW_EDGE_SOUTH_EAST,
 } GdkWindowEdge;
 typedef struct _GdkDisplay GdkDisplay;
+typedef struct _GdkSeat GdkSeat;
+typedef struct _GdkDevice GdkDevice;
 typedef struct _GdkMonitor GdkMonitor;
 typedef struct _GdkEvent GdkEvent;
 typedef struct _GdkAtom* GdkAtom;

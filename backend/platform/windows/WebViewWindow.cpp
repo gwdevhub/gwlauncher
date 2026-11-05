@@ -421,6 +421,12 @@ void WebViewWindow::platformUnload() {
     native_.reset();
 }
 
+bool WebViewWindow::containsPointer() const {
+    const auto pointer = cursorPosition();
+    const auto bounds = frame();
+    return pointer && bounds && bounds->contains(pointer->first, pointer->second);
+}
+
 void WebViewWindow::platformPresent() {
     if (native_ && native_->hwnd) {
         native_->wantsVisible = true;
