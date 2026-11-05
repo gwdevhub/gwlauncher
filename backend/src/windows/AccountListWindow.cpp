@@ -39,15 +39,12 @@ bool AccountListWindow::allowClose() {
 }
 
 void AccountListWindow::onFocusLost() {
-    // In tray mode a list that loses focus hides, unless a right click opened it, the pointer is on it, or the focus change came right after the tray click.
-    // Focus can bounce away from a list the tray click has just shown, so losing it within 400 ms isn't a click away.
+    // Focus can bounce away immediately after the tray click.
     const bool pastGrace = std::chrono::steady_clock::now() - app_.listShownAt > std::chrono::milliseconds(400);
     if (!app_.tray || app_.listOpenedByRightClick || !isVisible() || !pastGrace) {
         return;
     }
-    const auto pointer = gwl::cursorPosition();
-    const auto frame = this->frame();
-    if (pointer && frame && frame->contains(pointer->first, pointer->second)) {
+    if (containsPointer()) {
         return;
     }
     app_.listHiddenByFocusAt = std::chrono::steady_clock::now();

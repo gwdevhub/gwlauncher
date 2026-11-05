@@ -57,6 +57,7 @@ public:
     void present();
     // The window's rectangle on the screen, when the platform can give it.
     std::optional<Rect> frame() const;
+    bool containsPointer() const;
     // The window's size in the units resize takes, read back from the screen. Missing when the window isn't open.
     std::optional<std::pair<int, int>> frameUnscaled() const;
 
