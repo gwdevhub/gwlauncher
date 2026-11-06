@@ -18,12 +18,7 @@ std::wstring commandLine(const std::vector<std::string>& argv) {
         }
         line += quoteWindowsArgument(arg);
     }
-    const int length = MultiByteToWideChar(CP_UTF8, 0, line.c_str(), -1, nullptr, 0);
-    std::wstring wide(length > 0 ? length : 1, L'\0');
-    if (length > 0) {
-        MultiByteToWideChar(CP_UTF8, 0, line.c_str(), -1, wide.data(), length);
-    }
-    return wide;
+    return toWide(line);
 }
 
 bool start(const std::vector<std::string>& argv, PROCESS_INFORMATION& info) {

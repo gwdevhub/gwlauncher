@@ -2,6 +2,7 @@
 
 #include "Shell.h"
 #include "utils/Files.h"
+#include "utils/Strings.h"
 
 #include <windows.h>
 #include <knownfolders.h>
@@ -16,23 +17,10 @@
 
 namespace gwl {
 
-namespace {
-
 namespace fs = std::filesystem;
 
-std::wstring wide(const std::string& text) {
-    const int length = MultiByteToWideChar(CP_UTF8, 0, text.c_str(), -1, nullptr, 0);
-    std::wstring result(length > 0 ? length - 1 : 0, L'\0');
-    if (length > 0) {
-        MultiByteToWideChar(CP_UTF8, 0, text.c_str(), -1, result.data(), length);
-    }
-    return result;
-}
-
-}  // namespace
-
 void copyText(const std::string& text) {
-    const std::wstring wideText = wide(text);
+    const std::wstring wideText = toWide(text);
     if (!OpenClipboard(nullptr)) {
         return;
     }
@@ -51,7 +39,7 @@ void copyText(const std::string& text) {
 }
 
 void openUrl(const std::string& url) {
-    ShellExecuteW(nullptr, L"open", wide(url).c_str(), nullptr, nullptr, SW_SHOWNORMAL);
+    ShellExecuteW(nullptr, L"open", toWide(url).c_str(), nullptr, nullptr, SW_SHOWNORMAL);
 }
 
 void revealInFileExplorer(const fs::path& path) {
@@ -83,9 +71,9 @@ void createShortcut(const fs::path& file, const fs::path& target, const std::str
     HRESULT result = CoCreateInstance(CLSID_ShellLink, nullptr, CLSCTX_INPROC_SERVER, IID_IShellLinkW, reinterpret_cast<void**>(&link));
     if (SUCCEEDED(result)) {
         link->SetPath(target.wstring().c_str());
-        link->SetArguments(wide(arguments).c_str());
+        link->SetArguments(toWide(arguments).c_str());
         link->SetWorkingDirectory(target.parent_path().wstring().c_str());
-        link->SetDescription(wide(description).c_str());
+        link->SetDescription(toWide(description).c_str());
         IPersistFile* persist = nullptr;
         result = link->QueryInterface(IID_IPersistFile, reinterpret_cast<void**>(&persist));
         if (SUCCEEDED(result)) {
