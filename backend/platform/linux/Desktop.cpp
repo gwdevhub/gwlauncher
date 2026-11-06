@@ -238,6 +238,10 @@ std::optional<std::string> defaultInstall() {
     return linuxFile;
 }
 
+std::filesystem::path webViewDataFolder() {
+    return {};
+}
+
 }  // namespace gwl
 
 // The desktop functions the WebViewWindow library calls. The library has them in the global namespace, and the launcher defines

@@ -2,11 +2,15 @@
 
 #pragma once
 
+#include <filesystem>
 #include <optional>
 #include <string>
 #include <utility>
 
 namespace gwl {
+
+// The folder WebView2 keeps the launcher's profile in. It's in LocalAppData, so it survives an update. Empty on Linux.
+std::filesystem::path webViewDataFolder();
 
 // The file the user picks in an open dialog: a Gw.exe, or a mod file when modsOnly. startFolder, when it's given, is the folder the
 // dialog opens in. Nothing when they cancel.

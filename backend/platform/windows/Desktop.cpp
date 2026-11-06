@@ -2,10 +2,14 @@
 
 #include <windows.h>
 #include <commdlg.h>
+#include <knownfolders.h>
+#include <objbase.h>
+#include <shlobj.h>
 
 #include <cstdio>
 #include <filesystem>
 #include <optional>
+#include <stdexcept>
 #include <string>
 #include <utility>
 
@@ -132,6 +136,16 @@ std::optional<Rect> workAreaAt(const Rect& rect) {
     }
     const RECT& area = info.rcWork;
     return Rect{area.left, area.top, area.right - area.left, area.bottom - area.top};
+}
+
+std::filesystem::path webViewDataFolder() {
+    PWSTR folder = nullptr;
+    if (FAILED(SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, nullptr, &folder))) {
+        throw std::runtime_error("The local application data folder couldn't be found for WebView2.");
+    }
+    std::filesystem::path path(folder);
+    CoTaskMemFree(folder);
+    return path / "GWLauncher" / "WebView2";
 }
 
 }  // namespace gwl
