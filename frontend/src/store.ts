@@ -1,7 +1,7 @@
 // The launcher's state from the host, shared by every view. Reloaded when a view needs fresh flags.
 
 import { useSyncExternalStore } from 'react';
-import { call } from './bridge';
+import { read } from './bridge';
 import type { AppState } from './types';
 
 let current: AppState = {} as AppState;
@@ -16,7 +16,7 @@ export function getState(): AppState {
 }
 
 export async function refreshState(): Promise<AppState> {
-    current = await call<AppState>('state');
+    current = await read<AppState>('state');
     notify();
     return current;
 }

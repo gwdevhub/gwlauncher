@@ -10,7 +10,7 @@ void AppState::quickLaunch(const std::string& name) {
     quick = true;
     if (accountsLocked) {
         quickAccount = name;
-        openPrompt("password", gwl::Json{{"title", "GW Launcher"}}, 380, 240, [this](std::optional<std::size_t>) { endQuickIfIdle(); });
+        openPrompt("password", Json{{"title", "GW Launcher"}}, 380, 240, [this](std::optional<std::size_t>) { endQuickIfIdle(); });
         return;
     }
     if (!accountsError.empty()) {
@@ -35,7 +35,7 @@ void AppState::endQuickIfIdle() {
     if ((progressWindow && progressWindow->isVisible()) || shown(issueWindows) || shown(messageWindows) || shown(choiceWindows)) {
         return;
     }
-    gwl::stopEventLoop();
+    stopEventLoop();
 }
 
 }  // namespace launcher

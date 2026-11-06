@@ -1,13 +1,18 @@
 // Windows: a launch restarts this executable in CLI mode; Wine's prerequisites don't apply.
 
 #include <cstdlib>
+#include <cstring>
 #include <filesystem>
+#include <fstream>
+#include <iterator>
+#include <system_error>
 #include <optional>
 #include <stdexcept>
 #include <string>
 
 #include <windows.h>
 
+#include "Desktop.h"
 #include "Launch.h"
 #include "Process.h"
 #include "utils/Files.h"
@@ -176,6 +181,43 @@ void setDefaultGame(const std::filesystem::path& exe) {
     RegCloseKey(key);
     if (!wrotePath || !wroteSrc) {
         throw std::runtime_error("The default install couldn't be recorded in the registry.");
+    }
+}
+
+// Writes the loader, which the launcher carries as resource 2, beside the launcher, unless the copy there already matches. It's staged
+// and then moved over the old copy, so a copy that's cut short is never loaded.
+void installWebView2Loader() {
+    const HRSRC resource = FindResourceW(nullptr, MAKEINTRESOURCEW(2), MAKEINTRESOURCEW(10));
+    if (!resource) {
+        return;
+    }
+    const std::pair<const unsigned char*, std::size_t> bytes{
+        static_cast<const unsigned char*>(LockResource(LoadResource(nullptr, resource))), SizeofResource(nullptr, resource)};
+    if (!bytes.first || bytes.second == 0) {
+        return;
+    }
+    const std::filesystem::path folder = launcherDataDir();
+    const std::filesystem::path target = folder / "WebView2Loader.dll";
+    std::error_code error;
+    if (std::filesystem::is_regular_file(target, error) && std::filesystem::file_size(target, error) == bytes.second) {
+        std::ifstream existing(target, std::ios::binary);
+        const std::string text((std::istreambuf_iterator<char>(existing)), std::istreambuf_iterator<char>());
+        if (text.size() == bytes.second && std::memcmp(text.data(), bytes.first, bytes.second) == 0) {
+            return;
+        }
+    }
+    const std::filesystem::path staged = folder / "WebView2Loader.dll.new";
+    {
+        std::ofstream file(staged, std::ios::binary | std::ios::trunc);
+        file.write(reinterpret_cast<const char*>(bytes.first), static_cast<std::streamsize>(bytes.second));
+        if (!file) {
+            throw std::runtime_error("The WebView2 loader couldn't be written to " + pathToUtf8(staged));
+        }
+    }
+    std::filesystem::rename(staged, target, error);
+    if (error) {
+        std::filesystem::remove(staged, error);
+        throw std::runtime_error("Can't replace the WebView2 loader while it's in use: " + pathToUtf8(target));
     }
 }
 

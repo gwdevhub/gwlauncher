@@ -35,7 +35,11 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${GWL_BIN_DIR}")
 set(GWL_WEBVIEW2_LOADER "${CMAKE_CURRENT_SOURCE_DIR}/third_party/webview2/bin/x64/WebView2Loader.dll")
 
 # The platform's sources. Headers only: the Linux libraries are opened at runtime, not linked.
-add_library(gwl_core STATIC src/Messages.cpp src/WebViewWindow.cpp src/Settings.cpp src/Accounts.cpp src/DataUrl.cpp src/tray/TrayRegion.cpp src/GMod.cpp src/WorkerPool.cpp src/MachineFacts.cpp src/IssueChecker.cpp src/Instance.cpp src/Stylesheets.cpp src/EmbeddedAssets.cpp src/utils/Strings.cpp src/utils/Files.cpp src/utils/Crypto.cpp src/AccountFile.cpp src/ShellLink.cpp src/ModFiles.cpp src/LauncherUpdate.cpp src/GameLaunch.cpp src/CliInstall.cpp src/Steam.cpp src/Modlist.cpp src/GwNet.cpp src/GwHuffman.cpp src/GwPe.cpp src/GwInstall.cpp src/WofDecode.cpp src/Wof.cpp src/utils/Bytes.cpp src/utils/Crc.cpp src/utils/Images.cpp src/utils/Inflate.cpp src/GwIcon.cpp src/Issue.cpp src/issues/GwExeMissingIssue.cpp src/issues/SteamNotInstalledIssue.cpp src/issues/ProtonMissingIssue.cpp src/issues/WineMissingIssue.cpp src/issues/GModMissingIssue.cpp src/issues/ModMissingIssue.cpp src/issues/InvalidModIssue.cpp src/issues/InvalidTexmodIssue.cpp src/issues/WofIssue.cpp src/issues/GwExeOutdatedIssue.cpp src/issues/LaunchFoldersIssue.cpp src/issues/InUseIssue.cpp src/Starting.cpp src/SteamIcon.cpp src/TempFiles.cpp)
+# The windows come from the WebViewWindow library, a submodule. Its own example isn't built here.
+set(WEBVIEW_WINDOW_BUILD_EXAMPLE OFF CACHE BOOL "" FORCE)
+add_subdirectory(third_party/WebViewWindow)
+
+add_library(gwl_core STATIC src/Settings.cpp src/Accounts.cpp src/DataUrl.cpp src/tray/TrayRegion.cpp src/GMod.cpp src/WorkerPool.cpp src/MachineFacts.cpp src/IssueChecker.cpp src/Instance.cpp src/Stylesheets.cpp src/EmbeddedAssets.cpp src/utils/Strings.cpp src/utils/Files.cpp src/utils/Crypto.cpp src/AccountFile.cpp src/ShellLink.cpp src/ModFiles.cpp src/LauncherUpdate.cpp src/GameLaunch.cpp src/CliInstall.cpp src/Steam.cpp src/Modlist.cpp src/GwNet.cpp src/GwHuffman.cpp src/GwPe.cpp src/GwInstall.cpp src/WofDecode.cpp src/Wof.cpp src/utils/Bytes.cpp src/utils/Crc.cpp src/utils/Images.cpp src/utils/Inflate.cpp src/GwIcon.cpp src/Issue.cpp src/issues/GwExeMissingIssue.cpp src/issues/SteamNotInstalledIssue.cpp src/issues/ProtonMissingIssue.cpp src/issues/WineMissingIssue.cpp src/issues/GModMissingIssue.cpp src/issues/ModMissingIssue.cpp src/issues/InvalidModIssue.cpp src/issues/InvalidTexmodIssue.cpp src/issues/WofIssue.cpp src/issues/GwExeOutdatedIssue.cpp src/issues/LaunchFoldersIssue.cpp src/issues/InUseIssue.cpp src/Starting.cpp src/SteamIcon.cpp src/TempFiles.cpp)
 target_sources(gwl_core PRIVATE src/Shortcuts.cpp)
 # The commit count this build is made from, which the launcher checks for updates against. Zero without git history.
 # A container build has no .git, so the build script passes the number in as GWL_BUILD_NUMBER.
@@ -50,6 +54,7 @@ else()
 endif()
 target_compile_definitions(gwl_core PRIVATE GWL_BUILD=${GWL_BUILD})
 target_include_directories(gwl_core PUBLIC include include/tray)
+target_link_libraries(gwl_core PUBLIC webview_window)
 
 # Third-party code is kept in backend/third_party, each library with its own LICENSE.txt.
 set(GWL_THIRD_PARTY "${CMAKE_CURRENT_SOURCE_DIR}/third_party")
@@ -57,20 +62,18 @@ set(GWL_THIRD_PARTY "${CMAKE_CURRENT_SOURCE_DIR}/third_party")
 target_include_directories(gwl_core PUBLIC "${GWL_THIRD_PARTY}/nlohmann/include")
 
 if(WIN32)
-    # WebView2.h is vendored in third_party/webview2, and WebView2Loader.dll is loaded at runtime.
-    set(WEBVIEW2_INCLUDE_DIR "${GWL_THIRD_PARTY}/webview2/include" CACHE PATH "Folder holding WebView2.h")
+    # WebView2 comes from the WebViewWindow library. The launcher carries WebView2Loader.dll and writes it beside itself at start.
     # Windows is built with MinGW only.
     if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
         message(FATAL_ERROR "The native Windows build uses MinGW. Configure it with the x86_64-w64-mingw32 toolchain.")
     endif()
-    target_sources(gwl_core PRIVATE platform/windows/WebViewWindow.cpp platform/windows/Desktop.cpp platform/windows/Launch.cpp platform/windows/Network.cpp platform/windows/Crypto.cpp platform/windows/PasswordCache.cpp platform/windows/LauncherUpdate.cpp platform/windows/Wof.cpp platform/windows/Game.cpp platform/windows/Cli.cpp platform/windows/LaunchCli.cpp platform/windows/SystemInfo.cpp platform/windows/Process.cpp platform/windows/Shell.cpp platform/windows/Instance.cpp platform/windows/Tray.cpp platform/windows/WebView2.cpp)
-    target_include_directories(gwl_core PRIVATE ${WEBVIEW2_INCLUDE_DIR} platform/windows/compat)
+    target_sources(gwl_core PRIVATE platform/windows/Desktop.cpp platform/windows/Launch.cpp platform/windows/Network.cpp platform/windows/Crypto.cpp platform/windows/PasswordCache.cpp platform/windows/LauncherUpdate.cpp platform/windows/Wof.cpp platform/windows/Game.cpp platform/windows/Cli.cpp platform/windows/LaunchCli.cpp platform/windows/SystemInfo.cpp platform/windows/Process.cpp platform/windows/Shell.cpp platform/windows/Instance.cpp platform/windows/Tray.cpp platform/windows/StartupWatch.cpp)
     target_link_libraries(gwl_core PUBLIC user32 ole32 shell32 shlwapi uuid comdlg32 ws2_32 bcrypt advapi32 crypt32)
 elseif(UNIX AND NOT APPLE)
     # The headers only: the libraries themselves are opened at runtime, so they're not linked.
     # GTK, GLib, GIO and WebKitGTK are declared by the stub headers in third_party/gtk, so the build needs none of their development
     # packages, and no pkg-config. The libraries are loaded at runtime, as the windows are.
-    target_sources(gwl_core PRIVATE platform/linux/WebViewWindow.cpp platform/linux/Desktop.cpp platform/linux/Launch.cpp platform/linux/Network.cpp platform/linux/Crypto.cpp platform/linux/PasswordCache.cpp platform/linux/LauncherUpdate.cpp platform/linux/Wof.cpp platform/linux/SystemInfo.cpp platform/linux/Process.cpp platform/linux/Shell.cpp platform/linux/Instance.cpp platform/linux/Tray.cpp platform/linux/TrayPosition.cpp)
+    target_sources(gwl_core PRIVATE platform/linux/Desktop.cpp platform/linux/Launch.cpp platform/linux/Network.cpp platform/linux/Crypto.cpp platform/linux/PasswordCache.cpp platform/linux/LauncherUpdate.cpp platform/linux/Wof.cpp platform/linux/SystemInfo.cpp platform/linux/Process.cpp platform/linux/Shell.cpp platform/linux/Instance.cpp platform/linux/Tray.cpp platform/linux/TrayPosition.cpp)
     target_include_directories(gwl_core PRIVATE "${GWL_THIRD_PARTY}/gtk/include")
     target_link_libraries(gwl_core PUBLIC ${CMAKE_DL_LIBS})
 else()

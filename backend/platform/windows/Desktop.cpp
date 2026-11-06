@@ -2,14 +2,20 @@
 
 #include <windows.h>
 #include <commdlg.h>
+#include <knownfolders.h>
+#include <objbase.h>
+#include <shlobj.h>
 
 #include <cstdio>
 #include <filesystem>
 #include <optional>
+#include <stdexcept>
 #include <string>
 #include <utility>
 
+#include "Desktop.h"
 #include "Settings.h"
+#include "StartupWatch.h"
 #include "WebViewWindow.h"
 #include "utils/Files.h"
 
@@ -39,7 +45,9 @@ std::string toUtf8(const wchar_t* text) {
 
 void showError(const std::string& message) {
     std::fprintf(stderr, "%s\n", message.c_str());
+    pauseStartupMonitoring(true);
     MessageBoxW(nullptr, toWide(message).c_str(), L"GW Launcher", MB_OK | MB_ICONERROR);
+    pauseStartupMonitoring(false);
 }
 
 std::optional<std::string> pickFile(const std::string& title, bool modsOnly, const std::string& startFolder) {
@@ -133,4 +141,40 @@ std::optional<Rect> workAreaAt(const Rect& rect) {
     return Rect{area.left, area.top, area.right - area.left, area.bottom - area.top};
 }
 
+std::filesystem::path webViewDataFolder() {
+    PWSTR folder = nullptr;
+    if (FAILED(SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, nullptr, &folder))) {
+        throw std::runtime_error("The local application data folder couldn't be found for WebView2.");
+    }
+    std::filesystem::path path(folder);
+    CoTaskMemFree(folder);
+    return path / "GWLauncher" / "WebView2";
+}
+
+bool confirmRetry(const std::string& message) {
+    const std::wstring text = toWide(message + "\n\nRetry recreates the interface; running jobs are not restarted. Cancel exits GW Launcher.\nPress Ctrl+C to copy this error.");
+    pauseStartupMonitoring(true);
+    const int answer = MessageBoxW(nullptr, text.c_str(), L"GW Launcher interface error", MB_RETRYCANCEL | MB_ICONERROR);
+    pauseStartupMonitoring(false);
+    return answer == IDRETRY;
+}
+
 }  // namespace gwl
+
+// The desktop functions the WebViewWindow library calls. The library has them in the global namespace, and the launcher defines
+// them above in gwl, so they forward to those.
+void showError(const std::string& message) {
+    showError(message);
+}
+
+std::optional<std::pair<int, int>> cursorPosition() {
+    return gwl::cursorPosition();
+}
+
+std::optional<Rect> workArea() {
+    return gwl::workArea();
+}
+
+std::optional<Rect> workAreaAt(const Rect& rect) {
+    return gwl::workAreaAt(rect);
+}

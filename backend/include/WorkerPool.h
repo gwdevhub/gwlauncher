@@ -27,7 +27,7 @@ public:
     WorkerPool(const WorkerPool&) = delete;
     WorkerPool& operator=(const WorkerPool&) = delete;
 
-    // Queues a task. A task that throws is reported on stderr, and its worker goes on to the next task.
+    // Tasks handle recoverable failures themselves; an uncaught exception reports a fatal error on the UI thread.
     void submit(std::function<void()> task);
 
     // Queues work, then passes its result to done on the same worker. work must not throw: a failure belongs in its result.

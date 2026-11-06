@@ -3,23 +3,24 @@
 #pragma once
 
 #include "AppState.h"
-#include "WebViewWindow.h"
+#include "LauncherWindow.h"
 
 namespace launcher {
 
-class ProgressWindow : public gwl::WebViewWindow {
+class ProgressWindow : public LauncherWindow {
 public:
-    ProgressWindow(AppState& app, gwl::Json args);
+    ProgressWindow(AppState& app, Json args);
 
     std::string html() const override;
     std::string devUrl() const override;
-
 protected:
-    bool allowClose() override;
+    bool mayClose() override;
+    // A page that's loaded again shows the job's latest state.
+    void onPageReady() override;
 
 private:
     AppState& app_;
-    gwl::Json args_;
+    Json args_;
 };
 
 }  // namespace launcher

@@ -15,6 +15,7 @@
 
 #include <algorithm>
 
+#include "Desktop.h"
 #include "AppState.h"
 #include "GMod.h"
 #include "Issue.h"
@@ -33,7 +34,7 @@ namespace {
 constexpr const char* kDefaultMissing = "No default Guild Wars installation found.";
 
 // The launch result the list expects: started, or the error the launch gave.
-gwl::Json launchResult(const std::optional<std::string>& failure) {
+Json launchResult(const std::optional<std::string>& failure) {
     if (!failure) {
         return {{"started", true}, {"error", nullptr}, {"issues", nullptr}, {"canLaunch", false}};
     }
@@ -41,8 +42,8 @@ gwl::Json launchResult(const std::optional<std::string>& failure) {
 }
 
 // The reply for launchNow and launchDefault: null on success, or the error text.
-gwl::Json plainResult(const std::optional<std::string>& failure) {
-    return failure ? gwl::Json(*failure) : gwl::Json(nullptr);
+Json plainResult(const std::optional<std::string>& failure) {
+    return failure ? Json(*failure) : Json(nullptr);
 }
 
 
@@ -56,13 +57,13 @@ void AppState::checkAccount(const gwl::Account& account, std::function<void(cons
         [pool, account, done](std::shared_ptr<const gwl::MachineFacts> facts) {
             gwl::IssueChecker checker(account, std::move(facts));
             checker.start(*pool, [done](gwl::IssueChecker::Issues issues) {
-                gwl::runOnUiThread([done, issues] { done(issues); });
+                runOnUiThread([done, issues] { done(issues); });
             });
         });
 }
 
 // The fix is the one the issue offers. The account is checked again first, so the fix comes from the current issues.
-void AppState::fixIssue(std::size_t index, const gwl::Json& fix, gwl::Reply reply) {
+void AppState::fixIssue(std::size_t index, const Json& fix, Reply reply) {
     if (index >= accounts.size()) {
         reply.result(nullptr);
         return;
@@ -70,7 +71,7 @@ void AppState::fixIssue(std::size_t index, const gwl::Json& fix, gwl::Reply repl
     checkAccount(accounts[index], [this, fix, reply](const gwl::IssueChecker::Issues& issues) {
         for (const auto& issue : issues) {
             if (issue->toJson() == fix) {
-                issue->fix(reply, [this](const gwl::Json& popup, const gwl::ProgressWork& work, gwl::ProgressDone done) {
+                issue->fix(reply, [this](const Json& popup, const gwl::ProgressWork& work, gwl::ProgressDone done) {
                     runWithProgress(popup, work, std::move(done));
                 });
                 return;
@@ -80,7 +81,7 @@ void AppState::fixIssue(std::size_t index, const gwl::Json& fix, gwl::Reply repl
     });
 }
 
-void AppState::launch(gwl::Reply reply, const gwl::Json& args, bool suspended, bool checkIssues) {
+void AppState::launch(Reply reply, const Json& args, bool suspended, bool checkIssues) {
     const bool isLaunch = checkIssues;
     const auto index = args.at(0).is_number_unsigned() ? args.at(0).get<std::size_t>() : accounts.size();
     if (index >= accounts.size()) {
@@ -99,22 +100,22 @@ void AppState::launch(gwl::Reply reply, const gwl::Json& args, bool suspended, b
         return;
     }
     startGameAsync(account, index, suspended, isLaunch,
-                   [reply, isLaunch](const std::optional<std::string>& failure, const std::optional<gwl::Json>& blocked) {
+                   [reply, isLaunch](const std::optional<std::string>& failure, const std::optional<Json>& blocked) {
                        if (blocked) {
                            reply.result(*blocked);
                            return;
                        }
                        // A cancelled start isn't an error: the game was never resumed.
                        if (failure == gwl::kCancelledMessage) {
-                           reply.result(isLaunch ? gwl::Json{{"started", false}, {"error", nullptr}, {"issues", nullptr}, {"canLaunch", false}}
-                                                 : gwl::Json(nullptr));
+                           reply.result(isLaunch ? Json{{"started", false}, {"error", nullptr}, {"issues", nullptr}, {"canLaunch", false}}
+                                                 : Json(nullptr));
                            return;
                        }
                        reply.result(isLaunch ? launchResult(failure) : plainResult(failure));
                    });
 }
 
-void AppState::launchDefault(gwl::Reply reply) {
+void AppState::launchDefault(Reply reply) {
     const auto install = gwl::defaultInstall();
     if (!install) {
         reply.result(plainResult(kDefaultMissing));
@@ -123,7 +124,7 @@ void AppState::launchDefault(gwl::Reply reply) {
     gwl::Account account;
     account.gwpath = *install;
     startGameAsync(account, std::nullopt, false, false,
-                   [reply](const std::optional<std::string>& failure, const std::optional<gwl::Json>&) {
+                   [reply](const std::optional<std::string>& failure, const std::optional<Json>&) {
                        reply.result(plainResult(failure == gwl::kCancelledMessage ? std::nullopt : failure));
                    });
 }
@@ -132,23 +133,23 @@ void AppState::launchDefault(gwl::Reply reply) {
 // Guild Wars starts; the checks and the Steam wait run to their own end first. A suspended start waits paused until the window's
 // Continue, and Cancel there ends the start without resuming the game.
 void AppState::startGameAsync(const gwl::Account& account, std::optional<std::size_t> index, bool suspended, bool checkFirst,
-                              std::function<void(const std::optional<std::string>&, const std::optional<gwl::Json>&)> done) {
+                              std::function<void(const std::optional<std::string>&, const std::optional<Json>&)> done) {
     const std::string name = account.name();
     const auto key = std::make_shared<std::optional<std::string>>(account.pathKey());
     launching.insert(name);
     const std::uint32_t timeout = settings.timeoutOnModlaunch;
     const std::string dir = gwl::pathToUtf8(std::filesystem::current_path());
-    const gwl::Json popup{
+    const Json popup{
         {"title", "Starting " + name},
         {"heading", "Starting " + name},
         {"icon", accountIconUrl(account)},
-        {"iconPath", account.isSteamAccount ? gwl::Json(nullptr) : gwl::Json(account.gwpath)},
+        {"iconPath", account.isSteamAccount ? Json(nullptr) : Json(account.gwpath)},
         {"cancellable", true},
         {"failure", "Guild Wars couldn't be started"},
     };
     launchContinue = std::make_shared<std::atomic<bool>>(false);
     // Set when the checks stop the launch: the page's result, with the issues.
-    auto blocked = std::make_shared<std::optional<gwl::Json>>();
+    auto blocked = std::make_shared<std::optional<Json>>();
     runWithProgress(
         popup,
         [this, account, key, suspended, checkFirst, timeout, dir, resume = launchContinue, blocked](const gwl::ProgressReport& report,
@@ -175,7 +176,7 @@ void AppState::startGameAsync(const gwl::Account& account, std::optional<std::si
                 const bool stopped = std::any_of(issues.begin(), issues.end(),
                                                  [](const std::shared_ptr<gwl::Issue>& issue) { return issue->severity() == gwl::Issue::kBlocking; });
                 if (stopped) {
-                    *blocked = gwl::Json{{"started", false}, {"error", nullptr}, {"issues", gwl::issuesJson(issues)}, {"canLaunch", false}};
+                    *blocked = Json{{"started", false}, {"error", nullptr}, {"issues", gwl::issuesJson(issues)}, {"canLaunch", false}};
                     return;
                 }
             }
@@ -191,9 +192,9 @@ void AppState::startGameAsync(const gwl::Account& account, std::optional<std::si
             }
             report("Starting the game...", std::nullopt);
             // Once Guild Wars is starting it can't be stopped from here, so the window's Cancel is turned off.
-            gwl::runOnUiThread([this] {
+            runOnUiThread([this] {
                 if (progressWindow) {
-                    progressWindow->emit("progress", gwl::Json{{"phase", "update"}, {"cancellable", false}, {"detail", "Starting the game..."}});
+                    showProgress(Json{{"phase", "update"}, {"cancellable", false}, {"detail", "Starting the game..."}});
                 }
             });
             if (cancel.load()) {
@@ -202,9 +203,9 @@ void AppState::startGameAsync(const gwl::Account& account, std::optional<std::si
             std::function<bool()> confirm;
             if (suspended) {
                 confirm = [this, resume, &cancel] {
-                    gwl::runOnUiThread([this] {
+                    runOnUiThread([this] {
                         if (progressWindow) {
-                            progressWindow->emit("progress", gwl::Json{{"phase", "paused"}});
+                            showProgress(Json{{"phase", "paused"}});
                         }
                     });
                     // Waits for Continue. The window's Cancel sets the job's cancel flag, which ends the start with the game still paused.
@@ -214,9 +215,9 @@ void AppState::startGameAsync(const gwl::Account& account, std::optional<std::si
                         }
                         std::this_thread::sleep_for(std::chrono::milliseconds(50));
                     }
-                    gwl::runOnUiThread([this] {
+                    runOnUiThread([this] {
                         if (progressWindow) {
-                            progressWindow->emit("progress", gwl::Json{{"phase", "update"}, {"cancellable", false}, {"detail", "Starting the game..."}});
+                            showProgress(Json{{"phase", "update"}, {"cancellable", false}, {"detail", "Starting the game..."}});
                         }
                     });
                     return true;
@@ -234,24 +235,6 @@ void AppState::startGameAsync(const gwl::Account& account, std::optional<std::si
             }
             done(failure, *blocked);
         });
-}
-
-std::vector<std::string> AppState::accountStates() const {
-    const std::set<std::string> running = gwl::runningGamePaths();
-    std::vector<std::string> states;
-    for (std::size_t index = 0; index < accounts.size(); ++index) {
-        const gwl::Account& account = accounts[index];
-        const auto key = account.pathKey();
-        if (launching.count(account.name())) {
-            states.push_back("Launching");
-        } else if (!key || !running.count(*key)) {
-            states.push_back("Inactive");
-        } else {
-            const auto started = startedBy.find(*key);
-            states.push_back(started != startedBy.end() && started->second == index ? "Active" : "In Use");
-        }
-    }
-    return states;
 }
 
 void AppState::accountRemoved(std::size_t index) {

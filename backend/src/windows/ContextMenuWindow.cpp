@@ -6,8 +6,8 @@
 
 namespace launcher {
 
-ContextMenuWindow::ContextMenuWindow(AppState& app, gwl::Json items)
-    : WebViewWindow(gwl::WindowOptions{.title = "", .width = 190, .height = 100, .titleBar = false, .skipTaskbar = true,
+ContextMenuWindow::ContextMenuWindow(AppState& app, Json items)
+    : LauncherWindow(WindowOptions{.title = "", .width = 190, .height = 100, .titleBar = false, .skipTaskbar = true,
                                        .alwaysOnTop = true, .autosize = true}),
       app_(app),
       items_(std::move(items)) {
@@ -26,19 +26,24 @@ std::string ContextMenuWindow::devUrl() const {
 void ContextMenuWindow::onFocusLost() {
     using namespace std::chrono_literals;
     if (std::chrono::steady_clock::now() - shownAt_ > 400ms) {
+        hide();
         close();
+        // The list lost focus to this menu, so it hides now if the click went somewhere else.
+        if (app_.list) {
+            app_.list->notifyFocusLost();
+        }
     }
 }
 
 void ContextMenuWindow::installHandlers() {
     auto& handler = this->handler();
 
-    handler.on("window", [this](gwl::WebViewWindow&, const gwl::Json&, const gwl::Reply& reply) {
+    handler.on("window", [this](WebViewWindow&, const Json&, const Reply& reply) {
         logRequest("window");
-        reply.result(gwl::Json{{"view", "menu"}, {"args", gwl::Json::array({items_})}});
+        reply.result(Json{{"view", "menu"}, {"args", Json::array({items_})}});
     });
     // A pick goes to the account list, which runs the action, and the menu closes.
-    handler.on("menuPick", [this](gwl::WebViewWindow& window, const gwl::Json& args, const gwl::Reply& reply) {
+    handler.on("menuPick", [this](WebViewWindow& window, const Json& args, const Reply& reply) {
         logRequest("menuPick");
         if (app_.list) {
             app_.list->emit("menuPick", args.at(0));
@@ -50,14 +55,15 @@ void ContextMenuWindow::installHandlers() {
 
 // Opens the context menu at the pointer. Menus from earlier openings are closed here, from the list's own message, so
 // none is destroyed while it runs.
-void AppState::openMenu(const gwl::Json& items) {
+void AppState::openMenu(const Json& items) {
     menus.clear();
-    auto menu = std::make_unique<ContextMenuWindow>(*this, items);
-    menu->open();
-    if (const auto cursor = gwl::cursorPosition()) {
-        menu->move(cursor->first, cursor->second);
+    // Stored before it opens, since opening can take focus from the list while this is still running.
+    menus.push_back(std::make_unique<ContextMenuWindow>(*this, items));
+    auto& menu = *menus.back();
+    menu.open();
+    if (const auto cursor = cursorPosition()) {
+        menu.move(cursor->first, cursor->second);
     }
-    menus.push_back(std::move(menu));
 }
 
 }  // namespace launcher

@@ -1,7 +1,7 @@
 // Navigation between views. The list is the main window's view. Editor, issues, settings and setup open in windows of
 // their own from the list; every other view is a window the host opened for it, which shows only that view.
 
-import { call } from './bridge';
+import { call, read } from './bridge';
 import { withFrame } from './components/WindowFrame';
 import type { Role } from './types';
 
@@ -48,7 +48,7 @@ export async function show(name: string, ...args: any[]) {
     }
 
     call('pin', name !== 'list');
-    const size = session.popup ? withFrame(sizes[name]) : await call<[number, number]>('listSize');
+    const size = session.popup ? withFrame(sizes[name]) : await read<[number, number]>('listSize');
     call('resize', ...size);
     showNow(name, args);
 }
@@ -60,12 +60,13 @@ export function showNow(name: string, args: any[]) {
 }
 
 // Opens a view the host asked for: from the tray menu, or after a desktop shortcut couldn't launch.
-export function openView(view: { view: string; title?: string; text?: string; issues?: unknown[] }, showMessage: (title: string, text: string) => void) {
+export async function openView(view: { view: string; title?: string; text?: string; issues?: unknown[] }, showMessage: (title: string, text: string) => void) {
     if (view.view === 'issues') {
-        show('issues', view);
+        await show('issues', view);
     } else if (view.view === 'message') {
-        show('list').then(() => showMessage(view.title ?? '', view.text ?? ''));
+        await show('list');
+        showMessage(view.title ?? '', view.text ?? '');
     } else {
-        show(view.view);
+        await show(view.view);
     }
 }

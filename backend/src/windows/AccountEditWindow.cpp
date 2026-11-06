@@ -1,3 +1,4 @@
+#include "Desktop.h"
 #include "AccountEditWindow.h"
 
 #include <optional>
@@ -9,8 +10,8 @@
 
 namespace launcher {
 
-AccountEditWindow::AccountEditWindow(AppState& app, gwl::Json args)
-    : WebViewWindow(gwl::WindowOptions{.title = "Account", .width = 520, .height = 420}), app_(app), args_(std::move(args)) {
+AccountEditWindow::AccountEditWindow(AppState& app, Json args)
+    : LauncherWindow(WindowOptions{.title = "Account", .width = 520, .height = 420}), app_(app), args_(std::move(args)) {
     installCommonHandlers(handler(), app_);
     installHandlers();
 }
@@ -26,11 +27,11 @@ std::string AccountEditWindow::devUrl() const {
 void AccountEditWindow::installHandlers() {
     auto& handler = this->handler();
 
-    handler.on("window", [this](gwl::WebViewWindow&, const gwl::Json&, const gwl::Reply& reply) {
+    handler.on("window", [this](WebViewWindow&, const Json&, const Reply& reply) {
         logRequest("window");
-        reply.result(gwl::Json{{"view", "editor"}, {"args", args_}});
+        reply.result(Json{{"view", "editor"}, {"args", args_}});
     });
-    handler.on("draft", [this](gwl::WebViewWindow&, const gwl::Json& args, const gwl::Reply& reply) {
+    handler.on("draft", [this](WebViewWindow&, const Json& args, const Reply& reply) {
         logRequest("draft");
         const gwl::Account* account = nullptr;
         if (args.at(0).is_number_unsigned() && args.at(0).get<std::size_t>() < app_.accounts.size()) {
@@ -38,7 +39,7 @@ void AccountEditWindow::installHandlers() {
         }
         reply.result(account ? account->draft() : gwl::Account::newDraft(gwl::defaultInstall().value_or("")));
     });
-    handler.on("save", [this](gwl::WebViewWindow&, const gwl::Json& args, const gwl::Reply& reply) {
+    handler.on("save", [this](WebViewWindow&, const Json& args, const Reply& reply) {
         logRequest("save");
         auto result = gwl::Account::fromDraft(args.at(1));
         if (auto* errors = std::get_if<std::vector<gwl::FieldError>>(&result)) {
@@ -55,7 +56,7 @@ void AccountEditWindow::installHandlers() {
 }
 
 // The editor's window is opened from the list, or from another editor. Opening one that's already open shows it.
-void AppState::openEditor(const std::string& key, const gwl::Json& args) {
+void AppState::openEditor(const std::string& key, const Json& args) {
     auto found = editors.find(key);
     if (found != editors.end()) {
         found->second->present();
