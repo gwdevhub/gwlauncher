@@ -1,0 +1,3 @@
+[submodule "backend/third_party/WebViewWindow"]
+	path = backend/third_party/WebViewWindow
+	url = https://github.com/gwdevhub/WebViewWindow.git
