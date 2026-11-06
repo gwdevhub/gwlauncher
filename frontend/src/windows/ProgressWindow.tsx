@@ -8,6 +8,7 @@ import { on } from '../events';
 import { useAutosize } from '../autosize';
 import { Button } from '../components/Button';
 import { ProgressBar } from '../components/ProgressBar';
+import { PathIcon } from '../components/PathIcon';
 
 interface ProgressUpdate {
     phase: 'update' | 'paused' | 'end' | 'finished' | 'failed';
@@ -17,7 +18,7 @@ interface ProgressUpdate {
     text?: string;
 }
 
-export function ProgressWindow({ heading, note, cancellable, icon }: { heading: string; note?: string; cancellable?: boolean; icon?: string }) {
+export function ProgressWindow({ heading, note, cancellable, icon, iconPath }: { heading: string; note?: string; cancellable?: boolean; icon?: string; iconPath?: string | null }) {
     const [root, setRoot] = useState<HTMLElement | null>(null);
     useAutosize(root);
     const [fraction, setFraction] = useState<number | null>(null);
@@ -56,7 +57,7 @@ export function ProgressWindow({ heading, note, cancellable, icon }: { heading: 
     return (
         <section ref={setRoot} className="view flex min-h-[190px] w-[420px] shrink-0 self-start flex-col gap-2.5 overflow-hidden p-3.5 [overflow-wrap:anywhere]">
             <h2 className="m-0 flex items-center gap-2 text-sm">
-                {icon && <img src={icon} alt="" className="h-5 w-5 shrink-0" />}
+                {(icon || iconPath) && <PathIcon path={iconPath} fallback={icon} className="h-5 w-5 shrink-0" />}
                 {heading}
             </h2>
             {note && <p className="note text-[11px] text-muted">{note}</p>}

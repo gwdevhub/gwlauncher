@@ -154,7 +154,7 @@ std::optional<std::string> pickFile(const std::string& title, bool modsOnly, con
         gtk->filterSetName(filter, modsOnly ? "Mods" : "Guild Wars");
         const std::vector<const char*> patterns = modsOnly
             ? std::vector<const char*>{"*.dll", "*.DLL", "*.tpf", "*.TPF", "*.zip", "*.ZIP"}
-            : std::vector<const char*>{"Gw.exe", "gw.exe", "GW.EXE"};
+            : std::vector<const char*>{"Gw.exe", "gw.exe", "GW.EXE", "*.lnk", "*.desktop"};
         for (const char* pattern : patterns) {
             gtk->filterAddPattern(filter, pattern);
         }

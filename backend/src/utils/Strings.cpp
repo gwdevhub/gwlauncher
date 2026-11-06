@@ -38,6 +38,19 @@ std::optional<std::uint32_t> stringToUint32(const std::string& text) {
     return value;
 }
 
+std::string quoteWindowsArgument(const std::string& argument) {
+    std::string out = "\"";
+    std::size_t slashes = 0;
+    for (char c : argument) {
+        if (c == '\\') { ++slashes; continue; }
+        out.append(c == '"' ? slashes * 2 + 1 : slashes, '\\');
+        out += c;
+        slashes = 0;
+    }
+    out.append(slashes * 2, '\\');
+    return out + '"';
+}
+
 std::optional<std::string> parseArgumentWithValue(const std::vector<std::string>& arguments, const std::string& name,
                                                 std::size_t first) {
     if (first >= arguments.size()) {

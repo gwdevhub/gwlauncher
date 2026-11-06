@@ -161,7 +161,7 @@ function Browse({ update, gwPath }: { update: (patch: Partial<AccountDraft>) => 
         <Button
             className="small"
             onClick={async () => {
-                const path = await call<string | null>('pickFile', 'Select Gw.exe', false, gwPath || null);
+                const path = await call<string | null>('pickFile', 'Select Gw.exe or a shortcut', false, gwPath || null);
                 if (path) {
                     update({ gwPath: path });
                 }

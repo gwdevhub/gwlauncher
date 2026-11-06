@@ -1,5 +1,6 @@
 #include "GwPe.h"
 
+#include <algorithm>
 #include <cstddef>
 #include <cstring>
 #include <map>
@@ -21,10 +22,10 @@ struct Section {
     std::uint32_t pointerToRawData = 0;
 };
 
-// The headers of a PE32 image, read with bounds checks at every field.
+// PE32 headers, with PE32+ accepted only for icon resource extraction.
 class Image {
 public:
-    static std::optional<Image> parse(const std::vector<std::uint8_t>& data) {
+    static std::optional<Image> parse(const std::vector<std::uint8_t>& data, bool allowPe32Plus = false) {
         Image image(data);
         const auto pe = image.u32(0x3C);
         if (!pe || !image.bytesAt(*pe, 4) || std::memcmp(data.data() + *pe, "PE\0\0", 4) != 0) {
@@ -33,12 +34,12 @@ public:
         const auto sectionCount = image.u16(*pe + 6);
         const std::size_t optional = *pe + 24;
         const auto magic = image.u16(optional);
-        if (!sectionCount || !magic || *magic != 0x10B) {
+        if (!sectionCount || !magic || (*magic != 0x10B && !(allowPe32Plus && *magic == 0x20B))) {
             return std::nullopt;
         }
-        image.imageBase = image.u32(optional + 28).value_or(0);
-        // The resource table is the third data directory: each is an address and a size, 8 bytes, after the 96-byte header fields.
-        image.resources = image.u32(optional + 96 + 2 * 8).value_or(0);
+        image.imageBase = *magic == 0x10B ? image.u32(optional + 28).value_or(0) : 0;
+        // PE32+ moves the data directories from offset 96 to 112; resources are the third directory.
+        image.resources = image.u32(optional + (*magic == 0x20B ? 112 : 96) + 2 * 8).value_or(0);
         const auto sizeOfOptional = image.u16(*pe + 20);
         if (!sizeOfOptional) {
             return std::nullopt;
@@ -303,10 +304,10 @@ std::optional<std::int32_t> gwFileId(const std::vector<std::uint8_t>& data) {
 }
 
 
-std::optional<Bytes> gwIconFile(const std::vector<std::uint8_t>& data) {
+std::optional<Bytes> gwIconFile(const std::vector<std::uint8_t>& data, int iconIndex) {
     const std::uint32_t kIcon = 3;
     const std::uint32_t kGroupIcon = 14;
-    const auto image = Image::parse(data);
+    const auto image = Image::parse(data, true);
     if (!image) {
         return std::nullopt;
     }
@@ -318,7 +319,14 @@ std::optional<Bytes> gwIconFile(const std::vector<std::uint8_t>& data) {
     std::map<std::uint32_t, Bytes> images(icons->begin(), icons->end());
 
     // Each group entry is 14 bytes and names one image by id; the ICO's own entries are 16 bytes.
-    const Bytes& group = groups->front().second;
+    auto selected = groups->end();
+    if (iconIndex >= 0 && static_cast<std::size_t>(iconIndex) < groups->size()) selected = groups->begin() + iconIndex;
+    if (iconIndex < 0) {
+        const auto id = static_cast<std::uint32_t>(-static_cast<std::int64_t>(iconIndex));
+        selected = std::find_if(groups->begin(), groups->end(), [id](const auto& group) { return group.first == id; });
+    }
+    if (selected == groups->end()) return std::nullopt;
+    const Bytes& group = selected->second;
     if (group.size() < 6) {
         return std::nullopt;
     }
@@ -353,4 +361,3 @@ std::optional<Bytes> gwIconFile(const std::vector<std::uint8_t>& data) {
 }
 
 }  // namespace gwl
-

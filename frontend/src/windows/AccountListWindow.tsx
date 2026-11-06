@@ -13,6 +13,7 @@ import { Button } from '../components/Button';
 import { carryListState, takeCarriedListState } from '../status';
 import type { AccountEntry } from '../types';
 import { Footer } from '../components/Footer';
+import { PathIcon } from '../components/PathIcon';
 
 export function AccountListWindow() {
     const app = useAppState();
@@ -25,6 +26,7 @@ export function AccountListWindow() {
     const anchor = useRef(selected);
     const [status, setStatus] = useState(carried.status);
     const [rowIcon, setRowIcon] = useState<string | null>(null);
+    const [iconRevision, setIconRevision] = useState(0);
 
     // The handlers below run from events and timers, so they read the latest values through this ref.
     const latest = useRef({ entries, selected, selectedIndices, app });
@@ -192,6 +194,7 @@ export function AccountListWindow() {
     async function updateAllClients() {
         setStatus('Updating Gw.exe…');
         setStatus((await call<string | null>('updateAll')) ?? '');
+        setIconRevision(revision => revision + 1);
     }
 
     function viewIssues(index: number) {
@@ -281,7 +284,7 @@ export function AccountListWindow() {
                             openMenu(e, i);
                         }}
                     >
-                        <img className="icon h-4 w-4 flex-none" src={entry.icon ?? rowIcon ?? undefined} alt="" />
+                        <PathIcon key={iconRevision} path={entry.iconPath} fallback={entry.icon ?? rowIcon ?? undefined} className="icon h-4 w-4 flex-none" />
                         <span className="name min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap">{entry.name}</span>
                         <span className={stateClass(entry.state)}>{entry.state}</span>
                     </li>

@@ -15,6 +15,9 @@ struct ShellLinkTarget {
     // The path the shortcut points at, in Windows form. Nothing when the shortcut has no target.
     std::optional<std::string> windowsPath;
     std::optional<std::string> arguments;
+    std::optional<std::string> iconPath;
+    std::optional<std::string> workingDirectory;
+    std::int32_t iconIndex = 0;
 };
 
 // Reads the shortcut at path. Throws std::runtime_error when the file isn't a shortcut, or is cut short.

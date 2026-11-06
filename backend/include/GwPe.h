@@ -17,7 +17,7 @@ bool isGwExecutable(const std::vector<std::uint8_t>& data);
 // The file id, or nothing when the executable doesn't have the code that reports it.
 std::optional<std::int32_t> gwFileId(const std::vector<std::uint8_t>& data);
 
-// The executable's icon as an ICO file: its first icon group, with the images that group lists. Nothing when there's no icon.
-std::optional<Bytes> gwIconFile(const std::vector<std::uint8_t>& data);
+// A PE32/PE32+ icon group as ICO; negative indexes select resource IDs. Nothing when absent.
+std::optional<Bytes> gwIconFile(const std::vector<std::uint8_t>& data, int iconIndex = 0);
 
 }  // namespace gwl

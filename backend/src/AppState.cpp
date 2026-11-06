@@ -28,6 +28,11 @@ namespace launcher {
 
 namespace {
 
+gwl::WorkerPool& iconWorkers() {
+    static gwl::WorkerPool workers{2};
+    return workers;
+}
+
 // The folder a file picker opens in. A mod picker starts in the first plugin folder of the game that exists, or the launcher's folder.
 // The Gw.exe picker starts in the folder of the account's Gw.exe, then the detected install, then the default game folder.
 std::string pickerStartFolder(bool modsOnly, const std::string& gamePath) {
@@ -253,11 +258,6 @@ std::string accountIcon(const gwl::Account& account) {
         }
         return helmetIcon();
     }
-    if (const auto exe = gwl::gameFilePath(account.gwpath)) {
-        if (const auto url = gwl::gwIconUrl(*exe)) {
-            return *url;
-        }
-    }
     return helmetIcon();
 }
 
@@ -276,6 +276,26 @@ void installCommonHandlers(gwl::MessageHandler& handler, AppState& app) {
         logRequest("icon");
         reply.result(helmetIcon());
     });
+    handler.on("pathIcon", [](gwl::WebViewWindow&, const gwl::Json& args, const gwl::Reply& reply) {
+        const auto path = args.at(0).get<std::string>();
+        iconWorkers().submit([path, reply] {
+            std::optional<gwl::Bytes> png;
+            std::string error;
+            try {
+                if (!path.empty()) {
+                    if (const auto local = gwl::linuxPathFor(path)) png = gwl::pathIcon(gwl::pathFromUtf8(*local));
+                }
+            } catch (const std::exception& failure) {
+                error = failure.what();
+            } catch (...) {
+                error = "Unknown icon extraction error.";
+            }
+            gwl::runOnUiThread([reply, png = std::move(png), error] {
+                if (!error.empty()) reply.error(error);
+                else reply.result(png ? gwl::Json(*png) : gwl::Json(nullptr));
+            });
+        });
+    });
     handler.on("accounts", [&app](gwl::WebViewWindow&, const gwl::Json&, const gwl::Reply& reply) {
         logRequest("accounts");
         // The list reads this every two seconds, so the icon shows as soon as its download lands.
@@ -285,6 +305,7 @@ void installCommonHandlers(gwl::MessageHandler& handler, AppState& app) {
         for (std::size_t index = 0; index < app.accounts.size(); ++index) {
             const gwl::Account& account = app.accounts[index];
             gwl::Json entry = account.listRow(accountIcon(account));
+            entry["iconPath"] = account.isSteamAccount ? gwl::Json(nullptr) : gwl::Json(account.gwpath);
             entry["state"] = states[index];
             entries.push_back(entry);
         }
