@@ -140,7 +140,7 @@ struct AppState {
     std::optional<Rect> trayAnchor;
     // Whether a right click on the tray icon opened the list, which keeps it on screen when it loses focus. A left click's list hides.
     bool listOpenedByRightClick = false;
-    // When the list was last shown. Focus that leaves the list just after a tray click doesn't hide it.
+    // When the list was last shown. Focus lost before this doesn't hide it.
     std::chrono::steady_clock::time_point listShownAt{};
     // When focus loss last hid the list. The tray click that caused it reaches the tray after the list is already hidden.
     std::chrono::steady_clock::time_point listHiddenByFocusAt{};

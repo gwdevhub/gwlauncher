@@ -20,9 +20,15 @@ protected:
     bool mayClose() override;
     // In tray mode losing focus hides the list, as a click away from it does.
     void onFocusLost() override;
+    // Acts on a focus loss that was held because the page wasn't ready yet.
+    void onPageReady() override;
 
 private:
     void installHandlers();
+    void hideOnFocusLoss();
+
+    // When focus was lost while the page wasn't ready, so the loss can be acted on once it is.
+    std::chrono::steady_clock::time_point focusLostBeforeReady_{};
 
     AppState& app_;
 };

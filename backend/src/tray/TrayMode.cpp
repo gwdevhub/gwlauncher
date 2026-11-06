@@ -25,7 +25,7 @@ const int kTrayGap = 4;
 // How often the desktop is asked whether it still has the tray icon.
 const auto kTrayCheckInterval = std::chrono::seconds(2);
 // A tray click this soon after focus hid the list is the click that hid it, so it doesn't show the list again.
-const auto kTrayClickAfterFocusLoss = std::chrono::milliseconds(500);
+const auto kTrayClickAfterFocusLoss = std::chrono::milliseconds(200);
 
 }  // namespace
 

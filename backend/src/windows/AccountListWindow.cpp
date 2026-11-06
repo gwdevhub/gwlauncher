@@ -40,14 +40,29 @@ bool AccountListWindow::mayClose() {
 }
 
 void AccountListWindow::onFocusLost() {
-    // Focus can bounce away immediately after the tray click.
-    const bool pastGrace = std::chrono::steady_clock::now() - app_.listShownAt > std::chrono::milliseconds(400);
-    // The list's own context menu takes focus while it is open.
-    const bool menuOpen = std::any_of(app_.menus.begin(), app_.menus.end(), [](const auto& menu) { return menu->isVisible(); });
-    if (!app_.tray || app_.listOpenedByRightClick || !isVisible() || !pastGrace || menuOpen) {
+    if (!pageReady()) {
+        // Held until the page is ready, so it's acted on then.
+        focusLostBeforeReady_ = std::chrono::steady_clock::now();
         return;
     }
-    if (containsPointer()) {
+    hideOnFocusLoss();
+}
+
+void AccountListWindow::onPageReady() {
+    // A loss from before the latest show belongs to an earlier show, so it's dropped.
+    if (focusLostBeforeReady_ > app_.listShownAt) {
+        hideOnFocusLoss();
+    }
+    focusLostBeforeReady_ = {};
+}
+
+void AccountListWindow::hideOnFocusLoss() {
+    if (!app_.tray || app_.listOpenedByRightClick || !isVisible()) {
+        return;
+    }
+    // The list's own context menu takes focus while it is open.
+    const bool menuOpen = std::any_of(app_.menus.begin(), app_.menus.end(), [](const auto& menu) { return menu->isVisible(); });
+    if (menuOpen || containsPointer()) {
         return;
     }
     app_.listHiddenByFocusAt = std::chrono::steady_clock::now();
