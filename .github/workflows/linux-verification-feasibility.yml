@@ -1,0 +1,43 @@
+name: Linux Authenticode verification feasibility
+
+on:
+    workflow_dispatch:
+        inputs:
+            run_id:
+                description: ssign feasibility run containing ssign-linux-candidates
+                required: true
+
+permissions:
+    contents: read
+    actions: read
+
+jobs:
+    verify-linux:
+        runs-on: ubuntu-24.04
+        timeout-minutes: 10
+        steps:
+            -   uses: actions/checkout@v7
+
+            -   name: Download the candidates previously checked by signtool
+                uses: actions/download-artifact@v8
+                with:
+                    github-token: ${{ github.token }}
+                    run-id: ${{ inputs.run_id }}
+                    name: ssign-linux-candidates
+                    path: signed
+
+            -   name: Install Linux verification tools
+                run: |
+                    sudo apt-get update -qq
+                    sudo apt-get install -y --no-install-recommends osslsigncode ca-certificates python3-asn1crypto
+                    osslsigncode --version
+
+            -   name: Verify both signed launchers
+                env:
+                    CERTUM_CERT_SHA1: ${{ secrets.CERTUM_CERT_SHA1 }}
+                run: bash .github/scripts/verify-certum.sh signed/GW_Launcher.exe signed/GW_Launcher_Framework_Dependent.exe
+
+            -   name: Verify rejection of invalid candidates
+                env:
+                    CERTUM_CERT_SHA1: ${{ secrets.CERTUM_CERT_SHA1 }}
+                run: /usr/bin/python3 .github/scripts/test-verify-certum.py signed/GW_Launcher.exe
