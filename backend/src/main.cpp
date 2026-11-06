@@ -7,6 +7,7 @@
 #include "AppState.h"
 #include "EmbeddedAssets.h"
 #include "AccountListWindow.h"
+#include "Desktop.h"
 #include "Instance.h"
 #include "TempFiles.h"
 #include "WebViewWindow.h"
@@ -37,26 +38,29 @@ int main(int argc, char** argv) {
             gwl::removeLeftoverTempFiles();
         }
         // Windows and menus need the windowing started, and the tray's menu is made before the list window.
-        gwl::initializeWindowing();
-        gwl::setApplicationIcon(gwl::embeddedHelmetPng());
+        // The WebView2 loader is written beside the launcher before the windows start, and the dialogs are titled GW Launcher.
+        gwl::installWebView2Loader();
+        setApplicationName("GW Launcher");
+        initializeWindowing();
+        setApplicationIcon(gwl::embeddedHelmetPng());
         launcher::AppState app(gwl::embeddedPage());
         if (quick) {
             app.quickLaunch(request.name);
-            gwl::runEventLoop();
+            runEventLoop();
             return 0;
         }
         app.launchArguments.assign(arguments.begin() + 1, arguments.end());
         // Listening starts before the window is made, so a start made while the window is still opening is handed over too.
         // Later starts' requests arrive on the listener's thread, so each one is passed to the window's thread.
         gwl::listenForRequests([&app](gwl::InstanceRequest next) {
-            gwl::runOnUiThread([&app, next] { app.instanceRequest(next); });
+            runOnUiThread([&app, next] { app.instanceRequest(next); });
         });
         // The tray comes up before the list, which is only visible without it: with a tray the list is shown beside the icon.
         app.applyTrayMode();
         launcher::AccountListWindow list(app);
         app.list = &list;
         // A tray list is made when it's first shown, so a hidden tray list holds no web view. Its runtime is still checked here.
-        gwl::requireWindowingRuntime();
+        requireWindowingRuntime();
         if (!app.tray) {
             list.open();
         }
@@ -64,12 +68,12 @@ int main(int argc, char** argv) {
         if (app.tray && !app.settings.launchMinimized) {
             app.showListAtStart();
         }
-        gwl::runEventLoop();
-    } catch (const gwl::RuntimeMissingError&) {
+        runEventLoop();
+    } catch (const RuntimeMissingError&) {
         // The dialog has already said what's missing.
         return 1;
     } catch (const std::exception& error) {
-        gwl::showError(error.what());
+        showError(error.what());
         return 1;
     }
     return 0;

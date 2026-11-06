@@ -3,11 +3,11 @@
 namespace launcher {
 
 SettingsWindow::SettingsWindow(AppState& app)
-    : WebViewWindow(gwl::WindowOptions{.title = "GWLauncher Settings", .width = 420, .height = 600, .autosize = true}), app_(app) {
+    : LauncherWindow(WindowOptions{.title = "GWLauncher Settings", .width = 420, .height = 600, .autosize = true}), app_(app) {
     installCommonHandlers(handler(), app_);
-    handler().on("window", [](gwl::WebViewWindow&, const gwl::Json&, const gwl::Reply& reply) {
+    handler().on("window", [](WebViewWindow&, const Json&, const Reply& reply) {
         logRequest("window");
-        reply.result(gwl::Json{{"view", "settings"}, {"args", gwl::Json::array()}});
+        reply.result(Json{{"view", "settings"}, {"args", Json::array()}});
     });
 }
 

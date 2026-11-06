@@ -3,11 +3,11 @@
 namespace launcher {
 
 MessageWindow::MessageWindow(AppState& app, const std::string& title, const std::string& text)
-    : WebViewWindow(gwl::WindowOptions{.title = title, .width = 380, .height = 150}), app_(app), content_{{"title", title}, {"text", text}} {
+    : LauncherWindow(WindowOptions{.title = title, .width = 380, .height = 150}), app_(app), content_{{"title", title}, {"text", text}} {
     installCommonHandlers(handler(), app_);
-    handler().on("window", [this](gwl::WebViewWindow&, const gwl::Json&, const gwl::Reply& reply) {
+    handler().on("window", [this](WebViewWindow&, const Json&, const Reply& reply) {
         logRequest("window");
-        reply.result(gwl::Json{{"view", "message"}, {"args", gwl::Json::array({content_})}});
+        reply.result(Json{{"view", "message"}, {"args", Json::array({content_})}});
     });
 }
 
@@ -19,7 +19,7 @@ std::string MessageWindow::devUrl() const {
     return developmentUrl();
 }
 
-bool MessageWindow::allowClose() {
+bool MessageWindow::mayClose() {
     app_.endQuickIfIdle();
     return true;
 }

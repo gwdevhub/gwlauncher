@@ -1,14 +1,14 @@
 // The page's link to the host. call() sends a request and resolves with the host's reply. The host's events arrive
-// through window.gwlReceive and go to the event bus.
+// through window.hostReceive and go to the event bus.
 
 import { emit } from './events';
 
 declare global {
     interface Window {
         chrome?: { webview?: { postMessage(text: string): void } };
-        webkit?: { messageHandlers?: { gwl?: { postMessage(text: string): void } } };
+        webkit?: { messageHandlers?: { host?: { postMessage(text: string): void } } };
         ipc?: { postMessage(text: string): void };
-        gwlReceive: (message: HostMessage) => void;
+        hostReceive: (message: HostMessage) => void;
     }
 }
 
@@ -26,8 +26,8 @@ let nextRequest = 1;
 function post(text: string) {
     if (window.chrome?.webview) {
         window.chrome.webview.postMessage(text);
-    } else if (window.webkit?.messageHandlers?.gwl) {
-        window.webkit.messageHandlers.gwl.postMessage(text);
+    } else if (window.webkit?.messageHandlers?.host) {
+        window.webkit.messageHandlers.host.postMessage(text);
     } else {
         // wry's own channel, used by the Rust launcher on WebKitGTK.
         window.ipc?.postMessage(text);
@@ -42,7 +42,7 @@ export function call<T = any>(method: string, ...args: unknown[]): Promise<T> {
     });
 }
 
-window.gwlReceive = message => {
+window.hostReceive = message => {
     if (message.event) {
         emit(message.event, message.data);
         return;

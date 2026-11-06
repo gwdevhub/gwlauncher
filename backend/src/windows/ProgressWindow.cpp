@@ -2,13 +2,13 @@
 
 namespace launcher {
 
-ProgressWindow::ProgressWindow(AppState& app, gwl::Json args)
-    : WebViewWindow(gwl::WindowOptions{.title = args.at("title").get<std::string>(), .width = 420, .height = 190, .titleBar = false, .resizable = false, .autosize = true}), app_(app),
+ProgressWindow::ProgressWindow(AppState& app, Json args)
+    : LauncherWindow(WindowOptions{.title = args.at("title").get<std::string>(), .width = 420, .height = 190, .titleBar = false, .resizable = false, .autosize = true}), app_(app),
       args_(std::move(args)) {
     installCommonHandlers(handler(), app_);
-    handler().on("window", [this](gwl::WebViewWindow&, const gwl::Json&, const gwl::Reply& reply) {
+    handler().on("window", [this](WebViewWindow&, const Json&, const Reply& reply) {
         logRequest("window");
-        reply.result(gwl::Json{{"view", "progress"}, {"args", gwl::Json::array({args_})}});
+        reply.result(Json{{"view", "progress"}, {"args", Json::array({args_})}});
     });
 }
 
@@ -20,7 +20,7 @@ std::string ProgressWindow::devUrl() const {
     return developmentUrl();
 }
 
-bool ProgressWindow::allowClose() {
+bool ProgressWindow::mayClose() {
     app_.endQuickIfIdle();
     return true;
 }

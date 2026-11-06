@@ -3,11 +3,11 @@
 #pragma once
 
 #include "AppState.h"
-#include "WebViewWindow.h"
+#include "LauncherWindow.h"
 
 namespace launcher {
 
-class MessageWindow : public gwl::WebViewWindow {
+class MessageWindow : public LauncherWindow {
 public:
     MessageWindow(AppState& app, const std::string& title, const std::string& text);
 
@@ -16,11 +16,11 @@ public:
 
 protected:
     // A message stays in the list once shown, hidden, so it can be shown again.
-    bool allowClose() override;
+    bool mayClose() override;
 
 private:
     AppState& app_;
-    gwl::Json content_;
+    Json content_;
 };
 
 }  // namespace launcher

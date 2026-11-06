@@ -3,25 +3,25 @@
 #pragma once
 
 #include "AppState.h"
-#include "WebViewWindow.h"
+#include "LauncherWindow.h"
 
 namespace launcher {
 
-class IssuesWindow : public gwl::WebViewWindow {
+class IssuesWindow : public LauncherWindow {
 public:
     // The page's arguments for the window: the account's index, its name, the issues, and whether it can launch.
-    IssuesWindow(AppState& app, gwl::Json args);
+    IssuesWindow(AppState& app, Json args);
 
     std::string html() const override;
     std::string devUrl() const override;
 
 protected:
     // Closing the window hides it, so it can be shown again.
-    bool allowClose() override;
+    bool mayClose() override;
 
 private:
     AppState& app_;
-    gwl::Json args_;
+    Json args_;
 };
 
 }  // namespace launcher

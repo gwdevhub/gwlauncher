@@ -40,10 +40,10 @@ void AppState::checkLauncherUpdate() {
         if (!release || release->revision <= build) {
             return;
         }
-        gwl::runOnUiThread([this, release] {
+        runOnUiThread([this, release] {
             availableUpdate = release;
             if (list) {
-                list->emit("refresh", gwl::Json());
+                list->emit("refresh", Json());
             }
             if (settings.promptForUpdates) {
                 openLauncherUpdatePrompt(*release);
@@ -53,7 +53,7 @@ void AppState::checkLauncherUpdate() {
 }
 
 void AppState::openLauncherUpdatePrompt(const gwl::LauncherRelease& release) {
-    const gwl::Json prompt{
+    const Json prompt{
         {"title", "GW Launcher update"},
         {"message", "GW Launcher r" + std::to_string(release.revision) + " is available (current: r" + std::to_string(gwl::currentBuild()) + ")."},
         {"notes", release.notes},
@@ -73,7 +73,7 @@ void AppState::openLauncherUpdatePrompt(const gwl::LauncherRelease& release) {
 }
 
 void AppState::startLauncherUpdate(const gwl::LauncherRelease& release) {
-    const gwl::Json popup{
+    const Json popup{
         {"title", "Updating GW Launcher"},
         {"heading", "Downloading the latest GW Launcher"},
         {"note", "Restarts after updating."},
@@ -102,7 +102,7 @@ void AppState::restart() {
     std::vector<std::string> command{gwl::pathToUtf8(executable)};
     command.insert(command.end(), launchArguments.begin(), launchArguments.end());
     gwl::runProgramDetached(command);
-    gwl::stopEventLoop();
+    stopEventLoop();
 }
 
 }  // namespace launcher

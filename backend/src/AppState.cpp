@@ -1,3 +1,4 @@
+#include "Desktop.h"
 #include "AppState.h"
 
 #include <algorithm>
@@ -88,20 +89,20 @@ AppState::AppState(std::string pageHtml) : page(std::move(pageHtml)) {
     try {
         settings = gwl::loadSettings(kSettingsFile);
     } catch (const std::exception& error) {
-        gwl::showError(error.what());
+        showError(error.what());
     }
     // Settings, accounts and Guild Wars downloads are kept in the folder the launcher runs from, so without a writable folder none
     // of them save.
     if (const auto folder = gwl::executablePath().parent_path(); !gwl::isWritableFolder(folder)) {
-        gwl::showError("Launcher folder isn't writable: " + gwl::pathToUtf8(folder) +
+        showError("Launcher folder isn't writable: " + gwl::pathToUtf8(folder) +
                        ". Move the launcher or change the folder's permissions to save settings, accounts and downloads.");
     }
     gwl::setInstallPaths(settings.steamPath, settings.winePath);
-    gwl::setUiScale(static_cast<int>(settings.uiScale));
+    setUiScale(static_cast<int>(settings.uiScale));
     openAccountsFile();
     fetchSteamIconFor(accounts, [this] {
         if (list) {
-            list->emit("refresh", gwl::Json());
+            list->emit("refresh", Json());
         }
     });
 }
@@ -132,7 +133,7 @@ void AppState::openAccountsFile() {
     }
 }
 
-gwl::Json AppState::unlock(const std::string& password, bool remember) {
+Json AppState::unlock(const std::string& password, bool remember) {
     const gwl::PasswordHash hash = gwl::hashPassword(password);
     try {
         auto opened = gwl::openAccounts(kAccountsFile, hash);
@@ -152,7 +153,7 @@ gwl::Json AppState::unlock(const std::string& password, bool remember) {
     }
 }
 
-gwl::Json AppState::setMasterPassword(const std::string& password) {
+Json AppState::setMasterPassword(const std::string& password) {
     if (!accountsError.empty()) {
         return "Could not save: " + accountsError;
     }
@@ -182,7 +183,7 @@ void AppState::saveSettings() {
     }
 }
 
-gwl::Json AppState::changeAccounts(const std::function<void()>& change) {
+Json AppState::changeAccounts(const std::function<void()>& change) {
     if (!accountsError.empty()) {
         return "Could not save: " + accountsError;
     }
@@ -191,7 +192,7 @@ gwl::Json AppState::changeAccounts(const std::function<void()>& change) {
         gwl::saveAccounts(accounts, kAccountsFile, accountsPassword);
         // The list shows the saved accounts, so it reads them again, whichever window made the change.
         if (list) {
-            list->emit("refresh", gwl::Json());
+            list->emit("refresh", Json());
         }
         return nullptr;
     } catch (const std::exception& error) {
@@ -200,22 +201,22 @@ gwl::Json AppState::changeAccounts(const std::function<void()>& change) {
 }
 
 // The page's startup state. Every window's page asks for it before it draws.
-gwl::Json AppState::state() {
+Json AppState::state() {
     if (!fixedState_) {
-        fixedState_ = gwl::Json{
+        fixedState_ = Json{
             {"hasLinuxPaths", gwl::launchesThroughWine()},
             {"hasTray", gwl::hasTray()},
             {"version", "GW Launcher r" + std::to_string(gwl::currentBuild()) + " \u00b7 " + gwl::osDescription()},
         };
     }
     if (!installState_) {
-        installState_ = gwl::Json{
+        installState_ = Json{
             {"canLaunchDefaultClient", gwl::defaultInstall().has_value()},
-            {"detectedPaths", gwl::Json{{"steam", gwl::detectedSteamPath()}, {"wine", gwl::detectedWinePath()}}},
+            {"detectedPaths", Json{{"steam", gwl::detectedSteamPath()}, {"wine", gwl::detectedWinePath()}}},
         };
     }
     const gwl::Settings effective = settings.effective(gwl::hasTray());
-    gwl::Json state = {
+    Json state = {
         {"locked", accountsLocked},
         {"startup", nullptr},
         {"canCreateShortcuts", true},
@@ -223,7 +224,7 @@ gwl::Json AppState::state() {
         {"hasWindowsOptions", true},
         {"hasSetup", false},
         {"setupNeeded", false},
-        {"update", availableUpdate ? gwl::Json{{"revision", availableUpdate->revision}} : gwl::Json(nullptr)},
+        {"update", availableUpdate ? Json{{"revision", availableUpdate->revision}} : Json(nullptr)},
         {"settings", effective.forPage()},
     };
     state.update(*fixedState_);
@@ -238,7 +239,7 @@ void AppState::forgetInstallState() {
 namespace {
 
 // The account at the index the page sent, or null when there's no such account.
-const gwl::Account* accountAt(const AppState& app, const gwl::Json& index) {
+const gwl::Account* accountAt(const AppState& app, const Json& index) {
     if (!index.is_number_unsigned() || index.get<std::size_t>() >= app.accounts.size()) {
         return nullptr;
     }
@@ -267,16 +268,16 @@ std::string accountIconUrl(const gwl::Account& account) {
     return accountIcon(account);
 }
 
-void installCommonHandlers(gwl::MessageHandler& handler, AppState& app) {
-    handler.on("state", [&app](gwl::WebViewWindow&, const gwl::Json&, const gwl::Reply& reply) {
+void installCommonHandlers(MessageHandler& handler, AppState& app) {
+    handler.on("state", [&app](WebViewWindow&, const Json&, const Reply& reply) {
         logRequest("state");
         reply.result(app.state());
     });
-    handler.on("icon", [](gwl::WebViewWindow&, const gwl::Json&, const gwl::Reply& reply) {
+    handler.on("icon", [](WebViewWindow&, const Json&, const Reply& reply) {
         logRequest("icon");
         reply.result(helmetIcon());
     });
-    handler.on("pathIcon", [](gwl::WebViewWindow&, const gwl::Json& args, const gwl::Reply& reply) {
+    handler.on("pathIcon", [](WebViewWindow&, const Json& args, const Reply& reply) {
         const auto path = args.at(0).get<std::string>();
         iconWorkers().submit([path, reply] {
             std::optional<gwl::Bytes> png;
@@ -290,40 +291,40 @@ void installCommonHandlers(gwl::MessageHandler& handler, AppState& app) {
             } catch (...) {
                 error = "Unknown icon extraction error.";
             }
-            gwl::runOnUiThread([reply, png = std::move(png), error] {
+            runOnUiThread([reply, png = std::move(png), error] {
                 if (!error.empty()) reply.error(error);
-                else reply.result(png ? gwl::Json(*png) : gwl::Json(nullptr));
+                else reply.result(png ? Json(*png) : Json(nullptr));
             });
         });
     });
-    handler.on("accounts", [&app](gwl::WebViewWindow&, const gwl::Json&, const gwl::Reply& reply) {
+    handler.on("accounts", [&app](WebViewWindow&, const Json&, const Reply& reply) {
         logRequest("accounts");
         // The list reads this every two seconds, so the icon shows as soon as its download lands.
         fetchSteamIconFor(app.accounts, [] {});
         const std::vector<std::string> states = app.accountStates();
-        gwl::Json entries = gwl::Json::array();
+        Json entries = Json::array();
         for (std::size_t index = 0; index < app.accounts.size(); ++index) {
             const gwl::Account& account = app.accounts[index];
-            gwl::Json entry = account.listRow(accountIcon(account));
-            entry["iconPath"] = account.isSteamAccount ? gwl::Json(nullptr) : gwl::Json(account.gwpath);
+            Json entry = account.listRow(accountIcon(account));
+            entry["iconPath"] = account.isSteamAccount ? Json(nullptr) : Json(account.gwpath);
             entry["state"] = states[index];
             entries.push_back(entry);
         }
-        reply.result(gwl::Json{{"entries", entries},
-                               {"error", app.accountsError.empty() ? gwl::Json(nullptr) : gwl::Json(app.accountsError)}});
+        reply.result(Json{{"entries", entries},
+                               {"error", app.accountsError.empty() ? Json(nullptr) : Json(app.accountsError)}});
     });
-    handler.on("pickFile", [](gwl::WebViewWindow&, const gwl::Json& args, const gwl::Reply& reply) {
+    handler.on("pickFile", [](WebViewWindow&, const Json& args, const Reply& reply) {
         logRequest("pickFile");
         const bool modsOnly = args.at(1).get<bool>();
         const std::string gamePath = args.size() > 2 && args.at(2).is_string() ? args.at(2).get<std::string>() : std::string();
         const auto picked = gwl::pickFile(args.at(0).get<std::string>(), modsOnly, pickerStartFolder(modsOnly, gamePath));
-        reply.result(picked ? gwl::Json(*picked) : gwl::Json(nullptr));
+        reply.result(picked ? Json(*picked) : Json(nullptr));
     });
-    handler.on("pluginFiles", [](gwl::WebViewWindow&, const gwl::Json& args, const gwl::Reply& reply) {
+    handler.on("pluginFiles", [](WebViewWindow&, const Json& args, const Reply& reply) {
         logRequest("pluginFiles");
         reply.result(gwl::pluginFilesJson(args.at(0), std::filesystem::current_path()));
     });
-    handler.on("openWindow", [&app](gwl::WebViewWindow&, const gwl::Json& args, const gwl::Reply& reply) {
+    handler.on("openWindow", [&app](WebViewWindow&, const Json& args, const Reply& reply) {
         logRequest("openWindow");
         const std::string view = args.at(1).get<std::string>();
         if (view == "editor") {
@@ -341,29 +342,29 @@ void installCommonHandlers(gwl::MessageHandler& handler, AppState& app) {
         }
         reply.result(nullptr);
     });
-    handler.on("launch", [&app](gwl::WebViewWindow&, const gwl::Json& args, const gwl::Reply& reply) {
+    handler.on("launch", [&app](WebViewWindow&, const Json& args, const Reply& reply) {
         logRequest("launch");
         app.launch(reply, args, args.at(1).get<bool>(), true);
     });
-    handler.on("launchNow", [&app](gwl::WebViewWindow&, const gwl::Json& args, const gwl::Reply& reply) {
+    handler.on("launchNow", [&app](WebViewWindow&, const Json& args, const Reply& reply) {
         logRequest("launchNow");
         app.launch(reply, args, false, false);
     });
-    handler.on("launchDefault", [&app](gwl::WebViewWindow&, const gwl::Json&, const gwl::Reply& reply) {
+    handler.on("launchDefault", [&app](WebViewWindow&, const Json&, const Reply& reply) {
         logRequest("launchDefault");
         app.launchDefault(reply);
     });
-    handler.on("openMenu", [&app](gwl::WebViewWindow&, const gwl::Json& args, const gwl::Reply& reply) {
+    handler.on("openMenu", [&app](WebViewWindow&, const Json& args, const Reply& reply) {
         logRequest("openMenu");
         app.openMenu(args.at(0));
         reply.result(nullptr);
     });
-    handler.on("copy", [](gwl::WebViewWindow&, const gwl::Json& args, const gwl::Reply& reply) {
+    handler.on("copy", [](WebViewWindow&, const Json& args, const Reply& reply) {
         logRequest("copy");
         gwl::copyText(args.at(0).is_string() ? args.at(0).get<std::string>() : std::string());
         reply.result(nullptr);
     });
-    handler.on("openUrl", [](gwl::WebViewWindow&, const gwl::Json& args, const gwl::Reply& reply) {
+    handler.on("openUrl", [](WebViewWindow&, const Json& args, const Reply& reply) {
         logRequest("openUrl");
         // Only web links are opened, as in the C# launcher.
         const std::string url = args.at(0).is_string() ? args.at(0).get<std::string>() : std::string();
@@ -372,7 +373,7 @@ void installCommonHandlers(gwl::MessageHandler& handler, AppState& app) {
         }
         reply.result(nullptr);
     });
-    handler.on("reloadAccounts", [&app](gwl::WebViewWindow&, const gwl::Json&, const gwl::Reply& reply) {
+    handler.on("reloadAccounts", [&app](WebViewWindow&, const Json&, const Reply& reply) {
         logRequest("reloadAccounts");
         // A locked file is read again once it's unlocked, so there's nothing to reload.
         if (app.accountsLocked) {
@@ -393,7 +394,7 @@ void installCommonHandlers(gwl::MessageHandler& handler, AppState& app) {
             reply.result(std::string("Could not reload Accounts.json: ") + error.what());
         }
     });
-    handler.on("revealAccount", [&app](gwl::WebViewWindow&, const gwl::Json& args, const gwl::Reply& reply) {
+    handler.on("revealAccount", [&app](WebViewWindow&, const Json& args, const Reply& reply) {
         logRequest("revealAccount");
         const gwl::Account* account = accountAt(app, args.at(0));
         if (!account) {
@@ -408,7 +409,7 @@ void installCommonHandlers(gwl::MessageHandler& handler, AppState& app) {
         gwl::revealInFileExplorer(*gwExe);
         reply.result(nullptr);
     });
-    handler.on("shortcut", [&app](gwl::WebViewWindow&, const gwl::Json& args, const gwl::Reply& reply) {
+    handler.on("shortcut", [&app](WebViewWindow&, const Json& args, const Reply& reply) {
         logRequest("shortcut");
         const gwl::Account* account = accountAt(app, args.at(0));
         if (!account) {
@@ -435,7 +436,7 @@ void installCommonHandlers(gwl::MessageHandler& handler, AppState& app) {
             reply.result(std::string(error.what()));
         }
     });
-    handler.on("saveSettings", [&app](gwl::WebViewWindow&, const gwl::Json& args, const gwl::Reply& reply) {
+    handler.on("saveSettings", [&app](WebViewWindow&, const Json& args, const Reply& reply) {
         logRequest("saveSettings");
         try {
             const gwl::Settings updated = app.settings.applyFields(args.at(0));
@@ -447,7 +448,7 @@ void installCommonHandlers(gwl::MessageHandler& handler, AppState& app) {
             app.settings = updated;
             gwl::setInstallPaths(updated.steamPath, updated.winePath);
             app.forgetInstallState();
-            gwl::setUiScale(static_cast<int>(updated.uiScale));
+            setUiScale(static_cast<int>(updated.uiScale));
             if (app.list && app.list->isVisible()) {
                 app.list->resize(static_cast<int>(updated.listWidth), static_cast<int>(updated.listHeight));
             }
@@ -460,23 +461,23 @@ void installCommonHandlers(gwl::MessageHandler& handler, AppState& app) {
             reply.result(std::string(error.what()));
         }
     });
-    handler.on("encrypted", [&app](gwl::WebViewWindow&, const gwl::Json&, const gwl::Reply& reply) {
+    handler.on("encrypted", [&app](WebViewWindow&, const Json&, const Reply& reply) {
         logRequest("encrypted");
         reply.result(app.accountsPassword.has_value() || app.accountsLocked);
     });
-    handler.on("unlock", [&app](gwl::WebViewWindow&, const gwl::Json& args, const gwl::Reply& reply) {
+    handler.on("unlock", [&app](WebViewWindow&, const Json& args, const Reply& reply) {
         logRequest("unlock");
-        const gwl::Json message = app.unlock(args.at(0).get<std::string>(), args.at(1).get<bool>());
+        const Json message = app.unlock(args.at(0).get<std::string>(), args.at(1).get<bool>());
         reply.result(message);
         if (message.is_null() && app.quickAccount) {
             app.launchNamed(*std::exchange(app.quickAccount, std::nullopt));
         }
     });
-    handler.on("setMasterPassword", [&app](gwl::WebViewWindow&, const gwl::Json& args, const gwl::Reply& reply) {
+    handler.on("setMasterPassword", [&app](WebViewWindow&, const Json& args, const Reply& reply) {
         logRequest("setMasterPassword");
         reply.result(app.setMasterPassword(args.at(0).get<std::string>()));
     });
-    handler.on("choose", [&app](gwl::WebViewWindow&, const gwl::Json& args, const gwl::Reply& reply) {
+    handler.on("choose", [&app](WebViewWindow&, const Json& args, const Reply& reply) {
         logRequest("choose");
         std::vector<std::string> options;
         for (const auto& option : args.at(2)) {
@@ -484,15 +485,15 @@ void installCommonHandlers(gwl::MessageHandler& handler, AppState& app) {
         }
         app.openChoice(args.at(0).get<std::string>(), args.at(1).get<std::string>(), options,
                        [reply](std::optional<std::size_t> picked) {
-                           reply.result(picked ? gwl::Json(*picked) : gwl::Json(nullptr));
+                           reply.result(picked ? Json(*picked) : Json(nullptr));
                        });
     });
-    handler.on("message", [&app](gwl::WebViewWindow&, const gwl::Json& args, const gwl::Reply& reply) {
+    handler.on("message", [&app](WebViewWindow&, const Json& args, const Reply& reply) {
         logRequest("message");
         app.openMessage(args.at(0).get<std::string>(), args.at(1).get<std::string>());
         reply.result(nullptr);
     });
-    handler.on("answer", [&app](gwl::WebViewWindow&, const gwl::Json& args, const gwl::Reply& reply) {
+    handler.on("answer", [&app](WebViewWindow&, const Json& args, const Reply& reply) {
         logRequest("answer");
         std::optional<std::size_t> picked;
         if (args.at(1).is_number_unsigned()) {
@@ -502,108 +503,108 @@ void installCommonHandlers(gwl::MessageHandler& handler, AppState& app) {
         reply.result(nullptr);
     });
     // Progress popups can be cancelled. The running job checks the flag between chunks.
-    handler.on("continueLaunch", [&app](gwl::WebViewWindow&, const gwl::Json&, const gwl::Reply& reply) {
+    handler.on("continueLaunch", [&app](WebViewWindow&, const Json&, const Reply& reply) {
         logRequest("continueLaunch");
         if (app.launchContinue) {
             *app.launchContinue = true;
         }
         reply.result(nullptr);
     });
-    handler.on("cancel", [&app](gwl::WebViewWindow&, const gwl::Json&, const gwl::Reply& reply) {
+    handler.on("cancel", [&app](WebViewWindow&, const Json&, const Reply& reply) {
         logRequest("cancel");
         app.cancelProgress();
         reply.result(nullptr);
     });
-    handler.on("showUpdate", [&app](gwl::WebViewWindow&, const gwl::Json&, const gwl::Reply& reply) {
+    handler.on("showUpdate", [&app](WebViewWindow&, const Json&, const Reply& reply) {
         logRequest("showUpdate");
         if (app.availableUpdate) {
             app.openLauncherUpdatePrompt(*app.availableUpdate);
         }
         reply.result(nullptr);
     });
-    handler.on("refreshMod", [](gwl::WebViewWindow&, const gwl::Json& args, const gwl::Reply& reply) {
+    handler.on("refreshMod", [](WebViewWindow&, const Json& args, const Reply& reply) {
         logRequest("refreshMod");
         reply.result(gwl::refreshedMod(args.at(0)));
     });
     // Resolving a mod does nothing yet, as in the Rust launcher, which never offers the action.
-    handler.on("resolveMod", [](gwl::WebViewWindow&, const gwl::Json&, const gwl::Reply& reply) {
+    handler.on("resolveMod", [](WebViewWindow&, const Json&, const Reply& reply) {
         logRequest("resolveMod");
         reply.result(nullptr);
     });
-    handler.on("setup", [&app](gwl::WebViewWindow&, const gwl::Json&, const gwl::Reply& reply) {
+    handler.on("setup", [&app](WebViewWindow&, const Json&, const Reply& reply) {
         logRequest("setup");
         reply.result(app.setupItems());
     });
-    handler.on("setupStatus", [&app](gwl::WebViewWindow&, const gwl::Json&, const gwl::Reply& reply) {
+    handler.on("setupStatus", [&app](WebViewWindow&, const Json&, const Reply& reply) {
         logRequest("setupStatus");
         reply.result(app.setupStatus());
     });
-    handler.on("startSetup", [&app](gwl::WebViewWindow&, const gwl::Json& args, const gwl::Reply& reply) {
+    handler.on("startSetup", [&app](WebViewWindow&, const Json& args, const Reply& reply) {
         logRequest("startSetup");
         const bool given = args.size() > 0 && args.at(0).is_string();
         reply.result(app.startSetup(given ? args.at(0).get<std::string>() : std::string()));
     });
-    handler.on("updateAll", [&app](gwl::WebViewWindow&, const gwl::Json&, const gwl::Reply& reply) {
+    handler.on("updateAll", [&app](WebViewWindow&, const Json&, const Reply& reply) {
         logRequest("updateAll");
         app.startUpdateAll(reply);
     });
-    handler.on("hide", [&app](gwl::WebViewWindow& window, const gwl::Json&, const gwl::Reply& reply) {
+    handler.on("hide", [&app](WebViewWindow& window, const Json&, const Reply& reply) {
         logRequest("hide");
         window.close();
         reply.result(nullptr);
         app.endQuickIfIdle();
     });
     // The list answers quit itself. Without it, the password prompt of a quick launch quits.
-    handler.on("quit", [](gwl::WebViewWindow&, const gwl::Json&, const gwl::Reply& reply) {
+    handler.on("quit", [](WebViewWindow&, const Json&, const Reply& reply) {
         logRequest("quit");
-        gwl::stopEventLoop();
+        stopEventLoop();
         reply.result(nullptr);
     });
-    handler.on("uiScale", [](gwl::WebViewWindow&, const gwl::Json& args, const gwl::Reply& reply) {
+    handler.on("uiScale", [](WebViewWindow&, const Json& args, const Reply& reply) {
         logRequest("uiScale");
-        gwl::setUiScale(args.at(0).get<int>());
+        setUiScale(args.at(0).get<int>());
         reply.result(nullptr);
     });
-    handler.on("fitToPage", [](gwl::WebViewWindow& window, const gwl::Json& args, const gwl::Reply& reply) {
+    handler.on("fitToPage", [](WebViewWindow& window, const Json& args, const Reply& reply) {
         logRequest("fitToPage");
         window.fitToPage(args.at(0).get<int>(), args.at(1).get<int>());
         reply.result(nullptr);
     });
-    handler.on("resize", [](gwl::WebViewWindow& window, const gwl::Json& args, const gwl::Reply& reply) {
+    handler.on("resize", [](WebViewWindow& window, const Json& args, const Reply& reply) {
         logRequest("resize");
         window.resize(args.at(0).get<int>(), args.at(1).get<int>());
         reply.result(nullptr);
     });
 
     // The page's title bar and edges: every window is frameless, so these stand in for the window manager's.
-    handler.on("chrome", [](gwl::WebViewWindow& window, const gwl::Json&, const gwl::Reply& reply) {
+    handler.on("chrome", [](WebViewWindow& window, const Json&, const Reply& reply) {
         logRequest("chrome");
         reply.result(window.chrome());
     });
-    handler.on("moveDrag", [](gwl::WebViewWindow& window, const gwl::Json&, const gwl::Reply& reply) {
+    handler.on("moveDrag", [](WebViewWindow& window, const Json&, const Reply& reply) {
         logRequest("moveDrag");
         window.beginMove();
         reply.result(nullptr);
     });
-    handler.on("resizeDrag", [](gwl::WebViewWindow& window, const gwl::Json& args, const gwl::Reply& reply) {
+    handler.on("resizeDrag", [](WebViewWindow& window, const Json& args, const Reply& reply) {
         logRequest("resizeDrag");
         const int edge = args.at(0).get<int>();
-        if (edge >= 0 && edge <= static_cast<int>(gwl::ResizeEdge::SouthEast)) {
-            window.beginResize(static_cast<gwl::ResizeEdge>(edge));
+        if (edge >= 0 && edge <= static_cast<int>(ResizeEdge::SouthEast)) {
+            window.beginResize(static_cast<ResizeEdge>(edge));
         }
         reply.result(nullptr);
     });
-    handler.on("minimize", [](gwl::WebViewWindow& window, const gwl::Json&, const gwl::Reply& reply) {
+    handler.on("minimize", [](WebViewWindow& window, const Json&, const Reply& reply) {
         logRequest("minimize");
         window.minimize();
         reply.result(nullptr);
     });
-    handler.on("toggleMaximize", [](gwl::WebViewWindow& window, const gwl::Json&, const gwl::Reply& reply) {
+    handler.on("toggleMaximize", [](WebViewWindow& window, const Json&, const Reply& reply) {
         logRequest("toggleMaximize");
         window.toggleMaximize();
         reply.result(nullptr);
     });
-    handler.on("close", [](gwl::WebViewWindow& window, const gwl::Json&, const gwl::Reply& reply) {
+    handler.on("close", [](WebViewWindow& window, const Json&, const Reply& reply) {
         logRequest("close");
         window.close();
         reply.result(nullptr);
@@ -648,14 +649,14 @@ void AppState::launchNamed(const std::string& name) {
             continue;
         }
         // A failed start shows its reason in the progress window, so only blocking issues need a window of their own.
-        auto shown = [this, index, name](const gwl::Json& result) {
+        auto shown = [this, index, name](const Json& result) {
             if (result.is_object() && result.contains("issues") && !result["issues"].is_null()) {
-                const gwl::Json view{{"index", index}, {"name", name}, {"issues", result["issues"]}, {"canLaunch", result["canLaunch"]}, {"launchBlocked", true}};
+                const Json view{{"index", index}, {"name", name}, {"issues", result["issues"]}, {"canLaunch", result["canLaunch"]}, {"launchBlocked", true}};
                 openIssues("launch:" + name, view);
             }
             endQuickIfIdle();
         };
-        launch(gwl::Reply{shown, [this](const std::string&) { endQuickIfIdle(); }}, gwl::Json::array({index}), false, true);
+        launch(Reply{shown, [this](const std::string&) { endQuickIfIdle(); }}, Json::array({index}), false, true);
         return;
     }
     openMessage("GW Launcher", "There's no account named " + name + ".");

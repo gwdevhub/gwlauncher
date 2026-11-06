@@ -3,11 +3,11 @@
 #pragma once
 
 #include "AppState.h"
-#include "WebViewWindow.h"
+#include "LauncherWindow.h"
 
 namespace launcher {
 
-class AccountListWindow : public gwl::WebViewWindow {
+class AccountListWindow : public LauncherWindow {
 public:
     explicit AccountListWindow(AppState& app);
 
@@ -17,7 +17,7 @@ public:
 protected:
     // With the tray icon up and no title bar, closing the list hides it into the tray. Otherwise the list can't be found
     // again once closed, so closing it is allowed, and quits the launcher.
-    bool allowClose() override;
+    bool mayClose() override;
     // In tray mode losing focus hides the list, as a click away from it does.
     void onFocusLost() override;
 

@@ -9,6 +9,7 @@
 #include <string>
 #include <utility>
 
+#include "Desktop.h"
 #include "Settings.h"
 #include "WebViewWindow.h"
 #include "utils/Files.h"
@@ -134,3 +135,21 @@ std::optional<Rect> workAreaAt(const Rect& rect) {
 }
 
 }  // namespace gwl
+
+// The desktop functions the WebViewWindow library calls. The library has them in the global namespace, and the launcher defines
+// them above in gwl, so they forward to those.
+void showError(const std::string& message) {
+    showError(message);
+}
+
+std::optional<std::pair<int, int>> cursorPosition() {
+    return gwl::cursorPosition();
+}
+
+std::optional<Rect> workArea() {
+    return gwl::workArea();
+}
+
+std::optional<Rect> workAreaAt(const Rect& rect) {
+    return gwl::workAreaAt(rect);
+}

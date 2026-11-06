@@ -4,11 +4,11 @@
 #pragma once
 
 #include "AppState.h"
-#include "WebViewWindow.h"
+#include "LauncherWindow.h"
 
 namespace launcher {
 
-class SettingsWindow : public gwl::WebViewWindow {
+class SettingsWindow : public LauncherWindow {
 public:
     explicit SettingsWindow(AppState& app);
 

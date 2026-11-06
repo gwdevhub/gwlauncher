@@ -2,11 +2,14 @@
 // The tray's own parts are in tray/Tray.h and tray/TrayRegion.h, and their platform code is in platform/<os>.
 
 #include <algorithm>
+#include <atomic>
 #include <chrono>
 #include <cstdio>
 #include <exception>
 #include <optional>
+#include <thread>
 
+#include "Desktop.h"
 #include "AccountListWindow.h"
 #include "AppState.h"
 #include "EmbeddedAssets.h"
@@ -19,6 +22,8 @@ namespace {
 
 // The gap between the list and the tray rect it sits beside.
 const int kTrayGap = 4;
+// How often the desktop is asked whether it still has the tray icon.
+const auto kTrayCheckInterval = std::chrono::seconds(2);
 // A tray click this soon after focus hid the list is the click that hid it, so it doesn't show the list again.
 const auto kTrayClickAfterFocusLoss = std::chrono::milliseconds(500);
 
@@ -39,6 +44,10 @@ bool AppState::listHasTitleBar() const {
 void AppState::setTrayIcon() {
     if (!settings.effective(gwl::hasTray()).keepInSystemTray) {
         tray.reset();
+        if (trayWatch) {
+            *trayWatch = false;
+            trayWatch.reset();
+        }
         if (list && !list->isVisible()) {
             list->show();
         }
@@ -51,6 +60,7 @@ void AppState::setTrayIcon() {
         tray = std::make_unique<gwl::TrayIcon>(gwl::embeddedHelmetPng(), [this](gwl::TrayAction action, int x, int y) {
             trayEvent(action, x, y);
         });
+        startTrayWatch();
     } catch (const std::exception& error) {
         // Without the icon the list stays an ordinary window, so it can't be lost by closing it.
         std::fprintf(stderr, "could not add the tray icon: %s\n", error.what());
@@ -60,10 +70,45 @@ void AppState::setTrayIcon() {
     }
 }
 
+void AppState::startTrayWatch() {
+    trayWatch = std::make_shared<std::atomic<bool>>(true);
+    std::thread([this, watch = trayWatch] {
+        while (watch->load()) {
+            std::this_thread::sleep_for(kTrayCheckInterval);
+            if (watch->load() && !gwl::hasTray()) {
+                runOnUiThread([this, watch] {
+                    if (watch->load() && tray) {
+                        trayLost();
+                    }
+                });
+                return;
+            }
+        }
+    }).detach();
+}
+
+// Without the tray icon the list is the only way to reach the launcher, so it's shown as an ordinary window.
+void AppState::trayLost() {
+    if (!tray) {
+        return;
+    }
+    std::fprintf(stderr, "The system tray icon was removed by the desktop, so the list is shown as a window.\n");
+    tray.reset();
+    if (trayWatch) {
+        *trayWatch = false;
+        trayWatch.reset();
+    }
+    if (list) {
+        list->setTitleBar(listHasTitleBar());
+        list->setSkipTaskbar(false);
+        list->present();
+    }
+}
+
 void AppState::trayEvent(gwl::TrayAction action, int x, int y) {
     switch (action) {
     case gwl::TrayAction::Activate:
-        trayAnchor = gwl::Rect{x, y, 0, 0};
+        trayAnchor = Rect{x, y, 0, 0};
         if (list && list->isVisible()) {
             hideList();
         } else if (std::chrono::steady_clock::now() - listHiddenByFocusAt > kTrayClickAfterFocusLoss) {
@@ -72,7 +117,7 @@ void AppState::trayEvent(gwl::TrayAction action, int x, int y) {
         }
         break;
     case gwl::TrayAction::RightClick:
-        trayAnchor = gwl::Rect{x, y, 0, 0};
+        trayAnchor = Rect{x, y, 0, 0};
         listOpenedByRightClick = true;
         showList(trayAnchor);
         break;
@@ -103,12 +148,12 @@ void AppState::hideList() {
     list->hide();
 }
 
-void AppState::showList(std::optional<gwl::Rect> click, std::optional<gwl::Rect> trayRect) {
+void AppState::showList(std::optional<Rect> click, std::optional<Rect> trayRect) {
     if (!list) {
         return;
     }
     listShownAt = std::chrono::steady_clock::now();
-    const auto area = gwl::workArea();
+    const auto area = workArea();
     if (!area) {
         list->show();
         listShownAt = std::chrono::steady_clock::now();
@@ -118,16 +163,16 @@ void AppState::showList(std::optional<gwl::Rect> click, std::optional<gwl::Rect>
     const int baseHeight = static_cast<int>(settings.listHeight);
     // The window's real size, which the display's scale can make larger than the UI scale alone gives.
     const auto actual = list->frame();
-    const int width = actual ? actual->width : gwl::scaledSize(baseWidth);
-    const int height = actual ? actual->height : gwl::scaledSize(baseHeight);
+    const int width = actual ? actual->width : scaledSize(baseWidth);
+    const int height = actual ? actual->height : scaledSize(baseHeight);
     // Beside a rect: see gwl::placeBeside. The list stays inside the work area.
-    auto besideRect = [&](const gwl::Rect& rect, bool portrait) {
-        const gwl::Rect beside = gwl::placeBeside(rect, width, height, *area, kTrayGap, portrait);
+    auto besideRect = [&](const Rect& rect, bool portrait) {
+        const Rect beside = gwl::placeBeside(rect, width, height, *area, kTrayGap, portrait);
         return std::make_pair(beside.x, beside.y);
     };
     std::pair<int, int> place{area->centreX() - width / 2, area->centreY() - height / 2};
     const auto screen = gwl::screenSize();
-    const auto strip = screen ? gwl::panelStrip(gwl::Rect{0, 0, screen->first, screen->second}, *area) : std::nullopt;
+    const auto strip = screen ? gwl::panelStrip(Rect{0, 0, screen->first, screen->second}, *area) : std::nullopt;
     // In tray mode the list goes beside the icon whenever the desktop gives its rectangle, before the click's point. The panel's
     // orientation decides the side: an icon's rectangle is as tall as the taskbar, so its own shape doesn't say.
     if (!trayRect && tray) {
@@ -161,16 +206,16 @@ void AppState::showListAtStart() {
         }
     }
     const auto screen = gwl::screenSize();
-    const auto area = gwl::workArea();
+    const auto area = workArea();
     if (!screen || !area) {
         showList(std::nullopt);
         return;
     }
-    const gwl::Rect screenRect{0, 0, screen->first, screen->second};
+    const Rect screenRect{0, 0, screen->first, screen->second};
     // Finding the tray asks the desktop, so it's asked on a worker, and the list follows on the window's thread.
     workers.submit([screenRect, workRect = *area] { return gwl::locateTray(screenRect, workRect); },
-                   [this](std::optional<gwl::Rect> region) {
-                       gwl::runOnUiThread([this, region] {
+                   [this](std::optional<Rect> region) {
+                       runOnUiThread([this, region] {
                            if (list) {
                                showList(std::nullopt, region);
                            }

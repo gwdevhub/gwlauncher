@@ -3,6 +3,7 @@
 
 #include "Progress.h"
 #include "EmbeddedCli.h"
+#include "Desktop.h"
 #include "Launch.h"
 #include "Shortcuts.h"
 #include "utils/Strings.h"
@@ -848,5 +849,8 @@ std::filesystem::path defaultGameFolder() {
 void setDefaultGame(const std::filesystem::path& exe) {
     setGamePath(systemRuntime(launcherDataDir()), exe.string());
 }
+
+// Linux has no WebView2 loader: the windows use WebKitGTK, which the system provides.
+void installWebView2Loader() {}
 
 }  // namespace gwl

@@ -12,6 +12,7 @@
 #include <utility>
 #include <vector>
 
+#include "Desktop.h"
 #include "AppState.h"
 #include "GwInstall.h"
 #include "GwNet.h"
@@ -28,7 +29,7 @@ namespace {
 
 }  // namespace
 
-gwl::Json AppState::setupItems() const {
+Json AppState::setupItems() const {
     bool installed = gwl::defaultInstall().has_value();
     for (const gwl::Account& account : accounts) {
         const auto exe = gwl::gameFilePath(account.gwpath);
@@ -37,7 +38,7 @@ gwl::Json AppState::setupItems() const {
             installed = true;
         }
     }
-    return gwl::Json::array({gwl::Json{
+    return Json::array({Json{
         {"title", "Guild Wars client"},
         {"description", "Downloads Gw.exe as the default installation."},
         {"done", installed},
@@ -46,7 +47,7 @@ gwl::Json AppState::setupItems() const {
     }});
 }
 
-gwl::Json AppState::startSetup(const std::string& requested) {
+Json AppState::startSetup(const std::string& requested) {
     const std::string text = gwl::trimmed(requested);
     const fs::path folder = text.empty() ? gwl::defaultGameFolder() : gwl::pathFromUtf8(text);
     if (!folder.is_absolute()) {
@@ -61,7 +62,7 @@ gwl::Json AppState::startSetup(const std::string& requested) {
     static std::atomic<bool> noCancel{false};
     std::thread([this, folder] {
         const gwl::ProgressReport report = gwl::throttled([this](const std::string& stage, std::optional<double>) {
-            gwl::runOnUiThread([this, stage] {
+            runOnUiThread([this, stage] {
                 if (setup.running) {
                     setup.line = stage;
                 }
@@ -74,7 +75,7 @@ gwl::Json AppState::startSetup(const std::string& requested) {
         } catch (const std::exception& error) {
             failure = error.what();
         }
-        gwl::runOnUiThread([this, failure] {
+        runOnUiThread([this, failure] {
             setup.running = false;
             forgetInstallState();
             if (failure) {
@@ -87,12 +88,12 @@ gwl::Json AppState::startSetup(const std::string& requested) {
     return nullptr;
 }
 
-gwl::Json AppState::setupStatus() const {
-    return gwl::Json{
+Json AppState::setupStatus() const {
+    return Json{
         {"running", setup.running},
         {"lastLine", setup.line},
         {"logPath", ""},
-        {"error", setup.error ? gwl::Json(*setup.error) : gwl::Json(nullptr)},
+        {"error", setup.error ? Json(*setup.error) : Json(nullptr)},
     };
 }
 
@@ -106,7 +107,7 @@ std::string updateSummary(std::size_t checked, std::size_t replaced) {
 
 }  // namespace
 
-void AppState::startUpdateAll(gwl::Reply reply) {
+void AppState::startUpdateAll(Reply reply) {
     std::set<std::string> seen;
     std::vector<fs::path> paths;
     for (const gwl::Account& account : accounts) {
@@ -117,7 +118,7 @@ void AppState::startUpdateAll(gwl::Reply reply) {
             paths.push_back(*exe);
         }
     }
-    const gwl::Json popup{
+    const Json popup{
         {"title", "Updating Gw.exe"},
         {"heading", "Checking the latest Gw.exe"},
         {"cancellable", true},
@@ -131,7 +132,7 @@ void AppState::startUpdateAll(gwl::Reply reply) {
             *replaced = gwl::updateGwClients(paths, report, cancel);
         },
         [reply, replaced, checked](const std::optional<std::string>& failure) {
-            reply.result(failure ? gwl::Json("Gw.exe update was cancelled or failed.") : gwl::Json(updateSummary(checked, *replaced)));
+            reply.result(failure ? Json("Gw.exe update was cancelled or failed.") : Json(updateSummary(checked, *replaced)));
         },
         [replaced, checked] { return updateSummary(checked, *replaced); });
 }

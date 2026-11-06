@@ -3,14 +3,14 @@
 #pragma once
 
 #include "AppState.h"
-#include "WebViewWindow.h"
+#include "LauncherWindow.h"
 
 namespace launcher {
 
-class AccountEditWindow : public gwl::WebViewWindow {
+class AccountEditWindow : public LauncherWindow {
 public:
     // The page's arguments for the editor: the account's index (or null for a new one), keepDraft, and a copy to start from.
-    AccountEditWindow(AppState& app, gwl::Json args);
+    AccountEditWindow(AppState& app, Json args);
 
     std::string html() const override;
     std::string devUrl() const override;
@@ -19,7 +19,7 @@ private:
     void installHandlers();
 
     AppState& app_;
-    gwl::Json args_;
+    Json args_;
 };
 
 }  // namespace launcher

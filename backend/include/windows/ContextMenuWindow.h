@@ -5,14 +5,14 @@
 #include <chrono>
 
 #include "AppState.h"
-#include "WebViewWindow.h"
+#include "LauncherWindow.h"
 
 namespace launcher {
 
-class ContextMenuWindow : public gwl::WebViewWindow {
+class ContextMenuWindow : public LauncherWindow {
 public:
     // The menu's items, as the page's menu lists them.
-    ContextMenuWindow(AppState& app, gwl::Json items);
+    ContextMenuWindow(AppState& app, Json items);
 
     std::string html() const override;
     std::string devUrl() const override;
@@ -26,7 +26,7 @@ private:
     void installHandlers();
 
     AppState& app_;
-    gwl::Json items_;
+    Json items_;
     std::chrono::steady_clock::time_point shownAt_ = std::chrono::steady_clock::now();
 };
 

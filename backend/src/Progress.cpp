@@ -67,13 +67,13 @@ ProgressReport throttled(ProgressReport send) {
 
 namespace launcher {
 
-void AppState::runWithProgress(const gwl::Json& popup, const gwl::ProgressWork& work, gwl::ProgressDone done,
+void AppState::runWithProgress(const Json& popup, const gwl::ProgressWork& work, gwl::ProgressDone done,
                                std::function<std::string()> summary) {
     const std::uint64_t job = ++progressJob;
     auto cancel = std::make_shared<std::atomic<bool>>(false);
     progressCancel = cancel;
     // A progress window without an icon of its own shows the launcher's helmet.
-    gwl::Json shown = popup;
+    Json shown = popup;
     if (!shown.contains("icon")) {
         shown["icon"] = helmetIcon();
     }
@@ -84,9 +84,9 @@ void AppState::runWithProgress(const gwl::Json& popup, const gwl::ProgressWork& 
     const std::string finishedText = popup.contains("finished") ? popup.at("finished").get<std::string>() : std::string();
     std::thread([this, job, failureText, finishedText, summary, work, cancel, done = std::move(done)] {
         const gwl::ProgressReport report = gwl::throttled([this, job](const std::string& stage, std::optional<double> fraction) {
-            gwl::runOnUiThread([this, job, stage, fraction] {
+            runOnUiThread([this, job, stage, fraction] {
                 if (job == progressJob && progressWindow) {
-                    progressWindow->emit("progress", gwl::Json{{"phase", "update"}, {"fraction", fraction ? gwl::Json(*fraction) : gwl::Json(nullptr)}, {"detail", stage}});
+                    progressWindow->emit("progress", Json{{"phase", "update"}, {"fraction", fraction ? Json(*fraction) : Json(nullptr)}, {"detail", stage}});
                 }
             });
         });
@@ -96,18 +96,18 @@ void AppState::runWithProgress(const gwl::Json& popup, const gwl::ProgressWork& 
         } catch (const std::exception& error) {
             failure = error.what();
         }
-        gwl::runOnUiThread([this, job, failure, failureText, finishedText, summary, done] {
+        runOnUiThread([this, job, failure, failureText, finishedText, summary, done] {
             // A cancelled job ends quietly. Any other failure shows its reason in the window. A finished job with a message stays
             // open until the user dismisses it.
             const bool cancelled = failure && *failure == gwl::kCancelledMessage;
             const std::string finished = summary && !failure ? summary() : finishedText;
             if (job == progressJob && progressWindow) {
                 if (failure && !cancelled) {
-                    progressWindow->emit("progress", gwl::Json{{"phase", "failed"}, {"text", failureText + ": " + *failure}});
+                    progressWindow->emit("progress", Json{{"phase", "failed"}, {"text", failureText + ": " + *failure}});
                 } else if (!failure && !finished.empty()) {
-                    progressWindow->emit("progress", gwl::Json{{"phase", "finished"}, {"text", finished}});
+                    progressWindow->emit("progress", Json{{"phase", "finished"}, {"text", finished}});
                 } else {
-                    progressWindow->emit("progress", gwl::Json{{"phase", "end"}});
+                    progressWindow->emit("progress", Json{{"phase", "end"}});
                 }
             }
             done(failure);
