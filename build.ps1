@@ -9,6 +9,19 @@ $presets = switch ($Target) {
 }
 $root = $PSScriptRoot
 
+# Runs docker with its output dropped and returns its exit code. Windows PowerShell 5.1 makes a redirected native error terminate under
+# Stop, and these probes fail on purpose (no daemon yet, no image yet), so they run with Continue.
+function Invoke-DockerQuiet {
+    $previous = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        docker @args *> $null
+    } finally {
+        $ErrorActionPreference = $previous
+    }
+    return $LASTEXITCODE
+}
+
 # Before anything is built: a launcher running from bin locks its exe, and the build needs to write there.
 $bin = Join-Path $root 'bin'
 New-Item -ItemType Directory -Force -Path $bin | Out-Null
@@ -33,8 +46,7 @@ if (-not (Get-Process -Name 'Docker Desktop' -ErrorAction SilentlyContinue)) {
 }
 $started = $false
 for ($i = 0; $i -lt 90 -and -not $started; $i++) {
-    docker info *> $null
-    $started = $LASTEXITCODE -eq 0
+    $started = (Invoke-DockerQuiet info) -eq 0
     if (-not $started) { Start-Sleep -Seconds 2 }
 }
 if (-not $started) { throw "Docker didn't start." }
@@ -53,12 +65,11 @@ try {
 # The builder image is tagged by its Dockerfile.toolchain hash, so the compilers are only installed again when that file changes.
 $builderHash = (Get-FileHash (Join-Path $root 'Dockerfile.toolchain') -Algorithm SHA256).Hash.Substring(0, 12).ToLower()
 $builderImage = "gwdevhub-builder:$builderHash"
-docker image inspect $builderImage *> $null
-if ($LASTEXITCODE -ne 0) {
+if ((Invoke-DockerQuiet image inspect $builderImage) -ne 0) {
     docker build -t $builderImage -f (Join-Path $root 'Dockerfile.toolchain') $root
     if ($LASTEXITCODE -ne 0) { throw 'The builder image failed to build.' }
     # Older builder images are dropped so each change doesn't leave another one behind.
-    docker image ls gwdevhub-builder --format '{{.Repository}}:{{.Tag}}' | Where-Object { $_ -ne $builderImage } | ForEach-Object { docker rmi $_ *> $null }
+    docker image ls gwdevhub-builder --format '{{.Repository}}:{{.Tag}}' | Where-Object { $_ -ne $builderImage } | ForEach-Object { Invoke-DockerQuiet rmi $_ | Out-Null }
 }
 
 # The build number comes from the host's git history, because the container doesn't copy .git.
