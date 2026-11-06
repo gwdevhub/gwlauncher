@@ -57,11 +57,6 @@ void AccountListWindow::onFocusLost() {
 void AccountListWindow::installHandlers() {
     auto& handler = this->handler();
 
-    // Pinning only matters for the tray flyout, which the native layer doesn't have yet.
-    handler.on("pin", [](WebViewWindow&, const Json&, const Reply& reply) {
-        logRequest("pin");
-        reply.result(nullptr);
-    });
     handler.on("listSize", [this](WebViewWindow&, const Json&, const Reply& reply) {
         logRequest("listSize");
         const gwl::Settings effective = app_.settings.effective(gwl::hasTray());

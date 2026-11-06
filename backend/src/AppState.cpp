@@ -342,6 +342,11 @@ void installCommonHandlers(MessageHandler& handler, AppState& app) {
         logRequest("icon");
         reply.result(helmetIcon());
     });
+    // Pinning only matters for the tray flyout, which the native layer doesn't have yet. Every view calls it when it's shown.
+    handler.on("pin", [](WebViewWindow&, const Json&, const Reply& reply) {
+        logRequest("pin");
+        reply.result(nullptr);
+    });
     handler.on("pathIcon", [](WebViewWindow&, const Json& args, const Reply& reply) {
         const auto path = args.at(0).get<std::string>();
         iconWorkers().submit([path, reply] {
