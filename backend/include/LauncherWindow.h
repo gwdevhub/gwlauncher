@@ -5,6 +5,7 @@
 
 #include "Desktop.h"
 #include "WebViewWindow.h"
+#include "utils/Errors.h"
 
 namespace launcher {
 
@@ -15,6 +16,18 @@ public:
 protected:
     // Whether the window may be closed. A window that may be closed is hidden, and one that may not stays as it is.
     virtual bool mayClose() { return true; }
+
+#ifdef _WIN32
+    // Retry recreates the web view. Cancel leaves the launcher, since the window can't show anything without it.
+    void onWebViewFailure(const std::string& message) override {
+        if (!gwl::confirmRetry(message)) {
+            stopEventLoop();
+            return;
+        }
+        const std::string error = gwl::captureError([this] { reload(); }, "Recreating the launcher interface failed: ");
+        if (!error.empty()) reportFatalError(error);
+    }
+#endif
 
 private:
     static WindowOptions withProfileFolder(WindowOptions options) {

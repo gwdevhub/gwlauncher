@@ -14,6 +14,7 @@
 
 #ifdef _WIN32
 #include "Cli.h"
+#include "StartupWatch.h"
 #endif
 
 int main(int argc, char** argv) {
@@ -38,12 +39,21 @@ int main(int argc, char** argv) {
             gwl::removeLeftoverTempFiles();
         }
         // Windows and menus need the windowing started, and the tray's menu is made before the list window.
+#ifdef _WIN32
+        gwl::startStartupMonitoring();
+#endif
         // The WebView2 loader is written beside the launcher before the windows start, and the dialogs are titled GW Launcher.
         gwl::installWebView2Loader();
         setApplicationName("GW Launcher");
         initializeWindowing();
         setApplicationIcon(gwl::embeddedHelmetPng());
+#ifdef _WIN32
+        gwl::monitorConfigurationStartup();
+#endif
         launcher::AppState app(gwl::embeddedPage());
+#ifdef _WIN32
+        gwl::finishStartupMonitoring();
+#endif
         if (quick) {
             app.quickLaunch(request.name);
             runEventLoop();

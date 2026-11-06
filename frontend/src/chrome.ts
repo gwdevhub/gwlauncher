@@ -1,7 +1,7 @@
 // The window's chrome from the host: its title, whether the page draws a title bar, and whether its edges resize it.
 
 import { useSyncExternalStore } from 'react';
-import { call } from './bridge';
+import { read } from './bridge';
 import { on } from './events';
 import type { Chrome } from './types';
 
@@ -18,9 +18,10 @@ export function getChrome(): Chrome {
 }
 
 // Asked for once at start. The host pushes changes after that, such as the list's title bar following the tray setting.
+on('chrome', (next: Chrome) => setChrome(next));
+
 export async function loadChrome() {
-    on('chrome', (next: Chrome) => setChrome(next));
-    setChrome(await call<Chrome>('chrome'));
+    setChrome(await read<Chrome>('chrome'));
 }
 
 export function useChrome(): Chrome {

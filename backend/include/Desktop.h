@@ -12,6 +12,11 @@ namespace gwl {
 // The folder WebView2 keeps the launcher's profile in. It's in LocalAppData, so it survives an update. Empty on Linux.
 std::filesystem::path webViewDataFolder();
 
+#ifdef _WIN32
+// Asks whether to recreate a window whose web view failed. Retrying restarts the interface, not the jobs that are running.
+bool confirmRetry(const std::string& message);
+#endif
+
 // The file the user picks in an open dialog: a Gw.exe, or a mod file when modsOnly. startFolder, when it's given, is the folder the
 // dialog opens in. Nothing when they cancel.
 std::optional<std::string> pickFile(const std::string& title, bool modsOnly, const std::string& startFolder = {});

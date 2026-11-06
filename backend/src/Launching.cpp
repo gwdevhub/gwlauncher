@@ -194,7 +194,7 @@ void AppState::startGameAsync(const gwl::Account& account, std::optional<std::si
             // Once Guild Wars is starting it can't be stopped from here, so the window's Cancel is turned off.
             runOnUiThread([this] {
                 if (progressWindow) {
-                    progressWindow->emit("progress", Json{{"phase", "update"}, {"cancellable", false}, {"detail", "Starting the game..."}});
+                    showProgress(Json{{"phase", "update"}, {"cancellable", false}, {"detail", "Starting the game..."}});
                 }
             });
             if (cancel.load()) {
@@ -205,7 +205,7 @@ void AppState::startGameAsync(const gwl::Account& account, std::optional<std::si
                 confirm = [this, resume, &cancel] {
                     runOnUiThread([this] {
                         if (progressWindow) {
-                            progressWindow->emit("progress", Json{{"phase", "paused"}});
+                            showProgress(Json{{"phase", "paused"}});
                         }
                     });
                     // Waits for Continue. The window's Cancel sets the job's cancel flag, which ends the start with the game still paused.
@@ -217,7 +217,7 @@ void AppState::startGameAsync(const gwl::Account& account, std::optional<std::si
                     }
                     runOnUiThread([this] {
                         if (progressWindow) {
-                            progressWindow->emit("progress", Json{{"phase", "update"}, {"cancellable", false}, {"detail", "Starting the game..."}});
+                            showProgress(Json{{"phase", "update"}, {"cancellable", false}, {"detail", "Starting the game..."}});
                         }
                     });
                     return true;
@@ -235,24 +235,6 @@ void AppState::startGameAsync(const gwl::Account& account, std::optional<std::si
             }
             done(failure, *blocked);
         });
-}
-
-std::vector<std::string> AppState::accountStates() const {
-    const std::set<std::string> running = gwl::runningGamePaths();
-    std::vector<std::string> states;
-    for (std::size_t index = 0; index < accounts.size(); ++index) {
-        const gwl::Account& account = accounts[index];
-        const auto key = account.pathKey();
-        if (launching.count(account.name())) {
-            states.push_back("Launching");
-        } else if (!key || !running.count(*key)) {
-            states.push_back("Inactive");
-        } else {
-            const auto started = startedBy.find(*key);
-            states.push_back(started != startedBy.end() && started->second == index ? "Active" : "In Use");
-        }
-    }
-    return states;
 }
 
 void AppState::accountRemoved(std::size_t index) {

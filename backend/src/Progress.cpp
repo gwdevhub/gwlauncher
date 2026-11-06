@@ -1,5 +1,4 @@
 #include <chrono>
-#include <exception>
 #include <memory>
 #include <mutex>
 #include <optional>
@@ -10,6 +9,7 @@
 #include "AppState.h"
 #include "Progress.h"
 #include "windows/ProgressWindow.h"
+#include "utils/Errors.h"
 
 namespace gwl {
 
@@ -67,6 +67,11 @@ ProgressReport throttled(ProgressReport send) {
 
 namespace launcher {
 
+void AppState::showProgress(const Json& progress) {
+    progressState = progress;
+    if (progressWindow) progressWindow->emit("progress", progress);
+}
+
 void AppState::runWithProgress(const Json& popup, const gwl::ProgressWork& work, gwl::ProgressDone done,
                                std::function<std::string()> summary) {
     const std::uint64_t job = ++progressJob;
@@ -86,16 +91,13 @@ void AppState::runWithProgress(const Json& popup, const gwl::ProgressWork& work,
         const gwl::ProgressReport report = gwl::throttled([this, job](const std::string& stage, std::optional<double> fraction) {
             runOnUiThread([this, job, stage, fraction] {
                 if (job == progressJob && progressWindow) {
-                    progressWindow->emit("progress", Json{{"phase", "update"}, {"fraction", fraction ? Json(*fraction) : Json(nullptr)}, {"detail", stage}});
+                    showProgress(Json{{"phase", "update"}, {"fraction", fraction ? Json(*fraction) : Json(nullptr)}, {"detail", stage}});
                 }
             });
         });
         std::optional<std::string> failure;
-        try {
-            work(report, *cancel);
-        } catch (const std::exception& error) {
-            failure = error.what();
-        }
+        const auto error = gwl::captureError([&] { work(report, *cancel); });
+        if (!error.empty()) failure = error;
         runOnUiThread([this, job, failure, failureText, finishedText, summary, done] {
             // A cancelled job ends quietly. Any other failure shows its reason in the window. A finished job with a message stays
             // open until the user dismisses it.
@@ -103,11 +105,11 @@ void AppState::runWithProgress(const Json& popup, const gwl::ProgressWork& work,
             const std::string finished = summary && !failure ? summary() : finishedText;
             if (job == progressJob && progressWindow) {
                 if (failure && !cancelled) {
-                    progressWindow->emit("progress", Json{{"phase", "failed"}, {"text", failureText + ": " + *failure}});
+                    showProgress(Json{{"phase", "failed"}, {"text", failureText + ": " + *failure}});
                 } else if (!failure && !finished.empty()) {
-                    progressWindow->emit("progress", Json{{"phase", "finished"}, {"text", finished}});
+                    showProgress(Json{{"phase", "finished"}, {"text", finished}});
                 } else {
-                    progressWindow->emit("progress", Json{{"phase", "end"}});
+                    showProgress(Json{{"phase", "end"}});
                 }
             }
             done(failure);

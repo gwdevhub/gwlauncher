@@ -128,8 +128,6 @@ struct AppState {
     void startGameAsync(const gwl::Account& account, std::optional<std::size_t> index, bool suspended, bool checkFirst,
                         std::function<void(const std::optional<std::string>& failure, const std::optional<Json>& blocked)> done);
 
-    // Each account's state in the list: Launching, Active, In Use or Inactive.
-    std::vector<std::string> accountStates() const;
     // Keeps which game each account started right when the list changes: removed accounts drop out, and the others move.
     void accountRemoved(std::size_t index);
     void accountMoved(std::size_t from, std::size_t to);
@@ -192,6 +190,9 @@ struct AppState {
                          std::function<std::string()> summary = nullptr);
     // The progress window for the latest job, and the job it shows. Progress for an earlier job is dropped.
     std::unique_ptr<WebViewWindow> progressWindow;
+    // The latest progress the window shows, kept so a page that's loaded again can show it too.
+    Json progressState;
+    void showProgress(const Json& progress);
     std::uint64_t progressJob = 0;
     std::shared_ptr<std::atomic<bool>> progressCancel;
     // Set by the progress window's Continue, for a suspended start that's waiting to resume the game.
@@ -213,6 +214,8 @@ struct AppState {
     std::vector<std::string> launchArguments;
     // Read at startup, since an update renames the running file and restart needs where the launcher was started from.
     std::filesystem::path executable;
+    // Destroyed before other state, so queued reload completions cannot touch a shutting-down app.
+    std::shared_ptr<bool> alive = std::make_shared<bool>(true);
 };
 
 // The handlers every window answers, for the calls the page makes from any of its windows.
@@ -223,7 +226,7 @@ std::string developmentUrl();
 
 // The icon for a row: the Steam icon for Steam accounts, and the helmet for the rest, as data URLs.
 const std::string& helmetIcon();
-// The image beside an account, as the account list shows it. Used for the account's launch window.
+// The fallback image used for an account and its launch window.
 std::string accountIconUrl(const gwl::Account& account);
 const std::string& steamIcon();
 

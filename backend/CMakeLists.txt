@@ -67,7 +67,7 @@ if(WIN32)
     if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
         message(FATAL_ERROR "The native Windows build uses MinGW. Configure it with the x86_64-w64-mingw32 toolchain.")
     endif()
-    target_sources(gwl_core PRIVATE platform/windows/Desktop.cpp platform/windows/Launch.cpp platform/windows/Network.cpp platform/windows/Crypto.cpp platform/windows/PasswordCache.cpp platform/windows/LauncherUpdate.cpp platform/windows/Wof.cpp platform/windows/Game.cpp platform/windows/Cli.cpp platform/windows/LaunchCli.cpp platform/windows/SystemInfo.cpp platform/windows/Process.cpp platform/windows/Shell.cpp platform/windows/Instance.cpp platform/windows/Tray.cpp)
+    target_sources(gwl_core PRIVATE platform/windows/Desktop.cpp platform/windows/Launch.cpp platform/windows/Network.cpp platform/windows/Crypto.cpp platform/windows/PasswordCache.cpp platform/windows/LauncherUpdate.cpp platform/windows/Wof.cpp platform/windows/Game.cpp platform/windows/Cli.cpp platform/windows/LaunchCli.cpp platform/windows/SystemInfo.cpp platform/windows/Process.cpp platform/windows/Shell.cpp platform/windows/Instance.cpp platform/windows/Tray.cpp platform/windows/StartupWatch.cpp)
     target_link_libraries(gwl_core PUBLIC user32 ole32 shell32 shlwapi uuid comdlg32 ws2_32 bcrypt advapi32 crypt32)
 elseif(UNIX AND NOT APPLE)
     # The headers only: the libraries themselves are opened at runtime, so they're not linked.

@@ -15,6 +15,7 @@
 
 #include "Desktop.h"
 #include "Settings.h"
+#include "StartupWatch.h"
 #include "WebViewWindow.h"
 #include "utils/Files.h"
 
@@ -44,7 +45,9 @@ std::string toUtf8(const wchar_t* text) {
 
 void showError(const std::string& message) {
     std::fprintf(stderr, "%s\n", message.c_str());
+    pauseStartupMonitoring(true);
     MessageBoxW(nullptr, toWide(message).c_str(), L"GW Launcher", MB_OK | MB_ICONERROR);
+    pauseStartupMonitoring(false);
 }
 
 std::optional<std::string> pickFile(const std::string& title, bool modsOnly, const std::string& startFolder) {
@@ -146,6 +149,14 @@ std::filesystem::path webViewDataFolder() {
     std::filesystem::path path(folder);
     CoTaskMemFree(folder);
     return path / "GWLauncher" / "WebView2";
+}
+
+bool confirmRetry(const std::string& message) {
+    const std::wstring text = toWide(message + "\n\nRetry recreates the interface; running jobs are not restarted. Cancel exits GW Launcher.\nPress Ctrl+C to copy this error.");
+    pauseStartupMonitoring(true);
+    const int answer = MessageBoxW(nullptr, text.c_str(), L"GW Launcher interface error", MB_RETRYCANCEL | MB_ICONERROR);
+    pauseStartupMonitoring(false);
+    return answer == IDRETRY;
 }
 
 }  // namespace gwl

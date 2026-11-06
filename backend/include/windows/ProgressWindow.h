@@ -13,9 +13,10 @@ public:
 
     std::string html() const override;
     std::string devUrl() const override;
-
 protected:
     bool mayClose() override;
+    // A page that's loaded again shows the job's latest state.
+    void onPageReady() override;
 
 private:
     AppState& app_;

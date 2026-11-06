@@ -25,4 +25,10 @@ bool ProgressWindow::mayClose() {
     return true;
 }
 
+void ProgressWindow::onPageReady() {
+    if (!app_.progressState.is_null()) {
+        emit("progress", app_.progressState);
+    }
+}
+
 }  // namespace launcher
