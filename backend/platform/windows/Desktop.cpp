@@ -50,14 +50,6 @@ std::optional<std::string> pickFile(const std::string& title, bool modsOnly, con
     return toUtf8(file);
 }
 
-std::optional<std::pair<int, int>> cursorPosition() {
-    POINT point{};
-    if (!GetCursorPos(&point)) {
-        return std::nullopt;
-    }
-    return std::make_pair(static_cast<int>(point.x), static_cast<int>(point.y));
-}
-
 // The game's folder from the ArenaNet install keys, the user's first and then the installer's. A value is a path to
 // Gw.exe, or to a folder that holds one, and only one that exists counts.
 std::optional<std::string> defaultInstall() {
@@ -99,27 +91,6 @@ std::optional<std::pair<int, int>> screenSize() {
     return std::make_pair(GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN));
 }
 
-// The work area: the screen less the taskbar.
-std::optional<Rect> workArea() {
-    RECT area{};
-    if (!SystemParametersInfoW(SPI_GETWORKAREA, 0, &area, 0)) {
-        return std::nullopt;
-    }
-    return Rect{area.left, area.top, area.right - area.left, area.bottom - area.top};
-}
-
-// The work area of the monitor that holds most of the rectangle, or the nearest one when it's off every monitor.
-std::optional<Rect> workAreaAt(const Rect& rect) {
-    const RECT bounds{rect.x, rect.y, rect.right(), rect.bottom()};
-    MONITORINFO info{};
-    info.cbSize = sizeof(info);
-    if (!GetMonitorInfoW(MonitorFromRect(&bounds, MONITOR_DEFAULTTONEAREST), &info)) {
-        return std::nullopt;
-    }
-    const RECT& area = info.rcWork;
-    return Rect{area.left, area.top, area.right - area.left, area.bottom - area.top};
-}
-
 std::filesystem::path webViewDataFolder() {
     PWSTR folder = nullptr;
     if (FAILED(SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, nullptr, &folder))) {
@@ -140,20 +111,8 @@ bool confirmRetry(const std::string& message) {
 
 }  // namespace gwl
 
-// The desktop functions the WebViewWindow library calls. The library has them in the global namespace, and the launcher defines
-// them above in gwl, so they forward to those.
+// The desktop function the WebViewWindow library calls. The library has it in the global namespace, and the launcher defines it above
+// in gwl, so it forwards to that. The pointer and the work areas come from the library.
 void showError(const std::string& message) {
-    showError(message);
-}
-
-std::optional<std::pair<int, int>> cursorPosition() {
-    return gwl::cursorPosition();
-}
-
-std::optional<Rect> workArea() {
-    return gwl::workArea();
-}
-
-std::optional<Rect> workAreaAt(const Rect& rect) {
-    return gwl::workAreaAt(rect);
+    gwl::showError(message);
 }
