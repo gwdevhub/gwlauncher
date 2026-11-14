@@ -173,22 +173,6 @@ std::optional<std::string> pickFile(const std::string& title, bool modsOnly, con
     return picked;
 }
 
-// The pointer's position on screen, from GDK. Missing when GTK isn't installed.
-std::optional<std::pair<int, int>> cursorPosition() {
-    const GtkDialogs* gtk = gtkDialogs();
-    if (!gtk || !gtk->defaultDisplay || !gtk->displayPointer) {
-        return std::nullopt;
-    }
-    GdkDisplay* display = gtk->defaultDisplay();
-    if (!display) {
-        return std::nullopt;
-    }
-    gint x = 0;
-    gint y = 0;
-    gtk->displayPointer(display, nullptr, &x, &y, nullptr);
-    return std::make_pair(static_cast<int>(x), static_cast<int>(y));
-}
-
 // The screen's size in pixels, from GDK. Missing when GTK isn't installed.
 std::optional<std::pair<int, int>> screenSize() {
     const GtkDialogs* gtk = gtkDialogs();
@@ -200,27 +184,6 @@ std::optional<std::pair<int, int>> screenSize() {
         return std::nullopt;
     }
     return std::make_pair(static_cast<int>(gtk->screenWidth(screen)), static_cast<int>(gtk->screenHeight(screen)));
-}
-
-// The primary monitor's work area: the screen less the panels. Missing when GTK isn't installed.
-std::optional<Rect> workArea() {
-    const GtkDialogs* gtk = gtkDialogs();
-    if (!gtk || !gtk->defaultDisplay || !gtk->primaryMonitor || !gtk->monitorWorkarea) {
-        return std::nullopt;
-    }
-    GdkDisplay* display = gtk->defaultDisplay();
-    GdkMonitor* monitor = display ? gtk->primaryMonitor(display) : nullptr;
-    if (!monitor) {
-        return std::nullopt;
-    }
-    GdkRectangle area{};
-    gtk->monitorWorkarea(monitor, &area);
-    return Rect{area.x, area.y, area.width, area.height};
-}
-
-// Missing: the monitor under a window isn't looked up here, so windows aren't clamped on Linux.
-std::optional<Rect> workAreaAt(const Rect&) {
-    return std::nullopt;
 }
 
 // The game's folder from the Rust launcher's Wine prefix, when the file it's in exists here.
@@ -244,20 +207,8 @@ std::filesystem::path webViewDataFolder() {
 
 }  // namespace gwl
 
-// The desktop functions the WebViewWindow library calls. The library has them in the global namespace, and the launcher defines
-// them above in gwl, so they forward to those.
+// The desktop function the WebViewWindow library calls. The library has it in the global namespace, and the launcher defines it above
+// in gwl, so it forwards to that. The pointer and the work areas come from the library.
 void showError(const std::string& message) {
-    showError(message);
-}
-
-std::optional<std::pair<int, int>> cursorPosition() {
-    return gwl::cursorPosition();
-}
-
-std::optional<Rect> workArea() {
-    return gwl::workArea();
-}
-
-std::optional<Rect> workAreaAt(const Rect& rect) {
-    return gwl::workAreaAt(rect);
+    gwl::showError(message);
 }
