@@ -481,8 +481,31 @@ std::wstring windowTitle(HWND window) {
     return std::wstring(buffer, static_cast<std::size_t>(std::max(length, 0)));
 }
 
-bool isGameTitle(const std::wstring& title) {
-    return title == L"Guild Wars" || title == L"Guild Wars Reforged";
+// The class is set when the game creates the window, so it doesn't depend on the title's timing.
+const wchar_t* const kGameWindowClass = L"ArenaNet_Dx_Window_Class";
+
+std::wstring windowClass(HWND window) {
+    wchar_t buffer[256];
+    const int length = GetClassNameW(window, buffer, 256);
+    return std::wstring(buffer, static_cast<std::size_t>(std::max(length, 0)));
+}
+
+BOOL CALLBACK visitGameWindow(HWND window, LPARAM lparam) {
+    auto* search = reinterpret_cast<WindowSearch*>(lparam);
+    DWORD owner = 0;
+    GetWindowThreadProcessId(window, &owner);
+    const bool owned = GetWindow(window, GW_OWNER) != nullptr;
+    if (owner == search->processId && !owned && windowClass(window) == kGameWindowClass) {
+        search->found = window;
+        return FALSE;
+    }
+    return TRUE;
+}
+
+HWND gameWindow(DWORD processId) {
+    WindowSearch search{processId, nullptr};
+    EnumWindows(visitGameWindow, reinterpret_cast<LPARAM>(&search));
+    return search.found;
 }
 
 bool isResponding(HWND window) {
@@ -517,19 +540,18 @@ void waitForWindow(const GameProcess& game, const std::string& name, DWORD timeo
     }
     SetForegroundWindow(mainWindow(processId));
 
-    // The character-name wait needs the game's memory reader, which isn't ported yet, so the launch only waits for the title.
-    const bool titleReady = waitFor([processId] { return !windowTitle(mainWindow(processId)).empty(); }, kTitleTimeoutMs);
-    if (titleReady && isGameTitle(windowTitle(mainWindow(processId)))) {
-        waitFor(
-            [processId, &name] {
-                const HWND window = mainWindow(processId);
-                if (window) {
-                    SendMessageA(window, kWmSetText, 0, reinterpret_cast<LPARAM>(name.c_str()));
-                }
-                return !isGameTitle(windowTitle(mainWindow(processId)));
-            },
-            kTitleTimeoutMs);
-    }
+    // The character-name wait needs the game's memory reader, which isn't ported yet, so the launch stops after the rename.
+    waitFor(
+        [processId, &name] {
+            const HWND window = gameWindow(processId);
+            if (!window) {
+                return false;
+            }
+            const std::wstring wideName = toWide(name);
+            SendMessageW(window, kWmSetText, 0, reinterpret_cast<LPARAM>(wideName.c_str()));
+            return windowTitle(window) == wideName;
+        },
+        kTitleTimeoutMs);
 
     if (!isResponding(mainWindow(processId))) {
         fail("Failed to wait for process to respond after " + std::to_string(kTitleTimeoutMs / 1000) + " seconds.");
