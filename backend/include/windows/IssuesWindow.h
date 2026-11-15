@@ -17,7 +17,7 @@ public:
 
 protected:
     // Closing the window hides it, so it can be shown again.
-    bool mayClose() override;
+    void onHidden() override;
 
 private:
     AppState& app_;

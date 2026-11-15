@@ -16,7 +16,7 @@ public:
 
 protected:
     // A message stays in the list once shown, hidden, so it can be shown again.
-    bool mayClose() override;
+    void onHidden() override;
 
 private:
     AppState& app_;

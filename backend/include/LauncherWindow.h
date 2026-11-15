@@ -16,6 +16,8 @@ public:
 protected:
     // Whether the window may be closed. A window that may be closed is hidden, and one that may not stays as it is.
     virtual bool mayClose() { return true; }
+    // Runs once the window is hidden, so a check made there sees it as closed.
+    virtual void onHidden() {}
 
 #ifdef _WIN32
     // Retry recreates the web view. Cancel leaves the launcher, since the window can't show anything without it.
@@ -38,6 +40,7 @@ private:
     bool allowClose() final {
         if (mayClose()) {
             hide();
+            onHidden();
         }
         return false;
     }

@@ -20,6 +20,7 @@ public:
 protected:
     // Closing the prompt without answering counts as no answer. The window then hides, so it can't be closed twice.
     bool mayClose() override;
+    void onHidden() override;
 
 private:
     AppState& app_;
