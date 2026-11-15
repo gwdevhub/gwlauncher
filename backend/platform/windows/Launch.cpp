@@ -15,6 +15,7 @@
 #include "Desktop.h"
 #include "Launch.h"
 #include "Process.h"
+#include "Shell.h"
 #include "utils/Files.h"
 
 namespace gwl {
@@ -151,11 +152,7 @@ std::vector<std::filesystem::path> launchWriteFolders(const Account&) {
 }
 
 std::filesystem::path launcherDataDir() {
-    wchar_t path[MAX_PATH] = {};
-    if (GetModuleFileNameW(nullptr, path, MAX_PATH) == 0) {
-        return std::filesystem::path(".");
-    }
-    return std::filesystem::path(path).parent_path();
+    return launcherFolder();
 }
 
 std::optional<std::string> linuxPathFor(const std::string& windowsPath) {
@@ -196,7 +193,7 @@ void installWebView2Loader() {
     if (!bytes.first || bytes.second == 0) {
         return;
     }
-    const std::filesystem::path folder = launcherDataDir();
+    const std::filesystem::path folder = launcherFolder();
     const std::filesystem::path target = folder / "WebView2Loader.dll";
     std::error_code error;
     if (std::filesystem::is_regular_file(target, error) && std::filesystem::file_size(target, error) == bytes.second) {

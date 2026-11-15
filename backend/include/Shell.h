@@ -24,6 +24,9 @@ std::optional<std::filesystem::path> desktopFolder();
 // The launcher's own executable.
 std::filesystem::path executablePath();
 
+// The folder the launcher's executable is in. Settings, accounts and the WebView2 loader are kept there.
+std::filesystem::path launcherFolder();
+
 // Writes a desktop shortcut at file that starts target with arguments. iconPng is the PNG the shortcut shows, where the
 // platform uses one. Throws std::runtime_error with the reason when it fails.
 void createShortcut(const std::filesystem::path& file, const std::filesystem::path& target, const std::string& arguments,

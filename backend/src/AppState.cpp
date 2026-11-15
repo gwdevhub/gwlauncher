@@ -65,17 +65,9 @@ std::string pickerStartFolder(bool modsOnly, const std::string& gamePath) {
 
 namespace {
 
-std::filesystem::path configFolder() {
-#ifdef _WIN32
-    return gwl::launcherDataDir();
-#else
-    return std::filesystem::current_path();
-#endif
-}
-
 // File dialogs can change the working directory, so configuration paths must be absolute.
-const std::string kSettingsFile = gwl::pathToUtf8(configFolder() / "Settings.json");
-const std::string kAccountsFile = gwl::pathToUtf8(configFolder() / "Accounts.json");
+const std::string kSettingsFile = gwl::pathToUtf8(gwl::launcherFolder() / "Settings.json");
+const std::string kAccountsFile = gwl::pathToUtf8(gwl::launcherFolder() / "Accounts.json");
 bool accountsReloading = false;
 
 // The one account list shares its cache with a worker, independently of its WebView's cooldown/recreation.
@@ -107,7 +99,7 @@ AppState::AppState(std::string pageHtml) : page(std::move(pageHtml)) {
     }
     // Settings, accounts and Guild Wars downloads are kept in the folder the launcher runs from, so without a writable folder none
     // of them save.
-    if (const auto folder = gwl::executablePath().parent_path(); !gwl::isWritableFolder(folder)) {
+    if (const auto folder = gwl::launcherFolder(); !gwl::isWritableFolder(folder)) {
         showError("Launcher folder isn't writable: " + gwl::pathToUtf8(folder) +
                        ". Move the launcher or change the folder's permissions to save settings, accounts and downloads.");
     }

@@ -125,6 +125,10 @@ fs::path executablePath() {
     return fs::read_symlink("/proc/self/exe");
 }
 
+fs::path launcherFolder() {
+    return executablePath().parent_path();
+}
+
 void createShortcut(const fs::path& file, const fs::path& target, const std::string& arguments, const std::string& description,
                     const std::string& iconPng) {
     const fs::path iconFile = fs::current_path() / kIconFile;
