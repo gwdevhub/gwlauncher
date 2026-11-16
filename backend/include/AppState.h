@@ -137,7 +137,7 @@ struct AppState {
     // Cleared to stop the check that the desktop still has the tray.
     std::shared_ptr<std::atomic<bool>> trayWatch;
     // Where the tray icon was last clicked, so the list opens beside it.
-    std::optional<Rect> trayAnchor;
+    std::optional<ScreenRect> trayAnchor;
     // Whether a right click on the tray icon opened the list, which keeps it on screen when it loses focus. A left click's list hides.
     bool listOpenedByRightClick = false;
     // When the list was last shown. Focus lost before this doesn't hide it.
@@ -156,7 +156,7 @@ struct AppState {
     // Handles a tray click. Defined in TrayMode.cpp.
     void trayEvent(gwl::TrayAction action, int x, int y);
     // Shows the list beside the tray icon when there's an anchor, or in the middle of the screen without one.
-    void showList(std::optional<Rect> click, std::optional<Rect> trayRect = std::nullopt);
+    void showList(std::optional<ScreenRect> click, std::optional<ScreenRect> trayRect = std::nullopt);
     void showListAtStart();
     void hideList();
     // Remembers the list's place and size in the settings, while it's shown.

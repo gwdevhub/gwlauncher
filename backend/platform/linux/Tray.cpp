@@ -374,7 +374,7 @@ TrayIcon::TrayIcon(const std::string& iconPng, TrayHandler onEvent)
 TrayIcon::~TrayIcon() = default;
 
 // The StatusNotifierItem doesn't report where it's drawn, so the list is placed by the tray's region instead.
-std::optional<Rect> TrayIcon::rect() const {
+std::optional<ScreenRect> TrayIcon::rect() const {
     return std::nullopt;
 }
 

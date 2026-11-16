@@ -37,9 +37,8 @@ std::string IssuesWindow::devUrl() const {
     return developmentUrl();
 }
 
-bool IssuesWindow::mayClose() {
+void IssuesWindow::onHidden() {
     app_.endQuickIfIdle();
-    return true;
 }
 
 void AppState::openIssues(const std::string& key, const Json& args) {

@@ -26,8 +26,11 @@ std::string PromptWindow::devUrl() const {
 
 bool PromptWindow::mayClose() {
     app_.answerChoice(prompt_["id"].get<std::uint64_t>(), std::nullopt);
-    app_.endQuickIfIdle();
     return true;
+}
+
+void PromptWindow::onHidden() {
+    app_.endQuickIfIdle();
 }
 
 // Prompts are asked from the page or from the launcher. The window answers through the "answer" call.

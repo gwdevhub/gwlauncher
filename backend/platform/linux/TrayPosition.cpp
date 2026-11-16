@@ -138,7 +138,7 @@ std::string roleOf(const TrayApi& api, GDBusConnection* bus, const std::string& 
 }
 
 // The screen extents of an object, when it has a size.
-std::optional<Rect> extentsOf(const TrayApi& api, GDBusConnection* bus, const std::string& name, const std::string& path) {
+std::optional<ScreenRect> extentsOf(const TrayApi& api, GDBusConnection* bus, const std::string& name, const std::string& path) {
     // GetExtents answers with its rectangle inside a struct.
     GVariant* reply = callOn(api, bus, name, path, kComponent, "GetExtents", api.newVariant("(u)", 0u), "((iiii))");
     if (!reply) {
@@ -153,13 +153,13 @@ std::optional<Rect> extentsOf(const TrayApi& api, GDBusConnection* bus, const st
     if (width <= 0 || height <= 0) {
         return std::nullopt;
     }
-    return Rect{x, y, width, height};
+    return ScreenRect{x, y, width, height};
 }
 
 // The panel's band: the panel strip, and the widgets' reach a little way into the screen from it. Icons on the panel's edge
 // can sit just outside the strip, so the band takes them in.
-Rect panelBand(const Rect& strip, const Rect& screen) {
-    Rect band = strip;
+ScreenRect panelBand(const ScreenRect& strip, const ScreenRect& screen) {
+    ScreenRect band = strip;
     if (strip.isVertical()) {
         if (strip.x == screen.x) {
             band.width += kPanelBand;
@@ -178,8 +178,8 @@ Rect panelBand(const Rect& strip, const Rect& screen) {
 
 // Adds the widgets on the panel's band, at the tray's end of it, with their roles. The tray sits at the far end of the panel:
 // the right on a horizontal panel, the bottom on a vertical one. Walks the panel's whole tree.
-void collectPanelWidgets(const TrayApi& api, GDBusConnection* bus, const std::string& name, const std::string& path, const Rect& band,
-                         const Rect& strip, int depth, std::vector<TrayWidget>& out) {
+void collectPanelWidgets(const TrayApi& api, GDBusConnection* bus, const std::string& name, const std::string& path, const ScreenRect& band,
+                         const ScreenRect& strip, int depth, std::vector<TrayWidget>& out) {
     if (depth > kMaxDepth) {
         return;
     }
@@ -194,7 +194,7 @@ void collectPanelWidgets(const TrayApi& api, GDBusConnection* bus, const std::st
     }
 }
 
-std::optional<Rect> atspiTrayRegion(const TrayApi& api, const Rect& strip, const Rect& screen) {
+std::optional<ScreenRect> atspiTrayRegion(const TrayApi& api, const ScreenRect& strip, const ScreenRect& screen) {
     GDBusConnection* bus = accessibilityBus(api);
     if (!bus) {
         return std::nullopt;
@@ -254,7 +254,7 @@ const XApi* xApi() {
 }
 
 // The window of a legacy system tray, when one owns the tray selection, at its place on the screen.
-std::optional<Rect> x11TrayRegion() {
+std::optional<ScreenRect> x11TrayRegion() {
     const XApi* x = xApi();
     if (!x) {
         return std::nullopt;
@@ -263,7 +263,7 @@ std::optional<Rect> x11TrayRegion() {
     if (!display) {
         return std::nullopt;
     }
-    std::optional<Rect> region;
+    std::optional<ScreenRect> region;
     const int screen = x->defaultScreen(display);
     const std::string selection = "_NET_SYSTEM_TRAY_S" + std::to_string(screen);
     const XId atom = x->internAtom(display, selection.c_str(), 1);
@@ -281,7 +281,7 @@ std::optional<Rect> x11TrayRegion() {
             int screenY = 0;
             XId child = 0;
             x->translateCoordinates(display, owner, x->rootWindow(display, screen), 0, 0, &screenX, &screenY, &child);
-            region = Rect{screenX, screenY, static_cast<int>(width), static_cast<int>(height)};
+            region = ScreenRect{screenX, screenY, static_cast<int>(width), static_cast<int>(height)};
         }
     }
     x->closeDisplay(display);
@@ -290,21 +290,21 @@ std::optional<Rect> x11TrayRegion() {
 
 }  // namespace
 
-std::optional<Rect> locateTray(const Rect& screen, const Rect& workArea) {
+std::optional<ScreenRect> locateTray(const ScreenRect& screen, const ScreenRect& workArea) {
     // The panel is the strip the work area leaves out, on whichever edge it's on. Without one there's no panel to search.
     const auto strip = panelStrip(screen, workArea);
     if (!strip) {
         return std::nullopt;
     }
-    std::optional<Rect> region;
+    std::optional<ScreenRect> region;
     if (const TrayApi* api = trayApi()) {
         region = atspiTrayRegion(*api, *strip, screen);
     }
     if (!region) {
         region = x11TrayRegion();
     }
-    // A legacy tray's selection can belong to a helper window parked off the screen, which says nothing about the icon row.
-    if (region && !screen.contains(*region)) {
+    // A legacy tray's selection can belong to a helper window parked off the screen, or in a corner, which says nothing about the icon row.
+    if (region && (!screen.contains(*region) || !strip->contains(*region))) {
         return std::nullopt;
     }
     return region;

@@ -19,9 +19,8 @@ std::string MessageWindow::devUrl() const {
     return developmentUrl();
 }
 
-bool MessageWindow::mayClose() {
+void MessageWindow::onHidden() {
     app_.endQuickIfIdle();
-    return true;
 }
 
 void AppState::openMessage(const std::string& title, const std::string& text) {

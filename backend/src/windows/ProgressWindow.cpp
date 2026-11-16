@@ -20,9 +20,8 @@ std::string ProgressWindow::devUrl() const {
     return developmentUrl();
 }
 
-bool ProgressWindow::mayClose() {
+void ProgressWindow::onHidden() {
     app_.endQuickIfIdle();
-    return true;
 }
 
 void ProgressWindow::onPageReady() {

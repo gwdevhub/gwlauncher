@@ -63,6 +63,10 @@ fs::path executablePath() {
     return fs::path(std::wstring(buffer, length));
 }
 
+fs::path launcherFolder() {
+    return executablePath().parent_path();
+}
+
 void createShortcut(const fs::path& file, const fs::path& target, const std::string& arguments, const std::string& description,
                     const std::string&) {
     // COM is initialised on this thread for the call, and released after it when this call started it.
