@@ -202,7 +202,7 @@ TrayIcon::TrayIcon(const std::string& iconPng, TrayHandler onEvent) : item_(std:
 
 TrayIcon::~TrayIcon() = default;
 
-std::optional<Rect> TrayIcon::rect() const {
+std::optional<ScreenRect> TrayIcon::rect() const {
     if (!item_ || !item_->added) {
         return std::nullopt;
     }
@@ -214,14 +214,14 @@ std::optional<Rect> TrayIcon::rect() const {
     if (FAILED(Shell_NotifyIconGetRect(&identifier, &rect))) {
         return std::nullopt;
     }
-    return Rect{rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top};
+    return ScreenRect{rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top};
 }
 
 bool hasTray() {
     return FindWindowW(L"Shell_TrayWnd", nullptr) != nullptr;
 }
 
-std::optional<Rect> locateTray(const Rect& screen, const Rect&) {
+std::optional<ScreenRect> locateTray(const ScreenRect& screen, const ScreenRect&) {
     // The notification area holds the tray icons, and the clock. It's a child of the taskbar.
     HWND taskbar = FindWindowW(L"Shell_TrayWnd", nullptr);
     HWND notify = taskbar ? FindWindowExW(taskbar, nullptr, L"TrayNotifyWnd", nullptr) : nullptr;
@@ -232,7 +232,7 @@ std::optional<Rect> locateTray(const Rect& screen, const Rect&) {
     if (!GetWindowRect(notify, &rect)) {
         return std::nullopt;
     }
-    const Rect region{rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top};
+    const ScreenRect region{rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top};
     if (region.width <= 0 || region.height <= 0 || !screen.contains(region)) {
         return std::nullopt;
     }

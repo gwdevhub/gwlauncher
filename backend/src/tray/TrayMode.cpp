@@ -108,7 +108,7 @@ void AppState::trayLost() {
 void AppState::trayEvent(gwl::TrayAction action, int x, int y) {
     switch (action) {
     case gwl::TrayAction::Activate:
-        trayAnchor = Rect{x, y, 0, 0};
+        trayAnchor = ScreenRect{x, y, 0, 0};
         if (list && list->isVisible()) {
             hideList();
         } else if (std::chrono::steady_clock::now() - listHiddenByFocusAt > kTrayClickAfterFocusLoss) {
@@ -117,7 +117,7 @@ void AppState::trayEvent(gwl::TrayAction action, int x, int y) {
         }
         break;
     case gwl::TrayAction::RightClick:
-        trayAnchor = Rect{x, y, 0, 0};
+        trayAnchor = ScreenRect{x, y, 0, 0};
         listOpenedByRightClick = true;
         showList(trayAnchor);
         break;
@@ -148,7 +148,7 @@ void AppState::hideList() {
     list->hide();
 }
 
-void AppState::showList(std::optional<Rect> click, std::optional<Rect> trayRect) {
+void AppState::showList(std::optional<ScreenRect> click, std::optional<ScreenRect> trayRect) {
     if (!list) {
         return;
     }
@@ -166,13 +166,13 @@ void AppState::showList(std::optional<Rect> click, std::optional<Rect> trayRect)
     const int width = actual ? actual->width : scaledSize(baseWidth);
     const int height = actual ? actual->height : scaledSize(baseHeight);
     // Beside a rect: see gwl::placeBeside. The list stays inside the work area.
-    auto besideRect = [&](const Rect& rect, bool portrait) {
-        const Rect beside = gwl::placeBeside(rect, width, height, *area, kTrayGap, portrait);
+    auto besideRect = [&](const ScreenRect& rect, bool portrait) {
+        const ScreenRect beside = gwl::placeBeside(rect, width, height, *area, kTrayGap, portrait);
         return std::make_pair(beside.x, beside.y);
     };
     std::pair<int, int> place{area->centreX() - width / 2, area->centreY() - height / 2};
     const auto screen = gwl::screenSize();
-    const auto strip = screen ? gwl::panelStrip(Rect{0, 0, screen->first, screen->second}, *area) : std::nullopt;
+    const auto strip = screen ? gwl::panelStrip(ScreenRect{0, 0, screen->first, screen->second}, *area) : std::nullopt;
     // In tray mode the list goes beside the icon whenever the desktop gives its rectangle, before the click's point. The panel's
     // orientation decides the side: an icon's rectangle is as tall as the taskbar, so its own shape doesn't say.
     if (!trayRect && tray) {
@@ -211,10 +211,10 @@ void AppState::showListAtStart() {
         showList(std::nullopt);
         return;
     }
-    const Rect screenRect{0, 0, screen->first, screen->second};
+    const ScreenRect screenRect{0, 0, screen->first, screen->second};
     // Finding the tray asks the desktop, so it's asked on a worker, and the list follows on the window's thread.
     workers.submit([screenRect, workRect = *area] { return gwl::locateTray(screenRect, workRect); },
-                   [this](std::optional<Rect> region) {
+                   [this](std::optional<ScreenRect> region) {
                        runOnUiThread([this, region] {
                            if (list) {
                                showList(std::nullopt, region);

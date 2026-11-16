@@ -24,7 +24,7 @@ struct TrayItem;
 // Where the desktop's tray is on the screen: the rectangle of its icons, on whichever edge the panel is. The screen and its
 // work area are what the desktop reports for the monitor. It asks the desktop, so it blocks, and runs on a worker. Nothing
 // when the desktop doesn't say.
-std::optional<Rect> locateTray(const Rect& screen, const Rect& workArea);
+std::optional<ScreenRect> locateTray(const ScreenRect& screen, const ScreenRect& workArea);
 
 // The icon in the tray, shown while the object lives. iconPng is the PNG the icon is drawn from. Throws std::runtime_error
 // with the reason when the desktop has no tray to take it.
@@ -37,7 +37,7 @@ public:
     TrayIcon& operator=(const TrayIcon&) = delete;
 
     // The icon's own rectangle on the screen, when the desktop reports it. Nothing when it doesn't.
-    std::optional<Rect> rect() const;
+    std::optional<ScreenRect> rect() const;
 
 private:
     std::unique_ptr<TrayItem> item_;
