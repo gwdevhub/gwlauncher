@@ -43,7 +43,7 @@ const char* const kUsage = R"usage(Usage: GW_Launcher.cli.exe --launch <account.
                   }
                   A mod's "type" is 0 for a texture mod or 1 for a DLL, and it's required.
                   "fileName" is the mod's path, and "active" defaults to true.
-  <timeout-ms>    How long to wait for each mod DLL, the game's window and input readiness (each), in milliseconds.
+  <timeout-ms>    How long to wait for each mod DLL, the game's window, input readiness, renaming and responsiveness (each), in milliseconds.
   --confirm       Hold the game suspended after it's started. Prints "suspended" on stdout, then
                   reads "resume" or "cancel" from stdin.
 

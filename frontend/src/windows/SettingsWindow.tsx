@@ -160,7 +160,7 @@ export function SettingsWindow() {
                 <input className="text-input w-full select-text rounded border border-border px-1.5 py-1" type="number" min="1" max="4294967" step="1" value={launchTimeoutSeconds} onChange={e => setLaunchTimeoutSeconds(e.target.value)} />
                 <span />
             </label>
-            <Note>Per-step timeout for mod loading, the game window, and input readiness.</Note>
+            <Note>Per-step timeout for mod loading, the game window, input readiness, renaming, and responsiveness.</Note>
 
             {error && <p className="error text-danger">{error}</p>}
             <div className="buttons mt-auto flex justify-end gap-2 pt-1.5">

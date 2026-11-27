@@ -42,7 +42,6 @@ namespace fs = std::filesystem;
 namespace {
 
 const int kWaitStepMs = 200;
-const DWORD kTitleTimeoutMs = 5000;
 const DWORD kInputIdleMs = 1000;
 const UINT kWmSetText = 0x0C;
 const DWORD kProcessWow64Information = 26;
@@ -551,10 +550,10 @@ void waitForWindow(const GameProcess& game, const std::string& name, DWORD timeo
             SendMessageW(window, kWmSetText, 0, reinterpret_cast<LPARAM>(wideName.c_str()));
             return windowTitle(window) == wideName;
         },
-        kTitleTimeoutMs);
+        timeoutMs);
 
-    if (!isResponding(mainWindow(processId))) {
-        fail("Failed to wait for process to respond after " + std::to_string(kTitleTimeoutMs / 1000) + " seconds.");
+    if (!waitFor([processId] { return isResponding(mainWindow(processId)); }, timeoutMs)) {
+        fail("Failed to wait for process to respond after " + timeoutSeconds + " seconds. Increase Launch timeout in Settings > Advanced.");
     }
 }
 
